@@ -1,0 +1,112 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Represents a student enrolled in the school.",
+      "type": "object",
+      "properties": {
+        "nis": { "type": "string", "description": "National Student ID" },
+        "nama": { "type": "string", "description": "Full name" },
+        "jenisKelamin": { "type": "string", "description": "L/P" },
+        "kelas": { "type": "string", "description": "Class identifier" }
+      },
+      "required": ["nis", "nama", "jenisKelamin", "kelas"]
+    },
+    "MaterialConfig": {
+      "title": "Material Config",
+      "description": "Configuration for a material/course.",
+      "type": "object",
+      "properties": {
+        "isActive": { "type": "boolean", "description": "Whether the material is visible to students" },
+        "isGatekeepingEnabled": { "type": "boolean", "description": "Whether students are forced to take quiz to pass to next topic" },
+        "topicTimers": {
+          "type": "object",
+          "description": "Timer config per topic (in seconds). Key is topic ID, value is seconds.",
+          "additionalProperties": { "type": "number" }
+        }
+      }
+    },
+    "Assessment": {
+      "title": "Assessment",
+      "description": "The result of a student completing a material.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "description": "Reference to student" },
+        "courseId": { "type": "string", "description": "Reference to course" },
+        "courseTitle": { "type": "string", "description": "Title of the course" },
+        "score": { "type": "number", "description": "Final score" },
+        "wrongAnswers": { "type": "number", "description": "Number of mistakes" },
+        "completedAt": { "type": "string", "format": "date-time", "description": "Completion timestamp" }
+      },
+      "required": ["studentId", "courseId", "score", "completedAt"]
+    },
+    "AccessLog": {
+      "title": "Access Log",
+      "description": "Logs every time a student logs in.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "description": "Reference to student" },
+        "studentName": { "type": "string", "description": "Name of the student" },
+        "ip": { "type": "string", "description": "Client IP address" },
+        "device": { "type": "string", "description": "User agent / device info" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Login time" }
+      },
+      "required": ["studentId", "studentName", "ip", "device", "timestamp"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Announcement from admin to students.",
+      "type": "object",
+      "properties": {
+        "targetType": { "type": "string", "enum": ["all", "class", "student"], "description": "Who can see this" },
+        "targetValue": { "type": "string", "description": "Class ID or Student ID (empty if all)" },
+        "content": { "type": "string", "description": "Message text" },
+        "link": { "type": "string", "description": "Optional clickable link" },
+        "senderId": { "type": "string", "description": "ID of sender (admin)" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Sent time" }
+      },
+      "required": ["targetType", "content", "senderId", "timestamp"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Notification for admins about student activities.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["course_completion"], "description": "Type of event" },
+        "studentId": { "type": "string", "description": "ID of the student" },
+        "studentName": { "type": "string", "description": "Name of the student" },
+        "courseId": { "type": "string", "description": "ID of the course" },
+        "courseTitle": { "type": "string", "description": "Title of the course" },
+        "score": { "type": "number", "description": "Score achieved" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the event occurred" }
+      },
+      "required": ["type", "studentId", "studentName", "courseId", "courseTitle", "score", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "Collection of students."
+    },
+    "/material_configs/{courseId}": {
+      "schema": "MaterialConfig",
+      "description": "Dynamic configuration for courses (like activation status)."
+    },
+    "/assessments/{assessmentId}": {
+      "schema": "Assessment",
+      "description": "Student assessment results."
+    },
+    "/access_logs/{logId}": {
+      "schema": "AccessLog",
+      "description": "History of student logins."
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Announcements from teacher/admin to students."
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Notifications for admin users."
+    }
+  }
+}
