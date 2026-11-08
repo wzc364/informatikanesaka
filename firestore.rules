@@ -26,11 +26,6 @@ service cloud.firestore {
       return request.resource.data;
     }
 
-    // Default deny
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
     // App Settings - PUBLIC READ
     match /app_settings/{settingId} {
       allow get, list: if true;
@@ -51,7 +46,7 @@ service cloud.firestore {
 
     // Announcements - PUBLIC READ
     match /announcements/{announcementId} {
-      allow read, list: if true;
+      allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 
@@ -78,6 +73,11 @@ service cloud.firestore {
     match /notifications/{notificationId} {
       allow create: if isSignedIn();
       allow read, list, delete: if isAdmin();
+    }
+
+    // Default deny (Moved to bottom)
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
