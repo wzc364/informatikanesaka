@@ -771,7 +771,7 @@ Algoritma adalah urutan langkah-langkah logis dan sistematis untuk menyelesaikan
 
 ### Apa itu Algoritma?
 
-![Ilustrasi Langkah Algoritma Sehari-hari](/images/algo_daily_steps_1794140225028.jpg)
+![Ilustrasi Langkah Algoritma Sehari-hari](/images/algo_daily_steps.jpg)
 
 ### Contoh Sederhana
 Algoritma mencuci tangan:
@@ -807,7 +807,7 @@ Flowchart adalah representasi grafis dari sebuah algoritma. Kita menggunakan sim
 
 ### Simbol dan Maknanya
 
-![Panduan Simbol Flowchart Standar](/images/flowchart_symbols_guide_1794140225483.jpg)
+![Panduan Simbol Flowchart Standar](/images/flowchart_symbols_guide.jpg)
 
 | Simbol | Bentuk | Nama | Fungsi |
 | :--- | :--- | :--- | :--- |
@@ -851,7 +851,7 @@ Flowchart adalah representasi grafis dari sebuah algoritma. Kita menggunakan sim
 - Gunakan **INPUT** dan **OUTPUT**.
 - Gunakan **SET** atau **COMPUTE** untuk perhitungan.
 
-![Konsep Visual Penulisan Pseudocode](/images/pseudocode_concept_visual_1794140227104.jpg)
+![Konsep Visual Penulisan Pseudocode](/images/pseudocode_concept_visual.jpg)
 
 ### Contoh Pseudocode: Menghitung Luas Persegi
 \`\`\`
@@ -891,7 +891,7 @@ Mari kita gabungkan Flowchart dan Pseudocode untuk menyelesaikan satu masalah: *
 
 **Rumus:** Luas = 3.14 x r x r
 
-![Geometri Lingkaran dan Rumus Luas](/images/circle_geometry_formula_1794140226056.jpg)
+![Geometri Lingkaran dan Rumus Luas](/images/circle_geometry_formula.jpg)
 
 ### 1. Representasi Pseudocode
 \`\`\`
@@ -957,7 +957,7 @@ PRINT luas
 
 Dalam algoritma, seringkali kita butuh melakukan hal yang sama berkali-kali. Ini disebut **Iterasi** atau **Perulangan**.
 
-![Visualisasi Alur Perulangan Berulang](/images/looping_cycle_concept_1794140226079.jpg)
+![Visualisasi Alur Perulangan Berulang](/images/looping_cycle_concept.jpg)
     `,
     quiz: [
       {

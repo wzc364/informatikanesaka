@@ -504,6 +504,12 @@ export default function App() {
   
   const [activeTopicId, setActiveTopicId] = useState(activeCourse.topics[0].id);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importModalTab, setImportModalTab] = useState<'manual' | 'excel'>('manual');
+  const [manualStudentNis, setManualStudentNis] = useState('');
+  const [manualStudentNama, setManualStudentNama] = useState('');
+  const [manualStudentJenisKelamin, setManualStudentJenisKelamin] = useState('L');
+  const [manualStudentKelas, setManualStudentKelas] = useState('');
+  const [isAddingStudent, setIsAddingStudent] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
   
   useEffect(() => {
@@ -1025,6 +1031,34 @@ export default function App() {
   
   // Re-fetch helper if needed for setDoc (but it's better to just import it at top)
 
+  const handleAddStudentManual = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualStudentNis || !manualStudentNama || !manualStudentKelas) {
+      alert('Mohon lengkapi semua data');
+      return;
+    }
+    
+    setIsAddingStudent(true);
+    try {
+      await addDoc(collection(db, 'students'), {
+        nis: manualStudentNis,
+        nama: manualStudentNama,
+        jenisKelamin: manualStudentJenisKelamin,
+        kelas: manualStudentKelas
+      });
+      
+      setManualStudentNis('');
+      setManualStudentNama('');
+      setManualStudentKelas('');
+      setIsImportModalOpen(false);
+      alert('Siswa berhasil ditambahkan');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'students');
+    } finally {
+      setIsAddingStudent(false);
+    }
+  };
+
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1098,8 +1132,8 @@ export default function App() {
         {/* Mobile-friendly fixed header */}
         <header className="w-full bg-white px-4 md:px-8 py-4 border-b border-slate-100 flex items-center justify-between z-10 shrink-0">
           <div className="flex items-center gap-3">
-             <div className="bg-brand/10 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center border border-brand/20">
-                <User size={20} className="text-brand md:size-[24px]" />
+             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center border border-brand/20 overflow-hidden bg-white">
+                <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain p-1" />
              </div>
              <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:block">Profil Siswa</p>
@@ -1131,11 +1165,8 @@ export default function App() {
         <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 space-y-6 md:space-y-8 w-full max-w-5xl mx-auto">
           <div className="bg-white p-6 md:p-10 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col md:flex-row gap-6 md:gap-10 items-center md:items-start text-center md:text-left">
             <div className="relative shrink-0">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-brand rounded-3xl flex items-center justify-center text-white p-1 shadow-lg shadow-brand/20 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-accent" />
-                <div className="w-full h-full bg-white rounded-[1.4rem] flex items-center justify-center">
-                  <User size={40} className="text-brand md:size-[56px]" />
-                </div>
+              <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-3xl flex items-center justify-center p-2 shadow-lg shadow-black/5 relative overflow-hidden border border-slate-100">
+                <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain" />
               </div>
               <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl border-[3px] border-white shadow-sm">
                 <CheckCircle size={16} />
@@ -1417,13 +1448,8 @@ export default function App() {
         {/* Mobile Header */}
         <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-50 flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <div className="bg-brand w-8 h-8 rounded-lg flex items-center justify-center shadow-lg overflow-hidden relative border border-white/20">
-              <div className="absolute top-0 left-0 w-full h-0.5 bg-accent" />
-              {settingsConfig.logoUrl ? (
-                <img src={settingsConfig.logoUrl} alt="Logo" className="w-full h-full object-cover" />
-              ) : (
-                <span className="font-bold text-white text-base">IK</span>
-              )}
+            <div className="bg-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md overflow-hidden relative border border-slate-100">
+              <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain p-1" />
             </div>
             <h2 className="text-sm font-bold text-slate-800">SMPN 1 Kawali</h2>
           </div>
@@ -1455,13 +1481,8 @@ export default function App() {
         )}>
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="bg-brand w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden relative border border-white/10">
-                <div className="absolute top-0 left-0 w-full h-1 bg-accent" />
-                {settingsConfig.logoUrl ? (
-                  <img src={settingsConfig.logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="font-bold text-white text-xl">IK</span>
-                )}
+              <div className="bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden relative border border-slate-700/30">
+                <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain p-1" />
               </div>
               <div>
                 <h2 className="text-lg font-bold leading-tight uppercase tracking-tight">SMPN 1 Kawali</h2>
@@ -3977,6 +3998,179 @@ export default function App() {
                         </>
                       )}
                     </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+
+            {isImportModalOpen && (
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+                <motion.div 
+                  initial={{ scale: 0.9, y: 20, opacity: 0 }}
+                  animate={{ scale: 1, y: 0, opacity: 1 }}
+                  exit={{ scale: 0.9, y: 20, opacity: 0 }}
+                  className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl"
+                >
+                  <div className="p-8 pb-0">
+                    <div className="flex items-center justify-between mb-8">
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-brand/10 border border-brand/20 rounded-2xl text-brand">
+                          <Users size={24} />
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-black text-slate-800 tracking-tight">Tambah Siswa</h3>
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Kelola data peserta didik</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setIsImportModalOpen(false)}
+                        className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+
+                    <div className="flex bg-slate-50 p-1 rounded-2xl mb-8 border border-slate-100">
+                      <button 
+                        onClick={() => setImportModalTab('manual')}
+                        className={cn(
+                          "flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300",
+                          importModalTab === 'manual' ? "bg-white text-brand shadow-md" : "text-slate-400 hover:text-slate-600"
+                        )}
+                      >
+                        Input Manual
+                      </button>
+                      <button 
+                        onClick={() => setImportModalTab('excel')}
+                        className={cn(
+                          "flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300",
+                          importModalTab === 'excel' ? "bg-white text-brand shadow-md" : "text-slate-400 hover:text-slate-600"
+                        )}
+                      >
+                        Impor Excel
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-8 pt-0">
+                    {importModalTab === 'manual' ? (
+                      <form onSubmit={handleAddStudentManual} className="space-y-4 animate-in slide-in-from-left-4 duration-300">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">NIS (Nomor Induk)</label>
+                            <input 
+                              type="text" 
+                              value={manualStudentNis}
+                              onChange={(e) => setManualStudentNis(e.target.value)}
+                              placeholder="Contoh: 2021001" 
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Kelas</label>
+                            <input 
+                              type="text" 
+                              value={manualStudentKelas}
+                              onChange={(e) => setManualStudentKelas(e.target.value)}
+                              placeholder="Contoh: 7A, 8B" 
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Nama Lengkap Siswa</label>
+                          <input 
+                            type="text" 
+                            value={manualStudentNama}
+                            onChange={(e) => setManualStudentNama(e.target.value)}
+                            placeholder="Masukkan Nama Lengkap" 
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Jenis Kelamin</label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button 
+                              type="button"
+                              onClick={() => setManualStudentJenisKelamin('L')}
+                              className={cn(
+                                "py-3 rounded-2xl border font-bold text-sm transition-all",
+                                manualStudentJenisKelamin === 'L' 
+                                  ? "bg-blue-50 border-blue-200 text-blue-600 shadow-sm" 
+                                  : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
+                              )}
+                            >
+                              Laki-laki
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => setManualStudentJenisKelamin('P')}
+                              className={cn(
+                                "py-3 rounded-2xl border font-bold text-sm transition-all",
+                                manualStudentJenisKelamin === 'P' 
+                                  ? "bg-pink-50 border-pink-200 text-pink-600 shadow-sm" 
+                                  : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
+                              )}
+                            >
+                              Perempuan
+                            </button>
+                          </div>
+                        </div>
+
+                        <button 
+                          type="submit" 
+                          disabled={isAddingStudent}
+                          className="w-full py-4 bg-brand text-white rounded-[1.5rem] font-black text-lg shadow-xl shadow-brand/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
+                        >
+                          {isAddingStudent ? (
+                            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          ) : (
+                            <>
+                              <Plus size={20} /> Tambahkan Siswa
+                            </>
+                          )}
+                        </button>
+                      </form>
+                    ) : (
+                      <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                        <div className="p-8 bg-blue-50 border border-dashed border-blue-200 rounded-[2rem] flex flex-col items-center text-center">
+                          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-brand mb-4 shadow-sm">
+                            <Database size={32} />
+                          </div>
+                          <h4 className="text-lg font-black text-slate-800 mb-2">Impor Data Excel</h4>
+                          <p className="text-xs font-bold text-slate-500 leading-relaxed max-w-xs mb-6">
+                            Gunakan format kolom: <br/> 
+                            <span className="text-brand font-black">NIS | Nama | L/P | Kelas</span>
+                          </p>
+                          
+                          <label className="w-full cursor-pointer">
+                            <input 
+                              type="file" 
+                              accept=".xlsx, .xls" 
+                              onChange={handleExcelUpload} 
+                              className="hidden" 
+                            />
+                            <div className="w-full py-4 bg-white border-2 border-brand/20 text-brand rounded-2xl font-black text-sm hover:bg-brand hover:text-white hover:border-brand transition-all flex items-center justify-center gap-2 shadow-sm">
+                              <Plus size={18} /> Pilih File Excel
+                            </div>
+                          </label>
+                        </div>
+                        
+                        <div className="bg-slate-50 p-4 rounded-2xl flex items-start gap-3">
+                          <div className="w-5 h-5 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 shrink-0 mt-0.5">
+                            <Info size={12} />
+                          </div>
+                          <p className="text-[10px] font-bold text-slate-500 leading-relaxed">
+                            Pastikan file excel Anda memiliki baris judul (header) dan data dimulai dari baris kedua.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               </div>

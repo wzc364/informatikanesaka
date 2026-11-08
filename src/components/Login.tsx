@@ -172,14 +172,10 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-16 h-16 bg-brand rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-brand/20 overflow-hidden relative"
+            className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl border border-slate-100 overflow-hidden relative"
           >
-            {settingsConfig?.logoUrl ? (
-                <img src={settingsConfig.logoUrl} alt="Logo" className="w-full h-full object-cover" />
-            ) : (
-                <Brain size={32} className="text-white" />
-            )}
-            <div className="absolute top-0 left-0 w-full h-1 bg-accent/80" />
+            <img src="/images/smpn1kawali_logo.jpg" alt="SMPN 1 Kawali Logo" className="w-full h-full object-contain p-1" />
+            <div className="absolute top-0 left-0 w-full h-1 bg-brand" />
           </motion.div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">SMPN 1 Kawali</h1>
           <p className="text-slate-500 font-medium">Informatika</p>
