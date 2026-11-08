@@ -18,20 +18,12 @@ service cloud.firestore {
       );
     }
     
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     function incoming() {
       return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
     }
 
     // Default deny
@@ -51,20 +43,24 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Students collection
+    // Students collection - PUBLIC READ (for login query)
     match /students/{studentId} {
-      // Students need to be read by the login logic (querying by NIS)
       allow get, list: if true;
       allow write: if isAdmin();
     }
 
+    // Announcements - PUBLIC READ
+    match /announcements/{announcementId} {
+      allow read, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     // Assessments
     match /assessments/{assessmentId} {
-      // Students can create their own assessments, admin can read all
-      allow read, list: if isSignedIn();
-      allow create: if isSignedIn() && incoming().studentId == request.auth.uid;
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow list: if isSignedIn();
+      allow get: if isSignedIn();
+      allow create: if isSignedIn(); 
+      allow update, delete: if isAdmin();
     }
     
     // Active Sessions
@@ -74,13 +70,8 @@ service cloud.firestore {
 
     // Access Logs
     match /access_logs/{logId} {
-      allow create, read, list: if isSignedIn();
-    }
-
-    // Announcements
-    match /announcements/{announcementId} {
-      allow read, list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow create: if isSignedIn();
+      allow read, list: if isAdmin();
     }
 
     // Notifications

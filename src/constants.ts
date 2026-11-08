@@ -1545,7 +1545,7 @@ export const SCRATCH_TOPICS: Topic[] = [
 
 Selamat datang di dunia **Scratch**! Scratch adalah bahasa pemrograman visual berbasis balok (*block-based visual programming*) yang dikembangkan oleh **MIT Media Lab**. Scratch dirancang khusus agar siswa dapat belajar konsep logika pemrograman komputer secara seru dan intuitif tanpa harus takut salah mengetik sintaks (*syntax error*) seperti koma atau titik-koma.
 
-![Diagram Antarmuka Editor Scratch 3.0](/src/assets/images/scratch_interface_1794090375318.jpg)
+![Diagram Antarmuka Editor Scratch 3.0](/images/scratch_interface_1794090375318.jpg)
 
 ### Mengapa Belajar Scratch?
 1. **Berpikir Komputasional (Computational Thinking)**: Melatih pemecahan masalah (*problem solving*), dekomposisi masalah besar menjadi langkah-langkah kecil, dan pengenalan pola algoritma.
@@ -1599,7 +1599,7 @@ Perhatikan gambar arsitektur antarmuka di atas. Ruang kerja Scratch terbagi rapi
 
 Di Scratch, panggung tempat karakter bergerak bekerja dengan sistem **Koordinat Kartesius 2 Dimensi (Sumbu X dan Sumbu Y)**. Memahami koordinat adalah kunci utama untuk membuat karakter bergerak lincah dan tepat sasaran!
 
-![Sistem Koordinat Kartesius Stage Scratch](/src/assets/images/scratch_coordinates_1794090375658.jpg)
+![Sistem Koordinat Kartesius Stage Scratch](/images/scratch_coordinates_1794090375658.jpg)
 
 ### Ukuran Layar & Titik Pusat (Origin)
 - **Dimensi Total Panggung**: Lebar **480 piksel** dan Tinggi **360 piksel** (rasio 4:3).
@@ -1666,7 +1666,7 @@ Perhatikan garis biru (horizontal) dan garis hijau (vertikal) pada diagram pandu
 
 Setiap balok di Scratch memiliki **warna tematik** dan **bentuk fisik** tersendiri. Sistem visual ini dirancang agar kita bisa langsung mengenali fungsi instruksi hanya dalam satu lirikan mata!
 
-![Ilustrasi Kategori Balok Kode Scratch 3D Puzzle](/src/assets/images/scratch_blocks_1794090375516.jpg)
+![Ilustrasi Kategori Balok Kode Scratch 3D Puzzle](/images/scratch_blocks_1794090375516.jpg)
 
 ### Kode Warna Kategori Balok
 
@@ -1722,7 +1722,7 @@ Setiap balok di Scratch memiliki **warna tematik** dan **bentuk fisik** tersendi
 
 Dua pilar terpenting dalam logika berpikir komputasional adalah **Perulangan (Looping)** dan **Percabangan (Conditional Logic)**. Di Scratch, kedua konsep ini direpresentasikan dengan balok berbentuk huruf **C** (*C-shaped blocks*) yang membungkus balok-balok perintah lain di mulutnya.
 
-![Diagram Alur Perulangan Forever dan Percabangan If-Else di Scratch](/src/assets/images/scratch_loops_logic_1794090377114.jpg)
+![Diagram Alur Perulangan Forever dan Percabangan If-Else di Scratch](/images/scratch_loops_logic_1794090377114.jpg)
 
 ### 1. Logika Perulangan (Looping)
 
@@ -1790,7 +1790,7 @@ forever
 
 Saatnya mempraktikkan seluruh pemahaman yang telah kita pelajari! Kita akan membuat proyek video game interaktif: **Kucing Penangkap Bintang (Star Catcher)**.
 
-![Proyek Game Star Catcher Lengkap dengan Skor dan Nyawa](/src/assets/images/scratch_game_project_1794090376798.jpg)
+![Proyek Game Star Catcher Lengkap dengan Skor dan Nyawa](/images/scratch_game_project_1794090376798.jpg)
 
 ### Aturan Permainan (*Game Mechanics*)
 1. Pemain mengendalikan **Kucing Scratch** di bagian bawah panggung secara horizontal.

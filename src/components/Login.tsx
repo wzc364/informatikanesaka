@@ -94,7 +94,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
         logAccess(studentObj);
       } catch (authError) {
         console.error('Anonymous sign-in failed during student login:', authError);
-        // We still proceed to dashboard, but some features might be limited
+        alert('Catatan: Fitur pencatatan otomatis dinonaktifkan karena konfigurasi server (Anonymous Auth). Siswa tetap dapat belajar.');
       }
 
       setCurrentScore(100);
@@ -166,7 +166,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
   };
 
   return (
-    <div className="min-h-screen bg-violet-50 flex items-center justify-center font-sans p-6 selection:bg-brand/30">
+    <div className="min-h-screen bg-blue-50/50 flex items-center justify-center font-sans p-6 selection:bg-brand/30">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <motion.div 
@@ -179,6 +179,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
             ) : (
                 <Brain size={32} className="text-white" />
             )}
+            <div className="absolute top-0 left-0 w-full h-1 bg-accent/80" />
           </motion.div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">SMPN 1 Kawali</h1>
           <p className="text-slate-500 font-medium">Informatika</p>
@@ -265,7 +266,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                     ) : (
                       <>
                         Masuk Ke Kelas
-                        <ArrowRight size={18} />
+                        <ArrowRight size={18} className="text-accent" />
                       </>
                     )}
                   </button>
@@ -279,8 +280,8 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                   onSubmit={handleAdminLogin}
                   className="space-y-4"
                 >
-                  <div className="p-4 bg-violet-50 border border-violet-100 rounded-2xl text-violet-700 text-xs font-semibold leading-relaxed flex items-center gap-3">
-                    <ShieldCheck size={20} className="shrink-0 text-violet-600" />
+                  <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-blue-700 text-xs font-semibold leading-relaxed flex items-center gap-3">
+                    <ShieldCheck size={20} className="shrink-0 text-blue-600" />
                     <p>Khusus akses administrator. Masuk menggunakan akun admin Anda.</p>
                   </div>
 
@@ -328,7 +329,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                     ) : (
                       <>
                         Masuk Sebagai Admin
-                        <ArrowRight size={18} />
+                        <ArrowRight size={18} className="text-accent" />
                       </>
                     )}
                   </button>

@@ -841,14 +841,6 @@ export default function App() {
     let initialAuthResolved = false;
     const unsubscribe = auth.onAuthStateChanged(user => {
       setAuthState(user);
-      if (!initialAuthResolved) {
-        initialAuthResolved = true;
-        if (!user) {
-          signInAnonymously(auth).catch(e => {
-            console.error("Anonymous sign-in failed. Please enable Anonymous Auth in Firebase console:", e);
-          });
-        }
-      }
     });
 
     return () => unsubscribe();
@@ -878,15 +870,13 @@ export default function App() {
     });
     unsubscribes.push(unsubSettings);
 
-    // Announcements (Everyone authenticated)
-    if (authState) {
-        const unsubAnnouncements = onSnapshot(collection(db, 'announcements'), (snapshot) => {
-          setAnnouncements(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
-        }, (error) => {
-          handleFirestoreError(error, OperationType.LIST, 'announcements');
-        });
-        unsubscribes.push(unsubAnnouncements);
-    }
+    // Announcements (Publicly readable now)
+    const unsubAnnouncements = onSnapshot(collection(db, 'announcements'), (snapshot) => {
+      setAnnouncements(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'announcements');
+    });
+    unsubscribes.push(unsubAnnouncements);
 
     // Admin Data
     if (authState && isAdmin) {
@@ -1108,7 +1098,7 @@ export default function App() {
         {/* Mobile-friendly fixed header */}
         <header className="w-full bg-white px-4 md:px-8 py-4 border-b border-slate-100 flex items-center justify-between z-10 shrink-0">
           <div className="flex items-center gap-3">
-             <div className="bg-brand/10 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center">
+             <div className="bg-brand/10 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center border border-brand/20">
                 <User size={20} className="text-brand md:size-[24px]" />
              </div>
              <div>
@@ -1141,7 +1131,8 @@ export default function App() {
         <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 space-y-6 md:space-y-8 w-full max-w-5xl mx-auto">
           <div className="bg-white p-6 md:p-10 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col md:flex-row gap-6 md:gap-10 items-center md:items-start text-center md:text-left">
             <div className="relative shrink-0">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-gradient-to-tr from-brand to-purple-500 rounded-3xl flex items-center justify-center text-white p-1 shadow-lg shadow-brand/20">
+              <div className="w-24 h-24 md:w-32 md:h-32 bg-brand rounded-3xl flex items-center justify-center text-white p-1 shadow-lg shadow-brand/20 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-accent" />
                 <div className="w-full h-full bg-white rounded-[1.4rem] flex items-center justify-center">
                   <User size={40} className="text-brand md:size-[56px]" />
                 </div>
@@ -1168,8 +1159,9 @@ export default function App() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-4 p-5 bg-brand/[0.04] text-brand rounded-[1.5rem] border border-brand/10 shadow-sm">
-                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-brand/5">
+              <div className="flex items-center gap-4 p-5 bg-blue-50/50 text-blue-800 rounded-[1.5rem] border border-blue-100 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-accent/10 rounded-bl-full pointer-events-none" />
+                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-brand/5 text-brand">
                   <Brain size={24} />
                 </div>
                 <p className="text-base md:text-xl font-bold tracking-tight leading-snug">Selamat datang kembali! Mari lanjutkan petualangan belajarmu hari ini.</p>
@@ -1208,9 +1200,10 @@ export default function App() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           key={msg.id} 
-                          className="bg-white p-4 rounded-2xl border border-brand/20 shadow-sm flex items-start gap-4"
+                          className="bg-white p-4 rounded-2xl border border-brand/10 shadow-sm flex items-start gap-4 relative overflow-hidden group"
                         >
-                          <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0 border border-brand/20 text-brand">
+                          <div className="absolute top-0 left-0 w-1 h-full bg-accent opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100 text-brand">
                             <Bell size={18} />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -1265,8 +1258,8 @@ export default function App() {
                   const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
                   const colors = [
                     { bg: "bg-blue-600", border: "border-blue-700", icon: "text-blue-600" },
-                    { bg: "bg-emerald-600", border: "border-emerald-700", icon: "text-emerald-600" },
-                    { bg: "bg-purple-600", border: "border-purple-700", icon: "text-purple-600" },
+                    { bg: "bg-indigo-600", border: "border-indigo-700", icon: "text-indigo-600" },
+                    { bg: "bg-sky-600", border: "border-sky-700", icon: "text-sky-600" },
                     { bg: "bg-rose-600", border: "border-rose-700", icon: "text-rose-600" },
                     { bg: "bg-amber-500", border: "border-amber-600", icon: "text-amber-500" },
                     { bg: "bg-indigo-600", border: "border-indigo-700", icon: "text-indigo-600" },
@@ -1333,7 +1326,7 @@ export default function App() {
 
           <section>
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-14 h-14 bg-purple-50 border border-purple-100 rounded-2xl flex items-center justify-center text-purple-600 shadow-sm">
+              <div className="w-14 h-14 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
                 <TrendingUp size={28} />
               </div>
               <h2 className="text-xl md:text-3xl font-black text-slate-900 uppercase tracking-tight">Riwayat Skor</h2>
@@ -1411,12 +1404,12 @@ export default function App() {
   if (currentPage === 'admin') {
     const menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: Home, color: 'bg-blue-500/10 text-blue-400' },
-      { id: 'student_management', label: 'Siswa & Kelas', icon: Users, color: 'bg-emerald-500/10 text-emerald-400' },
-      { id: 'materials', label: 'Kelola Materi', icon: BookOpen, color: 'bg-violet-500/10 text-violet-400' },
-      { id: 'assessments', label: 'Hasil Asesmen', icon: TrendingUp, color: 'bg-amber-500/10 text-amber-400' },
-      { id: 'history', label: 'Riwayat Akses', icon: GitBranch, color: 'bg-indigo-500/10 text-indigo-400' },
-      { id: 'announcements', label: 'Pengumuman', icon: Megaphone, color: 'bg-rose-500/10 text-rose-400' },
-      { id: 'settings', label: 'Pengaturan', icon: Settings, color: 'bg-slate-500/10 text-slate-400' },
+      { id: 'student_management', label: 'Siswa & Kelas', icon: Users, color: 'bg-blue-500/10 text-blue-400' },
+      { id: 'materials', label: 'Kelola Materi', icon: BookOpen, color: 'bg-blue-500/10 text-blue-400' },
+      { id: 'assessments', label: 'Hasil Asesmen', icon: TrendingUp, color: 'bg-blue-500/10 text-blue-400' },
+      { id: 'history', label: 'Riwayat Akses', icon: GitBranch, color: 'bg-blue-500/10 text-blue-400' },
+      { id: 'announcements', label: 'Pengumuman', icon: Megaphone, color: 'bg-blue-500/10 text-blue-400' },
+      { id: 'settings', label: 'Pengaturan', icon: Settings, color: 'bg-blue-500/10 text-blue-400' },
     ] as const;
 
     return (
@@ -1424,7 +1417,8 @@ export default function App() {
         {/* Mobile Header */}
         <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-50 flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <div className="bg-gradient-to-tr from-brand to-purple-500 w-8 h-8 rounded-lg flex items-center justify-center shadow-lg overflow-hidden relative">
+            <div className="bg-brand w-8 h-8 rounded-lg flex items-center justify-center shadow-lg overflow-hidden relative border border-white/20">
+              <div className="absolute top-0 left-0 w-full h-0.5 bg-accent" />
               {settingsConfig.logoUrl ? (
                 <img src={settingsConfig.logoUrl} alt="Logo" className="w-full h-full object-cover" />
               ) : (
@@ -1461,7 +1455,8 @@ export default function App() {
         )}>
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-tr from-brand to-purple-500 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden relative">
+              <div className="bg-brand w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden relative border border-white/10">
+                <div className="absolute top-0 left-0 w-full h-1 bg-accent" />
                 {settingsConfig.logoUrl ? (
                   <img src={settingsConfig.logoUrl} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
@@ -1494,10 +1489,11 @@ export default function App() {
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all font-bold text-sm group",
                   adminTab === item.id 
-                    ? "bg-brand text-white shadow-lg shadow-brand/20 lg:scale-[1.02]" 
+                    ? "bg-brand text-white shadow-lg shadow-brand/20 lg:scale-[1.02] relative" 
                     : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                 )}
               >
+                {adminTab === item.id && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-accent rounded-r-full" />}
                 <div className={cn(
                   "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
                   adminTab === item.id ? "bg-white/20 text-white" : item.color
@@ -1694,15 +1690,14 @@ export default function App() {
                 <div className="space-y-8 animate-in fade-in duration-500">
                   {/* Top Modern KPI Highlights Bar */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-                    {/* Card 1: Total Siswa Aktif */}
-                    <div className="relative overflow-hidden bg-white rounded-3xl p-6 border border-emerald-100 shadow-sm hover:shadow-md transition-all group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
+                    <div className="relative overflow-hidden bg-white rounded-3xl p-6 border border-blue-100 shadow-sm hover:shadow-md transition-all group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                          <Radio size={22} className="animate-pulse" />
+                        <div className="w-12 h-12 rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/20">
+                          <Radio size={22} className="text-accent animate-pulse" />
                         </div>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
                           Live Real-time
                         </span>
                       </div>
@@ -1710,19 +1705,18 @@ export default function App() {
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Total Siswa Aktif</p>
                       <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
                         <span>Terhubung ke sistem</span>
-                        <span className="font-bold text-emerald-600">{activeSessionList.length > 0 ? `${activeSessionList.length} Online` : 'Standby'}</span>
+                        <span className="font-bold text-blue-600">{activeSessionList.length > 0 ? `${activeSessionList.length} Online` : 'Standby'}</span>
                       </div>
                     </div>
 
-                    {/* Card 2: Sedang Mengerjakan */}
                     <div className="relative overflow-hidden bg-white rounded-3xl p-6 border border-blue-100 shadow-sm hover:shadow-md transition-all group">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
-                          <Activity size={22} />
+                        <div className="w-12 h-12 rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/20">
+                          <Activity size={22} className="text-accent" />
                         </div>
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-50 text-blue-700 border border-blue-200">
-                          <Zap size={12} />
+                          <Zap size={12} className="text-accent" />
                           Progres
                         </span>
                       </div>
@@ -1767,15 +1761,14 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Card 4: Materi Aktif */}
-                    <div className="relative overflow-hidden bg-white rounded-3xl p-6 border border-violet-100 shadow-sm hover:shadow-md transition-all group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-violet-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
+                    <div className="relative overflow-hidden bg-white rounded-3xl p-6 border border-blue-100 shadow-sm hover:shadow-md transition-all group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 to-purple-500 text-white flex items-center justify-center shadow-lg shadow-violet-500/20">
-                          <Layers size={22} />
+                        <div className="w-12 h-12 rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/20">
+                          <Layers size={22} className="text-accent" />
                         </div>
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-violet-50 text-violet-700 border border-violet-200">
-                          <Sparkles size={12} />
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-50 text-blue-700 border border-blue-200">
+                          <Sparkles size={12} className="text-accent" />
                           Materi
                         </span>
                       </div>
@@ -1783,10 +1776,36 @@ export default function App() {
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Status Materi Aktif</p>
                       <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
                         <span>Modul terbuka</span>
-                        <span className="font-bold text-violet-600">{activeCourseCount} Siap Diakses</span>
+                        <span className="font-bold text-blue-600">{activeCourseCount} Siap Diakses</span>
                       </div>
                     </div>
                   </div>
+
+                  {/* System Health / Setup Guide - Only show if issues detected */}
+                  {!authState?.isAnonymous && !authState?.email && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-[2rem] p-6 flex flex-col md:flex-row items-center gap-6">
+                      <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 shrink-0">
+                        <AlertTriangle size={32} />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-black text-amber-900 mb-1">Peringatan: Sistem Autentikasi Belum Siap</h3>
+                        <p className="text-amber-800 font-medium text-sm leading-relaxed">
+                          Aplikasi mendeteksi bahwa <b>Anonymous Authentication</b> belum diaktifkan di Firebase Console. 
+                          Ini akan menyebabkan siswa gagal login via NIS. Mohon aktifkan di: 
+                          <br/>
+                          <code className="bg-amber-100 px-2 py-0.5 rounded text-amber-900 text-xs font-bold">Console &gt; Authentication &gt; Sign-in method &gt; Anonymous &gt; Enable</code>
+                        </p>
+                      </div>
+                      <a 
+                        href="https://console.firebase.google.com/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="bg-amber-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20"
+                      >
+                        Buka Firebase Console
+                      </a>
+                    </div>
+                  )}
 
                   {/* TOP SECTION: KARTU PARTICIPANT & MONITORING KECURANGAN SEJAJAR DI ATAS */}
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
@@ -1794,7 +1813,7 @@ export default function App() {
                     {/* LEFT COLUMN: KARTU PARTICIPANT */}
                     <div className="xl:col-span-7 bg-white rounded-[2.2rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col transition-all">
                       {/* Vibrant Gradient Header */}
-                      <div className="bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 p-6 md:p-7 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 p-6 md:p-7 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3.5">
                           <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-inner">
                             <Users size={24} />
@@ -1867,9 +1886,9 @@ export default function App() {
                               .sort((a, b) => a.studentName.localeCompare(b.studentName));
 
                             const classThemes = [
-                              { bg: "bg-indigo-50/60", border: "border-indigo-100", header: "text-indigo-900", badge: "bg-indigo-500 text-white", icon: "text-indigo-600" },
                               { bg: "bg-blue-50/60", border: "border-blue-100", header: "text-blue-900", badge: "bg-blue-500 text-white", icon: "text-blue-600" },
-                              { bg: "bg-purple-50/60", border: "border-purple-100", header: "text-purple-900", badge: "bg-purple-500 text-white", icon: "text-purple-600" },
+                              { bg: "bg-indigo-50/60", border: "border-indigo-100", header: "text-indigo-900", badge: "bg-indigo-500 text-white", icon: "text-indigo-600" },
+                              { bg: "bg-sky-50/60", border: "border-sky-100", header: "text-sky-900", badge: "bg-sky-500 text-white", icon: "text-sky-600" },
                               { bg: "bg-emerald-50/60", border: "border-emerald-100", header: "text-emerald-900", badge: "bg-emerald-500 text-white", icon: "text-emerald-600" },
                               { bg: "bg-amber-50/60", border: "border-amber-100", header: "text-amber-900", badge: "bg-amber-500 text-white", icon: "text-amber-600" },
                               { bg: "bg-rose-50/60", border: "border-rose-100", header: "text-rose-900", badge: "bg-rose-500 text-white", icon: "text-rose-600" },

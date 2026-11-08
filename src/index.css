@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #777BB4;
+  --color-brand: #2563eb;
+  --color-accent: #facc15;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
 .markdown-body table {
