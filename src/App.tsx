@@ -1112,7 +1112,7 @@ export default function App() {
 
   if (currentPage === 'login') {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-frame flex items-center justify-center p-4">
         <Login 
           setCurrentPage={setCurrentPage} 
           setIsAdmin={setIsAdmin}
@@ -1128,7 +1128,7 @@ export default function App() {
     const activeCoursesList = COURSES.filter(c => (materialConfigs[c.id]?.isActive ?? true));
     
     return (
-      <div className="flex h-screen bg-[#f8fafc] text-slate-900 flex-col overflow-hidden" style={{ fontFamily: 'Calibri, sans-serif' }}>
+      <div className="flex h-screen bg-frame text-slate-900 flex-col overflow-hidden" style={{ fontFamily: 'Calibri, sans-serif' }}>
         {/* Mobile-friendly fixed header */}
         <header className="w-full bg-white px-4 md:px-8 py-4 border-b border-slate-100 flex items-center justify-between z-10 shrink-0">
           <div className="flex items-center gap-3">
@@ -1182,7 +1182,7 @@ export default function App() {
                   <div className={cn(
                     "px-5 py-2 rounded-2xl text-sm md:text-base font-black uppercase tracking-widest border",
                     currentStudent?.jenisKelamin === 'L' 
-                      ? 'bg-blue-50 text-blue-600 border-blue-100' 
+                      ? 'bg-blue-50 text-brand border-blue-100' 
                       : 'bg-pink-50 text-pink-600 border-pink-100'
                   )}>
                     {currentStudent?.jenisKelamin === 'L' ? 'Laki-laki' : 'Perempuan'}
@@ -1288,14 +1288,12 @@ export default function App() {
                   const hasCompleted = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === course.id);
                   const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
                   const colors = [
-                    { bg: "bg-blue-600", border: "border-blue-700", icon: "text-blue-600" },
-                    { bg: "bg-indigo-600", border: "border-indigo-700", icon: "text-indigo-600" },
+                    { bg: "bg-brand", border: "border-blue-700", icon: "text-brand" },
+                    { bg: "bg-brand", border: "border-blue-700", icon: "text-brand" },
+                    { bg: "bg-blue-500", border: "border-brand", icon: "text-blue-500" },
+                    { bg: "bg-brand", border: "border-indigo-700", icon: "text-brand" },
                     { bg: "bg-sky-600", border: "border-sky-700", icon: "text-sky-600" },
-                    { bg: "bg-rose-600", border: "border-rose-700", icon: "text-rose-600" },
-                    { bg: "bg-amber-500", border: "border-amber-600", icon: "text-amber-500" },
-                    { bg: "bg-indigo-600", border: "border-indigo-700", icon: "text-indigo-600" },
-                    { bg: "bg-cyan-600", border: "border-cyan-700", icon: "text-cyan-600" },
-                    { bg: "bg-orange-600", border: "border-orange-700", icon: "text-orange-600" }
+                    { bg: "bg-blue-700", border: "border-blue-800", icon: "text-blue-700" }
                   ];
                   const color = colors[index % colors.length];
 
@@ -1305,7 +1303,7 @@ export default function App() {
                     whileTap={hasCompleted ? {} : { scale: 0.98 }}
                     key={course.id} 
                     className={cn("group p-1 rounded-[2rem] border shadow-sm transition-all flex flex-col",
-                      hasCompleted ? "bg-slate-50 border-slate-200 opacity-80 cursor-default" : cn(color.bg, color.border, "shadow-xl shadow-black/5 cursor-pointer")
+                      hasCompleted ? "bg-frame border-slate-200 opacity-80 cursor-default" : cn(color.bg, color.border, "shadow-xl shadow-black/5 cursor-pointer")
                     )}
                     onClick={() => { 
                       if (!hasCompleted) {
@@ -1346,7 +1344,7 @@ export default function App() {
               </div>
             ) : (
               <div className="bg-white py-20 rounded-[2rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center p-8">
-                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-6">
+                <div className="w-24 h-24 bg-frame rounded-full flex items-center justify-center text-slate-300 mb-6">
                   <Lock size={48} />
                 </div>
                 <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">Belum Ada Materi Aktif</h3>
@@ -1357,7 +1355,7 @@ export default function App() {
 
           <section>
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-14 h-14 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
+              <div className="w-14 h-14 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center text-brand shadow-sm">
                 <TrendingUp size={28} />
               </div>
               <h2 className="text-xl md:text-3xl font-black text-slate-900 uppercase tracking-tight">Riwayat Skor</h2>
@@ -1367,7 +1365,7 @@ export default function App() {
             <div className="hidden md:block bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left min-w-[600px] border-collapse">
-                  <thead className="bg-slate-50 border-b-2 border-slate-200">
+                  <thead className="bg-frame border-b-2 border-slate-200">
                     <tr className="text-sm font-black text-slate-500 uppercase tracking-widest text-left">
                       <th className="px-8 py-6">Materi Pembelajaran</th>
                       <th className="px-8 py-6 text-center">Hasil Skor</th>
@@ -1376,7 +1374,7 @@ export default function App() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {studentAssessments.length > 0 ? [...studentAssessments].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map((a) => (
-                      <tr key={a.id} className="hover:bg-slate-50/80 transition-colors">
+                      <tr key={a.id} className="hover:bg-frame/80 transition-colors">
                         <td className="px-8 py-6 font-black text-slate-900 text-base md:text-lg">{a.courseTitle}</td>
                         <td className="px-8 py-6 text-center">
                           <span className={cn(
@@ -1434,17 +1432,17 @@ export default function App() {
 
   if (currentPage === 'admin') {
     const menuItems = [
-      { id: 'dashboard', label: 'Dashboard', icon: Home, color: 'bg-blue-500/10 text-blue-400' },
-      { id: 'student_management', label: 'Siswa & Kelas', icon: Users, color: 'bg-blue-500/10 text-blue-400' },
-      { id: 'materials', label: 'Kelola Materi', icon: BookOpen, color: 'bg-blue-500/10 text-blue-400' },
-      { id: 'assessments', label: 'Hasil Asesmen', icon: TrendingUp, color: 'bg-blue-500/10 text-blue-400' },
-      { id: 'history', label: 'Riwayat Akses', icon: GitBranch, color: 'bg-blue-500/10 text-blue-400' },
-      { id: 'announcements', label: 'Pengumuman', icon: Megaphone, color: 'bg-blue-500/10 text-blue-400' },
-      { id: 'settings', label: 'Pengaturan', icon: Settings, color: 'bg-blue-500/10 text-blue-400' },
+      { id: 'dashboard', label: 'Dashboard', icon: Home, color: 'bg-brand/10 text-brand' },
+      { id: 'student_management', label: 'Siswa & Kelas', icon: Users, color: 'bg-brand/10 text-brand' },
+      { id: 'materials', label: 'Kelola Materi', icon: BookOpen, color: 'bg-brand/10 text-brand' },
+      { id: 'assessments', label: 'Hasil Asesmen', icon: TrendingUp, color: 'bg-brand/10 text-brand' },
+      { id: 'history', label: 'Riwayat Akses', icon: GitBranch, color: 'bg-brand/10 text-brand' },
+      { id: 'announcements', label: 'Pengumuman', icon: Megaphone, color: 'bg-brand/10 text-brand' },
+      { id: 'settings', label: 'Pengaturan', icon: Settings, color: 'bg-brand/10 text-brand' },
     ] as const;
 
     return (
-      <div className="flex h-screen bg-slate-50 overflow-hidden">
+      <div className="flex h-screen bg-frame overflow-hidden">
         {/* Mobile Header */}
         <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-50 flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
@@ -1455,7 +1453,7 @@ export default function App() {
           </div>
           <button 
             onClick={() => setIsAdminSidebarOpen(true)}
-            className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg"
+            className="p-2 text-slate-600 hover:bg-frame rounded-lg"
           >
             <Menu size={24} />
           </button>
@@ -1476,22 +1474,22 @@ export default function App() {
 
         {/* Sidebar Navigation */}
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 border-r border-slate-800 p-6 flex flex-col text-slate-100 transition-transform duration-300 transform md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 p-6 flex flex-col transition-transform duration-300 transform md:relative md:translate-x-0",
           isAdminSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden relative border border-slate-700/30">
+              <div className="bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden relative border border-slate-100">
                 <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain p-1" />
               </div>
               <div>
-                <h2 className="text-lg font-bold leading-tight uppercase tracking-tight">SMPN 1 Kawali</h2>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Informatika</p>
+                <h2 className="text-lg font-black text-slate-800 leading-tight uppercase tracking-tight">SMPN 1 KAWALI</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Informatika</p>
               </div>
             </div>
             <button 
               onClick={() => setIsAdminSidebarOpen(false)}
-              className="md:hidden p-1 text-slate-500 hover:text-white"
+              className="md:hidden p-1 text-slate-400 hover:text-slate-600"
             >
               <X size={20} />
             </button>
@@ -1511,13 +1509,13 @@ export default function App() {
                   "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all font-bold text-sm group",
                   adminTab === item.id 
                     ? "bg-brand text-white shadow-lg shadow-brand/20 lg:scale-[1.02] relative" 
-                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                    : "text-slate-500 hover:bg-frame hover:text-brand"
                 )}
               >
                 {adminTab === item.id && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-accent rounded-r-full" />}
                 <div className={cn(
                   "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
-                  adminTab === item.id ? "bg-white/20 text-white" : item.color
+                  adminTab === item.id ? "bg-white/20 text-white" : "bg-brand/10 text-brand"
                 )}>
                   <item.icon size={16} />
                 </div>
@@ -1525,12 +1523,12 @@ export default function App() {
               </button>
             ))}
           </nav>
-          <div className="pt-6 mt-6 border-t border-slate-800">
+          <div className="pt-6 mt-6 border-t border-slate-100">
             <button 
               onClick={() => { auth.signOut(); setIsAdmin(false); setCurrentPage('login'); }} 
-              className="w-full flex items-center gap-3 text-red-500 hover:bg-red-500/10 p-4 rounded-2xl transition-all font-bold text-sm"
+              className="w-full flex items-center gap-3 text-red-500 hover:bg-red-50 p-4 rounded-2xl transition-all font-bold text-sm"
             >
-              <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
                 <LogOut size={16} />
               </div>
               Logout Admin
@@ -1538,7 +1536,7 @@ export default function App() {
           </div>
         </aside>
 
-        <main className="flex-1 p-4 md:p-10 pt-20 md:pt-10 overflow-y-auto w-full">
+        <main className="flex-1 p-4 md:p-10 pt-20 md:pt-10 overflow-y-auto w-full bg-frame">
           <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-4">
               <div className={cn(
@@ -1567,7 +1565,7 @@ export default function App() {
               <div className="relative">
                 <button 
                   onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                  className="w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-all relative group"
+                  className="w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 hover:bg-frame transition-all relative group"
                 >
                   <Bell size={20} className="md:w-5 md:h-5 group-hover:rotate-12 transition-transform" />
                   {notifications.length > 0 && (
@@ -1593,7 +1591,7 @@ export default function App() {
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] md:translate-x-0 md:translate-y-0 md:absolute md:inset-auto md:right-0 md:top-full md:mt-3 md:w-96 bg-white rounded-3xl shadow-2xl border border-slate-100 z-50 overflow-hidden origin-center md:origin-top-right"
                       >
-                        <div className="p-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                        <div className="p-5 border-b border-slate-50 flex items-center justify-between bg-frame/50">
                           <h3 className="font-black text-slate-800 tracking-tight text-sm md:text-base">Notifikasi Baru</h3>
                           <span className="text-[10px] font-bold bg-brand/10 text-brand px-2 py-1 rounded-lg uppercase tracking-wider">
                             {notifications.length} Pesan
@@ -1606,7 +1604,7 @@ export default function App() {
                                 <div 
                                   key={notif.id}
                                   onClick={() => handleNotificationClick(notif)}
-                                  className="p-4 hover:bg-slate-50 transition-colors cursor-pointer group relative"
+                                  className="p-4 hover:bg-frame transition-colors cursor-pointer group relative"
                                 >
                                   <div className="flex gap-4">
                                     <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
@@ -1635,7 +1633,7 @@ export default function App() {
                             </div>
                           ) : (
                             <div className="p-12 text-center">
-                              <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-4">
+                              <div className="w-16 h-16 bg-frame rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-4">
                                 <Bell size={32} />
                               </div>
                               <p className="text-slate-400 font-bold text-sm italic">Belum ada notifikasi baru.</p>
@@ -1643,7 +1641,7 @@ export default function App() {
                           )}
                         </div>
                         {notifications.length > 0 && (
-                          <div className="p-3 bg-slate-50/50 border-t border-slate-50">
+                          <div className="p-3 bg-frame/50 border-t border-slate-50">
                             <button 
                               onClick={async () => {
                                 if (!confirm("Hapus semua notifikasi?")) return;
@@ -1726,7 +1724,7 @@ export default function App() {
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Total Siswa Aktif</p>
                       <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
                         <span>Terhubung ke sistem</span>
-                        <span className="font-bold text-blue-600">{activeSessionList.length > 0 ? `${activeSessionList.length} Online` : 'Standby'}</span>
+                        <span className="font-bold text-brand">{activeSessionList.length > 0 ? `${activeSessionList.length} Online` : 'Standby'}</span>
                       </div>
                     </div>
 
@@ -1745,7 +1743,7 @@ export default function App() {
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Sedang Mengerjakan</p>
                       <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
                         <span>Aktif di materi/kuis</span>
-                        <span className="font-bold text-blue-600">{workingStudentsCount} Siswa</span>
+                        <span className="font-bold text-brand">{workingStudentsCount} Siswa</span>
                       </div>
                     </div>
 
@@ -1797,7 +1795,7 @@ export default function App() {
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Status Materi Aktif</p>
                       <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
                         <span>Modul terbuka</span>
-                        <span className="font-bold text-blue-600">{activeCourseCount} Siap Diakses</span>
+                        <span className="font-bold text-brand">{activeCourseCount} Siap Diakses</span>
                       </div>
                     </div>
                   </div>
@@ -1859,7 +1857,7 @@ export default function App() {
 
                       {/* Class Quick Filter Tabs */}
                       {distinctClasses.length > 0 && (
-                        <div className="px-6 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                        <div className="px-6 py-3 bg-frame/80 border-b border-slate-100 flex items-center gap-2 overflow-x-auto custom-scrollbar">
                           <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 mr-1">Filter Kelas:</span>
                           <button
                             onClick={() => setDashboardClassFilter('all')}
@@ -1881,7 +1879,7 @@ export default function App() {
                                 className={cn(
                                   "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5",
                                   dashboardClassFilter === c 
-                                    ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30" 
+                                    ? "bg-brand text-white shadow-sm shadow-indigo-600/30" 
                                     : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
                                 )}
                               >
@@ -1907,8 +1905,8 @@ export default function App() {
                               .sort((a, b) => a.studentName.localeCompare(b.studentName));
 
                             const classThemes = [
-                              { bg: "bg-blue-50/60", border: "border-blue-100", header: "text-blue-900", badge: "bg-blue-500 text-white", icon: "text-blue-600" },
-                              { bg: "bg-indigo-50/60", border: "border-indigo-100", header: "text-indigo-900", badge: "bg-indigo-500 text-white", icon: "text-indigo-600" },
+                              { bg: "bg-blue-50/60", border: "border-blue-100", header: "text-blue-900", badge: "bg-blue-500 text-white", icon: "text-brand" },
+                              { bg: "bg-indigo-50/60", border: "border-indigo-100", header: "text-indigo-900", badge: "bg-indigo-500 text-white", icon: "text-brand" },
                               { bg: "bg-sky-50/60", border: "border-sky-100", header: "text-sky-900", badge: "bg-sky-500 text-white", icon: "text-sky-600" },
                               { bg: "bg-emerald-50/60", border: "border-emerald-100", header: "text-emerald-900", badge: "bg-emerald-500 text-white", icon: "text-emerald-600" },
                               { bg: "bg-amber-50/60", border: "border-amber-100", header: "text-amber-900", badge: "bg-amber-500 text-white", icon: "text-amber-600" },
@@ -1966,7 +1964,7 @@ export default function App() {
 
                                         {/* Course and Activity Tag */}
                                         <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
-                                          <div className="flex items-center gap-1.5 min-w-0 flex-1 text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+                                          <div className="flex items-center gap-1.5 min-w-0 flex-1 text-slate-600 bg-frame px-2 py-1 rounded-lg border border-slate-100">
                                             <BookOpen size={13} className="text-brand shrink-0" />
                                             <span className="truncate font-semibold text-[11px]" title={s.courseTitle || 'Di Halaman Siswa'}>
                                               {s.courseTitle || 'Di Halaman Siswa'}
@@ -2141,12 +2139,12 @@ export default function App() {
                         const isFullScreen = materialConfigs[course.id]?.isFullScreen || false;
 
                         const courseColors = [
-                          { bg: "hover:border-blue-400", banner: "from-blue-600 to-indigo-600", tag: "bg-blue-50 text-blue-700 border-blue-200", icon: "text-blue-600 bg-blue-50" },
+                          { bg: "hover:border-blue-400", banner: "from-blue-600 to-indigo-600", tag: "bg-blue-50 text-blue-700 border-blue-200", icon: "text-brand bg-blue-50" },
                           { bg: "hover:border-emerald-400", banner: "from-emerald-600 to-teal-600", tag: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: "text-emerald-600 bg-emerald-50" },
                           { bg: "hover:border-purple-400", banner: "from-purple-600 to-violet-600", tag: "bg-purple-50 text-purple-700 border-purple-200", icon: "text-purple-600 bg-purple-50" },
                           { bg: "hover:border-rose-400", banner: "from-rose-600 to-pink-600", tag: "bg-rose-50 text-rose-700 border-rose-200", icon: "text-rose-600 bg-rose-50" },
                           { bg: "hover:border-amber-400", banner: "from-amber-500 to-orange-600", tag: "bg-amber-50 text-amber-700 border-amber-200", icon: "text-amber-600 bg-amber-50" },
-                          { bg: "hover:border-indigo-400", banner: "from-indigo-600 to-blue-700", tag: "bg-indigo-50 text-indigo-700 border-indigo-200", icon: "text-indigo-600 bg-indigo-50" },
+                          { bg: "hover:border-indigo-400", banner: "from-indigo-600 to-blue-700", tag: "bg-indigo-50 text-indigo-700 border-indigo-200", icon: "text-brand bg-indigo-50" },
                           { bg: "hover:border-cyan-400", banner: "from-cyan-600 to-blue-600", tag: "bg-cyan-50 text-cyan-700 border-cyan-200", icon: "text-cyan-600 bg-cyan-50" },
                           { bg: "hover:border-orange-400", banner: "from-orange-600 to-red-600", tag: "bg-orange-50 text-orange-700 border-orange-200", icon: "text-orange-600 bg-orange-50" }
                         ];
@@ -2156,7 +2154,7 @@ export default function App() {
                           <div 
                             key={course.id} 
                             className={cn(
-                              "bg-slate-50/70 border border-slate-200/90 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all hover:bg-white hover:shadow-md",
+                              "bg-frame/70 border border-slate-200/90 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all hover:bg-white hover:shadow-md",
                               theme.bg
                             )}
                           >
@@ -2207,7 +2205,7 @@ export default function App() {
                               <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-100 shadow-xs">
                                 <div>
                                   <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">Mode Ujian</span>
-                                  <span className={cn("text-xs font-bold", isFullScreen ? "text-indigo-600" : "text-slate-400")}>
+                                  <span className={cn("text-xs font-bold", isFullScreen ? "text-brand" : "text-slate-400")}>
                                     {isFullScreen ? "🔒 Fullscreen" : "🔓 Bebas"}
                                   </span>
                                 </div>
@@ -2215,7 +2213,7 @@ export default function App() {
                                   onClick={() => toggleMaterialFullScreen(course.id)}
                                   className={cn(
                                     "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                                    isFullScreen ? "bg-indigo-600" : "bg-slate-200"
+                                    isFullScreen ? "bg-brand" : "bg-slate-200"
                                   )}
                                 >
                                   <span 
@@ -2242,7 +2240,7 @@ export default function App() {
                     onClick={() => setStudentSubTab('classes')}
                     className={cn(
                       "px-5 py-2.5 rounded-lg font-bold transition-all flex items-center gap-2",
-                      studentSubTab === 'classes' ? "bg-brand text-white shadow-md" : "text-slate-600 hover:bg-slate-50"
+                      studentSubTab === 'classes' ? "bg-brand text-white shadow-md" : "text-slate-600 hover:bg-frame"
                     )}
                   >
                     <LayoutGrid size={18} />
@@ -2252,7 +2250,7 @@ export default function App() {
                     onClick={() => setStudentSubTab('students')}
                     className={cn(
                       "px-5 py-2.5 rounded-lg font-bold transition-all flex items-center gap-2",
-                      studentSubTab === 'students' ? "bg-brand text-white shadow-md" : "text-slate-600 hover:bg-slate-50"
+                      studentSubTab === 'students' ? "bg-brand text-white shadow-md" : "text-slate-600 hover:bg-frame"
                     )}
                   >
                     <Users size={18} />
@@ -2320,7 +2318,7 @@ export default function App() {
                           placeholder="Cari NIS, Nama, atau Kelas..." 
                           value={studentSearchQuery}
                           onChange={(e) => setStudentSearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all"
+                          className="w-full pl-10 pr-4 py-2 bg-frame border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all"
                         />
                       </div>
                       <div className="flex items-center gap-2">
@@ -2350,7 +2348,7 @@ export default function App() {
                       <div className="min-w-full">
                         <table className="w-full text-left border-collapse min-w-[800px]">
                           <thead>
-                            <tr className="bg-slate-50/50 border-b border-slate-100 text-slate-400 text-[10px] uppercase tracking-widest font-bold">
+                            <tr className="bg-frame/50 border-b border-slate-100 text-slate-400 text-[10px] uppercase tracking-widest font-bold">
                             <th className="px-6 py-4 w-10">
                               <input 
                                 type="checkbox" 
@@ -2370,7 +2368,7 @@ export default function App() {
                         <tbody className="divide-y divide-slate-50">
                           {sortedFilteredStudents.length > 0 ? sortedFilteredStudents.map((s, index) => (
                             <tr key={s.id} className={cn(
-                              "hover:bg-slate-50/80 transition-all group",
+                              "hover:bg-frame/80 transition-all group",
                               selectedStudentIds.includes(s.id) && "bg-brand/[0.02]"
                             )}>
                               <td className="px-6 py-4">
@@ -2384,15 +2382,15 @@ export default function App() {
                               <td className="px-6 py-4 text-slate-300 font-mono text-xs">{index + 1}</td>
                               {editingStudentId === s.id ? (
                                 <>
-                                  <td className="p-2"><input value={editFormData.nis} onChange={e => setEditFormData({...editFormData, nis: e.target.value})} className="bg-slate-50 border-slate-200 p-2 rounded-lg w-full outline-brand text-sm font-mono" /></td>
-                                  <td className="p-2"><input value={editFormData.nama} onChange={e => setEditFormData({...editFormData, nama: e.target.value})} className="bg-slate-50 border-slate-200 p-2 rounded-lg w-full outline-brand text-sm font-bold" /></td>
+                                  <td className="p-2"><input value={editFormData.nis} onChange={e => setEditFormData({...editFormData, nis: e.target.value})} className="bg-frame border-slate-200 p-2 rounded-lg w-full outline-brand text-sm font-mono" /></td>
+                                  <td className="p-2"><input value={editFormData.nama} onChange={e => setEditFormData({...editFormData, nama: e.target.value})} className="bg-frame border-slate-200 p-2 rounded-lg w-full outline-brand text-sm font-bold" /></td>
                                   <td className="p-2">
-                                    <select value={editFormData.jenisKelamin} onChange={e => setEditFormData({...editFormData, jenisKelamin: e.target.value})} className="bg-slate-50 border-slate-200 p-2 rounded-lg w-full outline-brand text-sm">
+                                    <select value={editFormData.jenisKelamin} onChange={e => setEditFormData({...editFormData, jenisKelamin: e.target.value})} className="bg-frame border-slate-200 p-2 rounded-lg w-full outline-brand text-sm">
                                       <option value="L">Laki-laki (L)</option>
                                       <option value="P">Perempuan (P)</option>
                                     </select>
                                   </td>
-                                  <td className="p-2"><input value={editFormData.kelas} onChange={e => setEditFormData({...editFormData, kelas: e.target.value})} className="bg-slate-50 border-slate-200 p-2 rounded-lg w-full outline-brand text-sm uppercase" /></td>
+                                  <td className="p-2"><input value={editFormData.kelas} onChange={e => setEditFormData({...editFormData, kelas: e.target.value})} className="bg-frame border-slate-200 p-2 rounded-lg w-full outline-brand text-sm uppercase" /></td>
                                   <td className="p-2 text-right whitespace-nowrap">
                                     <button onClick={saveEditStudent} className="text-white bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all">Simpan</button>
                                     <button onClick={() => setEditingStudentId(null)} className="text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition-all ml-2">Batal</button>
@@ -2418,14 +2416,14 @@ export default function App() {
                                   <td className="px-6 py-4">
                                     <span className={cn(
                                       "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider", 
-                                      s.jenisKelamin === 'L' ? 'bg-blue-50 text-blue-600' : 'bg-rose-50 text-rose-600'
+                                      s.jenisKelamin === 'L' ? 'bg-blue-50 text-brand' : 'bg-rose-50 text-rose-600'
                                     )}>
                                       {s.jenisKelamin}
                                     </span>
                                   </td>
                                   <td className="px-6 py-4">
                                     <div className="flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 text-[10px] font-bold border border-slate-100">
+                                      <div className="w-8 h-8 rounded-lg bg-frame flex items-center justify-center text-slate-400 text-[10px] font-bold border border-slate-100">
                                         {s.kelas.substring(0, 2)}
                                       </div>
                                       <span className="text-slate-700 font-bold text-sm tracking-tight">{s.kelas}</span>
@@ -2449,7 +2447,7 @@ export default function App() {
                                       </button>
                                       <button 
                                         onClick={() => setStudentDetail({ student: s, score: getStudentScore(s.id) })}
-                                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                                        className="p-2 text-slate-400 hover:text-brand hover:bg-indigo-50 rounded-xl transition-all"
                                         title="Lihat Profil"
                                       >
                                         <User size={16} />
@@ -2463,7 +2461,7 @@ export default function App() {
                             <tr>
                               <td colSpan={7} className="px-6 py-20 text-center">
                                 <div className="flex flex-col items-center justify-center gap-4">
-                                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
+                                  <div className="w-20 h-20 bg-frame rounded-full flex items-center justify-center text-slate-200">
                                     <Users size={40} />
                                   </div>
                                   <div>
@@ -2539,7 +2537,7 @@ export default function App() {
                       
                       <div className="mb-4">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Materi & Skor</p>
-                        <div className="space-y-2 bg-slate-50 p-3 rounded-2xl max-h-48 overflow-y-auto">
+                        <div className="space-y-2 bg-frame p-3 rounded-2xl max-h-48 overflow-y-auto">
                           {assessments.filter(a => a.studentId === studentDetail.student.id).length > 0 ? (
                             assessments.filter(a => a.studentId === studentDetail.student.id).map((a, idx) => (
                               <div key={idx} className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm">
@@ -2579,11 +2577,11 @@ export default function App() {
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4 mb-8">
-                        <div className="bg-slate-50 p-4 rounded-2xl">
+                        <div className="bg-frame p-4 rounded-2xl">
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Jenis Kelamin</p>
                           <p className="font-bold text-slate-700">{studentDetail.student.jenisKelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</p>
                         </div>
-                        <div className="bg-slate-50 p-4 rounded-2xl">
+                        <div className="bg-frame p-4 rounded-2xl">
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status Akun</p>
                           <div className="flex items-center gap-1.5">
                             <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
@@ -2598,7 +2596,7 @@ export default function App() {
                         </button>
                         <button 
                           onClick={() => setStudentDetail(null)} 
-                          className="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 py-3 rounded-2xl font-bold text-sm transition-all"
+                          className="w-full bg-frame hover:bg-slate-100 text-slate-500 py-3 rounded-2xl font-bold text-sm transition-all"
                         >
                           Tutup
                         </button>
@@ -2741,10 +2739,10 @@ export default function App() {
                           
                           <div className="mt-auto space-y-4">
                             <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                              <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg">
+                              <span className="flex items-center gap-1.5 bg-frame px-2 py-1 rounded-lg">
                                 <Users size={12} className="text-brand" /> {Object.keys(courseData.classes).length} Kelas
                               </span>
-                              <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg">
+                              <span className="flex items-center gap-1.5 bg-frame px-2 py-1 rounded-lg">
                                 <CheckCircle size={12} className="text-emerald-500" /> {totalSubmissions} Done
                               </span>
                             </div>
@@ -2757,7 +2755,7 @@ export default function App() {
                                   avgScore >= 80 ? "text-emerald-600" : avgScore >= 60 ? "text-amber-600" : "text-rose-600"
                                 )}>{avgScore}</span>
                               </div>
-                              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors">
+                              <div className="w-10 h-10 rounded-full bg-frame flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors">
                                 <ChevronRight size={20} />
                               </div>
                             </div>
@@ -2765,7 +2763,7 @@ export default function App() {
                         </button>
                       );
                     }) : (
-                      <div className="col-span-full py-20 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
+                      <div className="col-span-full py-20 bg-frame rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
                         <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
                           <TrendingUp size={40} className="opacity-20" />
                         </div>
@@ -2787,7 +2785,7 @@ export default function App() {
                           onClick={() => setAssessmentNav({ ...assessmentNav, kelas: classData.name })}
                           className="bg-white p-6 rounded-[2rem] border border-slate-200 text-left hover:border-brand/40 group hover:shadow-2xl hover:shadow-brand/5 transition-all duration-500 flex flex-col relative"
                         >
-                          <div className="w-12 h-12 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500">
+                          <div className="w-12 h-12 bg-frame text-slate-400 rounded-xl flex items-center justify-center mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500">
                             <Users size={24} />
                           </div>
                           <h4 className="text-2xl font-black text-slate-900 mb-1">Kelas {classData.name}</h4>
@@ -2835,7 +2833,7 @@ export default function App() {
                         return (
                           <>
                             <div className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-4">
-                              <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                              <div className="w-10 h-10 bg-blue-50 text-brand rounded-xl flex items-center justify-center">
                                 <Users size={20} />
                               </div>
                               <div>
@@ -2867,7 +2865,7 @@ export default function App() {
                     </div>
 
                     <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                      <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50/50 gap-4">
+                      <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between bg-frame/50 gap-4">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-black text-slate-900">Daftar Nilai Siswa</h4>
@@ -2883,7 +2881,7 @@ export default function App() {
                               onClick={() => setAssessmentSort('time')}
                               className={cn(
                                 "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
-                                assessmentSort === 'time' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-500 hover:bg-slate-50"
+                                assessmentSort === 'time' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-500 hover:bg-frame"
                               )}
                             >
                               <Clock size={14} /> Teranyar
@@ -2892,7 +2890,7 @@ export default function App() {
                               onClick={() => setAssessmentSort('name')}
                               className={cn(
                                 "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
-                                assessmentSort === 'name' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-500 hover:bg-slate-50"
+                                assessmentSort === 'name' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-500 hover:bg-frame"
                               )}
                             >
                               <Type size={14} /> Abjad
@@ -2959,7 +2957,7 @@ export default function App() {
                             <div className="hidden md:block overflow-x-auto">
                               <table className="w-full text-left border-collapse border-spacing-0">
                                 <thead>
-                                  <tr className="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b-2 border-slate-200">
+                                  <tr className="bg-frame text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b-2 border-slate-200">
                                     <th className="p-4 pl-6 border-r border-slate-100">
                                       <div className="flex items-center gap-2">
                                         <Users size={14} className="text-slate-400" />
@@ -2997,7 +2995,7 @@ export default function App() {
                                   {sortedList.map((res) => (
                                     <tr key={res.id} className={cn(
                                       "hover:bg-blue-50/30 transition-all group", 
-                                      res.isMissing ? "bg-slate-50/50 font-medium" : "bg-white"
+                                      res.isMissing ? "bg-frame/50 font-medium" : "bg-white"
                                     )}>
                                       <td className="p-4 pl-6 border-r border-slate-100/50">
                                         <div className="flex items-center gap-3">
@@ -3201,7 +3199,7 @@ export default function App() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-100">
+                        <tr className="bg-frame border-b border-slate-100">
                           <th className="p-4 pl-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Siswa</th>
                           <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Waktu Akses</th>
                           <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Alamat IP</th>
@@ -3218,7 +3216,7 @@ export default function App() {
                             })
                             .slice(0, 100)
                             .map((log) => (
-                              <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                              <tr key={log.id} className="hover:bg-frame/50 transition-colors">
                                 <td className="p-4 pl-8">
                                   <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
@@ -3289,7 +3287,7 @@ export default function App() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[700px]">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-100">
+                        <tr className="bg-frame border-b border-slate-100">
                           <th className="p-4 pl-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Waktu</th>
                           <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Target</th>
                           <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Isi Pengumuman</th>
@@ -3305,7 +3303,7 @@ export default function App() {
                               return dateB - dateA;
                             })
                             .map((ann) => (
-                              <tr key={ann.id} className="hover:bg-slate-50/50 transition-colors">
+                              <tr key={ann.id} className="hover:bg-frame/50 transition-colors">
                                 <td className="p-4 pl-8">
                                   <div className="flex flex-col">
                                     <span className="text-sm font-bold text-slate-700">
@@ -3420,7 +3418,7 @@ export default function App() {
                           />
                           <label 
                             htmlFor="logo-upload"
-                            className="inline-flex cursor-pointer items-center justify-center px-4 py-2 bg-white border border-slate-300 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 hover:text-brand transition-colors text-slate-700"
+                            className="inline-flex cursor-pointer items-center justify-center px-4 py-2 bg-white border border-slate-300 rounded-xl font-bold text-sm shadow-sm hover:bg-frame hover:text-brand transition-colors text-slate-700"
                           >
                             Pilih File Gambar
                           </label>
@@ -3480,7 +3478,7 @@ export default function App() {
 
                   <div className="p-8 md:p-10 max-h-[60vh] overflow-y-auto custom-scrollbar">
                     <div className="space-y-8">
-                      <div className="flex items-start justify-between p-6 bg-slate-50 rounded-2xl border border-slate-200">
+                      <div className="flex items-start justify-between p-6 bg-frame rounded-2xl border border-slate-200">
                         <div>
                           <h4 className="font-bold text-slate-900 mb-1 flex items-center gap-2">
                             <Lock size={18} className={localMaterialConfig.isGatekeepingEnabled ? "text-indigo-500" : "text-slate-400"} />
@@ -3645,7 +3643,7 @@ export default function App() {
                                 <input 
                                   type="number" 
                                   min="0"
-                                  className="w-20 p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand focus:outline-none"
+                                  className="w-20 p-2 bg-frame border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand focus:outline-none"
                                   placeholder={String(localMaterialConfig.defaultTopicTimer || 70)}
                                   value={localMaterialConfig.topicTimers?.[topic.id] ?? 0}
                                   onChange={(e) => {
@@ -3662,7 +3660,7 @@ export default function App() {
                                 <input 
                                   type="number" 
                                   min="0"
-                                  className="w-20 p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand focus:outline-none"
+                                  className="w-20 p-2 bg-frame border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand focus:outline-none"
                                   placeholder={String(localMaterialConfig.defaultQuizTimer || 60)}
                                   value={localMaterialConfig.quizTimers?.[topic.id] ?? 0}
                                   onChange={(e) => {
@@ -3679,7 +3677,7 @@ export default function App() {
                                 <input 
                                   type="number" 
                                   min="0"
-                                  className="w-20 p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand focus:outline-none"
+                                  className="w-20 p-2 bg-frame border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand focus:outline-none"
                                   placeholder={String(localMaterialConfig.defaultQuizAvailableAt || 40)}
                                   value={localMaterialConfig.quizAvailableAt?.[topic.id] ?? 0}
                                   onChange={(e) => {
@@ -3698,7 +3696,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-8 bg-slate-50 flex items-center justify-end gap-4 border-t border-slate-100">
+                  <div className="p-8 bg-frame flex items-center justify-end gap-4 border-t border-slate-100">
                     <button 
                       onClick={() => setEditingMaterialConfigId(null)}
                       className="px-6 py-3 font-bold text-slate-500 hover:text-slate-700 transition-colors"
@@ -3875,7 +3873,7 @@ export default function App() {
                       </div>
                       <button 
                         onClick={() => setIsAnnouncementModalOpen(false)}
-                        className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all"
+                        className="w-10 h-10 rounded-xl bg-frame text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all"
                       >
                         <X size={20} />
                       </button>
@@ -3927,7 +3925,7 @@ export default function App() {
                           <select 
                             value={announcementTargetValue}
                             onChange={(e) => setAnnouncementTargetValue(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 appearance-none font-bold text-sm text-slate-700"
+                            className="w-full px-4 py-3 bg-frame border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 appearance-none font-bold text-sm text-slate-700"
                           >
                             <option value="">Pilih...</option>
                             {Array.from(new Set(students.map(s => s.kelas))).sort().map(k => (
@@ -3943,7 +3941,7 @@ export default function App() {
                           <select 
                             value={announcementTargetValue}
                             onChange={(e) => setAnnouncementTargetValue(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 appearance-none font-bold text-sm text-slate-700"
+                            className="w-full px-4 py-3 bg-frame border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 appearance-none font-bold text-sm text-slate-700"
                           >
                             <option value="">Pilih...</option>
                             {students.sort((a,b) => a.nama.localeCompare(b.nama)).map(s => (
@@ -3959,7 +3957,7 @@ export default function App() {
                           value={announcementContent}
                           onChange={(e) => setAnnouncementContent(e.target.value)}
                           placeholder="Masukkan isi pengumuman..."
-                          className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all font-medium text-slate-700 min-h-[100px] resize-none"
+                          className="w-full p-4 bg-frame border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all font-medium text-slate-700 min-h-[100px] resize-none"
                         />
                       </div>
                       <div>
@@ -3971,7 +3969,7 @@ export default function App() {
                             value={announcementLink}
                             onChange={(e) => setAnnouncementLink(e.target.value)}
                             placeholder="https://example.com"
-                            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all font-medium text-slate-700"
+                            className="w-full pl-12 pr-4 py-3.5 bg-frame border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all font-medium text-slate-700"
                           />
                         </div>
                       </div>
@@ -4024,13 +4022,13 @@ export default function App() {
                       </div>
                       <button 
                         onClick={() => setIsImportModalOpen(false)}
-                        className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all"
+                        className="w-10 h-10 rounded-xl bg-frame text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all"
                       >
                         <X size={20} />
                       </button>
                     </div>
 
-                    <div className="flex bg-slate-50 p-1 rounded-2xl mb-8 border border-slate-100">
+                    <div className="flex bg-frame p-1 rounded-2xl mb-8 border border-slate-100">
                       <button 
                         onClick={() => setImportModalTab('manual')}
                         className={cn(
@@ -4063,7 +4061,7 @@ export default function App() {
                               value={manualStudentNis}
                               onChange={(e) => setManualStudentNis(e.target.value)}
                               placeholder="Contoh: 2021001" 
-                              className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                              className="w-full px-4 py-3 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                               required
                             />
                           </div>
@@ -4074,7 +4072,7 @@ export default function App() {
                               value={manualStudentKelas}
                               onChange={(e) => setManualStudentKelas(e.target.value)}
                               placeholder="Contoh: 7A, 8B" 
-                              className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                              className="w-full px-4 py-3 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                               required
                             />
                           </div>
@@ -4087,7 +4085,7 @@ export default function App() {
                             value={manualStudentNama}
                             onChange={(e) => setManualStudentNama(e.target.value)}
                             placeholder="Masukkan Nama Lengkap" 
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                            className="w-full px-4 py-3 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                             required
                           />
                         </div>
@@ -4101,7 +4099,7 @@ export default function App() {
                               className={cn(
                                 "py-3 rounded-2xl border font-bold text-sm transition-all",
                                 manualStudentJenisKelamin === 'L' 
-                                  ? "bg-blue-50 border-blue-200 text-blue-600 shadow-sm" 
+                                  ? "bg-blue-50 border-blue-200 text-brand shadow-sm" 
                                   : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
                               )}
                             >
@@ -4161,7 +4159,7 @@ export default function App() {
                           </label>
                         </div>
                         
-                        <div className="bg-slate-50 p-4 rounded-2xl flex items-start gap-3">
+                        <div className="bg-frame p-4 rounded-2xl flex items-start gap-3">
                           <div className="w-5 h-5 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 shrink-0 mt-0.5">
                             <Info size={12} />
                           </div>
@@ -4182,7 +4180,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-[#f8fafc] font-sans text-slate-900 overflow-hidden">
+    <div className="flex h-screen bg-frame font-sans text-slate-900 overflow-hidden">
       {!isAdmin && materialConfigs[activeCourse.id]?.isFullScreen && !isFullscreenActive && currentPage === 'course' && !showCompletionPopup && (
         <div className="fixed inset-0 bg-slate-900 z-[999] flex flex-col items-center justify-center p-6 text-center">
           <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-8">
@@ -4254,7 +4252,7 @@ export default function App() {
               placeholder="Cari materi..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all font-sans"
+              className="w-full bg-frame border border-slate-100 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all font-sans"
             />
           </div>
         </div>
@@ -4263,7 +4261,7 @@ export default function App() {
           {isAdmin ? (
             <button 
               onClick={() => { setCurrentPage('admin'); setAdminTab('materials'); }} 
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-50 text-slate-500 mb-4 font-bold text-sm transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-frame text-slate-500 mb-4 font-bold text-sm transition-colors"
             >
               <Home size={18} /> Kembali ke Dashboard
             </button>
@@ -4341,7 +4339,7 @@ export default function App() {
                       ? "bg-indigo-50 text-brand font-semibold border-r-4 border-brand rounded-sm shadow-sm" 
                       : isCompleted
                         ? "bg-emerald-50 text-emerald-600 font-medium"
-                        : "hover:bg-slate-50 text-slate-500 hover:text-slate-900",
+                        : "hover:bg-frame text-slate-500 hover:text-slate-900",
                     isLocked && "opacity-50 grayscale cursor-not-allowed"
                   )}
                 >
@@ -4360,7 +4358,7 @@ export default function App() {
           </nav>
 
           {/* Course Progress */}
-          <div className="p-6 bg-slate-50 border-t border-slate-100">
+          <div className="p-6 bg-frame border-t border-slate-100">
             <div className="flex justify-between text-[11px] mb-2 font-bold">
               <span className="text-slate-400 uppercase tracking-tight">Course Progress</span>
               <span className="text-brand">{progressPercent}%</span>
@@ -4462,7 +4460,7 @@ export default function App() {
                           <h2 className="text-4xl font-extrabold text-slate-900 mb-2 tracking-tight">Selamat!</h2>
                           <p className="text-slate-500 text-xl mb-8">Anda telah menyelesaikan kurikulum ini.</p>
                           
-                          <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 mb-10 w-full max-w-sm">
+                          <div className="bg-frame p-8 rounded-3xl border border-slate-100 mb-10 w-full max-w-sm">
                             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Skor Akhir Anda</p>
                             <p className={cn(
                               "text-7xl font-black mb-4",
@@ -4556,7 +4554,7 @@ export default function App() {
                                 </div>
                               ),
                               thead: ({ children }: any) => (
-                                <thead className="bg-slate-50 border-b border-slate-200 text-xs font-black uppercase tracking-wider text-slate-700">
+                                <thead className="bg-frame border-b border-slate-200 text-xs font-black uppercase tracking-wider text-slate-700">
                                   {children}
                                 </thead>
                               ),
@@ -4577,7 +4575,7 @@ export default function App() {
                                 const index = props.index !== undefined ? props.index : -1;
                                 
                                 return (
-                                  <div className="flex items-start gap-3 md:gap-4 bg-slate-50 p-3 md:p-4 rounded-xl border border-slate-100 transition-hover hover:border-slate-200">
+                                  <div className="flex items-start gap-3 md:gap-4 bg-frame p-3 md:p-4 rounded-xl border border-slate-100 transition-hover hover:border-slate-200">
                                     <div className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0 rounded-full bg-indigo-100 flex items-center justify-center text-brand font-bold text-[10px] md:text-xs ring-4 ring-indigo-50 mt-0.5">
                                       {isOrdered ? (index + 1) : "✓"}
                                     </div>
@@ -4988,7 +4986,7 @@ export default function App() {
               </div>
               
               <div className="p-10">
-                <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 mb-8">
+                <div className="bg-frame p-8 rounded-3xl border border-slate-100 mb-8">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Skor Akhir Kamu</p>
                   <div className="flex items-center justify-center gap-2">
                     <span className={cn(

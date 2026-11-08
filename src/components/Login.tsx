@@ -166,7 +166,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
   };
 
   return (
-    <div className="min-h-screen bg-blue-50/50 flex items-center justify-center font-sans p-6 selection:bg-brand/30">
+    <div className="min-h-screen bg-frame flex items-center justify-center font-sans p-6 selection:bg-brand/30">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <motion.div 
@@ -187,7 +187,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
           className="bg-white border border-slate-100 p-8 sm:p-10 rounded-[2.5rem] shadow-xl relative overflow-hidden"
         >
           <div className="relative z-10">
-            <div className="flex bg-slate-50 p-1.5 rounded-2xl mb-8 border border-slate-100">
+            <div className="flex bg-frame p-1.5 rounded-2xl mb-8 border border-slate-100">
               <button 
                 onClick={() => setLoginMode('student')}
                 className={cn(
@@ -229,7 +229,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                         value={nis}
                         onChange={(e) => setNis(e.target.value)}
                         placeholder="Masukkan NIS" 
-                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                        className="w-full pl-11 pr-4 py-3.5 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                         required
                       />
                     </div>
@@ -246,7 +246,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Password (Gunakan NIS)" 
-                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                        className="w-full pl-11 pr-4 py-3.5 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                         required
                       />
                     </div>
@@ -277,7 +277,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                   className="space-y-4"
                 >
                   <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-blue-700 text-xs font-semibold leading-relaxed flex items-center gap-3">
-                    <ShieldCheck size={20} className="shrink-0 text-blue-600" />
+                    <ShieldCheck size={20} className="shrink-0 text-brand" />
                     <p>Khusus akses administrator. Masuk menggunakan akun admin Anda.</p>
                   </div>
 
@@ -292,7 +292,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                         value={adminUsername}
                         onChange={(e) => setAdminUsername(e.target.value)}
                         placeholder="Username Admin" 
-                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                        className="w-full pl-11 pr-4 py-3.5 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                         required
                       />
                     </div>
@@ -309,7 +309,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                         value={adminPassword}
                         onChange={(e) => setAdminPassword(e.target.value)}
                         placeholder="Password Admin" 
-                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                        className="w-full pl-11 pr-4 py-3.5 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                         required
                       />
                     </div>
@@ -338,7 +338,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                   <button 
                     type="button"
                     onClick={handleGoogleLogin} 
-                    className="w-full py-3.5 bg-white text-slate-700 rounded-2xl font-bold text-sm shadow-sm hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 border border-slate-200"
+                    className="w-full py-3.5 bg-white text-slate-700 rounded-2xl font-bold text-sm shadow-sm hover:bg-frame active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 border border-slate-200"
                   >
                     <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
                     Login dengan Akun Google
