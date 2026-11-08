@@ -81,6 +81,31 @@
         "timestamp": { "type": "string", "format": "date-time", "description": "When the event occurred" }
       },
       "required": ["type", "studentId", "studentName", "courseId", "courseTitle", "score", "timestamp"]
+    },
+    "AppSetting": {
+      "title": "App Setting",
+      "description": "Global settings for the application.",
+      "type": "object",
+      "properties": {
+        "logoUrl": { "type": "string", "description": "URL of the school logo" }
+      }
+    },
+    "ActiveSession": {
+      "title": "Active Session",
+      "description": "Represents a student's active learning session.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "courseId": { "type": "string" },
+        "courseTitle": { "type": "string" },
+        "status": { "type": "string", "enum": ["working", "finished"] },
+        "currentScore": { "type": "number" },
+        "kelas": { "type": "string" },
+        "lastActive": { "type": "string", "format": "date-time" },
+        "cheatingAttempts": { "type": "number" },
+        "cheatingDetails": { "type": "array", "items": { "type": "string" } }
+      }
     }
   },
   "firestore": {
@@ -107,6 +132,14 @@
     "/notifications/{notificationId}": {
       "schema": "Notification",
       "description": "Notifications for admin users."
+    },
+    "/app_settings/{settingId}": {
+      "schema": "AppSetting",
+      "description": "Global application settings."
+    },
+    "/active_sessions/{sessionId}": {
+      "schema": "ActiveSession",
+      "description": "Tracks currently active student sessions."
     }
   }
 }

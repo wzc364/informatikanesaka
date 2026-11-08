@@ -6,8 +6,16 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
     function isAdmin() {
-      return isSignedIn();
+      // Bootstrapped Admin: User email from runtime
+      return isEmailVerified() && (
+        request.auth.token.email == 'ega.nugraha141@guru.smp.belajar.id' || 
+        request.auth.token.email == 'egawzc@gmail.com'
+      );
     }
     
     function isOwner(userId) {
@@ -18,32 +26,50 @@ service cloud.firestore {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // App Settings
-    match /app_settings/{settingId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+    function incoming() {
+      return request.resource.data;
     }
 
-    // Material Configs
+    function existing() {
+      return resource.data;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // App Settings - PUBLIC READ
+    match /app_settings/{settingId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    // Material Configs - PUBLIC READ
     match /material_configs/{courseId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow get, list: if true;
+      allow write: if isAdmin();
     }
 
     // Students collection
     match /students/{studentId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      // Students need to be read by the login logic (querying by NIS)
+      allow get, list: if true;
+      allow write: if isAdmin();
     }
 
     // Assessments
     match /assessments/{assessmentId} {
-      allow create, update, read, list, delete: if isSignedIn();
+      // Students can create their own assessments, admin can read all
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && incoming().studentId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
     
     // Active Sessions
     match /active_sessions/{sessionId} {
-      allow create, update, delete, read, list: if isSignedIn();
+      allow read, list, write: if isSignedIn();
     }
 
     // Access Logs
@@ -53,17 +79,14 @@ service cloud.firestore {
 
     // Announcements
     match /announcements/{announcementId} {
-      allow create, update, delete, read, list: if isSignedIn();
+      allow read, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
 
     // Notifications
     match /notifications/{notificationId} {
-      allow create, read, list, delete: if isSignedIn();
-    }
-
-    // Default deny
-    match /{document=**} {
-      allow read, write: if false;
+      allow create: if isSignedIn();
+      allow read, list, delete: if isAdmin();
     }
   }
 }

@@ -844,7 +844,9 @@ export default function App() {
       if (!initialAuthResolved) {
         initialAuthResolved = true;
         if (!user) {
-          signInAnonymously(auth).catch(e => console.error("Anonymous sign-in failed:", e));
+          signInAnonymously(auth).catch(e => {
+            console.error("Anonymous sign-in failed. Please enable Anonymous Auth in Firebase console:", e);
+          });
         }
       }
     });

@@ -88,10 +88,14 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
       const studentObj = { id: querySnapshot.docs[0].id, ...studentData };
       
       // Sign in anonymously to allow Firestore writes
-      await signInAnonymously(auth);
-      
-      // Log the access asynchronously
-      logAccess(studentObj);
+      try {
+        await signInAnonymously(auth);
+        // Log the access asynchronously
+        logAccess(studentObj);
+      } catch (authError) {
+        console.error('Anonymous sign-in failed during student login:', authError);
+        // We still proceed to dashboard, but some features might be limited
+      }
 
       setCurrentScore(100);
       setCurrentStudent(studentObj);
@@ -113,7 +117,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
     }
 
     const isValidUser = adminUsername.trim().toLowerCase() === 'ega';
-    const isValidPass = adminPassword.trim() === 'ega';
+    const isValidPass = adminPassword.trim().toLowerCase() === 'ega';
 
     if (!isValidUser || !isValidPass) {
       alert('Username atau Password Admin salah.');
@@ -123,7 +127,12 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
     setIsLoading(true);
     try {
       // Authenticate with Firebase anonymously to grant database access
-      await signInAnonymously(auth);
+      try {
+        await signInAnonymously(auth);
+      } catch (authError) {
+        console.error('Anonymous sign-in failed during admin login:', authError);
+        // Continue if we have username/password bypass or if they are already authenticated
+      }
       setCurrentScore(100);
       setIsAdmin(true);
       setCurrentPage('admin');
@@ -141,7 +150,8 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       
-      if (user.email === 'egawzc@gmail.com' && user.emailVerified) {
+      const allowedEmails = ['egawzc@gmail.com', 'ega.nugraha141@guru.smp.belajar.id'];
+      if (user.email && allowedEmails.includes(user.email) && user.emailVerified) {
         setCurrentScore(100);
         setIsAdmin(true);
         setCurrentPage('admin');
