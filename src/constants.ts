@@ -769,6 +769,10 @@ Algoritma adalah urutan langkah-langkah logis dan sistematis untuk menyelesaikan
 2. **Pemecahan Masalah**: Masalah rumit jadi lebih mudah jika dibagi menjadi langkah-langkah kecil.
 3. **Persiapan Pemrograman**: Komputer membutuhkan instruksi yang sangat detail dan berurutan.
 
+### Apa itu Algoritma?
+
+![Ilustrasi Langkah Algoritma Sehari-hari](/images/algo_daily_steps_1794140225028.jpg)
+
 ### Contoh Sederhana
 Algoritma mencuci tangan:
 1. Basahi tangan dengan air.
@@ -803,6 +807,8 @@ Flowchart adalah representasi grafis dari sebuah algoritma. Kita menggunakan sim
 
 ### Simbol dan Maknanya
 
+![Panduan Simbol Flowchart Standar](/images/flowchart_symbols_guide_1794140225483.jpg)
+
 | Simbol | Bentuk | Nama | Fungsi |
 | :--- | :--- | :--- | :--- |
 | 🟢 | Oval | Terminator | Awal atau Akhir |
@@ -810,29 +816,6 @@ Flowchart adalah representasi grafis dari sebuah algoritma. Kita menggunakan sim
 | 🔷 | Belah Ketupat | Decision | Pilihan atau Kondisi |
 | ▱ | Jajar Genjang | Input/Output | Baca data atau Cetak hasil |
 | ➡️ | Panah | Arrow | Alur algoritma |
-
-### Contoh Visual Flowchart: "Lampu Menyala?"
-\`\`\`
-       ┌──────────┐
-       │  START   │
-       └─────┬────┘
-             │
-             v
-      ┌──────────────┐
-      │Lampu Menyala?│──Ya──> [ SELESAI ]
-      └──────┬───────┘
-             │ Tidak
-             v
-      ┌──────────────┐
-      │Pasang Lampu  │
-      │    Baru      │
-      └──────┬───────┘
-             │
-             v
-        ┌────────┐
-        │  END   │
-        └────────┘
- \`\`\`
     `,
     quiz: [
       {
@@ -867,6 +850,8 @@ Flowchart adalah representasi grafis dari sebuah algoritma. Kita menggunakan sim
 - Gunakan kata kunci seperti **IF, THEN, ELSE, WHILE, FOR**.
 - Gunakan **INPUT** dan **OUTPUT**.
 - Gunakan **SET** atau **COMPUTE** untuk perhitungan.
+
+![Konsep Visual Penulisan Pseudocode](/images/pseudocode_concept_visual_1794140227104.jpg)
 
 ### Contoh Pseudocode: Menghitung Luas Persegi
 \`\`\`
@@ -905,6 +890,8 @@ END
 Mari kita gabungkan Flowchart dan Pseudocode untuk menyelesaikan satu masalah: **Menghitung Luas Lingkaran**.
 
 **Rumus:** Luas = 3.14 x r x r
+
+![Geometri Lingkaran dan Rumus Luas](/images/circle_geometry_formula_1794140226056.jpg)
 
 ### 1. Representasi Pseudocode
 \`\`\`
@@ -970,33 +957,7 @@ PRINT luas
 
 Dalam algoritma, seringkali kita butuh melakukan hal yang sama berkali-kali. Ini disebut **Iterasi** atau **Perulangan**.
 
-### Visualisasi Perulangan
-\`\`\`
-       ┌──────────┐
-       │  START   │
-       └─────┬────┘
-             │
-             v
-      ┌──────────────┐
-      │  Hitung = 1  │
-      └──────┬───────┘
-             │
-      ┌──────v───────┐
-      │ Hitung <= 5? │──Tidak─> [ SELESAI ]
-      └──────┬───────┘
-             │ Ya
-             v
-      ┌──────────────┐
-      │ Tampilkan Angka│
-      └──────────────┘
-             │
-             v
-      ┌──────────────┐
-      │ Hitung = H+1 │
-      └──────┬───────┘
-             │
-             └───────┘
- \`\`\`
+![Visualisasi Alur Perulangan Berulang](/images/looping_cycle_concept_1794140226079.jpg)
     `,
     quiz: [
       {
