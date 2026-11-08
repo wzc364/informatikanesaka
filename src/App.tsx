@@ -1106,16 +1106,16 @@ export default function App() {
     const activeCoursesList = COURSES.filter(c => (materialConfigs[c.id]?.isActive ?? true));
     
     return (
-      <div className="flex h-screen bg-frame text-slate-900 flex-col overflow-hidden" style={{ fontFamily: 'Calibri, sans-serif' }}>
+      <div className="flex h-screen bg-slate-300 text-slate-900 flex-col overflow-hidden" style={{ fontFamily: 'Calibri, sans-serif' }}>
         {/* Mobile-friendly fixed header */}
-        <header className="w-full bg-white px-4 md:px-8 py-4 border-b border-slate-100 flex items-center justify-between z-10 shrink-0">
+        <header className="w-full bg-slate-100 px-4 md:px-8 py-4 border-b border-slate-300 flex items-center justify-between z-10 shrink-0">
           <div className="flex items-center gap-3">
-             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center border border-brand/20 overflow-hidden bg-white">
+             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center border border-slate-300 overflow-hidden bg-slate-200">
                 <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain p-1" />
              </div>
              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:block">Profil Siswa</p>
-                <h2 className="text-sm md:text-lg font-black text-slate-800 leading-none">{currentStudent?.nama}</h2>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hidden sm:block">Profil Siswa</p>
+                <h2 className="text-sm md:text-lg font-black text-slate-900 leading-none">{currentStudent?.nama}</h2>
              </div>
           </div>
           <button 
@@ -1133,20 +1133,20 @@ export default function App() {
 
                 setCurrentStudent(null); 
              }}
-             className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-bold text-xs flex items-center gap-2 transition-all active:scale-95"
+             className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-bold text-xs flex items-center gap-2 transition-all active:scale-95 border border-red-200"
           >
             <LogOut size={16} />
             <span className="hidden sm:inline">Keluar</span>
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 space-y-6 md:space-y-8 w-full max-w-5xl mx-auto">
-          <div className="bg-white p-6 md:p-10 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col md:flex-row gap-6 md:gap-10 items-center md:items-start text-center md:text-left">
+        <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 space-y-6 md:space-y-8 w-full max-w-5xl mx-auto custom-scrollbar">
+          <div className="bg-slate-100 p-6 md:p-10 rounded-[2rem] shadow-sm border border-slate-300 flex flex-col md:flex-row gap-6 md:gap-10 items-center md:items-start text-center md:text-left">
             <div className="relative shrink-0">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-3xl flex items-center justify-center p-2 shadow-lg shadow-black/5 relative overflow-hidden border border-slate-100">
+              <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-200 rounded-3xl flex items-center justify-center p-2 shadow-md relative overflow-hidden border border-slate-300">
                 <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain" />
               </div>
-              <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl border-[3px] border-white shadow-sm">
+              <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl border-[3px] border-slate-100 shadow-sm">
                 <CheckCircle size={16} />
               </div>
             </div>
@@ -1155,22 +1155,22 @@ export default function App() {
               <div>
                 <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mb-4 leading-tight">{currentStudent?.nama}</h1>
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                  <div className="bg-slate-100 px-5 py-2 rounded-2xl text-sm md:text-base font-bold text-slate-600 tracking-wide border border-slate-200/50">NISN: <span className="text-slate-900">{currentStudent?.nis}</span></div>
-                  <div className="bg-slate-100 px-5 py-2 rounded-2xl text-sm md:text-base font-bold text-slate-600 tracking-wide border border-slate-200/50">Kelas: <span className="text-slate-900">{currentStudent?.kelas}</span></div>
+                  <div className="bg-slate-200 px-5 py-2 rounded-2xl text-sm md:text-base font-bold text-slate-700 tracking-wide border border-slate-300">NISN: <span className="text-slate-900">{currentStudent?.nis}</span></div>
+                  <div className="bg-slate-200 px-5 py-2 rounded-2xl text-sm md:text-base font-bold text-slate-700 tracking-wide border border-slate-300">Kelas: <span className="text-slate-900">{currentStudent?.kelas}</span></div>
                   <div className={cn(
                     "px-5 py-2 rounded-2xl text-sm md:text-base font-black uppercase tracking-widest border",
                     currentStudent?.jenisKelamin === 'L' 
-                      ? 'bg-blue-50 text-brand border-blue-100' 
-                      : 'bg-pink-50 text-pink-600 border-pink-100'
+                      ? 'bg-blue-100 text-brand border-blue-200' 
+                      : 'bg-pink-100 text-pink-700 border-pink-200'
                   )}>
                     {currentStudent?.jenisKelamin === 'L' ? 'Laki-laki' : 'Perempuan'}
                   </div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-4 p-5 bg-blue-50/50 text-blue-800 rounded-[1.5rem] border border-blue-100 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-accent/10 rounded-bl-full pointer-events-none" />
-                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-brand/5 text-brand">
+              <div className="flex items-center gap-4 p-5 bg-blue-100/70 text-blue-900 rounded-[1.5rem] border border-blue-200 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-400/20 rounded-bl-full pointer-events-none" />
+                <div className="w-12 h-12 bg-slate-200 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-slate-300 text-brand">
                   <Brain size={24} />
                 </div>
                 <p className="text-base md:text-xl font-bold tracking-tight leading-snug">Selamat datang kembali! Mari lanjutkan petualangan belajarmu hari ini.</p>
@@ -1209,28 +1209,28 @@ export default function App() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           key={msg.id} 
-                          className="bg-white p-4 rounded-2xl border border-brand/10 shadow-sm flex items-start gap-4 relative overflow-hidden group"
+                          className="bg-slate-100 p-4 rounded-2xl border border-slate-300 shadow-sm flex items-start gap-4 relative overflow-hidden group"
                         >
-                          <div className="absolute top-0 left-0 w-1 h-full bg-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100 text-brand">
+                          <div className="absolute top-0 left-0 w-1.5 h-full bg-accent opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-300 text-brand">
                             <Bell size={18} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 mb-2">
-                              <span className="text-[10px] md:text-xs font-black text-brand uppercase tracking-widest px-2 py-0.5 bg-brand/5 rounded-md">
+                              <span className="text-[10px] md:text-xs font-black text-brand uppercase tracking-widest px-2 py-0.5 bg-brand/10 rounded-md">
                                 {msg.targetType === 'all' ? '📢 Pengumuman' : msg.targetType === 'class' ? `🏫 Kelas ${msg.targetValue}` : '👤 Privat'}
                               </span>
-                              <span className="text-[10px] md:text-xs font-bold text-slate-400">
+                              <span className="text-[10px] md:text-xs font-bold text-slate-500">
                                 {msg.timestamp?.toDate() ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(msg.timestamp.toDate()) : ''}
                               </span>
                             </div>
-                            <p className="text-base md:text-lg font-bold text-slate-700 leading-relaxed break-words">{msg.content}</p>
+                            <p className="text-base md:text-lg font-bold text-slate-800 leading-relaxed break-words">{msg.content}</p>
                             {msg.link && (
                               <a 
                                 href={msg.link} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-brand text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-brand/90 transition-colors shadow-lg shadow-brand/20"
+                                className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-brand text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-brand-hover transition-colors shadow-md shadow-brand/20"
                               >
                                 {msg.link} <ExternalLink size={12} />
                               </a>
@@ -1247,15 +1247,15 @@ export default function App() {
           <section className="pb-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white border border-slate-100 shadow-sm rounded-xl flex items-center justify-center text-brand">
+                <div className="w-10 h-10 bg-slate-200 border border-slate-300 shadow-sm rounded-xl flex items-center justify-center text-brand">
                   <LayoutGrid size={20} />
                 </div>
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Pilih Materi</h2>
-                  <p className="text-slate-500 font-bold text-sm md:text-base mt-1">Lanjutkan progres belajar Anda</p>
+                  <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Pilih Materi</h2>
+                  <p className="text-slate-600 font-bold text-sm md:text-base mt-1">Lanjutkan progres belajar Anda</p>
                 </div>
               </div>
-              <div className="bg-slate-100 px-5 py-2.5 rounded-2xl text-xs md:text-sm font-black text-slate-600 hidden md:block tracking-widest uppercase">
+              <div className="bg-slate-200 border border-slate-300 px-5 py-2.5 rounded-2xl text-xs md:text-sm font-black text-slate-700 hidden md:block tracking-widest uppercase">
                 {activeCoursesList.length} Materi Aktif
               </div>
             </div>
@@ -1268,7 +1268,7 @@ export default function App() {
                   const colors = [
                     { bg: "bg-brand", border: "border-blue-700", icon: "text-brand" },
                     { bg: "bg-brand", border: "border-blue-700", icon: "text-brand" },
-                    { bg: "bg-blue-500", border: "border-brand", icon: "text-blue-500" },
+                    { bg: "bg-blue-600", border: "border-brand", icon: "text-blue-600" },
                     { bg: "bg-brand", border: "border-indigo-700", icon: "text-brand" },
                     { bg: "bg-sky-600", border: "border-sky-700", icon: "text-sky-600" },
                     { bg: "bg-blue-700", border: "border-blue-800", icon: "text-blue-700" }
@@ -1281,7 +1281,7 @@ export default function App() {
                     whileTap={hasCompleted ? {} : { scale: 0.98 }}
                     key={course.id} 
                     className={cn("group p-1 rounded-[2rem] border shadow-sm transition-all flex flex-col",
-                      hasCompleted ? "bg-frame border-slate-200 opacity-80 cursor-default" : cn(color.bg, color.border, "shadow-xl shadow-black/5 cursor-pointer")
+                      hasCompleted ? "bg-slate-200 border-slate-300 opacity-90 cursor-default" : cn(color.bg, color.border, "shadow-xl shadow-black/5 cursor-pointer")
                     )}
                     onClick={() => { 
                       if (!hasCompleted) {
@@ -1292,28 +1292,28 @@ export default function App() {
                     }}
                   >
                     <div className={cn("flex-1 rounded-[1.8rem] p-6 transition-colors flex flex-col h-full",
-                      hasCompleted ? "bg-white" : "bg-white/10 group-hover:bg-white/20"
+                      hasCompleted ? "bg-slate-100" : "bg-white/10 group-hover:bg-white/20"
                     )}>
-                      <div className={cn("w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-md mb-4 transition-transform", hasCompleted ? "shadow-slate-200/30" : "shadow-black/10 group-hover:scale-105")}>
-                        <BookOpen size={24} className={hasCompleted ? "text-emerald-500" : color.icon} />
+                      <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-md mb-4 transition-transform", hasCompleted ? "bg-slate-200 border border-slate-300 shadow-slate-300/30" : "bg-slate-100 shadow-black/10 group-hover:scale-105")}>
+                        <BookOpen size={24} className={hasCompleted ? "text-emerald-600" : color.icon} />
                       </div>
                       
-                      <h3 className={cn("font-black text-lg md:text-xl leading-tight mb-2 transition-colors", hasCompleted ? "text-slate-800" : "text-white")}>{course.title}</h3>
+                      <h3 className={cn("font-black text-lg md:text-xl leading-tight mb-2 transition-colors", hasCompleted ? "text-slate-900" : "text-white")}>{course.title}</h3>
                       <div className="flex items-center gap-2 mb-6">
-                        <span className={cn("w-2 h-2 rounded-full", hasCompleted ? "bg-emerald-500" : "bg-white animate-pulse")}></span>
-                        <p className={cn("text-xs md:text-sm font-black uppercase tracking-widest", hasCompleted ? "text-slate-500" : "text-white/90")}>{course.level}</p>
+                        <span className={cn("w-2 h-2 rounded-full", hasCompleted ? "bg-emerald-500" : "bg-yellow-400 animate-pulse")}></span>
+                        <p className={cn("text-xs md:text-sm font-black uppercase tracking-widest", hasCompleted ? "text-slate-600" : "text-white/90")}>{course.level}</p>
                       </div>
 
                       <div className={cn("mt-auto flex items-center justify-between gap-2 font-black text-sm uppercase tracking-widest pt-5 border-t",
-                        hasCompleted ? "border-slate-200" : "border-white/20"
+                        hasCompleted ? "border-slate-300" : "border-white/20"
                       )}>
                         {hasCompleted ? (
                            <div className="flex flex-col gap-2 w-full">
-                              <span className="text-emerald-600 flex items-center gap-2 font-black"><CheckCircle size={18}/> SELESAI</span>
-                              <span className={cn("px-4 py-1.5 rounded-xl text-xs md:text-sm font-black border", studentAssessment?.score >= 80 ? "text-emerald-700 bg-emerald-50 border-emerald-100" : studentAssessment?.score >= 60 ? "text-amber-700 bg-amber-50 border-amber-100" : "text-rose-700 bg-rose-50 border-rose-100")}>SKOR: {studentAssessment?.score}</span>
+                              <span className="text-emerald-700 flex items-center gap-2 font-black"><CheckCircle size={18}/> SELESAI</span>
+                              <span className={cn("px-4 py-1.5 rounded-xl text-xs md:text-sm font-black border", studentAssessment?.score >= 80 ? "text-emerald-800 bg-emerald-100 border-emerald-200" : studentAssessment?.score >= 60 ? "text-amber-800 bg-amber-100 border-amber-200" : "text-rose-800 bg-rose-100 border-rose-200")}>SKOR: {studentAssessment?.score}</span>
                            </div>
                         ) : (
-                           <span className="text-white flex items-center gap-2 group-hover:gap-3 transition-all">MULAI BELAJAR <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></span>
+                           <span className="text-white flex items-center gap-2 group-hover:gap-3 transition-all">MULAI BELAJAR <ArrowRight size={18} className="text-yellow-400 group-hover:translate-x-1 transition-transform" /></span>
                         )}
                       </div>
                     </div>
@@ -1321,54 +1321,54 @@ export default function App() {
                 )})}
               </div>
             ) : (
-              <div className="bg-white py-20 rounded-[2rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center p-8">
-                <div className="w-24 h-24 bg-frame rounded-full flex items-center justify-center text-slate-300 mb-6">
+              <div className="bg-slate-100 py-20 rounded-[2rem] border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-8">
+                <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center text-slate-400 mb-6">
                   <Lock size={48} />
                 </div>
                 <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">Belum Ada Materi Aktif</h3>
-                <p className="text-slate-500 font-semibold max-w-sm">Materi akan muncul di sini setelah administrator mengaktifkannya untuk Anda.</p>
+                <p className="text-slate-600 font-semibold max-w-sm">Materi akan muncul di sini setelah administrator mengaktifkannya untuk Anda.</p>
               </div>
             )}
           </section>
 
           <section>
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-14 h-14 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center text-brand shadow-sm">
+              <div className="w-14 h-14 bg-blue-100 border border-blue-200 rounded-2xl flex items-center justify-center text-brand shadow-sm">
                 <TrendingUp size={28} />
               </div>
               <h2 className="text-xl md:text-3xl font-black text-slate-900 uppercase tracking-tight">Riwayat Skor</h2>
             </div>
 
             {/* Desktop Table */}
-            <div className="hidden md:block bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-sm">
+            <div className="hidden md:block bg-slate-100 border border-slate-300 rounded-[2.5rem] overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left min-w-[600px] border-collapse">
-                  <thead className="bg-frame border-b-2 border-slate-200">
-                    <tr className="text-sm font-black text-slate-500 uppercase tracking-widest text-left">
+                  <thead className="bg-slate-200 border-b-2 border-slate-300">
+                    <tr className="text-sm font-black text-slate-700 uppercase tracking-widest text-left">
                       <th className="px-8 py-6">Materi Pembelajaran</th>
                       <th className="px-8 py-6 text-center">Hasil Skor</th>
                       <th className="px-8 py-6 text-right">Tanggal Selesai</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-200">
                     {studentAssessments.length > 0 ? [...studentAssessments].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map((a) => (
-                      <tr key={a.id} className="hover:bg-frame/80 transition-colors">
+                      <tr key={a.id} className="hover:bg-slate-200/80 transition-colors">
                         <td className="px-8 py-6 font-black text-slate-900 text-base md:text-lg">{a.courseTitle}</td>
                         <td className="px-8 py-6 text-center">
                           <span className={cn(
                             "px-5 py-2 rounded-2xl font-black text-base md:text-lg border shadow-sm inline-block min-w-[70px]",
-                            a.score >= 80 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : a.score >= 60 ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-rose-50 text-rose-700 border-rose-100"
+                            a.score >= 80 ? "bg-emerald-100 text-emerald-800 border-emerald-200" : a.score >= 60 ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-rose-100 text-rose-800 border-rose-200"
                           )}>
                             {a.score}
                           </span>
                         </td>
-                        <td className="px-8 py-6 text-right text-slate-500 text-sm md:text-base font-bold">
+                        <td className="px-8 py-6 text-right text-slate-600 text-sm md:text-base font-bold">
                           {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </td>
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan={3} className="px-8 py-20 text-center text-slate-400 font-bold text-lg italic">Belum ada riwayat pengerjaan materi.</td>
+                        <td colSpan={3} className="px-8 py-20 text-center text-slate-500 font-bold text-lg italic">Belum ada riwayat pengerjaan materi.</td>
                       </tr>
                     )}
                   </tbody>
@@ -1379,25 +1379,25 @@ export default function App() {
             {/* Mobile Cards */}
             <div className="md:hidden space-y-4">
               {studentAssessments.length > 0 ? [...studentAssessments].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map((a) => (
-                <div key={a.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-4">
+                <div key={a.id} className="bg-slate-100 p-5 rounded-3xl border border-slate-300 shadow-sm flex flex-col gap-4">
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1">
-                      <h3 className="font-black text-slate-800 text-base leading-snug mb-1">{a.courseTitle}</h3>
-                      <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                      <h3 className="font-black text-slate-900 text-base leading-snug mb-1">{a.courseTitle}</h3>
+                      <div className="flex items-center gap-1.5 text-slate-500 font-bold text-[10px] uppercase tracking-wider">
                         <Calendar size={12} />
                         {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </div>
                     </div>
                     <div className={cn(
                       "px-4 py-2 rounded-2xl font-black text-lg border shadow-sm shrink-0",
-                      a.score >= 80 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : a.score >= 60 ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-rose-50 text-rose-700 border-rose-100"
+                      a.score >= 80 ? "bg-emerald-100 text-emerald-800 border-emerald-200" : a.score >= 60 ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-rose-100 text-rose-800 border-rose-200"
                     )}>
                       {a.score}
                     </div>
                   </div>
                 </div>
               )) : (
-                <div className="bg-white py-12 rounded-3xl border border-dashed border-slate-200 text-center text-slate-400 font-bold text-sm italic">
+                <div className="bg-slate-100 py-12 rounded-3xl border border-dashed border-slate-300 text-center text-slate-500 font-bold text-sm italic">
                   Belum ada riwayat pengerjaan materi.
                 </div>
               )}
@@ -1420,18 +1420,18 @@ export default function App() {
     ] as const;
 
     return (
-      <div className="flex h-screen bg-frame overflow-hidden">
+      <div className="flex h-screen bg-slate-300 overflow-hidden">
         {/* Mobile Header */}
-        <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-50 flex items-center justify-between px-4">
+        <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-slate-100 border-b border-slate-300 z-50 flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <div className="bg-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md overflow-hidden relative border border-slate-100">
+            <div className="bg-slate-200 w-10 h-10 rounded-xl flex items-center justify-center shadow-sm overflow-hidden relative border border-slate-300">
               <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain p-1" />
             </div>
-            <h2 className="text-sm font-bold text-slate-800">SMPN 1 Kawali</h2>
+            <h2 className="text-sm font-bold text-slate-900">SMPN 1 Kawali</h2>
           </div>
           <button 
             onClick={() => setIsAdminSidebarOpen(true)}
-            className="p-2 text-slate-600 hover:bg-frame rounded-lg"
+            className="p-2 text-slate-600 hover:bg-slate-200 rounded-lg"
           >
             <Menu size={24} />
           </button>
@@ -1452,17 +1452,17 @@ export default function App() {
 
         {/* Sidebar Navigation */}
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 p-6 flex flex-col transition-transform duration-300 transform md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-slate-100 border-r border-slate-300 p-6 flex flex-col transition-transform duration-300 transform md:relative md:translate-x-0",
           isAdminSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden relative border border-slate-100">
+              <div className="bg-slate-200 w-12 h-12 rounded-xl flex items-center justify-center shadow-md overflow-hidden relative border border-slate-300">
                 <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain p-1" />
               </div>
               <div>
-                <h2 className="text-lg font-black text-slate-800 leading-tight uppercase tracking-tight">SMPN 1 KAWALI</h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Informatika</p>
+                <h2 className="text-lg font-black text-slate-900 leading-tight uppercase tracking-tight">SMPN 1 KAWALI</h2>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Informatika</p>
               </div>
             </div>
             <button 
@@ -1543,11 +1543,11 @@ export default function App() {
               <div className="relative">
                 <button 
                   onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                  className="w-10 h-10 md:w-12 md:h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 hover:bg-frame transition-all relative group"
+                  className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 border border-slate-300 rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-all relative group"
                 >
-                  <Bell size={20} className="md:w-5 md:h-5 group-hover:rotate-12 transition-transform" />
+                  <Bell size={20} className="md:w-5 md:h-5 group-hover:rotate-12 transition-transform text-brand" />
                   {notifications.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white ring-2 ring-red-500/20 px-1">
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-slate-100 ring-2 ring-red-500/20 px-1">
                       {notifications.length}
                     </span>
                   )}
@@ -1567,9 +1567,9 @@ export default function App() {
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] md:translate-x-0 md:translate-y-0 md:absolute md:inset-auto md:right-0 md:top-full md:mt-3 md:w-96 bg-white rounded-3xl shadow-2xl border border-slate-100 z-50 overflow-hidden origin-center md:origin-top-right"
+                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] md:translate-x-0 md:translate-y-0 md:absolute md:inset-auto md:right-0 md:top-full md:mt-3 md:w-96 bg-slate-100 rounded-3xl shadow-2xl border border-slate-300 z-50 overflow-hidden origin-center md:origin-top-right"
                       >
-                        <div className="p-5 border-b border-slate-50 flex items-center justify-between bg-frame/50">
+                        <div className="p-5 border-b border-slate-300 flex items-center justify-between bg-slate-200">
                           <h3 className="font-black text-slate-800 tracking-tight text-sm md:text-base">Notifikasi Baru</h3>
                           <span className="text-[10px] font-bold bg-brand/10 text-brand px-2 py-1 rounded-lg uppercase tracking-wider">
                             {notifications.length} Pesan
@@ -1665,7 +1665,7 @@ export default function App() {
           
           <div className={cn(
             "rounded-2xl transition-all",
-            adminTab === 'dashboard' ? "" : "bg-white p-6 shadow-sm border border-slate-200"
+            adminTab === 'dashboard' ? "" : "bg-slate-100 p-6 shadow-sm border border-slate-300"
           )}>
             {adminTab === 'dashboard' && (() => {
               const activeSessionList = activeSessions.filter(s => {
@@ -1687,46 +1687,46 @@ export default function App() {
                 <div className="space-y-8 animate-in fade-in duration-500">
                   {/* Top Modern KPI Highlights Bar */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-                    <div className="relative overflow-hidden bg-white rounded-3xl p-6 border border-blue-100 shadow-sm hover:shadow-md transition-all group">
+                    <div className="relative overflow-hidden bg-slate-100 rounded-3xl p-6 border border-slate-300 shadow-sm hover:shadow-md transition-all group">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/20">
-                          <Radio size={22} className="text-accent animate-pulse" />
+                          <Radio size={22} className="text-yellow-400 animate-pulse" />
                         </div>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-50 text-blue-700 border border-blue-200">
-                          <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-100 text-blue-800 border border-blue-200">
+                          <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping" />
                           Live Real-time
                         </span>
                       </div>
                       <h4 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">{activeSessionList.length}</h4>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Total Siswa Aktif</p>
-                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Total Siswa Aktif</p>
+                      <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-xs font-medium text-slate-600">
                         <span>Terhubung ke sistem</span>
                         <span className="font-bold text-brand">{activeSessionList.length > 0 ? `${activeSessionList.length} Online` : 'Standby'}</span>
                       </div>
                     </div>
 
-                    <div className="relative overflow-hidden bg-white rounded-3xl p-6 border border-blue-100 shadow-sm hover:shadow-md transition-all group">
+                    <div className="relative overflow-hidden bg-slate-100 rounded-3xl p-6 border border-slate-300 shadow-sm hover:shadow-md transition-all group">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/20">
-                          <Activity size={22} className="text-accent" />
+                          <Activity size={22} className="text-yellow-400" />
                         </div>
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-50 text-blue-700 border border-blue-200">
-                          <Zap size={12} className="text-accent" />
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-100 text-blue-800 border border-blue-200">
+                          <Zap size={12} className="text-yellow-400" />
                           Progres
                         </span>
                       </div>
                       <h4 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">{workingStudentsCount}</h4>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Sedang Mengerjakan</p>
-                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Sedang Mengerjakan</p>
+                      <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-xs font-medium text-slate-600">
                         <span>Aktif di materi/kuis</span>
                         <span className="font-bold text-brand">{workingStudentsCount} Siswa</span>
                       </div>
                     </div>
 
                     {/* Card 3: Monitoring Kecurangan */}
-                    <div className="relative overflow-hidden bg-white rounded-3xl p-6 border border-rose-100 shadow-sm hover:shadow-md transition-all group">
+                    <div className="relative overflow-hidden bg-slate-100 rounded-3xl p-6 border border-slate-300 shadow-sm hover:shadow-md transition-all group">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-rose-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
                         <div className={cn(
@@ -1740,8 +1740,8 @@ export default function App() {
                         <span className={cn(
                           "inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase border",
                           cheatingSessionsList.length > 0
-                            ? "bg-rose-50 text-rose-700 border-rose-200"
-                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            ? "bg-rose-100 text-rose-800 border-rose-200"
+                            : "bg-emerald-100 text-emerald-800 border-emerald-200"
                         )}>
                           {cheatingSessionsList.length > 0 ? '⚠️ Peringatan' : '🛡️ Aman'}
                         </span>
@@ -1749,29 +1749,29 @@ export default function App() {
                       <h4 className={cn("text-3xl md:text-4xl font-black tracking-tight", cheatingSessionsList.length > 0 ? "text-rose-600" : "text-slate-900")}>
                         {cheatingSessionsList.length}
                       </h4>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Monitoring Kecurangan</p>
-                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Monitoring Kecurangan</p>
+                      <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-xs font-medium text-slate-600">
                         <span>Keluar fullscreen / tab</span>
-                        <span className={cn("font-bold", cheatingSessionsList.length > 0 ? "text-rose-600" : "text-emerald-600")}>
+                        <span className={cn("font-bold", cheatingSessionsList.length > 0 ? "text-rose-600" : "text-emerald-700")}>
                           {cheatingSessionsList.length > 0 ? `${cheatingSessionsList.length} Terdeteksi` : 'Tertib'}
                         </span>
                       </div>
                     </div>
 
-                    <div className="relative overflow-hidden bg-white rounded-3xl p-6 border border-blue-100 shadow-sm hover:shadow-md transition-all group">
+                    <div className="relative overflow-hidden bg-slate-100 rounded-3xl p-6 border border-slate-300 shadow-sm hover:shadow-md transition-all group">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/20">
-                          <Layers size={22} className="text-accent" />
+                          <Layers size={22} className="text-yellow-400" />
                         </div>
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-50 text-blue-700 border border-blue-200">
-                          <Sparkles size={12} className="text-accent" />
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-100 text-blue-800 border border-blue-200">
+                          <Sparkles size={12} className="text-yellow-400" />
                           Materi
                         </span>
                       </div>
-                      <h4 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">{activeCourseCount} <span className="text-lg text-slate-400 font-bold">/ {COURSES.length}</span></h4>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Status Materi Aktif</p>
-                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
+                      <h4 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">{activeCourseCount} <span className="text-lg text-slate-500 font-bold">/ {COURSES.length}</span></h4>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Status Materi Aktif</p>
+                      <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-xs font-medium text-slate-600">
                         <span>Modul terbuka</span>
                         <span className="font-bold text-brand">{activeCourseCount} Siap Diakses</span>
                       </div>
@@ -1807,7 +1807,7 @@ export default function App() {
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
                     
                     {/* LEFT COLUMN: KARTU PARTICIPANT */}
-                    <div className="xl:col-span-7 bg-white rounded-[2.2rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col transition-all">
+                    <div className="xl:col-span-7 bg-slate-100 rounded-[2.2rem] border border-slate-300 shadow-sm overflow-hidden flex flex-col transition-all">
                       {/* Vibrant Gradient Header */}
                       <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 p-6 md:p-7 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3.5">
@@ -1817,7 +1817,7 @@ export default function App() {
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="text-xl md:text-2xl font-black tracking-tight text-white">Kartu Participant</h3>
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                              <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping" />
                             </div>
                             <p className="text-white/80 text-xs font-semibold mt-0.5">Pemantauan aktivitas siswa & kelas secara langsung</p>
                           </div>
@@ -1825,24 +1825,24 @@ export default function App() {
 
                         {/* Total Aktif Badge */}
                         <div className="flex items-center gap-2 self-start sm:self-auto bg-white/15 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/25 shadow-sm">
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-lg shadow-yellow-400/50" />
                           <span className="text-sm font-black text-white tracking-wide">
-                            Total Aktif: <span className="text-emerald-300 font-black">{activeSessionList.length}</span>
+                            Total Aktif: <span className="text-yellow-300 font-black">{activeSessionList.length}</span>
                           </span>
                         </div>
                       </div>
 
                       {/* Class Quick Filter Tabs */}
                       {distinctClasses.length > 0 && (
-                        <div className="px-6 py-3 bg-frame/80 border-b border-slate-100 flex items-center gap-2 overflow-x-auto custom-scrollbar">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 mr-1">Filter Kelas:</span>
+                        <div className="px-6 py-3 bg-slate-200/90 border-b border-slate-300 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 shrink-0 mr-1">Filter Kelas:</span>
                           <button
                             onClick={() => setDashboardClassFilter('all')}
                             className={cn(
                               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0",
                               dashboardClassFilter === 'all' 
                                 ? "bg-brand text-white shadow-sm shadow-brand/30" 
-                                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                                : "bg-slate-200 text-slate-700 border border-slate-300 hover:bg-slate-300"
                             )}
                           >
                             Semua ({activeSessionList.length})
@@ -1857,7 +1857,7 @@ export default function App() {
                                   "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5",
                                   dashboardClassFilter === c 
                                     ? "bg-brand text-white shadow-sm shadow-indigo-600/30" 
-                                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                                    : "bg-slate-200 text-slate-700 border border-slate-300 hover:bg-slate-300"
                                 )}
                               >
                                 Kelas {c}
@@ -1916,7 +1916,7 @@ export default function App() {
                                     return (
                                       <div 
                                         key={s.id} 
-                                        className="bg-white border border-slate-200/80 hover:border-brand/40 p-3.5 rounded-xl shadow-xs hover:shadow-md transition-all flex flex-col gap-2.5 group"
+                                        className="bg-slate-200/70 border border-slate-300 hover:border-brand/40 p-3.5 rounded-xl shadow-xs hover:shadow-md transition-all flex flex-col gap-2.5 group"
                                       >
                                         <div className="flex items-start justify-between gap-2">
                                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -1927,28 +1927,28 @@ export default function App() {
                                               <p className="font-black text-slate-800 text-xs truncate group-hover:text-brand transition-colors" title={s.studentName}>
                                                 {s.studentName}
                                               </p>
-                                              <p className="text-[10px] font-bold text-slate-400">
+                                              <p className="text-[10px] font-bold text-slate-500">
                                                 Kelas {s.kelas}
                                               </p>
                                             </div>
                                           </div>
                                           
                                           {/* Score Tag */}
-                                          <span className="px-2.5 py-1 rounded-lg font-black text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 shrink-0 shadow-xs">
+                                          <span className="px-2.5 py-1 rounded-lg font-black text-xs text-emerald-800 bg-emerald-100 border border-emerald-200 shrink-0 shadow-xs">
                                             Skor: {s.currentScore ?? 100}
                                           </span>
                                         </div>
 
                                         {/* Course and Activity Tag */}
-                                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
-                                          <div className="flex items-center gap-1.5 min-w-0 flex-1 text-slate-600 bg-frame px-2 py-1 rounded-lg border border-slate-100">
+                                        <div className="pt-2 border-t border-slate-300/80 flex items-center justify-between gap-2 text-xs">
+                                          <div className="flex items-center gap-1.5 min-w-0 flex-1 text-slate-700 bg-slate-300/80 px-2 py-1 rounded-lg border border-slate-300">
                                             <BookOpen size={13} className="text-brand shrink-0" />
                                             <span className="truncate font-semibold text-[11px]" title={s.courseTitle || 'Di Halaman Siswa'}>
                                               {s.courseTitle || 'Di Halaman Siswa'}
                                             </span>
                                           </div>
 
-                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 shrink-0">
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700 shrink-0">
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                             Aktif
                                           </span>
@@ -1962,12 +1962,12 @@ export default function App() {
                           })
                         ) : (
                           <div className="py-16 text-center flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-400 mb-4 border border-indigo-100 shadow-inner relative">
+                            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-brand mb-4 border border-blue-200 shadow-inner relative">
                               <Users size={36} />
-                              <span className="absolute inset-0 rounded-full border-2 border-indigo-400/30 animate-ping pointer-events-none" />
+                              <span className="absolute inset-0 rounded-full border-2 border-blue-400/30 animate-ping pointer-events-none" />
                             </div>
                             <h4 className="text-base font-black text-slate-800">Belum Ada Siswa yang Aktif</h4>
-                            <p className="text-xs font-semibold text-slate-400 max-w-sm mt-1">
+                            <p className="text-xs font-semibold text-slate-500 max-w-sm mt-1">
                               Ketika siswa login dan membuka materi pembelajaran, kartu aktivitas siswa akan otomatis tampil di sini secara real-time.
                             </p>
                           </div>
@@ -1976,7 +1976,7 @@ export default function App() {
                     </div>
 
                     {/* RIGHT COLUMN: MONITORING KECURANGAN */}
-                    <div className="xl:col-span-5 bg-white rounded-[2.2rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col transition-all">
+                    <div className="xl:col-span-5 bg-slate-100 rounded-[2.2rem] border border-slate-300 shadow-sm overflow-hidden flex flex-col transition-all">
                       {/* Vibrant Red Gradient Header */}
                       <div className="bg-gradient-to-r from-rose-600 via-red-600 to-orange-500 p-6 md:p-7 text-white flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3.5">
@@ -2004,7 +2004,7 @@ export default function App() {
                                 } catch (err) {}
                               }
                             }}
-                            className="px-3.5 py-2 bg-white/20 hover:bg-white text-white hover:text-red-600 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 backdrop-blur-md border border-white/30 shadow-xs active:scale-95"
+                            className="px-3.5 py-2 bg-white/20 hover:bg-slate-100 text-white hover:text-red-600 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 backdrop-blur-md border border-white/30 shadow-xs active:scale-95"
                           >
                             <Trash2 size={13} />
                             <span>Bersihkan Semua</span>
@@ -2042,9 +2042,9 @@ export default function App() {
 
                               {/* Details breakdown */}
                               {session.cheatingDetails && session.cheatingDetails.length > 0 && (
-                                <div className="bg-white/80 border border-rose-100 rounded-xl p-2.5 space-y-1 text-xs">
-                                  <p className="text-[10px] font-black uppercase tracking-wider text-rose-400 mb-1">Rincian Log Waktu:</p>
-                                  <ul className="text-xs text-rose-800 font-medium space-y-1">
+                                <div className="bg-slate-200/90 border border-rose-200 rounded-xl p-2.5 space-y-1 text-xs">
+                                  <p className="text-[10px] font-black uppercase tracking-wider text-rose-500 mb-1">Rincian Log Waktu:</p>
+                                  <ul className="text-xs text-rose-900 font-medium space-y-1">
                                     {session.cheatingDetails.map((detail: string, idx: number) => (
                                       <li key={idx} className="flex items-start gap-1.5">
                                         <span className="text-rose-500 font-black">•</span>
@@ -2067,7 +2067,7 @@ export default function App() {
                                       handleFirestoreError(err, OperationType.UPDATE, 'active_sessions');
                                     }
                                   }}
-                                  className="text-xs flex items-center gap-1 px-3 py-1.5 text-rose-600 bg-white hover:bg-rose-100 border border-rose-200 rounded-xl transition-all font-bold active:scale-95 shadow-xs"
+                                  className="text-xs flex items-center gap-1 px-3 py-1.5 text-rose-600 bg-slate-200 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all font-bold active:scale-95 shadow-xs"
                                 >
                                   <Trash2 size={13} />
                                   Hapus Log Siswa
@@ -2077,11 +2077,11 @@ export default function App() {
                           ))
                         ) : (
                           <div className="py-16 text-center flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 mb-4 border border-emerald-100 shadow-inner">
+                            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-4 border border-emerald-200 shadow-inner">
                               <ShieldCheck size={36} />
                             </div>
                             <h4 className="text-base font-black text-slate-800">Ruang Ujian Aman & Tertib</h4>
-                            <p className="text-xs font-semibold text-slate-400 max-w-xs mt-1">
+                            <p className="text-xs font-semibold text-slate-500 max-w-xs mt-1">
                               Tidak ada aktivitas mencurigakan atau upaya keluar dari layar penuh yang terdeteksi pada siswa saat ini.
                             </p>
                           </div>
@@ -2091,20 +2091,20 @@ export default function App() {
                   </div>
 
                   {/* BOTTOM SECTION: STATUS AKTIVASI MATERI (MODERN COLORFUL SWITCHBOARD) */}
-                  <div className="bg-white p-6 md:p-8 rounded-[2.2rem] border border-slate-200 shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7 pb-5 border-b border-slate-100">
+                  <div className="bg-slate-100 p-6 md:p-8 rounded-[2.2rem] border border-slate-300 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7 pb-5 border-b border-slate-200">
                       <div className="flex items-center gap-3.5">
                         <div className="w-12 h-12 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
                           <ShieldCheck size={24} />
                         </div>
                         <div>
-                          <h3 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">Status Aktivasi & Keamanan Materi</h3>
-                          <p className="text-slate-400 font-semibold text-xs mt-0.5">Buka akses materi dan aktifkan proteksi mode layar penuh untuk ujian</p>
+                          <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Status Aktivasi & Keamanan Materi</h3>
+                          <p className="text-slate-500 font-semibold text-xs mt-0.5">Buka akses materi dan aktifkan proteksi mode layar penuh untuk ujian</p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="px-4 py-2 rounded-2xl text-xs font-black tracking-widest uppercase bg-slate-100 text-slate-600 border border-slate-200">
+                        <span className="px-4 py-2 rounded-2xl text-xs font-black tracking-widest uppercase bg-slate-200 text-slate-700 border border-slate-300">
                           {activeCourseCount} Dari {COURSES.length} Materi Terbuka
                         </span>
                       </div>
@@ -2116,14 +2116,14 @@ export default function App() {
                         const isFullScreen = materialConfigs[course.id]?.isFullScreen || false;
 
                         const courseColors = [
-                          { bg: "hover:border-blue-400", banner: "from-blue-600 to-indigo-600", tag: "bg-blue-50 text-blue-700 border-blue-200", icon: "text-brand bg-blue-50" },
-                          { bg: "hover:border-emerald-400", banner: "from-emerald-600 to-teal-600", tag: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: "text-emerald-600 bg-emerald-50" },
-                          { bg: "hover:border-purple-400", banner: "from-purple-600 to-violet-600", tag: "bg-purple-50 text-purple-700 border-purple-200", icon: "text-purple-600 bg-purple-50" },
-                          { bg: "hover:border-rose-400", banner: "from-rose-600 to-pink-600", tag: "bg-rose-50 text-rose-700 border-rose-200", icon: "text-rose-600 bg-rose-50" },
-                          { bg: "hover:border-amber-400", banner: "from-amber-500 to-orange-600", tag: "bg-amber-50 text-amber-700 border-amber-200", icon: "text-amber-600 bg-amber-50" },
-                          { bg: "hover:border-indigo-400", banner: "from-indigo-600 to-blue-700", tag: "bg-indigo-50 text-indigo-700 border-indigo-200", icon: "text-brand bg-indigo-50" },
-                          { bg: "hover:border-cyan-400", banner: "from-cyan-600 to-blue-600", tag: "bg-cyan-50 text-cyan-700 border-cyan-200", icon: "text-cyan-600 bg-cyan-50" },
-                          { bg: "hover:border-orange-400", banner: "from-orange-600 to-red-600", tag: "bg-orange-50 text-orange-700 border-orange-200", icon: "text-orange-600 bg-orange-50" }
+                          { bg: "hover:border-blue-400", banner: "from-blue-600 to-indigo-600", tag: "bg-blue-100 text-blue-800 border-blue-200", icon: "text-brand bg-blue-100" },
+                          { bg: "hover:border-emerald-400", banner: "from-emerald-600 to-teal-600", tag: "bg-emerald-100 text-emerald-800 border-emerald-200", icon: "text-emerald-600 bg-emerald-100" },
+                          { bg: "hover:border-purple-400", banner: "from-purple-600 to-violet-600", tag: "bg-purple-100 text-purple-800 border-purple-200", icon: "text-purple-600 bg-purple-100" },
+                          { bg: "hover:border-rose-400", banner: "from-rose-600 to-pink-600", tag: "bg-rose-100 text-rose-800 border-rose-200", icon: "text-rose-600 bg-rose-100" },
+                          { bg: "hover:border-amber-400", banner: "from-amber-500 to-yellow-600", tag: "bg-amber-100 text-amber-800 border-amber-200", icon: "text-amber-600 bg-amber-100" },
+                          { bg: "hover:border-indigo-400", banner: "from-indigo-600 to-blue-700", tag: "bg-indigo-100 text-indigo-800 border-indigo-200", icon: "text-brand bg-indigo-100" },
+                          { bg: "hover:border-cyan-400", banner: "from-cyan-600 to-blue-600", tag: "bg-cyan-100 text-cyan-800 border-cyan-200", icon: "text-cyan-600 bg-cyan-100" },
+                          { bg: "hover:border-orange-400", banner: "from-orange-600 to-red-600", tag: "bg-orange-100 text-orange-800 border-orange-200", icon: "text-orange-600 bg-orange-100" }
                         ];
                         const theme = courseColors[index % courseColors.length];
 
@@ -2131,7 +2131,7 @@ export default function App() {
                           <div 
                             key={course.id} 
                             className={cn(
-                              "bg-frame/70 border border-slate-200/90 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all hover:bg-white hover:shadow-md",
+                              "bg-slate-200/80 border border-slate-300 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all hover:bg-slate-200 hover:shadow-md",
                               theme.bg
                             )}
                           >
@@ -2148,17 +2148,17 @@ export default function App() {
                               <h4 className="font-black text-slate-800 text-sm leading-snug line-clamp-2" title={course.title}>
                                 {course.title}
                               </h4>
-                              <p className="text-[11px] font-bold text-slate-400 mt-1">
+                              <p className="text-[11px] font-bold text-slate-500 mt-1">
                                 {course.topics.length} Topik Pembelajaran
                               </p>
                             </div>
 
-                            <div className="space-y-3 pt-3 border-t border-slate-200/80">
+                            <div className="space-y-3 pt-3 border-t border-slate-300">
                               {/* Toggle 1: Akses Materi */}
-                              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-100 shadow-xs">
+                              <div className="flex items-center justify-between bg-slate-100 p-2.5 rounded-xl border border-slate-300 shadow-xs">
                                 <div>
-                                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">Akses Siswa</span>
-                                  <span className={cn("text-xs font-bold", isActive ? "text-emerald-600" : "text-slate-400")}>
+                                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-500 block">Akses Siswa</span>
+                                  <span className={cn("text-xs font-bold", isActive ? "text-emerald-700" : "text-slate-400")}>
                                     {isActive ? "✓ Terbuka" : "✕ Terkunci"}
                                   </span>
                                 </div>
@@ -2166,12 +2166,12 @@ export default function App() {
                                   onClick={() => toggleMaterialActive(course.id)}
                                   className={cn(
                                     "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                                    isActive ? "bg-emerald-500" : "bg-slate-200"
+                                    isActive ? "bg-emerald-600" : "bg-slate-300"
                                   )}
                                 >
                                   <span 
                                     className={cn(
-                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-slate-100 shadow-md ring-0 transition duration-200 ease-in-out",
                                       isActive ? "translate-x-5" : "translate-x-0"
                                     )}
                                   />
@@ -2179,9 +2179,9 @@ export default function App() {
                               </div>
 
                               {/* Toggle 2: Wajib Fullscreen */}
-                              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-100 shadow-xs">
+                              <div className="flex items-center justify-between bg-slate-100 p-2.5 rounded-xl border border-slate-300 shadow-xs">
                                 <div>
-                                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">Mode Ujian</span>
+                                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-500 block">Mode Ujian</span>
                                   <span className={cn("text-xs font-bold", isFullScreen ? "text-brand" : "text-slate-400")}>
                                     {isFullScreen ? "🔒 Fullscreen" : "🔓 Bebas"}
                                   </span>
@@ -2190,12 +2190,12 @@ export default function App() {
                                   onClick={() => toggleMaterialFullScreen(course.id)}
                                   className={cn(
                                     "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                                    isFullScreen ? "bg-brand" : "bg-slate-200"
+                                    isFullScreen ? "bg-brand" : "bg-slate-300"
                                   )}
                                 >
                                   <span 
                                     className={cn(
-                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-slate-100 shadow-md ring-0 transition duration-200 ease-in-out",
                                       isFullScreen ? "translate-x-5" : "translate-x-0"
                                     )}
                                   />
@@ -2212,7 +2212,7 @@ export default function App() {
             })()}
             {adminTab === 'student_management' && (
               <div className="space-y-6">
-                <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm w-fit">
+                <div className="flex bg-slate-200 p-1 rounded-xl border border-slate-300 shadow-sm w-fit">
                   <button
                     onClick={() => setStudentSubTab('classes')}
                     className={cn(
@@ -2321,11 +2321,11 @@ export default function App() {
                       </div>
                     </div>
                     
-                    <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 mb-4">
+                    <div className="overflow-x-auto rounded-3xl border border-slate-300 bg-slate-100 shadow-md mb-4">
                       <div className="min-w-full">
                         <table className="w-full text-left border-collapse min-w-[800px]">
                           <thead>
-                            <tr className="bg-frame/50 border-b border-slate-100 text-slate-400 text-[10px] uppercase tracking-widest font-bold">
+                            <tr className="bg-slate-200 border-b border-slate-300 text-slate-600 text-[10px] uppercase tracking-widest font-bold">
                             <th className="px-6 py-4 w-10">
                               <input 
                                 type="checkbox" 
@@ -2477,17 +2477,17 @@ export default function App() {
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className="bg-white rounded-[2.5rem] overflow-hidden max-w-md w-full shadow-2xl relative z-10 border border-white/20"
+                    className="bg-slate-100 rounded-[2.5rem] overflow-hidden max-w-md w-full shadow-2xl relative z-10 border border-slate-300"
                     onClick={e => e.stopPropagation()}
                   >
                     <div className={cn(
                       "h-32 relative",
                       studentDetail.student.jenisKelamin === 'P' ? "bg-gradient-to-br from-rose-400 to-pink-600" : "bg-gradient-to-br from-blue-500 to-indigo-700"
                     )}>
-                      <div className="absolute -bottom-12 left-8 p-1 bg-white rounded-3xl shadow-xl">
+                      <div className="absolute -bottom-12 left-8 p-1 bg-slate-100 rounded-3xl shadow-xl">
                         <div className={cn(
                           "w-24 h-24 rounded-[1.25rem] flex items-center justify-center text-white font-black text-4xl",
-                          studentDetail.student.jenisKelamin === 'P' ? "bg-rose-500" : "bg-blue-500"
+                          studentDetail.student.jenisKelamin === 'P' ? "bg-rose-500" : "bg-blue-600"
                         )}>
                           {studentDetail.student.nama.charAt(0)}
                         </div>
@@ -2504,20 +2504,20 @@ export default function App() {
                       <div className="flex justify-between items-start mb-6">
                         <div>
                           <h2 className="text-2xl font-black text-slate-900 leading-tight">{studentDetail.student.nama}</h2>
-                          <p className="text-slate-400 font-bold text-sm tracking-tight">{studentDetail.student.nis} • Kelas {studentDetail.student.student_management?.kelas || studentDetail.student.kelas}</p>
+                          <p className="text-slate-500 font-bold text-sm tracking-tight">{studentDetail.student.nis} • Kelas {studentDetail.student.student_management?.kelas || studentDetail.student.kelas}</p>
                         </div>
-                        <div className="bg-brand/5 border border-brand/10 px-4 py-2 rounded-2xl text-center">
+                        <div className="bg-brand/10 border border-brand/20 px-4 py-2 rounded-2xl text-center">
                           <p className="text-[10px] font-black text-brand uppercase tracking-widest leading-none mb-1">Total Nilai</p>
                           <p className="text-2xl font-black text-brand leading-none">{studentDetail.score}</p>
                         </div>
                       </div>
                       
                       <div className="mb-4">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Materi & Skor</p>
-                        <div className="space-y-2 bg-frame p-3 rounded-2xl max-h-48 overflow-y-auto">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Materi & Skor</p>
+                        <div className="space-y-2 bg-slate-200 p-3 rounded-2xl max-h-48 overflow-y-auto">
                           {assessments.filter(a => a.studentId === studentDetail.student.id).length > 0 ? (
                             assessments.filter(a => a.studentId === studentDetail.student.id).map((a, idx) => (
-                              <div key={idx} className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm">
+                              <div key={idx} className="flex justify-between items-center p-2.5 bg-slate-100 rounded-xl border border-slate-300 shadow-sm">
                                 <div className="min-w-0 flex-1 mr-3">
                                   <span className="text-xs font-bold text-slate-700 block truncate">{a.courseTitle}</span>
                                   {a.completedAt && (
@@ -2620,7 +2620,7 @@ export default function App() {
                           </div>
                       </div>
                         <p className="text-sm text-slate-600 line-clamp-2 mb-2 flex-1">{course.description}</p>
-                        <div className="flex gap-4 text-xs font-bold text-slate-500 mb-6 bg-white/50 p-2 rounded-lg">
+                        <div className="flex gap-4 text-xs font-bold text-slate-600 mb-6 bg-slate-200/80 border border-slate-300 p-2 rounded-lg">
                           <span>{tM}m {tS}s materi</span>
                           <span>{qM}m {qS}s kuis</span>
                           <span>{availSeconds}s kuis ready</span>
@@ -2704,7 +2704,7 @@ export default function App() {
                         <button 
                           key={courseData.title}
                           onClick={() => setAssessmentNav({ course: courseData.title, kelas: null })}
-                          className="bg-white p-6 rounded-[2rem] border border-slate-200 text-left hover:border-brand/40 group hover:shadow-2xl hover:shadow-brand/10 transition-all duration-500 flex flex-col relative overflow-hidden"
+                          className="bg-slate-100 p-6 rounded-[2rem] border border-slate-300 text-left hover:border-brand/40 group hover:shadow-xl hover:shadow-brand/10 transition-all duration-500 flex flex-col relative overflow-hidden"
                         >
                           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                             <BookOpen size={64} />
@@ -2715,24 +2715,24 @@ export default function App() {
                           <h4 className="text-xl font-black text-slate-900 mb-2 leading-tight group-hover:text-brand transition-colors">{courseData.title}</h4>
                           
                           <div className="mt-auto space-y-4">
-                            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                              <span className="flex items-center gap-1.5 bg-frame px-2 py-1 rounded-lg">
+                            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                              <span className="flex items-center gap-1.5 bg-slate-200 px-2 py-1 rounded-lg">
                                 <Users size={12} className="text-brand" /> {Object.keys(courseData.classes).length} Kelas
                               </span>
-                              <span className="flex items-center gap-1.5 bg-frame px-2 py-1 rounded-lg">
+                              <span className="flex items-center gap-1.5 bg-slate-200 px-2 py-1 rounded-lg">
                                 <CheckCircle size={12} className="text-emerald-500" /> {totalSubmissions} Done
                               </span>
                             </div>
 
-                            <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
+                            <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
                               <div className="flex flex-col">
-                                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Rerata Skor</span>
+                                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Rerata Skor</span>
                                 <span className={cn(
                                   "text-lg font-black",
                                   avgScore >= 80 ? "text-emerald-600" : avgScore >= 60 ? "text-amber-600" : "text-rose-600"
                                 )}>{avgScore}</span>
                               </div>
-                              <div className="w-10 h-10 rounded-full bg-frame flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors">
+                              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors">
                                 <ChevronRight size={20} />
                               </div>
                             </div>
@@ -2740,8 +2740,8 @@ export default function App() {
                         </button>
                       );
                     }) : (
-                      <div className="col-span-full py-20 bg-frame rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
-                        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                      <div className="col-span-full py-20 bg-slate-200/50 rounded-[2.5rem] border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400">
+                        <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mb-6">
                           <TrendingUp size={40} className="opacity-20" />
                         </div>
                         <p className="font-black text-lg tracking-tight mb-1">Belum Ada Data Asesmen</p>
@@ -2760,20 +2760,20 @@ export default function App() {
                         <button 
                           key={classData.name}
                           onClick={() => setAssessmentNav({ ...assessmentNav, kelas: classData.name })}
-                          className="bg-white p-6 rounded-[2rem] border border-slate-200 text-left hover:border-brand/40 group hover:shadow-2xl hover:shadow-brand/5 transition-all duration-500 flex flex-col relative"
+                          className="bg-slate-100 p-6 rounded-[2rem] border border-slate-300 text-left hover:border-brand/40 group hover:shadow-xl hover:shadow-brand/5 transition-all duration-500 flex flex-col relative"
                         >
-                          <div className="w-12 h-12 bg-frame text-slate-400 rounded-xl flex items-center justify-center mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500">
+                          <div className="w-12 h-12 bg-slate-200 text-slate-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500">
                             <Users size={24} />
                           </div>
                           <h4 className="text-2xl font-black text-slate-900 mb-1">Kelas {classData.name}</h4>
-                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6">
                             <CheckCircle size={10} className="text-emerald-500" />
                             {submissions} Siswa Selesai
                           </div>
                           
-                          <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                          <div className="mt-auto pt-4 border-t border-slate-200 flex items-center justify-between">
                             <div className="flex flex-col">
-                              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Nilai Rata-rata</span>
+                              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Nilai Rata-rata</span>
                               <span className={cn(
                                 "text-lg font-black",
                                 avgScore >= 80 ? "text-emerald-600" : avgScore >= 60 ? "text-amber-600" : "text-rose-600"
@@ -2781,7 +2781,7 @@ export default function App() {
                             </div>
                             <div className="flex -space-x-2">
                               {[1, 2, 3].map(i => (
-                                <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-400 uppercase">
+                                <div key={i} className="w-6 h-6 rounded-full border-2 border-slate-300 bg-slate-200 flex items-center justify-center text-[8px] font-black text-slate-600 uppercase">
                                   {classData.name[0]}
                                 </div>
                               ))}
@@ -2809,30 +2809,30 @@ export default function App() {
 
                         return (
                           <>
-                            <div className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-4">
-                              <div className="w-10 h-10 bg-blue-50 text-brand rounded-xl flex items-center justify-center">
+                            <div className="bg-slate-100 p-4 rounded-2xl border border-slate-300 flex items-center gap-4">
+                              <div className="w-10 h-10 bg-blue-100 text-brand rounded-xl flex items-center justify-center">
                                 <Users size={20} />
                               </div>
                               <div>
-                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Partisipasi</p>
+                                <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Partisipasi</p>
                                 <p className="text-sm font-black text-slate-900">{completed} / {studentsInClass} Siswa</p>
                               </div>
                             </div>
-                            <div className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-4">
-                              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                            <div className="bg-slate-100 p-4 rounded-2xl border border-slate-300 flex items-center gap-4">
+                              <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center">
                                 <TrendingUp size={20} />
                               </div>
                               <div>
-                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Rata-rata Kelas</p>
+                                <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Rata-rata Kelas</p>
                                 <p className="text-sm font-black text-slate-900">{avgScore} Poin</p>
                               </div>
                             </div>
-                            <div className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-4">
-                              <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
+                            <div className="bg-slate-100 p-4 rounded-2xl border border-slate-300 flex items-center gap-4">
+                              <div className="w-10 h-10 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center">
                                 <CheckCircle size={20} />
                               </div>
                               <div>
-                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Status Materi</p>
+                                <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Status Materi</p>
                                 <p className="text-sm font-black text-slate-900">{completed === studentsInClass ? 'Selesai Semua' : 'Dalam Proses'}</p>
                               </div>
                             </div>
@@ -2841,8 +2841,8 @@ export default function App() {
                       })()}
                     </div>
 
-                    <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                      <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between bg-frame/50 gap-4">
+                    <div className="bg-slate-100 rounded-3xl border border-slate-300 overflow-hidden shadow-sm">
+                      <div className="p-6 border-b border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between bg-slate-200/60 gap-4">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-black text-slate-900">Daftar Nilai Siswa</h4>
@@ -2853,12 +2853,12 @@ export default function App() {
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
-                          <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+                          <div className="flex bg-slate-200 p-1 rounded-xl border border-slate-300 shadow-sm">
                             <button 
                               onClick={() => setAssessmentSort('time')}
                               className={cn(
                                 "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
-                                assessmentSort === 'time' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-500 hover:bg-frame"
+                                assessmentSort === 'time' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-600 hover:bg-slate-300"
                               )}
                             >
                               <Clock size={14} /> Teranyar
@@ -2867,7 +2867,7 @@ export default function App() {
                               onClick={() => setAssessmentSort('name')}
                               className={cn(
                                 "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
-                                assessmentSort === 'name' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-500 hover:bg-frame"
+                                assessmentSort === 'name' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-600 hover:bg-slate-300"
                               )}
                             >
                               <Type size={14} /> Abjad
@@ -2972,7 +2972,7 @@ export default function App() {
                                   {sortedList.map((res) => (
                                     <tr key={res.id} className={cn(
                                       "hover:bg-blue-50/30 transition-all group", 
-                                      res.isMissing ? "bg-frame/50 font-medium" : "bg-white"
+                                      res.isMissing ? "bg-slate-200/50 font-medium" : "bg-slate-100"
                                     )}>
                                       <td className="p-4 pl-6 border-r border-slate-100/50">
                                         <div className="flex items-center gap-3">
@@ -3080,9 +3080,9 @@ export default function App() {
                             </div>
 
                             {/* Mobile View: Cards */}
-                            <div className="block md:hidden divide-y divide-slate-100">
+                            <div className="block md:hidden divide-y divide-slate-200">
                               {sortedList.map((res) => (
-                                <div key={res.id} className="p-4 bg-white space-y-3">
+                                <div key={res.id} className="p-4 bg-slate-100 space-y-3">
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-3">
                                       <div className={cn(
@@ -3172,18 +3172,18 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                <div className="bg-slate-100 rounded-3xl border border-slate-300 overflow-hidden shadow-sm">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-frame border-b border-slate-100">
-                          <th className="p-4 pl-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Siswa</th>
-                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Waktu Akses</th>
-                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Alamat IP</th>
-                          <th className="p-4 pr-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Perangkat & Browser</th>
+                        <tr className="bg-slate-200 border-b border-slate-300">
+                          <th className="p-4 pl-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Siswa</th>
+                          <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Waktu Akses</th>
+                          <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Alamat IP</th>
+                          <th className="p-4 pr-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Perangkat & Browser</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-50">
+                      <tbody className="divide-y divide-slate-200">
                         {accessLogs.length > 0 ? (
                           [...accessLogs]
                             .sort((a, b) => {
@@ -3193,10 +3193,10 @@ export default function App() {
                             })
                             .slice(0, 100)
                             .map((log) => (
-                              <tr key={log.id} className="hover:bg-frame/50 transition-colors">
+                              <tr key={log.id} className="hover:bg-slate-200/50 transition-colors">
                                 <td className="p-4 pl-8">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
                                       <User size={14} />
                                     </div>
                                     <p className="font-bold text-slate-900">{log.studentName}</p>
@@ -3260,18 +3260,18 @@ export default function App() {
                   </button>
                 </div>
 
-                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                <div className="bg-slate-100 rounded-3xl border border-slate-300 overflow-hidden shadow-sm">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[700px]">
                       <thead>
-                        <tr className="bg-frame border-b border-slate-100">
-                          <th className="p-4 pl-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Waktu</th>
-                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Target</th>
-                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Isi Pengumuman</th>
-                          <th className="p-4 pr-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Aksi</th>
+                        <tr className="bg-slate-200 border-b border-slate-300">
+                          <th className="p-4 pl-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Waktu</th>
+                          <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Target</th>
+                          <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Isi Pengumuman</th>
+                          <th className="p-4 pr-8 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Aksi</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-50">
+                      <tbody className="divide-y divide-slate-200">
                         {announcements.length > 0 ? (
                           [...announcements]
                             .sort((a, b) => {
@@ -3280,7 +3280,7 @@ export default function App() {
                               return dateB - dateA;
                             })
                             .map((ann) => (
-                              <tr key={ann.id} className="hover:bg-frame/50 transition-colors">
+                              <tr key={ann.id} className="hover:bg-slate-200/50 transition-colors">
                                 <td className="p-4 pl-8">
                                   <div className="flex flex-col">
                                     <span className="text-sm font-bold text-slate-700">
@@ -3292,7 +3292,7 @@ export default function App() {
                                   </div>
                                 </td>
                                 <td className="p-4">
-                                    <span className="inline-flex items-center px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-bold uppercase tracking-widest">
+                                    <span className="inline-flex items-center px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs font-bold uppercase tracking-widest">
                                         {ann.targetType === 'all' ? 'Semua Siswa' : ann.targetType === 'class' ? `Kelas ${ann.targetValue}` : 'Siswa Spesifik'}
                                     </span>
                                 </td>
@@ -3354,13 +3354,13 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm p-6">
+                <div className="bg-slate-100 rounded-3xl border border-slate-300 overflow-hidden shadow-sm p-6">
                   <div className="max-w-md space-y-4">
                     <div>
                       <label className="block text-sm font-bold text-slate-700 mb-1">Upload Logo Sekolah</label>
                       <p className="text-xs text-slate-500 mb-4 shadow-sm">Disarankan menggunakan gambar berformat persegi, atau rasio aspek 1:1 transparan dengan format PNG/SVG. Maks 1MB.</p>
                       <div className="flex items-start gap-4">
-                        <div className="w-20 h-20 bg-slate-100 rounded-xl flex items-center justify-center border border-slate-200 overflow-hidden relative shrink-0">
+                        <div className="w-20 h-20 bg-slate-200 rounded-xl flex items-center justify-center border border-slate-300 overflow-hidden relative shrink-0">
                           {settingsConfig.logoUrl ? (
                             <img src={settingsConfig.logoUrl} alt="Preview Logo" className="w-full h-full object-cover" />
                           ) : (
@@ -3395,7 +3395,7 @@ export default function App() {
                           />
                           <label 
                             htmlFor="logo-upload"
-                            className="inline-flex cursor-pointer items-center justify-center px-4 py-2 bg-white border border-slate-300 rounded-xl font-bold text-sm shadow-sm hover:bg-frame hover:text-brand transition-colors text-slate-700"
+                            className="inline-flex cursor-pointer items-center justify-center px-4 py-2 bg-slate-200 border border-slate-300 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-300 hover:text-brand transition-colors text-slate-700"
                           >
                             Pilih File Gambar
                           </label>
@@ -3435,7 +3435,7 @@ export default function App() {
                 <motion.div 
                   initial={{ scale: 0.9, y: 20 }}
                   animate={{ scale: 1, y: 0 }}
-                  className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl my-8"
+                  className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-2xl overflow-hidden shadow-2xl my-8"
                 >
                   <div className="bg-slate-900 p-8 text-white flex justify-between items-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-brand/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
@@ -3512,7 +3512,7 @@ export default function App() {
                                 <input 
                                   type="number" 
                                   min="0"
-                                  className="w-full p-2.5 bg-white border border-emerald-200 rounded-xl text-sm font-bold text-emerald-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                  className="w-full p-2.5 bg-slate-200 border border-emerald-300 rounded-xl text-sm font-bold text-emerald-950 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                                   value={localMaterialConfig.defaultTopicTimer ?? 70}
                                   onChange={(e) => {
                                     const val = parseInt(e.target.value) || 0;
@@ -3525,7 +3525,7 @@ export default function App() {
                                 <input 
                                   type="number" 
                                   min="0"
-                                  className="w-full p-2.5 bg-white border border-emerald-200 rounded-xl text-sm font-bold text-emerald-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                  className="w-full p-2.5 bg-slate-200 border border-emerald-300 rounded-xl text-sm font-bold text-emerald-950 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                                   value={localMaterialConfig.defaultQuizAvailableAt ?? 40}
                                   onChange={(e) => {
                                     const val = parseInt(e.target.value) || 0;
@@ -3538,7 +3538,7 @@ export default function App() {
                                 <input 
                                   type="number" 
                                   min="0"
-                                  className="w-full p-2.5 bg-white border border-emerald-200 rounded-xl text-sm font-bold text-emerald-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                  className="w-full p-2.5 bg-slate-200 border border-emerald-300 rounded-xl text-sm font-bold text-emerald-950 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                                   value={localMaterialConfig.defaultQuizTimer ?? 60}
                                   onChange={(e) => {
                                     const val = parseInt(e.target.value) || 0;
@@ -3611,7 +3611,7 @@ export default function App() {
                           </div>
 
                           {COURSES.find(c => c.id === editingMaterialConfigId)?.topics.map(topic => (
-                            <div key={topic.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 bg-white border border-slate-200 rounded-2xl hover:border-brand/40 transition-colors shadow-sm">
+                            <div key={topic.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 bg-slate-200/70 border border-slate-300 rounded-2xl hover:border-brand/40 transition-colors shadow-sm">
                               <div className="col-span-full mb-2 pb-2 border-b border-slate-50">
                                 <span className="font-bold text-slate-800 text-sm">{topic.title}</span>
                               </div>
@@ -3715,14 +3715,14 @@ export default function App() {
                   initial={{ scale: 0.95, opacity: 0, y: 20 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                  className="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-100"
+                  className="bg-slate-100 rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-300"
                 >
                   <div className={cn(
                     "p-8 flex flex-col items-center text-center border-b",
-                    materialToggleTarget.nextStatus ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"
+                    materialToggleTarget.nextStatus ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
                   )}>
                     <div className={cn(
-                      "w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-inner ring-4 ring-white",
+                      "w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-inner ring-4 ring-slate-200",
                       materialToggleTarget.nextStatus ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"
                     )}>
                       {materialToggleTarget.nextStatus ? <Globe size={32} /> : <Lock size={32} />}
@@ -3755,7 +3755,7 @@ export default function App() {
                     
                     <button 
                       onClick={() => { setIsMaterialConfirmOpen(false); setMaterialToggleTarget(null); }}
-                      className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold transition-all active:scale-[0.98]"
+                      className="w-full py-4 bg-slate-200 hover:bg-slate-300 text-slate-700 border border-slate-300 rounded-2xl font-bold transition-all active:scale-[0.98]"
                     >
                       Batal
                     </button>
@@ -3775,10 +3775,10 @@ export default function App() {
                   initial={{ scale: 0.95, opacity: 0, y: 20 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                  className="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-100"
+                  className="bg-slate-100 rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-300"
                 >
-                  <div className="bg-red-50 p-8 flex flex-col items-center text-center border-b border-red-100">
-                    <div className="w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mb-4 shadow-inner ring-4 ring-white">
+                  <div className="bg-red-50 p-8 flex flex-col items-center text-center border-b border-red-200">
+                    <div className="w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mb-4 shadow-inner ring-4 ring-slate-200">
                       <Trash2 size={32} />
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900 mb-2">Konfirmasi Hapus</h2>
@@ -3817,7 +3817,7 @@ export default function App() {
                     <button 
                       onClick={() => { setIsDeleteModalOpen(false); setDeleteTarget(null); setDeleteType(null); }}
                       disabled={isDeleting}
-                      className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold transition-all active:scale-[0.98] disabled:opacity-50"
+                      className="w-full py-4 bg-slate-200 hover:bg-slate-300 text-slate-700 border border-slate-300 rounded-2xl font-bold transition-all active:scale-[0.98] disabled:opacity-50"
                     >
                       Batal
                     </button>
@@ -3833,7 +3833,7 @@ export default function App() {
                   initial={{ scale: 0.9, y: 20, opacity: 0 }}
                   animate={{ scale: 1, y: 0, opacity: 1 }}
                   exit={{ scale: 0.9, y: 20, opacity: 0 }}
-                  className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl relative"
+                  className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-md overflow-hidden shadow-2xl relative"
                 >
                   <div className="p-8 pb-4">
                     <div className="flex items-center justify-between mb-6">
@@ -3845,12 +3845,12 @@ export default function App() {
                           <h3 className="text-xl font-black text-slate-800">
                             {editingAnnouncementId ? 'Edit Pengumuman' : 'Buat Pengumuman'}
                           </h3>
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Bagikan info ke siswa</p>
+                          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Bagikan info ke siswa</p>
                         </div>
                       </div>
                       <button 
                         onClick={() => setIsAnnouncementModalOpen(false)}
-                        className="w-10 h-10 rounded-xl bg-frame text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all"
+                        className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-all border border-slate-300"
                       >
                         <X size={20} />
                       </button>
@@ -3858,7 +3858,7 @@ export default function App() {
 
                     <div className="space-y-4">
                       <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Target Pengumuman</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Target Pengumuman</label>
                         <div className="grid grid-cols-3 gap-2">
                           <button 
                             onClick={() => setAnnouncementTargetType('all')}
@@ -3866,7 +3866,7 @@ export default function App() {
                               "py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
                               announcementTargetType === 'all' 
                                 ? "bg-brand text-white border-brand shadow-lg shadow-brand/20" 
-                                : "bg-white text-slate-400 border-slate-200 hover:border-brand/40"
+                                : "bg-slate-200 text-slate-600 border-slate-300 hover:border-brand/40"
                             )}
                           >
                             Semua
@@ -3877,7 +3877,7 @@ export default function App() {
                               "py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
                               announcementTargetType === 'class' 
                                 ? "bg-brand text-white border-brand shadow-lg shadow-brand/20" 
-                                : "bg-white text-slate-400 border-slate-200 hover:border-brand/40"
+                                : "bg-slate-200 text-slate-600 border-slate-300 hover:border-brand/40"
                             )}
                           >
                             Per Kelas
@@ -3888,7 +3888,7 @@ export default function App() {
                               "py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
                               announcementTargetType === 'student' 
                                 ? "bg-brand text-white border-brand shadow-lg shadow-brand/20" 
-                                : "bg-white text-slate-400 border-slate-200 hover:border-brand/40"
+                                : "bg-slate-200 text-slate-600 border-slate-300 hover:border-brand/40"
                             )}
                           >
                             Per Siswa
@@ -3898,11 +3898,11 @@ export default function App() {
 
                       {announcementTargetType === 'class' && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Pilih Kelas</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Pilih Kelas</label>
                           <select 
                             value={announcementTargetValue}
                             onChange={(e) => setAnnouncementTargetValue(e.target.value)}
-                            className="w-full px-4 py-3 bg-frame border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 appearance-none font-bold text-sm text-slate-700"
+                            className="w-full px-4 py-3 bg-slate-200 border border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 appearance-none font-bold text-sm text-slate-800"
                           >
                             <option value="">Pilih...</option>
                             {Array.from(new Set(students.map(s => s.kelas))).sort().map(k => (
@@ -3914,11 +3914,11 @@ export default function App() {
 
                       {announcementTargetType === 'student' && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Pilih Siswa</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Pilih Siswa</label>
                           <select 
                             value={announcementTargetValue}
                             onChange={(e) => setAnnouncementTargetValue(e.target.value)}
-                            className="w-full px-4 py-3 bg-frame border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 appearance-none font-bold text-sm text-slate-700"
+                            className="w-full px-4 py-3 bg-slate-200 border border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 appearance-none font-bold text-sm text-slate-800"
                           >
                             <option value="">Pilih...</option>
                             {students.sort((a,b) => a.nama.localeCompare(b.nama)).map(s => (
@@ -3929,24 +3929,24 @@ export default function App() {
                       )}
 
                       <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Isi Pengumuman</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Isi Pengumuman</label>
                         <textarea 
                           value={announcementContent}
                           onChange={(e) => setAnnouncementContent(e.target.value)}
                           placeholder="Masukkan isi pengumuman..."
-                          className="w-full p-4 bg-frame border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all font-medium text-slate-700 min-h-[100px] resize-none"
+                          className="w-full p-4 bg-slate-200 border border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all font-medium text-slate-800 min-h-[100px] resize-none"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Tautan/Link (Opsional)</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Tautan/Link (Opsional)</label>
                         <div className="relative">
-                          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                           <input 
                             type="url"
                             value={announcementLink}
                             onChange={(e) => setAnnouncementLink(e.target.value)}
                             placeholder="https://example.com"
-                            className="w-full pl-12 pr-4 py-3.5 bg-frame border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all font-medium text-slate-700"
+                            className="w-full pl-12 pr-4 py-3.5 bg-slate-200 border border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all font-medium text-slate-800"
                           />
                         </div>
                       </div>
@@ -3956,7 +3956,7 @@ export default function App() {
                   <div className="p-8 pt-4 flex gap-3">
                     <button 
                       onClick={() => setIsAnnouncementModalOpen(false)}
-                      className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all active:scale-[0.98]"
+                      className="flex-1 py-4 bg-slate-200 text-slate-700 border border-slate-300 rounded-2xl font-bold hover:bg-slate-300 transition-all active:scale-[0.98]"
                     >
                       Batal
                     </button>
@@ -3984,7 +3984,7 @@ export default function App() {
                   initial={{ scale: 0.9, y: 20, opacity: 0 }}
                   animate={{ scale: 1, y: 0, opacity: 1 }}
                   exit={{ scale: 0.9, y: 20, opacity: 0 }}
-                  className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl"
+                  className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-lg overflow-hidden shadow-2xl"
                 >
                   <div className="p-8 pb-0">
                     <div className="flex items-center justify-between mb-8">
@@ -3994,23 +3994,23 @@ export default function App() {
                         </div>
                         <div>
                           <h3 className="text-2xl font-black text-slate-800 tracking-tight">Tambah Siswa</h3>
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Kelola data peserta didik</p>
+                          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Kelola data peserta didik</p>
                         </div>
                       </div>
                       <button 
                         onClick={() => setIsImportModalOpen(false)}
-                        className="w-10 h-10 rounded-xl bg-frame text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all"
+                        className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 hover:text-slate-800 border border-slate-300 flex items-center justify-center transition-all"
                       >
                         <X size={20} />
                       </button>
                     </div>
 
-                    <div className="flex bg-frame p-1 rounded-2xl mb-8 border border-slate-100">
+                    <div className="flex bg-slate-200 p-1 rounded-2xl mb-8 border border-slate-300">
                       <button 
                         onClick={() => setImportModalTab('manual')}
                         className={cn(
                           "flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300",
-                          importModalTab === 'manual' ? "bg-white text-brand shadow-md" : "text-slate-400 hover:text-slate-600"
+                          importModalTab === 'manual' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-600 hover:text-slate-900"
                         )}
                       >
                         Input Manual
@@ -4019,7 +4019,7 @@ export default function App() {
                         onClick={() => setImportModalTab('excel')}
                         className={cn(
                           "flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300",
-                          importModalTab === 'excel' ? "bg-white text-brand shadow-md" : "text-slate-400 hover:text-slate-600"
+                          importModalTab === 'excel' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-600 hover:text-slate-900"
                         )}
                       >
                         Impor Excel
@@ -4038,7 +4038,7 @@ export default function App() {
                               value={manualStudentNis}
                               onChange={(e) => setManualStudentNis(e.target.value)}
                               placeholder="Contoh: 2021001" 
-                              className="w-full px-4 py-3 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                              className="w-full px-4 py-3 bg-slate-200 border border-slate-300 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                               required
                             />
                           </div>
@@ -4049,7 +4049,7 @@ export default function App() {
                               value={manualStudentKelas}
                               onChange={(e) => setManualStudentKelas(e.target.value)}
                               placeholder="Contoh: 7A, 8B" 
-                              className="w-full px-4 py-3 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                              className="w-full px-4 py-3 bg-slate-200 border border-slate-300 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                               required
                             />
                           </div>
@@ -4062,7 +4062,7 @@ export default function App() {
                             value={manualStudentNama}
                             onChange={(e) => setManualStudentNama(e.target.value)}
                             placeholder="Masukkan Nama Lengkap" 
-                            className="w-full px-4 py-3 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                            className="w-full px-4 py-3 bg-slate-200 border border-slate-300 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                             required
                           />
                         </div>
@@ -4077,7 +4077,7 @@ export default function App() {
                                 "py-3 rounded-2xl border font-bold text-sm transition-all",
                                 manualStudentJenisKelamin === 'L' 
                                   ? "bg-blue-50 border-blue-200 text-brand shadow-sm" 
-                                  : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
+                                  : "bg-slate-200 border-slate-300 text-slate-600 hover:border-slate-400"
                               )}
                             >
                               Laki-laki
@@ -4089,7 +4089,7 @@ export default function App() {
                                 "py-3 rounded-2xl border font-bold text-sm transition-all",
                                 manualStudentJenisKelamin === 'P' 
                                   ? "bg-pink-50 border-pink-200 text-pink-600 shadow-sm" 
-                                  : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
+                                  : "bg-slate-200 border-slate-300 text-slate-600 hover:border-slate-400"
                               )}
                             >
                               Perempuan
@@ -4113,8 +4113,8 @@ export default function App() {
                       </form>
                     ) : (
                       <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                        <div className="p-8 bg-blue-50 border border-dashed border-blue-200 rounded-[2rem] flex flex-col items-center text-center">
-                          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-brand mb-4 shadow-sm">
+                        <div className="p-8 bg-slate-200/60 border border-dashed border-slate-300 rounded-[2rem] flex flex-col items-center text-center">
+                          <div className="w-16 h-16 bg-slate-100 border border-slate-300 rounded-2xl flex items-center justify-center text-brand mb-4 shadow-sm">
                             <Database size={32} />
                           </div>
                           <h4 className="text-lg font-black text-slate-800 mb-2">Impor Data Excel</h4>
@@ -4130,13 +4130,13 @@ export default function App() {
                               onChange={handleExcelUpload} 
                               className="hidden" 
                             />
-                            <div className="w-full py-4 bg-white border-2 border-brand/20 text-brand rounded-2xl font-black text-sm hover:bg-brand hover:text-white hover:border-brand transition-all flex items-center justify-center gap-2 shadow-sm">
+                            <div className="w-full py-4 bg-slate-100 border border-slate-300 text-brand rounded-2xl font-black text-sm hover:bg-brand hover:text-white hover:border-brand transition-all flex items-center justify-center gap-2 shadow-sm">
                               <Plus size={18} /> Pilih File Excel
                             </div>
                           </label>
                         </div>
                         
-                        <div className="bg-frame p-4 rounded-2xl flex items-start gap-3">
+                        <div className="bg-slate-200 p-4 rounded-2xl border border-slate-300 flex items-start gap-3">
                           <div className="w-5 h-5 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 shrink-0 mt-0.5">
                             <Info size={12} />
                           </div>
@@ -4197,25 +4197,25 @@ export default function App() {
           opacity: isSidebarOpen ? 1 : 0
         }}
         className={cn(
-          "bg-white border-r border-slate-200 flex flex-col z-30 transition-all duration-300",
+          "bg-slate-100 border-r border-slate-300 flex flex-col z-30 transition-all duration-300",
           !isSidebarOpen && "pointer-events-none overflow-hidden"
         )}
       >
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-brand rounded-lg flex items-center justify-center text-white font-bold text-xl">
               IK
             </div>
             <div>
-              <h1 className="text-lg font-extrabold tracking-tight text-slate-800 leading-tight">
+              <h1 className="text-lg font-extrabold tracking-tight text-slate-900 leading-tight">
                 {activeCourse.title}
               </h1>
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Level: {activeCourse.level}</p>
+              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Level: {activeCourse.level}</p>
             </div>
           </div>
           <button 
             onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-500"
+            className="md:hidden p-2 hover:bg-slate-200 rounded-lg text-slate-600"
           >
             <X size={20} />
           </button>
@@ -4223,13 +4223,13 @@ export default function App() {
 
         <div className="px-6 py-4">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand transition-colors" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand transition-colors" size={16} />
             <input 
               type="text" 
               placeholder="Cari materi..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-frame border border-slate-100 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all font-sans"
+              className="w-full bg-slate-200 border border-slate-300 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all font-sans"
             />
           </div>
         </div>
@@ -4238,7 +4238,7 @@ export default function App() {
           {isAdmin ? (
             <button 
               onClick={() => { setCurrentPage('admin'); setAdminTab('materials'); }} 
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-frame text-slate-500 mb-4 font-bold text-sm transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-200 text-slate-600 mb-4 font-bold text-sm transition-colors"
             >
               <Home size={18} /> Kembali ke Dashboard
             </button>
@@ -4257,7 +4257,7 @@ export default function App() {
                 }
                 setCurrentStudent(null); 
               }} 
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-red-50 text-red-500 mb-4 font-bold text-sm transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-red-50 text-red-600 mb-4 font-bold text-sm transition-colors"
             >
               <LogOut size={18} /> Logout ({currentStudent?.nama})
             </button>
@@ -4265,12 +4265,12 @@ export default function App() {
           
           {currentPage !== 'course' && (
             <>
-              <div className="mb-4 text-xs font-semibold text-slate-500 uppercase tracking-widest px-3">Modul Pembelajaran</div>
+              <div className="mb-4 text-xs font-semibold text-slate-600 uppercase tracking-widest px-3">Modul Pembelajaran</div>
               <div className="px-3 mb-6">
                 <select 
                     value={activeCourseId} 
                     onChange={(e) => setActiveCourseId(e.target.value)}
-                    className="w-full bg-white border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-brand focus:border-brand block p-2.5 transition-colors cursor-pointer shadow-sm hover:border-slate-300"
+                    className="w-full bg-slate-200 border border-slate-300 text-slate-800 text-sm rounded-lg focus:ring-brand focus:border-brand block p-2.5 transition-colors cursor-pointer shadow-sm hover:border-slate-400"
                   >
                     {COURSES.map(course => (
                       <option key={course.id} value={course.id}>{course.title} ({course.level})</option>
@@ -4350,35 +4350,35 @@ export default function App() {
         </motion.aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full bg-white relative">
-        <header className="h-16 border-b border-slate-100 flex items-center justify-between px-3 md:px-8 bg-white/80 backdrop-blur-md z-20 sticky top-0">
+      <main className="flex-1 flex flex-col h-full bg-slate-300 relative">
+        <header className="h-16 border-b border-slate-300 flex items-center justify-between px-3 md:px-8 bg-slate-100/95 backdrop-blur-md z-20 sticky top-0">
             <div className="flex items-center gap-1.5 md:gap-4 shrink-0 overflow-hidden">
               {!isSidebarOpen && (
                 <button 
                   onClick={() => setIsSidebarOpen(true)}
-                  className="p-1.5 md:p-2 hover:bg-slate-100 rounded-lg text-slate-500 shrink-0"
+                  className="p-1.5 md:p-2 hover:bg-slate-200 rounded-lg text-slate-600 shrink-0"
                 >
                   <Menu size={18} className="md:w-5 md:h-5" />
                 </button>
               )}
               <div className="flex items-center gap-1.5 md:gap-3 text-[10px] md:text-sm overflow-hidden">
-                <span className="text-slate-400 hidden lg:block whitespace-nowrap">{activeCourse.title}</span>
-                <span className="text-slate-200 font-light hidden lg:block">/</span>
-                <span className="text-slate-800 font-bold truncate max-w-[100px] xs:max-w-[140px] md:max-w-none">{currentIndex + 1}. {activeTopic.title}</span>
+                <span className="text-slate-500 hidden lg:block whitespace-nowrap">{activeCourse.title}</span>
+                <span className="text-slate-400 font-light hidden lg:block">/</span>
+                <span className="text-slate-900 font-bold truncate max-w-[100px] xs:max-w-[140px] md:max-w-none">{currentIndex + 1}. {activeTopic.title}</span>
               </div>
             </div>
             
             <div className="flex items-center gap-1.5 md:gap-3">
               <div className="flex items-center gap-1 md:gap-2">
                 {topicTimeRemaining !== null && topicTimeRemaining > 0 && !isAdmin && viewMode === 'material' && (
-                  <div className="px-1.5 md:px-3 py-1 bg-red-50 border border-red-100 rounded-lg flex items-center gap-1 text-red-600">
+                  <div className="px-1.5 md:px-3 py-1 bg-red-50 border border-red-200 rounded-lg flex items-center gap-1 text-red-600">
                     <Clock size={10} className="md:w-[14px] md:h-[14px] animate-spin-slow" />
-                    <span className="text-[7px] md:text-[9px] font-bold text-red-400 uppercase tracking-widest block">Waktu Tunggu</span>
+                    <span className="text-[7px] md:text-[9px] font-bold text-red-500 uppercase tracking-widest block">Waktu Tunggu</span>
                     <span className="font-mono font-bold text-[10px] md:text-lg tracking-tight">{topicTimeRemaining}s</span>
                   </div>
                 )}
-                <div className="px-2 md:px-4 py-1 bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-1">
-                   <span className="text-[7px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Skor sementara</span>
+                <div className="px-2 md:px-4 py-1 bg-slate-200 border border-slate-300 rounded-lg flex items-center gap-1">
+                   <span className="text-[7px] md:text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Skor sementara</span>
                    <span className={cn("font-bold text-[11px] md:text-lg", currentScore >= 80 ? "text-emerald-600" : currentScore >= 60 ? "text-amber-600" : "text-red-600")}>
                       {currentScore}
                    </span>
@@ -4398,7 +4398,7 @@ export default function App() {
                     (currentIndex === activeCourse.topics.length - 1 && passedQuizzes[activeTopicId]) || 
                     (!isAdmin && (materialConfigs[activeCourse.id]?.isGatekeepingEnabled ?? true) && !passedQuizzes[activeTopicId])
                   }
-                  className="hidden md:block px-5 py-1.5 text-xs font-semibold bg-brand text-white rounded-lg shadow-md hover:shadow-lg hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
+                  className="hidden md:block px-5 py-1.5 text-xs font-semibold bg-brand text-white rounded-lg shadow-md hover:bg-brand-hover active:scale-95 transition-all disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
                 >
                   {passedQuizzes[activeTopicId] ? 'Lanjut Materi' : 'Selesaikan Kuis'}
                 </button>
@@ -4420,7 +4420,7 @@ export default function App() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: viewMode === 'quiz' ? -20 : 20 }}
                 transition={{ duration: 0.3 }}
-                className="markdown-body"
+                className="markdown-body bg-slate-100 border border-slate-300 p-6 sm:p-10 md:p-12 rounded-[2rem] shadow-sm"
               >
                 {viewMode === 'material' ? (
                     <>
@@ -4428,16 +4428,16 @@ export default function App() {
                         <motion.div 
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className="bg-white p-12 rounded-[2rem] shadow-2xl border border-slate-100 text-center flex flex-col items-center"
+                          className="bg-slate-100 p-12 rounded-[2rem] shadow-xl border border-slate-300 text-center flex flex-col items-center"
                         >
                           <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-8 shadow-inner ring-8 ring-emerald-50">
                             <CheckCircle size={48} />
                           </div>
                           <h2 className="text-4xl font-extrabold text-slate-900 mb-2 tracking-tight">Selamat!</h2>
-                          <p className="text-slate-500 text-xl mb-8">Anda telah menyelesaikan kurikulum ini.</p>
+                          <p className="text-slate-600 text-xl mb-8">Anda telah menyelesaikan kurikulum ini.</p>
                           
-                          <div className="bg-frame p-8 rounded-3xl border border-slate-100 mb-10 w-full max-w-sm">
-                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Skor Akhir Anda</p>
+                          <div className="bg-slate-200 p-8 rounded-3xl border border-slate-300 mb-10 w-full max-w-sm">
+                            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Skor Akhir Anda</p>
                             <p className={cn(
                               "text-7xl font-black mb-4",
                               currentScore >= 80 ? "text-emerald-500" : currentScore >= 60 ? "text-amber-500" : "text-red-500"
@@ -4493,14 +4493,26 @@ export default function App() {
                               h3: ({ children }) => (
                                 <h3 className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 mt-8">{children}</h3>
                               ),
-                              p: ({ children }) => (
-                                <p className="text-slate-600 text-base md:text-lg leading-relaxed mb-6">
-                                  {children}
-                                </p>
-                              ),
+                              p: ({ node, children }: any) => {
+                                const hasBlockChild = node?.children?.some(
+                                  (c: any) => c.tagName === 'img' || (c.type === 'element' && (c.tagName === 'img' || c.tagName === 'figure' || c.tagName === 'div'))
+                                );
+                                if (hasBlockChild) {
+                                  return (
+                                    <div className="text-slate-700 text-base md:text-lg leading-relaxed mb-6">
+                                      {children}
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <p className="text-slate-700 text-base md:text-lg leading-relaxed mb-6">
+                                    {children}
+                                  </p>
+                                );
+                              },
                               img: ({ src, alt, ...props }: any) => (
-                                <figure className="my-8 rounded-2xl md:rounded-3xl overflow-hidden border border-slate-200/90 bg-white shadow-xl shadow-slate-200/50 group">
-                                  <div className="relative overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100 flex items-center justify-center p-2 md:p-3">
+                                <figure className="my-8 rounded-2xl md:rounded-3xl overflow-hidden border border-slate-300 bg-slate-100 shadow-md group">
+                                  <div className="relative overflow-hidden bg-slate-200 flex items-center justify-center p-2 md:p-3">
                                     <img
                                       src={src}
                                       alt={alt || "Ilustrasi Visual Materi"}
@@ -4511,8 +4523,8 @@ export default function App() {
                                     />
                                   </div>
                                   {alt && (
-                                    <figcaption className="px-5 py-3.5 bg-white border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 font-medium">
-                                      <span className="flex items-center gap-2 font-bold text-slate-700">
+                                    <figcaption className="px-5 py-3.5 bg-slate-200 border-t border-slate-300 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 font-medium">
+                                      <span className="flex items-center gap-2 font-bold text-slate-800">
                                         <ImageIcon size={16} className="text-brand shrink-0" /> {alt}
                                       </span>
                                       <span className="text-[10px] uppercase font-bold tracking-wider text-brand bg-brand/10 border border-brand/20 px-3 py-1 rounded-full">
@@ -4523,22 +4535,22 @@ export default function App() {
                                 </figure>
                               ),
                               table: ({ children }: any) => (
-                                <div className="my-6 overflow-x-auto rounded-2xl border border-slate-200 shadow-sm bg-white">
-                                  <table className="w-full text-left text-sm text-slate-600 border-collapse">
+                                <div className="my-6 overflow-x-auto rounded-2xl border border-slate-300 shadow-sm bg-slate-100">
+                                  <table className="w-full text-left text-sm text-slate-700 border-collapse">
                                     {children}
                                   </table>
                                 </div>
                               ),
                               thead: ({ children }: any) => (
-                                <thead className="bg-frame border-b border-slate-200 text-xs font-black uppercase tracking-wider text-slate-700">
+                                <thead className="bg-slate-200 border-b border-slate-300 text-xs font-black uppercase tracking-wider text-slate-800">
                                   {children}
                                 </thead>
                               ),
                               th: ({ children }: any) => (
-                                <th className="px-5 py-3.5 font-bold text-slate-700">{children}</th>
+                                <th className="px-5 py-3.5 font-bold text-slate-800">{children}</th>
                               ),
                               td: ({ children }: any) => (
-                                <td className="px-5 py-3.5 border-b border-slate-100">{children}</td>
+                                <td className="px-5 py-3.5 border-b border-slate-200">{children}</td>
                               ),
                               ol: ({ children }) => (
                                 <div className="grid grid-cols-1 gap-3 mb-8 list-decimal">{children}</div>
@@ -4547,15 +4559,15 @@ export default function App() {
                                 <div className="grid grid-cols-1 gap-3 mb-8">{children}</div>
                               ),
                               li: ({ children, ...props }: any) => {
-                                const isOrdered = props.node.parent?.tagName === 'ol' || props.ordered;
+                                const isOrdered = props.node?.parent?.tagName === 'ol' || props.ordered;
                                 const index = props.index !== undefined ? props.index : -1;
                                 
                                 return (
-                                  <div className="flex items-start gap-3 md:gap-4 bg-frame p-3 md:p-4 rounded-xl border border-slate-100 transition-hover hover:border-slate-200">
-                                    <div className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0 rounded-full bg-indigo-100 flex items-center justify-center text-brand font-bold text-[10px] md:text-xs ring-4 ring-indigo-50 mt-0.5">
+                                  <div className="flex items-start gap-3 md:gap-4 bg-slate-200/80 p-3 md:p-4 rounded-xl border border-slate-300 transition-hover hover:border-slate-400">
+                                    <div className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-brand font-bold text-[10px] md:text-xs ring-4 ring-blue-50 mt-0.5">
                                       {isOrdered ? (index + 1) : "✓"}
                                     </div>
-                                    <div className="text-slate-700 text-sm md:text-base leading-relaxed">{children}</div>
+                                    <div className="text-slate-800 text-sm md:text-base leading-relaxed">{children}</div>
                                   </div>
                                 );
                               },
@@ -4679,7 +4691,7 @@ export default function App() {
                 ) : (
                     /* Quiz Section */
                     <div className="quiz-container px-0 md:px-4 flex flex-col h-full overflow-hidden">
-                      <div className="bg-white rounded-none md:rounded-[2rem] border-x-0 md:border border-slate-100 shadow-2xl md:shadow-xl overflow-hidden min-h-screen md:min-h-0 flex flex-col">
+                      <div className="bg-slate-100 rounded-none md:rounded-[2rem] border-x-0 md:border border-slate-300 shadow-xl overflow-hidden min-h-screen md:min-h-0 flex flex-col">
                         <div className="bg-slate-900 p-5 md:p-10 text-white shrink-0 sticky top-0 z-10">
                           <div className="flex items-center justify-between mb-4 md:mb-6">
                             <button 
@@ -4858,7 +4870,7 @@ export default function App() {
 
         {/* Sticky Mobile Navigation Bar */}
         {viewMode === 'material' && !courseCompleted && (
-          <div className="md:hidden sticky bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-slate-100 flex items-center justify-between gap-4 z-20">
+          <div className="md:hidden sticky bottom-0 left-0 right-0 p-4 bg-slate-100/95 backdrop-blur-lg border-t border-slate-300 flex items-center justify-between gap-4 z-20">
             <button 
               onClick={() => {
                 const prevIndex = currentIndex - 1;
@@ -4946,7 +4958,7 @@ export default function App() {
             <motion.div 
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl text-center"
+              className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-md overflow-hidden shadow-2xl text-center"
             >
               <div className="bg-brand p-12 text-white relative">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
@@ -4962,7 +4974,7 @@ export default function App() {
               </div>
               
               <div className="p-10">
-                <div className="bg-frame p-8 rounded-3xl border border-slate-100 mb-8">
+                <div className="bg-slate-200/70 p-8 rounded-3xl border border-slate-300 mb-8">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Skor Akhir Kamu</p>
                   <div className="flex items-center justify-center gap-2">
                     <span className={cn(

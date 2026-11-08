@@ -122,33 +122,33 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
 
 
   return (
-    <div className="min-h-screen bg-frame flex items-center justify-center font-sans p-6 selection:bg-brand/30">
+    <div className="min-h-screen bg-slate-300 flex items-center justify-center font-sans p-6 selection:bg-brand/30">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl border border-slate-100 overflow-hidden relative"
+            className="w-20 h-20 bg-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md border border-slate-400 overflow-hidden relative"
           >
             <img src="/images/smpn1kawali_logo.jpg" alt="SMPN 1 Kawali Logo" className="w-full h-full object-contain p-1" />
-            <div className="absolute top-0 left-0 w-full h-1 bg-brand" />
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-brand" />
           </motion.div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">SMPN 1 Kawali</h1>
-          <p className="text-slate-500 font-medium">Informatika</p>
+          <p className="text-slate-600 font-medium">Informatika</p>
         </div>
 
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-slate-100 p-8 sm:p-10 rounded-[2.5rem] shadow-xl relative overflow-hidden"
+          className="bg-slate-100 border border-slate-300 p-8 sm:p-10 rounded-[2.5rem] shadow-xl relative overflow-hidden"
         >
           <div className="relative z-10">
-            <div className="flex bg-frame p-1.5 rounded-2xl mb-8 border border-slate-100">
+            <div className="flex bg-slate-200 p-1.5 rounded-2xl mb-8 border border-slate-300">
               <button 
                 onClick={() => setLoginMode('student')}
                 className={cn(
                   "flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-300",
-                  loginMode === 'student' ? "bg-white text-brand shadow-md" : "text-slate-400 hover:text-slate-600"
+                  loginMode === 'student' ? "bg-brand text-white shadow-md" : "text-slate-600 hover:text-slate-900"
                 )}
               >
                 Siswa
@@ -157,7 +157,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                 onClick={() => setLoginMode('admin')}
                 className={cn(
                   "flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-300",
-                  loginMode === 'admin' ? "bg-white text-brand shadow-md" : "text-slate-400 hover:text-slate-600"
+                  loginMode === 'admin' ? "bg-brand text-white shadow-md" : "text-slate-600 hover:text-slate-900"
                 )}
               >
                 Admin
@@ -175,9 +175,9 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                   className="space-y-5"
                 >
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">NISN (Nomor Induk)</label>
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">NISN (Nomor Induk)</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
                         <User size={18} />
                       </div>
                       <input 
@@ -185,16 +185,16 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                         value={nis}
                         onChange={(e) => setNis(e.target.value)}
                         placeholder="Masukkan NISN" 
-                        className="w-full pl-11 pr-4 py-3.5 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                        className="w-full pl-11 pr-4 py-3.5 bg-slate-200 border border-slate-300 rounded-2xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                         required
                       />
                     </div>
                   </div>
                   
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Password</label>
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">Password</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
                         <Key size={18} />
                       </div>
                       <input 
@@ -202,7 +202,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Password (Gunakan NISN)" 
-                        className="w-full pl-11 pr-4 py-3.5 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                        className="w-full pl-11 pr-4 py-3.5 bg-slate-200 border border-slate-300 rounded-2xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                         required
                       />
                     </div>
@@ -211,14 +211,14 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                   <button 
                     type="submit" 
                     disabled={isLoading}
-                    className="w-full py-4 bg-brand hover:scale-[1.02] active:scale-[0.98] text-white rounded-2xl font-bold text-lg shadow-xl shadow-brand/20 transition-all flex justify-center items-center gap-2 mt-4 disabled:opacity-50"
+                    className="w-full py-4 bg-brand hover:bg-brand-hover text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-900/20 transition-all flex justify-center items-center gap-2 mt-4 disabled:opacity-50 active:scale-[0.98]"
                   >
                     {isLoading ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     ) : (
                       <>
                         Masuk Ke Kelas
-                        <ArrowRight size={18} className="text-accent" />
+                        <ArrowRight size={18} className="text-yellow-400" />
                       </>
                     )}
                   </button>
@@ -229,18 +229,18 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
-                  onSubmit={handleAdminLogin}
+                  onSubmit={handleAdminLogin} 
                   className="space-y-4"
                 >
-                  <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-blue-700 text-xs font-semibold leading-relaxed flex items-center gap-3">
+                  <div className="p-4 bg-blue-100 border border-blue-200 rounded-2xl text-blue-900 text-xs font-semibold leading-relaxed flex items-center gap-3">
                     <ShieldCheck size={20} className="shrink-0 text-brand" />
                     <p>Khusus akses administrator. Masuk menggunakan akun admin Anda.</p>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Username Admin</label>
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">Username Admin</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
                         <User size={18} />
                       </div>
                       <input 
@@ -248,16 +248,16 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                         value={adminUsername}
                         onChange={(e) => setAdminUsername(e.target.value)}
                         placeholder="Username Admin" 
-                        className="w-full pl-11 pr-4 py-3.5 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                        className="w-full pl-11 pr-4 py-3.5 bg-slate-200 border border-slate-300 rounded-2xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                         required
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Password Admin</label>
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">Password Admin</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
                         <Key size={18} />
                       </div>
                       <input 
@@ -265,7 +265,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                         value={adminPassword}
                         onChange={(e) => setAdminPassword(e.target.value)}
                         placeholder="Password Admin" 
-                        className="w-full pl-11 pr-4 py-3.5 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                        className="w-full pl-11 pr-4 py-3.5 bg-slate-200 border border-slate-300 rounded-2xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                         required
                       />
                     </div>
@@ -274,26 +274,24 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                   <button 
                     type="submit" 
                     disabled={isLoading}
-                    className="w-full py-4 bg-brand hover:scale-[1.02] active:scale-[0.98] text-white rounded-2xl font-bold text-base shadow-xl shadow-brand/20 transition-all flex justify-center items-center gap-2 mt-4 disabled:opacity-50"
+                    className="w-full py-4 bg-brand hover:bg-brand-hover text-white rounded-2xl font-bold text-base shadow-lg shadow-blue-900/20 transition-all flex justify-center items-center gap-2 mt-4 disabled:opacity-50 active:scale-[0.98]"
                   >
                     {isLoading ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     ) : (
                       <>
                         Masuk Sebagai Admin
-                        <ArrowRight size={18} className="text-accent" />
+                        <ArrowRight size={18} className="text-yellow-400" />
                       </>
                     )}
                   </button>
-
-
                 </motion.form>
               )}
             </AnimatePresence>
           </div>
         </motion.div>
 
-        <p className="mt-12 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
+        <p className="mt-12 text-center text-slate-500 text-xs font-bold uppercase tracking-widest">
           &copy; {new Date().getFullYear()} SMPN 1 Kawali
         </p>
       </div>
