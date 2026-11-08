@@ -70,9 +70,8 @@ import { COURSES } from './constants';
 import { Topic } from './types';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { db, auth } from './firebase';
-import { signInAnonymously } from 'firebase/auth';
-import { collection, addDoc, getDocs, doc, deleteDoc, updateDoc, setDoc, query, where, onSnapshot, increment, serverTimestamp, arrayUnion } from 'firebase/firestore';                
+import { db } from './firebase';
+import { collection, addDoc, doc, deleteDoc, updateDoc, setDoc, query, where, onSnapshot, increment, serverTimestamp, arrayUnion } from 'firebase/firestore';                
 import Login from './components/Login';
 
 enum OperationType {
@@ -102,19 +101,8 @@ interface FirestoreErrorInfo {
 }
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
+  const errInfo = {
     error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData?.map(provider => ({
-        providerId: provider.providerId,
-        email: provider.email,
-      })) || []
-    },
     operationType,
     path
   }
@@ -795,7 +783,7 @@ export default function App() {
           targetValue: announcementTargetValue,
           content: announcementContent,
           link: announcementLink || '',
-          senderId: auth.currentUser?.uid || 'admin',
+          senderId: 'admin',
           isVisible: true,
           timestamp: serverTimestamp()
         });
@@ -841,16 +829,6 @@ export default function App() {
     }
   };
 
-  const [authState, setAuthState] = useState<any>(null);
-
-  useEffect(() => {
-    let initialAuthResolved = false;
-    const unsubscribe = auth.onAuthStateChanged(user => {
-      setAuthState(user);
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     const unsubscribes: (() => void)[] = [];
@@ -885,7 +863,7 @@ export default function App() {
     unsubscribes.push(unsubAnnouncements);
 
     // Admin Data
-    if (authState && isAdmin) {
+    if (isAdmin) {
       // 2. All Assessments (Admin)
       const unsubAllAssessments = onSnapshot(collection(db, 'assessments'), (snapshot) => {
         setAssessments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
@@ -928,7 +906,7 @@ export default function App() {
     }
 
     // Student Data
-    if (authState && currentStudent) {
+    if (currentStudent) {
       // 4. Student Specific Assessments
       const qAssessments = query(collection(db, 'assessments'), where('studentId', '==', currentStudent.id));
       const unsubStudentAssessments = onSnapshot(qAssessments, (snapshot) => {
@@ -942,7 +920,7 @@ export default function App() {
     return () => {
       unsubscribes.forEach(unsub => unsub());
     };
-  }, [authState, isAdmin, currentStudent]);
+  }, [isAdmin, currentStudent]);
 
   const handleNotificationClick = async (notif: any) => {
     try {
@@ -1152,7 +1130,7 @@ export default function App() {
                     }
                   } catch(e) {}
                 }
-                auth.signOut(); 
+
                 setCurrentStudent(null); 
              }}
              className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-bold text-xs flex items-center gap-2 transition-all active:scale-95"
@@ -1525,7 +1503,7 @@ export default function App() {
           </nav>
           <div className="pt-6 mt-6 border-t border-slate-100">
             <button 
-              onClick={() => { auth.signOut(); setIsAdmin(false); setCurrentPage('login'); }} 
+              onClick={() => { setIsAdmin(false); setCurrentPage('login'); }} 
               className="w-full flex items-center gap-3 text-red-500 hover:bg-red-50 p-4 rounded-2xl transition-all font-bold text-sm"
             >
               <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
@@ -1801,7 +1779,7 @@ export default function App() {
                   </div>
 
                   {/* System Health / Setup Guide - Only show if issues detected */}
-                  {!authState?.isAnonymous && !authState?.email && (
+                  {/* System Health / Setup Guide - Removed Auth Check */}
                     <div className="bg-amber-50 border border-amber-200 rounded-[2rem] p-6 flex flex-col md:flex-row items-center gap-6">
                       <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 shrink-0">
                         <AlertTriangle size={32} />
@@ -1824,8 +1802,7 @@ export default function App() {
                         Buka Firebase Console
                       </a>
                     </div>
-                  )}
-
+                  
                   {/* TOP SECTION: KARTU PARTICIPANT & MONITORING KECURANGAN SEJAJAR DI ATAS */}
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
                     
@@ -4278,7 +4255,6 @@ export default function App() {
                     }
                   } catch(e) {}
                 }
-                auth.signOut(); 
                 setCurrentStudent(null); 
               }} 
               className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-red-50 text-red-500 mb-4 font-bold text-sm transition-colors"

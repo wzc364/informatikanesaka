@@ -1,7 +1,6 @@
-import { LogOut, Lock, User, Key, ShieldCheck, ArrowRight, Brain, Globe, Sparkles } from 'lucide-react';
+import { User, Key, ShieldCheck, ArrowRight, Brain } from 'lucide-react';
 import React, { useState } from 'react';
-import { signInWithPopup, GoogleAuthProvider, signInAnonymously } from 'firebase/auth';
-import { auth, db } from '../firebase';
+import { db } from '../firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -79,24 +78,13 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
       if (querySnapshot.empty) {
         alert('Siswa dengan NISN tersebut tidak ditemukan.');
         setIsLoading(false);
-        // Do not sign out here if they weren't signed in, but it's safe
-        auth.signOut();
         return;
       }
 
       const studentData = querySnapshot.docs[0].data();
       const studentObj = { id: querySnapshot.docs[0].id, ...studentData };
       
-      // Sign in anonymously to allow Firestore writes
-      try {
-        await signInAnonymously(auth);
-        // Log the access asynchronously
-        logAccess(studentObj);
-      } catch (authError) {
-        console.error('Anonymous sign-in failed during student login:', authError);
-        alert('Catatan: Fitur pencatatan otomatis dinonaktifkan karena konfigurasi server (Anonymous Auth). Siswa tetap dapat belajar.');
-      }
-
+      logAccess(studentObj);
       setCurrentScore(100);
       setCurrentStudent(studentObj);
       setIsAdmin(false);
@@ -125,45 +113,13 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
     }
 
     setIsLoading(true);
-    try {
-      // Authenticate with Firebase anonymously to grant database access
-      try {
-        await signInAnonymously(auth);
-      } catch (authError) {
-        console.error('Anonymous sign-in failed during admin login:', authError);
-        // Continue if we have username/password bypass or if they are already authenticated
-      }
-      setCurrentScore(100);
-      setIsAdmin(true);
-      setCurrentPage('admin');
-    } catch (err) {
-      console.error('Admin login failed:', err);
-      alert('Gagal masuk sebagai admin: ' + (err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
+    setCurrentScore(100);
+    setIsAdmin(true);
+    setCurrentPage('admin');
+    setIsLoading(false);
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      const allowedEmails = ['egawzc@gmail.com', 'ega.nugraha141@guru.smp.belajar.id'];
-      if (user.email && allowedEmails.includes(user.email) && user.emailVerified) {
-        setCurrentScore(100);
-        setIsAdmin(true);
-        setCurrentPage('admin');
-      } else {
-        alert('Maaf, akun Google Anda tidak terdaftar sebagai administrator.');
-        await auth.signOut();
-      }
-    } catch (err) {
-      console.error('Google auth failed:', err);
-      alert('Authentication failed: ' + (err as Error).message);
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-frame flex items-center justify-center font-sans p-6 selection:bg-brand/30">
@@ -330,19 +286,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                     )}
                   </button>
 
-                  <div className="relative my-4 flex items-center justify-center">
-                    <div className="border-t border-slate-100 w-full"></div>
-                    <span className="bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider absolute">atau</span>
-                  </div>
 
-                  <button 
-                    type="button"
-                    onClick={handleGoogleLogin} 
-                    className="w-full py-3.5 bg-white text-slate-700 rounded-2xl font-bold text-sm shadow-sm hover:bg-frame active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 border border-slate-200"
-                  >
-                    <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
-                    Login dengan Akun Google
-                  </button>
                 </motion.form>
               )}
             </AnimatePresence>
