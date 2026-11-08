@@ -61,12 +61,12 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
   const handleStudentLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nis || !password) {
-      alert('Masukkan NIS dan Password');
+      alert('Masukkan NISN dan Password');
       return;
     }
 
     if (nis !== password) {
-      alert('Login gagal, periksa NIS dan Password Anda.');
+      alert('Login gagal, periksa NISN dan Password Anda.');
       return;
     }
 
@@ -77,7 +77,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        alert('Siswa dengan NIS tersebut tidak ditemukan.');
+        alert('Siswa dengan NISN tersebut tidak ditemukan.');
         setIsLoading(false);
         // Do not sign out here if they weren't signed in, but it's safe
         auth.signOut();
@@ -219,7 +219,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                   className="space-y-5"
                 >
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">NIS (Nomor Induk)</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">NISN (Nomor Induk)</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                         <User size={18} />
@@ -228,7 +228,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                         type="text" 
                         value={nis}
                         onChange={(e) => setNis(e.target.value)}
-                        placeholder="Masukkan NIS" 
+                        placeholder="Masukkan NISN" 
                         className="w-full pl-11 pr-4 py-3.5 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                         required
                       />
@@ -245,7 +245,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
                         type="password" 
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Password (Gunakan NIS)" 
+                        placeholder="Password (Gunakan NISN)" 
                         className="w-full pl-11 pr-4 py-3.5 bg-frame border border-slate-100 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
                         required
                       />

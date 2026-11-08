@@ -1177,7 +1177,7 @@ export default function App() {
               <div>
                 <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mb-4 leading-tight">{currentStudent?.nama}</h1>
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                  <div className="bg-slate-100 px-5 py-2 rounded-2xl text-sm md:text-base font-bold text-slate-600 tracking-wide border border-slate-200/50">NIS: <span className="text-slate-900">{currentStudent?.nis}</span></div>
+                  <div className="bg-slate-100 px-5 py-2 rounded-2xl text-sm md:text-base font-bold text-slate-600 tracking-wide border border-slate-200/50">NISN: <span className="text-slate-900">{currentStudent?.nis}</span></div>
                   <div className="bg-slate-100 px-5 py-2 rounded-2xl text-sm md:text-base font-bold text-slate-600 tracking-wide border border-slate-200/50">Kelas: <span className="text-slate-900">{currentStudent?.kelas}</span></div>
                   <div className={cn(
                     "px-5 py-2 rounded-2xl text-sm md:text-base font-black uppercase tracking-widest border",
@@ -1810,7 +1810,7 @@ export default function App() {
                         <h3 className="text-xl font-black text-amber-900 mb-1">Peringatan: Sistem Autentikasi Belum Siap</h3>
                         <p className="text-amber-800 font-medium text-sm leading-relaxed">
                           Aplikasi mendeteksi bahwa <b>Anonymous Authentication</b> belum diaktifkan di Firebase Console. 
-                          Ini akan menyebabkan siswa gagal login via NIS. Mohon aktifkan di: 
+                          Ini akan menyebabkan siswa gagal login via NISN. Mohon aktifkan di: 
                           <br/>
                           <code className="bg-amber-100 px-2 py-0.5 rounded text-amber-900 text-xs font-bold">Console &gt; Authentication &gt; Sign-in method &gt; Anonymous &gt; Enable</code>
                         </p>
@@ -2315,7 +2315,7 @@ export default function App() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input 
                           type="text" 
-                          placeholder="Cari NIS, Nama, atau Kelas..." 
+                          placeholder="Cari NISN, Nama, atau Kelas..." 
                           value={studentSearchQuery}
                           onChange={(e) => setStudentSearchQuery(e.target.value)}
                           className="w-full pl-10 pr-4 py-2 bg-frame border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all"
@@ -2358,7 +2358,7 @@ export default function App() {
                               />
                             </th>
                             <th className="px-6 py-4">№</th>
-                            <th className="px-6 py-4">NIS</th>
+                            <th className="px-6 py-4">NISN</th>
                             <th className="px-6 py-4">Identitas Siswa</th>
                             <th className="px-6 py-4">Bio</th>
                             <th className="px-6 py-4">Kelas</th>
@@ -4055,7 +4055,7 @@ export default function App() {
                       <form onSubmit={handleAddStudentManual} className="space-y-4 animate-in slide-in-from-left-4 duration-300">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">NIS (Nomor Induk)</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">NISN (Nomor Induk Nasional)</label>
                             <input 
                               type="text" 
                               value={manualStudentNis}
@@ -4143,7 +4143,7 @@ export default function App() {
                           <h4 className="text-lg font-black text-slate-800 mb-2">Impor Data Excel</h4>
                           <p className="text-xs font-bold text-slate-500 leading-relaxed max-w-xs mb-6">
                             Gunakan format kolom: <br/> 
-                            <span className="text-brand font-black">NIS | Nama | L/P | Kelas</span>
+                            <span className="text-brand font-black">NISN | Nama | L/P | Kelas</span>
                           </p>
                           
                           <label className="w-full cursor-pointer">
