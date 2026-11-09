@@ -4377,6 +4377,13 @@ export default function App() {
                     <span className="font-mono font-bold text-[10px] md:text-lg tracking-tight">{topicTimeRemaining}s</span>
                   </div>
                 )}
+                {quizTimeRemaining !== null && quizTimeRemaining > 0 && !isAdmin && viewMode === 'quiz' && (
+                  <div className="px-1.5 md:px-3 py-1 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-1 text-amber-700">
+                    <Clock size={10} className="md:w-[14px] md:h-[14px] animate-pulse" />
+                    <span className="text-[7px] md:text-[9px] font-bold text-amber-600 uppercase tracking-widest block">Waktu Kuis</span>
+                    <span className="font-mono font-bold text-[10px] md:text-lg tracking-tight">{quizTimeRemaining}s</span>
+                  </div>
+                )}
                 <div className="px-2 md:px-4 py-1 bg-slate-200 border border-slate-300 rounded-lg flex items-center gap-1">
                    <span className="text-[7px] md:text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Skor sementara</span>
                    <span className={cn("font-bold text-[11px] md:text-lg", currentScore >= 80 ? "text-emerald-600" : currentScore >= 60 ? "text-amber-600" : "text-red-600")}>
@@ -4704,9 +4711,17 @@ export default function App() {
                               <ChevronRight size={10} className="rotate-180 md:w-[12px] md:h-[12px]" />
                               Materi
                             </button>
-                            <span className="px-2.5 py-1 bg-slate-800/50 rounded-full text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest border border-slate-700/50">
-                              Quest {quizState.currentQuestionIndex + 1} / {activeTopic.quiz.length}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              {quizTimeRemaining !== null && quizTimeRemaining > 0 && !isAdmin && (
+                                <span className="px-2.5 py-1 bg-amber-500/20 rounded-full text-[9px] md:text-[10px] font-bold text-amber-300 uppercase tracking-widest border border-amber-500/30 flex items-center gap-1">
+                                  <Clock size={12} />
+                                  {quizTimeRemaining}s
+                                </span>
+                              )}
+                              <span className="px-2.5 py-1 bg-slate-800/50 rounded-full text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest border border-slate-700/50">
+                                Quest {quizState.currentQuestionIndex + 1} / {activeTopic.quiz.length}
+                              </span>
+                            </div>
                           </div>
                           <h3 className="text-lg md:text-3xl font-extrabold leading-tight tracking-tight">
                             {activeTopic.quiz[quizState.currentQuestionIndex].question}
