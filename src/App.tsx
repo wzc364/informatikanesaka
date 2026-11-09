@@ -1294,16 +1294,14 @@ export default function App() {
 
                   return (
                   <motion.div 
-                    whileHover={hasCompleted ? {} : { y: -6 }}
-                    whileTap={hasCompleted ? {} : { scale: 0.98 }}
+                    whileHover={{ y: -6 }}
+                    whileTap={{ scale: 0.98 }}
                     key={course.id} 
-                    className={cn("group p-1 rounded-[2rem] border shadow-sm transition-all flex flex-col",
-                      hasCompleted ? "bg-slate-200 border-slate-300 opacity-90 cursor-default" : cn(color.bg, color.border, "shadow-xl shadow-black/5 cursor-pointer")
+                    className={cn("group p-1 rounded-[2rem] border shadow-sm transition-all flex flex-col cursor-pointer",
+                      hasCompleted ? "bg-slate-200 border-slate-300 opacity-90" : cn(color.bg, color.border, "shadow-xl shadow-black/5")
                     )}
                     onClick={() => { 
-                      if (!hasCompleted) {
-                        setStudentCourseConfirm(course);
-                      }
+                      setStudentCourseConfirm(course);
                     }}
                   >
                     <div className={cn("flex-1 rounded-[1.8rem] p-6 transition-colors flex flex-col h-full",
@@ -5011,12 +5009,74 @@ export default function App() {
 
 
       <AnimatePresence>
+        {showCompletionPopup && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-md overflow-hidden shadow-2xl text-center"
+            >
+              <div className="bg-brand p-12 text-white relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="relative z-10">
+                  <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm shadow-xl">
+                    <CheckCircle size={40} className="text-white" />
+                  </div>
+                  <h3 className="text-3xl font-black tracking-tight mb-2">Luar Biasa!</h3>
+                  <p className="text-brand-foreground/80 font-medium tracking-wide border-t border-white/20 pt-4 mt-2">
+                    Kamu telah menyelesaikan materi Terakhir
+                  </p>
+                </div>
+              </div>
+              
+              <div className="p-10">
+                <div className="bg-slate-200/70 p-8 rounded-3xl border border-slate-300 mb-8">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Skor Akhir Kamu</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className={cn(
+                      "text-7xl font-black",
+                      currentScore >= 80 ? "text-emerald-500" : currentScore >= 60 ? "text-amber-500" : "text-red-500"
+                    )}>
+                      {currentScore}
+                    </span>
+                    <div className="text-left">
+                      <div className="text-sm font-bold text-slate-400">Poin</div>
+                      <div className="text-[10px] font-bold text-slate-500 uppercase">Terakumulasi</div>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => {
+                    updateSessionStatus(activeCourse.id, 'finished').catch(console.error);
+                    setLocalCheatingAttempts(0);
+                    setLocalCheatingDetails([]);
+                    setShowCompletionPopup(false);
+                    setCurrentPage('student_dashboard');
+                  }}
+                  className="w-full bg-brand text-white py-4 rounded-2xl font-bold border border-transparent shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                >
+                  <Home size={20} />
+                  Kembali ke Profil
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {studentCourseConfirm && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4 overflow-y-auto"
+            className="fixed inset-0 bg-slate-900/65 backdrop-blur-md z-[200] flex items-center justify-center p-4 overflow-y-auto"
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -5074,7 +5134,10 @@ export default function App() {
                 <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl flex items-start gap-3">
                   <Info size={20} className="text-brand shrink-0 mt-0.5" />
                   <p className="text-xs md:text-sm text-slate-700 font-medium leading-relaxed">
-                    Apakah Anda yakin ingin mulai mempelajari <span className="font-bold text-slate-900">"{studentCourseConfirm.title}"</span> sekarang?
+                    {studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === studentCourseConfirm.id)
+                      ? <>Anda telah menyelesaikan materi <span className="font-bold text-slate-900">"{studentCourseConfirm.title}"</span>. Apakah Anda ingin mempelajari kembali?</>
+                      : <>Apakah Anda yakin ingin mulai mempelajari <span className="font-bold text-slate-900">"{studentCourseConfirm.title}"</span> sekarang?</>
+                    }
                   </p>
                 </div>
 
@@ -5096,69 +5159,9 @@ export default function App() {
                     className="px-6 py-3 rounded-xl bg-brand text-white font-bold shadow-lg shadow-brand/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 text-xs md:text-sm"
                   >
                     <CheckCircle size={18} />
-                    Ya, Mulai Belajar
+                    {studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === studentCourseConfirm.id) ? "Buka Kembali" : "Ya, Mulai Belajar"}
                   </button>
                 </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {showCompletionPopup && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-md overflow-hidden shadow-2xl text-center"
-            >
-              <div className="bg-brand p-12 text-white relative">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                <div className="relative z-10">
-                  <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm shadow-xl">
-                    <CheckCircle size={40} className="text-white" />
-                  </div>
-                  <h3 className="text-3xl font-black tracking-tight mb-2">Luar Biasa!</h3>
-                  <p className="text-brand-foreground/80 font-medium tracking-wide border-t border-white/20 pt-4 mt-2">
-                    Kamu telah menyelesaikan materi Terakhir
-                  </p>
-                </div>
-              </div>
-              
-              <div className="p-10">
-                <div className="bg-slate-200/70 p-8 rounded-3xl border border-slate-300 mb-8">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Skor Akhir Kamu</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <span className={cn(
-                      "text-7xl font-black",
-                      currentScore >= 80 ? "text-emerald-500" : currentScore >= 60 ? "text-amber-500" : "text-red-500"
-                    )}>
-                      {currentScore}
-                    </span>
-                    <div className="text-left">
-                      <div className="text-sm font-bold text-slate-400">Poin</div>
-                      <div className="text-[10px] font-bold text-slate-500 uppercase">Terakumulasi</div>
-                    </div>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => {
-                    updateSessionStatus(activeCourse.id, 'finished').catch(console.error);
-                    setLocalCheatingAttempts(0);
-                    setLocalCheatingDetails([]);
-                    setShowCompletionPopup(false);
-                    setCurrentPage('student_dashboard');
-                  }}
-                  className="w-full bg-brand text-white py-4 rounded-2xl font-bold border border-transparent shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-                >
-                  <Home size={20} />
-                  Kembali ke Profil
-                </button>
               </div>
             </motion.div>
           </motion.div>
