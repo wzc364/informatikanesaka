@@ -4,6 +4,7 @@
  */
 
 import { Topic } from './types';
+import { POLA_BILANGAN_TOPICS } from './polaBilangan';
 
 export const PHP_DASAR_TOPICS: Topic[] = [
   {
@@ -1832,6 +1833,13 @@ forever
 ];
 
 export const COURSES = [
+  {
+    id: 'pola-bilangan',
+    title: 'Soal Pola Bilangan Geometri dan Aritmetika',
+    description: 'Konsep dasar barisan geometri dan aritmetika, rumus rasio & beda, suku ke-n, dan pembahasan 15 soal aplikatif lengkap dengan bedah kalimat menjadi variabel.',
+    level: 'SMP / Matematika',
+    topics: POLA_BILANGAN_TOPICS
+  },
   {
     id: 'scratch',
     title: 'Pemrograman Visual Scratch',
