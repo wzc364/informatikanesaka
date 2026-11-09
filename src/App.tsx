@@ -4747,7 +4747,7 @@ export default function App() {
                                         <ImageIcon size={16} className="text-brand shrink-0" /> {alt}
                                       </span>
                                       <span className="text-[10px] uppercase font-bold tracking-wider text-brand bg-brand/10 border border-brand/20 px-3 py-1 rounded-full">
-                                        💡 Panduan Visual Scratch
+                                        💡 Ilustrasi Visual Materi
                                       </span>
                                     </figcaption>
                                   )}
