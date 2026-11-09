@@ -1429,25 +1429,25 @@ export default function App() {
     const isScoreVisible = materialConfigs[course.id]?.isScoreVisible ?? true;
 
     return (
-      <div className="flex h-screen bg-slate-300 text-slate-900 flex-col overflow-y-auto custom-scrollbar p-4 md:p-10 items-center justify-center">
+      <div className="min-h-screen bg-slate-300 text-slate-900 flex flex-col p-4 md:p-8 items-center justify-center overflow-y-auto custom-scrollbar">
         <motion.div 
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-2xl overflow-hidden shadow-2xl my-auto"
+          className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-2xl overflow-hidden shadow-2xl my-4 md:my-auto"
         >
           {/* Banner Header */}
           <div className="bg-slate-900 p-6 md:p-8 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-brand/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-            <div className="relative z-10 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-brand/30 border border-brand/50 flex items-center justify-center text-yellow-400 font-bold shadow-md shrink-0">
+            <div className="relative z-10 flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-brand/30 border border-brand/50 flex items-center justify-center text-yellow-400 font-bold shadow-md shrink-0 mt-0.5">
                   <BookOpen size={28} />
                 </div>
                 <div>
-                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 block mb-0.5">
-                    Halaman Konfirmasi Pembelajaran
+                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 block mb-1">
+                    Konfirmasi Pembelajaran
                   </span>
-                  <h2 className="text-lg md:text-2xl font-black tracking-tight leading-snug">
+                  <h2 className="text-xl md:text-2xl font-black text-white leading-snug">
                     {course.title}
                   </h2>
                 </div>
@@ -1463,61 +1463,61 @@ export default function App() {
           </div>
 
           {/* Content Details */}
-          <div className="p-6 md:p-10 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div className="bg-slate-200/80 p-4 rounded-2xl border border-slate-300 flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tingkat Kelas:</span>
-                <span className="px-3 py-1 rounded-xl text-xs font-black bg-blue-100 text-blue-800 border border-blue-200">
+          <div className="p-6 md:p-8 space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Tingkat Kelas</span>
+                <span className="px-3 py-1 rounded-xl text-xs font-black bg-blue-100 text-blue-800 border border-blue-200 w-fit">
                   {course.level}
                 </span>
               </div>
 
-              <div className="bg-slate-200/80 p-4 rounded-2xl border border-slate-300 flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Jumlah Topik:</span>
-                <span className="font-black text-slate-800 text-xs md:text-sm">{course.topics.length} Topik Pembelajaran</span>
+              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Jumlah Topik</span>
+                <span className="font-black text-slate-900 text-sm">{course.topics.length} Topik Pembelajaran</span>
               </div>
 
-              <div className="bg-slate-200/80 p-4 rounded-2xl border border-slate-300 flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Mode Keamanan:</span>
-                <span className={cn("font-black text-xs px-2.5 py-1 rounded-xl border", isFullScreen ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-emerald-100 text-emerald-800 border-emerald-200")}>
+              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Mode Keamanan</span>
+                <span className={cn("font-black text-xs px-3 py-1 rounded-xl border w-fit", isFullScreen ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-emerald-100 text-emerald-800 border-emerald-200")}>
                   {isFullScreen ? "🔒 Fullscreen (Mode Ujian)" : "🔓 Mode Normal"}
                 </span>
               </div>
 
-              <div className="bg-slate-200/80 p-4 rounded-2xl border border-slate-300 flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Poin Nilai:</span>
-                <span className="font-bold text-xs text-slate-800">
+              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Status Nilai</span>
+                <span className="font-black text-xs text-slate-900">
                   {isScoreVisible ? "👁️ Terlihat Saat Belajar" : "👁️‍🗨️ Disembunyikan Saat Belajar"}
                 </span>
               </div>
             </div>
 
             {hasCompleted ? (
-              <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-start gap-3.5">
+              <div className="bg-emerald-50 border border-emerald-200 p-5 md:p-6 rounded-2xl flex items-start gap-4 shadow-xs">
                 <CheckCircle size={24} className="text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-bold text-emerald-900 text-sm md:text-base mb-1">Materi Ini Sudah Selesai!</h4>
-                  <p className="text-xs md:text-sm text-emerald-800 font-medium">
-                    Anda telah memperoleh skor <span className="font-black text-emerald-950 underline">{studentAssessment?.score ?? 100}</span>. Anda dapat membuka kembali materi ini untuk belajar ulang.
+                <div className="space-y-1">
+                  <h4 className="font-black text-emerald-900 text-base md:text-lg mb-1">Materi Ini Sudah Anda Selesai!</h4>
+                  <p className="text-sm text-emerald-800 font-medium leading-relaxed">
+                    Anda telah memperoleh skor <span className="font-black text-emerald-950 underline">{studentAssessment?.score ?? 100}</span>. Anda dapat membuka kembali materi ini untuk belajar ulang kapan saja.
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl flex items-start gap-3.5">
+              <div className="bg-blue-50 border border-blue-200 p-5 md:p-6 rounded-2xl flex items-start gap-4 shadow-xs">
                 <Info size={24} className="text-brand shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-bold text-slate-900 text-sm md:text-base mb-1">Konfirmasi Pembelajaran</h4>
-                  <p className="text-xs md:text-sm text-slate-700 font-medium leading-relaxed">
-                    Apakah Anda yakin ingin mulai mempelajari <span className="font-bold text-slate-900">"{course.title}"</span> sekarang?
+                <div className="space-y-1">
+                  <h4 className="font-black text-slate-900 text-base md:text-lg mb-1">Konfirmasi Pembelajaran</h4>
+                  <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                    Apakah Anda yakin ingin mulai mempelajari <span className="font-black text-brand underline">{course.title}</span> sekarang?
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-slate-300">
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-5 border-t border-slate-300">
               <button
                 onClick={() => setCurrentPage('student_dashboard')}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-200 transition-all text-xs md:text-sm"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-200 transition-all text-sm text-center"
               >
                 Kembali ke Dashboard
               </button>
@@ -1526,9 +1526,9 @@ export default function App() {
                   setCurrentPage('course');
                   updateSessionStatus(course.id, 'working').catch(console.error);
                 }}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-brand text-white font-bold shadow-xl shadow-brand/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-xs md:text-sm"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-brand text-white font-extrabold shadow-xl shadow-brand/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm"
               >
-                <CheckCircle size={18} />
+                <CheckCircle size={20} />
                 {hasCompleted ? "Buka Pembelajaran Kembali" : "Ya, Mulai Pembelajaran"}
               </button>
             </div>
