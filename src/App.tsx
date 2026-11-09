@@ -206,6 +206,7 @@ export default function App() {
     isActive: boolean; 
     isGatekeepingEnabled?: boolean; 
     isFullScreen?: boolean;
+    isScoreVisible?: boolean;
     topicTimers?: Record<string, number>;
     quizTimers?: Record<string, number>;
     quizAvailableAt?: Record<string, number>;
@@ -462,6 +463,8 @@ export default function App() {
       setLocalMaterialConfig({
         isActive: config.isActive ?? false,
         isGatekeepingEnabled: config.isGatekeepingEnabled ?? true,
+        isFullScreen: config.isFullScreen ?? false,
+        isScoreVisible: config.isScoreVisible ?? true,
         topicTimers: config.topicTimers ?? {},
         quizTimers: config.quizTimers ?? {},
         quizAvailableAt: config.quizAvailableAt ?? {},
@@ -968,6 +971,19 @@ export default function App() {
       }, { merge: true });
     } catch (error) {
       console.error("Error toggling full screen:", error);
+    }
+  };
+
+  const toggleMaterialScoreVisibility = async (courseId: string) => {
+    try {
+      const currentConfig = materialConfigs[courseId] || { isActive: true };
+      const currentVal = currentConfig.isScoreVisible ?? true;
+      await setDoc(doc(db, 'material_configs', courseId), {
+        ...currentConfig,
+        isScoreVisible: !currentVal
+      }, { merge: true });
+    } catch (error) {
+      console.error("Error toggling score visibility:", error);
     }
   };
 
@@ -2114,6 +2130,7 @@ export default function App() {
                       {COURSES.map((course, index) => {
                         const isActive = materialConfigs[course.id]?.isActive ?? true;
                         const isFullScreen = materialConfigs[course.id]?.isFullScreen || false;
+                        const isScoreVisible = materialConfigs[course.id]?.isScoreVisible ?? true;
 
                         const courseColors = [
                           { bg: "hover:border-blue-400", banner: "from-blue-600 to-indigo-600", tag: "bg-blue-100 text-blue-800 border-blue-200", icon: "text-brand bg-blue-100" },
@@ -2197,6 +2214,31 @@ export default function App() {
                                     className={cn(
                                       "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-slate-100 shadow-md ring-0 transition duration-200 ease-in-out",
                                       isFullScreen ? "translate-x-5" : "translate-x-0"
+                                    )}
+                                  />
+                                </button>
+                              </div>
+
+                              {/* Toggle 3: Poin Nilai */}
+                              <div className="flex items-center justify-between bg-slate-100 p-2.5 rounded-xl border border-slate-300 shadow-xs">
+                                <div>
+                                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-500 block">Poin Nilai</span>
+                                  <span className={cn("text-xs font-bold", isScoreVisible ? "text-emerald-700" : "text-slate-400")}>
+                                    {isScoreVisible ? "👁️ Terlihat" : "👁️‍🗨️ Tersembunyi"}
+                                  </span>
+                                </div>
+                                <button 
+                                  onClick={() => toggleMaterialScoreVisibility(course.id)}
+                                  className={cn(
+                                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                    isScoreVisible ? "bg-emerald-600" : "bg-slate-300"
+                                  )}
+                                  title={isScoreVisible ? "Poin nilai terlihat saat pembelajaran & kuis" : "Poin nilai disembunyikan saat pembelajaran & kuis"}
+                                >
+                                  <span 
+                                    className={cn(
+                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-slate-100 shadow-md ring-0 transition duration-200 ease-in-out",
+                                      isScoreVisible ? "translate-x-5" : "translate-x-0"
                                     )}
                                   />
                                 </button>
@@ -4384,12 +4426,19 @@ export default function App() {
                     <span className="font-mono font-bold text-[10px] md:text-lg tracking-tight">{quizTimeRemaining}s</span>
                   </div>
                 )}
-                <div className="px-2 md:px-4 py-1 bg-slate-200 border border-slate-300 rounded-lg flex items-center gap-1">
-                   <span className="text-[7px] md:text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Skor sementara</span>
-                   <span className={cn("font-bold text-[11px] md:text-lg", currentScore >= 80 ? "text-emerald-600" : currentScore >= 60 ? "text-amber-600" : "text-red-600")}>
-                      {currentScore}
-                   </span>
-                </div>
+                {(isAdmin || (materialConfigs[activeCourse.id]?.isScoreVisible ?? true)) && (
+                  <div className="px-2 md:px-4 py-1 bg-slate-200 border border-slate-300 rounded-lg flex items-center gap-1">
+                     <span className="text-[7px] md:text-[9px] font-bold text-slate-500 uppercase tracking-widest block">
+                       Skor sementara
+                       {isAdmin && materialConfigs[activeCourse.id]?.isScoreVisible === false && (
+                         <span className="ml-1 text-[8px] text-amber-600 font-normal">(Siswa: Tersembunyi)</span>
+                       )}
+                     </span>
+                     <span className={cn("font-bold text-[11px] md:text-lg", currentScore >= 80 ? "text-emerald-600" : currentScore >= 60 ? "text-amber-600" : "text-red-600")}>
+                        {currentScore}
+                     </span>
+                  </div>
+                )}
               </div>
               {viewMode === 'material' && (
                 <button 
