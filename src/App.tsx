@@ -4512,7 +4512,7 @@ export default function App() {
                     if (isLocked) return;
                     setActiveTopicId(topic.id);
                     setCurrentPage('course');
-                    setIsSidebarOpen(false);
+                    if (window.innerWidth < 768) setIsSidebarOpen(false);
                   }}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 group text-left",
