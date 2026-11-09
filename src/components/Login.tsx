@@ -115,7 +115,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
             {settingsConfig?.logoUrl ? (
               <img src={settingsConfig.logoUrl} alt="Logo Sekolah" className="w-full h-full object-cover" />
             ) : (
-              <img src="/images/smpn1kawali_logo.jpg" alt="SMPN 1 Kawali Logo" className="w-full h-full object-contain p-1" />
+              <img src="/images/labkom_nesaka_logo.jpg" alt="LABKOM Nesaka Logo" className="w-full h-full object-cover" />
             )}
             <div className="absolute top-0 left-0 w-full h-1.5 bg-brand" />
           </motion.div>

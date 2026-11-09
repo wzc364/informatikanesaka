@@ -1111,7 +1111,7 @@ export default function App() {
         <header className="w-full bg-slate-100 px-4 md:px-8 py-4 border-b border-slate-300 flex items-center justify-between z-10 shrink-0">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center border border-slate-300 overflow-hidden bg-slate-200">
-                <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain p-1" />
+                <img src="/images/labkom_nesaka_logo.jpg" alt="Logo" className="w-full h-full object-cover" />
              </div>
              <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hidden sm:block">Profil Siswa</p>
@@ -1144,7 +1144,7 @@ export default function App() {
           <div className="bg-slate-100 p-6 md:p-10 rounded-[2rem] shadow-sm border border-slate-300 flex flex-col md:flex-row gap-6 md:gap-10 items-center md:items-start text-center md:text-left">
             <div className="relative shrink-0">
               <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-200 rounded-3xl flex items-center justify-center p-2 shadow-md relative overflow-hidden border border-slate-300">
-                <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain" />
+                <img src="/images/labkom_nesaka_logo.jpg" alt="Logo" className="w-full h-full object-cover" />
               </div>
               <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl border-[3px] border-slate-100 shadow-sm">
                 <CheckCircle size={16} />
@@ -1425,7 +1425,7 @@ export default function App() {
         <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-slate-100 border-b border-slate-300 z-50 flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <div className="bg-slate-200 w-10 h-10 rounded-xl flex items-center justify-center shadow-sm overflow-hidden relative border border-slate-300">
-              <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain p-1" />
+              <img src="/images/labkom_nesaka_logo.jpg" alt="Logo" className="w-full h-full object-cover" />
             </div>
             <h2 className="text-sm font-bold text-slate-900">SMPN 1 Kawali</h2>
           </div>
@@ -1458,7 +1458,7 @@ export default function App() {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <div className="bg-slate-200 w-12 h-12 rounded-xl flex items-center justify-center shadow-md overflow-hidden relative border border-slate-300">
-                <img src="/images/smpn1kawali_logo.jpg" alt="Logo" className="w-full h-full object-contain p-1" />
+                <img src="/images/labkom_nesaka_logo.jpg" alt="Logo" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h2 className="text-lg font-black text-slate-900 leading-tight uppercase tracking-tight">SMPN 1 KAWALI</h2>
@@ -4697,9 +4697,9 @@ export default function App() {
                   </>
                 ) : (
                     /* Quiz Section */
-                    <div className="quiz-container px-0 md:px-4 flex flex-col h-full overflow-hidden">
-                      <div className="bg-slate-100 rounded-none md:rounded-[2rem] border-x-0 md:border border-slate-300 shadow-xl overflow-hidden min-h-screen md:min-h-0 flex flex-col">
-                        <div className="bg-slate-900 p-5 md:p-10 text-white shrink-0 sticky top-0 z-10">
+                    <div className="quiz-container px-0 md:px-4 flex flex-col">
+                      <div className="bg-slate-100 rounded-none md:rounded-[2rem] border-x-0 md:border border-slate-300 shadow-xl flex flex-col">
+                        <div className="bg-slate-900 p-5 md:p-10 text-white shrink-0 z-10">
                           <div className="flex items-center justify-between mb-4 md:mb-6">
                             <button 
                               onClick={() => {
@@ -4728,7 +4728,7 @@ export default function App() {
                           </h3>
                         </div>
                         
-                        <div className="p-4 md:p-10 space-y-4 md:space-y-8 flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+                        <div className="p-4 md:p-10 space-y-4 md:space-y-8 flex flex-col">
                           {/* ACTION BUTTONS & EXPLANATION (Positioned below question, above options) */}
                           <AnimatePresence mode="wait">
                             {quizState.selectedOption !== null && (
