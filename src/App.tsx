@@ -151,7 +151,7 @@ const parseCheatingDetail = (item: string) => {
 };
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'login' | 'admin' | 'course' | 'student_dashboard'>(() => {
+  const [currentPage, setCurrentPage] = useState<'login' | 'admin' | 'course' | 'student_dashboard' | 'course_confirm'>(() => {
     // If admin, it could be in localStorage, otherwise we check sessionStorage
     const savedAdminPage = localStorage.getItem('currentPage');
     const savedStudentPage = sessionStorage.getItem('currentPage');
@@ -220,7 +220,6 @@ export default function App() {
   const [localMaterialConfig, setLocalMaterialConfig] = useState<any>(null);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [editingMaterialConfigId, setEditingMaterialConfigId] = useState<string | null>(null);
-  const [studentCourseConfirm, setStudentCourseConfirm] = useState<typeof COURSES[number] | null>(null);
 
   // Automatically calculate total course timer based on topic/quiz timers
   useEffect(() => {
@@ -1301,7 +1300,8 @@ export default function App() {
                       hasCompleted ? "bg-slate-200 border-slate-300 opacity-90" : cn(color.bg, color.border, "shadow-xl shadow-black/5")
                     )}
                     onClick={() => { 
-                      setStudentCourseConfirm(course);
+                      setActiveCourseId(course.id);
+                      setCurrentPage('course_confirm');
                     }}
                   >
                     <div className={cn("flex-1 rounded-[1.8rem] p-6 transition-colors flex flex-col h-full",
@@ -1417,6 +1417,123 @@ export default function App() {
             </div>
           </section>
         </main>
+      </div>
+    );
+  }
+
+  if (currentPage === 'course_confirm') {
+    const course = activeCourse;
+    const hasCompleted = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === course.id);
+    const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
+    const isFullScreen = materialConfigs[course.id]?.isFullScreen || false;
+    const isScoreVisible = materialConfigs[course.id]?.isScoreVisible ?? true;
+
+    return (
+      <div className="flex h-screen bg-slate-300 text-slate-900 flex-col overflow-y-auto custom-scrollbar p-4 md:p-10 items-center justify-center">
+        <motion.div 
+          initial={{ scale: 0.95, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-2xl overflow-hidden shadow-2xl my-auto"
+        >
+          {/* Banner Header */}
+          <div className="bg-slate-900 p-6 md:p-8 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-brand/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+            <div className="relative z-10 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-brand/30 border border-brand/50 flex items-center justify-center text-yellow-400 font-bold shadow-md shrink-0">
+                  <BookOpen size={28} />
+                </div>
+                <div>
+                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 block mb-0.5">
+                    Halaman Konfirmasi Pembelajaran
+                  </span>
+                  <h2 className="text-lg md:text-2xl font-black tracking-tight leading-snug">
+                    {course.title}
+                  </h2>
+                </div>
+              </div>
+              <button 
+                onClick={() => setCurrentPage('student_dashboard')}
+                className="p-2.5 hover:bg-white/10 rounded-2xl transition-colors text-slate-300 hover:text-white shrink-0"
+                title="Kembali ke Dashboard"
+              >
+                <X size={22} />
+              </button>
+            </div>
+          </div>
+
+          {/* Content Details */}
+          <div className="p-6 md:p-10 space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="bg-slate-200/80 p-4 rounded-2xl border border-slate-300 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tingkat Kelas:</span>
+                <span className="px-3 py-1 rounded-xl text-xs font-black bg-blue-100 text-blue-800 border border-blue-200">
+                  {course.level}
+                </span>
+              </div>
+
+              <div className="bg-slate-200/80 p-4 rounded-2xl border border-slate-300 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Jumlah Topik:</span>
+                <span className="font-black text-slate-800 text-xs md:text-sm">{course.topics.length} Topik Pembelajaran</span>
+              </div>
+
+              <div className="bg-slate-200/80 p-4 rounded-2xl border border-slate-300 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Mode Keamanan:</span>
+                <span className={cn("font-black text-xs px-2.5 py-1 rounded-xl border", isFullScreen ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-emerald-100 text-emerald-800 border-emerald-200")}>
+                  {isFullScreen ? "🔒 Fullscreen (Mode Ujian)" : "🔓 Mode Normal"}
+                </span>
+              </div>
+
+              <div className="bg-slate-200/80 p-4 rounded-2xl border border-slate-300 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Poin Nilai:</span>
+                <span className="font-bold text-xs text-slate-800">
+                  {isScoreVisible ? "👁️ Terlihat Saat Belajar" : "👁️‍🗨️ Disembunyikan Saat Belajar"}
+                </span>
+              </div>
+            </div>
+
+            {hasCompleted ? (
+              <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-start gap-3.5">
+                <CheckCircle size={24} className="text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-emerald-900 text-sm md:text-base mb-1">Materi Ini Sudah Selesai!</h4>
+                  <p className="text-xs md:text-sm text-emerald-800 font-medium">
+                    Anda telah memperoleh skor <span className="font-black text-emerald-950 underline">{studentAssessment?.score ?? 100}</span>. Anda dapat membuka kembali materi ini untuk belajar ulang.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl flex items-start gap-3.5">
+                <Info size={24} className="text-brand shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm md:text-base mb-1">Konfirmasi Pembelajaran</h4>
+                  <p className="text-xs md:text-sm text-slate-700 font-medium leading-relaxed">
+                    Apakah Anda yakin ingin mulai mempelajari <span className="font-bold text-slate-900">"{course.title}"</span> sekarang?
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-slate-300">
+              <button
+                onClick={() => setCurrentPage('student_dashboard')}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-200 transition-all text-xs md:text-sm"
+              >
+                Kembali ke Dashboard
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentPage('course');
+                  updateSessionStatus(course.id, 'working').catch(console.error);
+                }}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-brand text-white font-bold shadow-xl shadow-brand/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-xs md:text-sm"
+              >
+                <CheckCircle size={18} />
+                {hasCompleted ? "Buka Pembelajaran Kembali" : "Ya, Mulai Pembelajaran"}
+              </button>
+            </div>
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -5070,103 +5187,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {studentCourseConfirm && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/65 backdrop-blur-md z-[200] flex items-center justify-center p-4 overflow-y-auto"
-          >
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-md overflow-hidden shadow-2xl my-8"
-            >
-              <div className="bg-slate-900 p-6 md:p-8 text-white flex justify-between items-center relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-brand/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-                <div className="relative z-10 flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-brand/30 border border-brand/50 flex items-center justify-center text-yellow-400 font-bold shadow-sm shrink-0">
-                    <BookOpen size={24} />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Konfirmasi Membuka Materi</span>
-                    <h3 className="text-lg md:text-xl font-black tracking-tight leading-snug line-clamp-1">
-                      {studentCourseConfirm.title}
-                    </h3>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setStudentCourseConfirm(null)}
-                  className="p-2 hover:bg-white/10 rounded-xl transition-colors relative z-10 text-slate-300 hover:text-white"
-                >
-                  <X size={20} />
-                </button>
-              </div>
 
-              <div className="p-6 md:p-8 space-y-5">
-                <div className="bg-slate-200/80 p-4 rounded-2xl border border-slate-300 space-y-3">
-                  <div className="flex items-center justify-between text-xs md:text-sm">
-                    <span className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Tingkat Kelas:</span>
-                    <span className="px-2.5 py-0.5 rounded-lg text-xs font-black bg-blue-100 text-blue-800 border border-blue-200">
-                      {studentCourseConfirm.level}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs md:text-sm pt-2 border-t border-slate-300/70">
-                    <span className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Jumlah Topik:</span>
-                    <span className="font-black text-slate-800">{studentCourseConfirm.topics.length} Topik Pembelajaran</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs md:text-sm pt-2 border-t border-slate-300/70">
-                    <span className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Mode Ujian:</span>
-                    <span className={cn("font-bold text-xs px-2.5 py-0.5 rounded-md border", materialConfigs[studentCourseConfirm.id]?.isFullScreen ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-emerald-100 text-emerald-800 border-emerald-200")}>
-                      {materialConfigs[studentCourseConfirm.id]?.isFullScreen ? "🔒 Fullscreen" : "🔓 Normal"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs md:text-sm pt-2 border-t border-slate-300/70">
-                    <span className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Poin Nilai:</span>
-                    <span className="font-bold text-xs text-slate-700">
-                      {materialConfigs[studentCourseConfirm.id]?.isScoreVisible === false ? "👁️‍🗨️ Disembunyikan saat belajar" : "👁️ Terlihat"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl flex items-start gap-3">
-                  <Info size={20} className="text-brand shrink-0 mt-0.5" />
-                  <p className="text-xs md:text-sm text-slate-700 font-medium leading-relaxed">
-                    {studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === studentCourseConfirm.id)
-                      ? <>Anda telah menyelesaikan materi <span className="font-bold text-slate-900">"{studentCourseConfirm.title}"</span>. Apakah Anda ingin mempelajari kembali?</>
-                      : <>Apakah Anda yakin ingin mulai mempelajari <span className="font-bold text-slate-900">"{studentCourseConfirm.title}"</span> sekarang?</>
-                    }
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <button
-                    onClick={() => setStudentCourseConfirm(null)}
-                    className="px-5 py-3 rounded-xl border border-slate-300 font-bold text-slate-600 hover:bg-slate-200 transition-colors text-xs md:text-sm"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    onClick={() => {
-                      const courseId = studentCourseConfirm.id;
-                      setStudentCourseConfirm(null);
-                      setActiveCourseId(courseId);
-                      setCurrentPage('course');
-                      updateSessionStatus(courseId, 'working').catch(console.error);
-                    }}
-                    className="px-6 py-3 rounded-xl bg-brand text-white font-bold shadow-lg shadow-brand/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 text-xs md:text-sm"
-                  >
-                    <CheckCircle size={18} />
-                    {studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === studentCourseConfirm.id) ? "Buka Kembali" : "Ya, Mulai Belajar"}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
