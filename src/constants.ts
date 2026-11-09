@@ -5,6 +5,8 @@
 
 import { Topic } from './types';
 import { POLA_BILANGAN_TOPICS } from './polaBilangan';
+import { DEKOMPOSISI_TOPICS } from './dekomposisiTopics';
+import { PENGENALAN_POLA_TOPICS } from './pengenalanPolaTopics';
 
 export const PHP_DASAR_TOPICS: Topic[] = [
   {
@@ -1833,6 +1835,20 @@ forever
 ];
 
 export const COURSES = [
+  {
+    id: 'bk-dekomposisi',
+    title: 'Berpikir Komputasi Dekomposisi',
+    description: 'Pelajari teknik memecah masalah kompleks menjadi sub-tugas terstruktur, prinsip modularitas, tahapan strategi, dan studi kasus praktis.',
+    level: 'Fase D / SMP',
+    topics: DEKOMPOSISI_TOPICS
+  },
+  {
+    id: 'bk-pengenalan-pola',
+    title: 'Berpikir Komputasi Pengenalan Pola',
+    description: 'Mengenali keteraturan, ragam pola visual/teks/perilaku, sistem cerdas AI, serta pemahaman mendalam pola barisan bilangan aritmetika dan geometri.',
+    level: 'Fase D / SMP',
+    topics: PENGENALAN_POLA_TOPICS
+  },
   {
     id: 'pola-bilangan',
     title: 'Soal Pola Bilangan Geometri dan Aritmetika',

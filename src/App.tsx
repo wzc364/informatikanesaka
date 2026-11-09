@@ -59,7 +59,10 @@ import {
   Award,
   Flame,
   Gamepad2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Puzzle,
+  Cpu,
+  Calculator
 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
@@ -135,7 +138,12 @@ const ICON_MAP: Record<string, any> = {
   Lightbulb,
   Gamepad2,
   Sparkles,
-  Layers
+  Layers,
+  Search,
+  Eye,
+  Puzzle,
+  Cpu,
+  Calculator
 };
 
 const parseCheatingDetail = (item: string) => {
@@ -1127,7 +1135,7 @@ export default function App() {
         <header className="w-full bg-slate-100 px-4 md:px-8 py-4 border-b border-slate-300 flex items-center justify-between z-10 shrink-0">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center border border-slate-300 overflow-hidden bg-slate-200">
-                <img src="/images/labkom_nesaka_logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+                <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
              </div>
              <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hidden sm:block">Profil Siswa</p>
@@ -1160,7 +1168,7 @@ export default function App() {
           <div className="bg-slate-100 p-6 md:p-10 rounded-[2rem] shadow-sm border border-slate-300 flex flex-col md:flex-row gap-6 md:gap-10 items-center md:items-start text-center md:text-left">
             <div className="relative shrink-0">
               <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-200 rounded-3xl flex items-center justify-center p-2 shadow-md relative overflow-hidden border border-slate-300">
-                <img src="/images/labkom_nesaka_logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+                <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
               </div>
               <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl border-[3px] border-slate-100 shadow-sm">
                 <CheckCircle size={16} />
@@ -1555,7 +1563,7 @@ export default function App() {
         <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-slate-100 border-b border-slate-300 z-50 flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <div className="bg-slate-200 w-10 h-10 rounded-xl flex items-center justify-center shadow-sm overflow-hidden relative border border-slate-300">
-              <img src="/images/labkom_nesaka_logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+              <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
             </div>
             <h2 className="text-sm font-bold text-slate-900">SMPN 1 Kawali</h2>
           </div>
@@ -1588,7 +1596,7 @@ export default function App() {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <div className="bg-slate-200 w-12 h-12 rounded-xl flex items-center justify-center shadow-md overflow-hidden relative border border-slate-300">
-                <img src="/images/labkom_nesaka_logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+                <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h2 className="text-lg font-black text-slate-900 leading-tight uppercase tracking-tight">SMPN 1 KAWALI</h2>
@@ -3526,24 +3534,63 @@ export default function App() {
                         <div className="flex-1">
                           <input
                             type="file"
-                            accept="image/*"
+                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
                             id="logo-upload"
                             className="hidden"
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
-                              if (file.size > 1024 * 1024) {
-                                alert("Ukuran gambar tidak boleh melebih 1MB.");
+                              if (file.size > 2 * 1024 * 1024) {
+                                alert("Ukuran gambar tidak boleh melebihi 2MB.");
                                 return;
                               }
                               
                               const reader = new FileReader();
                               reader.onloadend = async () => {
                                 const base64String = reader.result as string;
-                                try {
-                                  await setDoc(doc(db, 'app_settings', 'global'), { logoUrl: base64String }, { merge: true });
-                                } catch (err) {
-                                  handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                                // If it's a raster image, compress to max 256x256 to ensure snappy load & under Firestore document limit
+                                if (file.type.startsWith('image/') && !file.type.includes('svg')) {
+                                  const img = new Image();
+                                  img.onload = async () => {
+                                    const canvas = document.createElement('canvas');
+                                    const maxDim = 256;
+                                    let width = img.width;
+                                    let height = img.height;
+                                    if (width > height) {
+                                      if (width > maxDim) {
+                                        height = Math.round((height * maxDim) / width);
+                                        width = maxDim;
+                                      }
+                                    } else {
+                                      if (height > maxDim) {
+                                        width = Math.round((width * maxDim) / height);
+                                        height = maxDim;
+                                      }
+                                    }
+                                    canvas.width = width;
+                                    canvas.height = height;
+                                    const ctx = canvas.getContext('2d');
+                                    if (ctx) {
+                                      ctx.drawImage(img, 0, 0, width, height);
+                                      const optimizedBase64 = canvas.toDataURL('image/png');
+                                      setSettingsConfig(prev => ({ ...prev, logoUrl: optimizedBase64 }));
+                                      try {
+                                        await setDoc(doc(db, 'app_settings', 'global'), { logoUrl: optimizedBase64 }, { merge: true });
+                                        alert("Logo sekolah berhasil diperbarui!");
+                                      } catch (err) {
+                                        handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                                      }
+                                    }
+                                  };
+                                  img.src = base64String;
+                                } else {
+                                  setSettingsConfig(prev => ({ ...prev, logoUrl: base64String }));
+                                  try {
+                                    await setDoc(doc(db, 'app_settings', 'global'), { logoUrl: base64String }, { merge: true });
+                                    alert("Logo sekolah berhasil diperbarui!");
+                                  } catch (err) {
+                                    handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                                  }
                                 }
                               };
                               reader.readAsDataURL(file);
@@ -3558,9 +3605,11 @@ export default function App() {
                           {settingsConfig.logoUrl && (
                             <button
                               onClick={async () => {
-                                if (confirm('Apakah Anda yakin ingin menghapus logo ini?')) {
+                                if (confirm('Apakah Anda yakin ingin menghapus logo kustom ini dan kembali ke logo bawaan?')) {
                                   try {
+                                    setSettingsConfig(prev => ({ ...prev, logoUrl: '' }));
                                     await setDoc(doc(db, 'app_settings', 'global'), { logoUrl: '' }, { merge: true });
+                                    alert("Logo kustom berhasil dihapus!");
                                   } catch (err) {
                                     handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
                                   }
