@@ -36,6 +36,7 @@ import {
   Clock,
   RotateCcw,
   Users,
+  UserCircle,
   Trash2,
   LayoutGrid,
   ArrowRight,
@@ -1137,7 +1138,7 @@ export default function App() {
         <header className="w-full bg-slate-100 px-4 md:px-8 py-4 border-b border-slate-300 flex items-center justify-between z-10 shrink-0">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center border border-slate-300 overflow-hidden bg-slate-200">
-                <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
+                {currentStudent?.jenisKelamin === 'P' ? <UserCircle className="text-pink-500" size={24}/> : <User className="text-blue-500" size={24}/>}
              </div>
              <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hidden sm:block">Profil Siswa</p>
@@ -1170,7 +1171,7 @@ export default function App() {
           <div className="bg-slate-100 p-6 md:p-10 rounded-[2rem] shadow-sm border border-slate-300 flex flex-col md:flex-row gap-6 md:gap-10 items-center md:items-start text-center md:text-left">
             <div className="relative shrink-0">
               <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-200 rounded-3xl flex items-center justify-center p-2 shadow-md relative overflow-hidden border border-slate-300">
-                <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
+                <User className="text-slate-500" size={64}/>
               </div>
               <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl border-[3px] border-slate-100 shadow-sm">
                 <CheckCircle size={16} />

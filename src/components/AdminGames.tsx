@@ -35,7 +35,7 @@ import {
   MoveDown
 } from 'lucide-react';
 import { cn } from '../utils';
-import { doc, setDoc, collection, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, onSnapshot, deleteDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
 import { COURSES } from '../constants';
 
@@ -222,6 +222,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterKelas, setFilterKelas] = useState('all');
   const [filterGame, setFilterGame] = useState('all');
+  const [filterStage, setFilterStage] = useState('all');
 
   // Drag and Drop state for game cards
   const [orderedGames, setOrderedGames] = useState<GameItem[]>(() => {
@@ -351,15 +352,39 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
     }
   };
 
-  // Filtered leaderboard
-  const filteredScores = gameScores.filter(score => {
-    const matchSearch = score.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        score.studentNis?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        score.gameTitle?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchKelas = filterKelas === 'all' || score.studentKelas === filterKelas;
-    const matchGame = filterGame === 'all' || score.gameId === filterGame;
-    return matchSearch && matchKelas && matchGame;
-  }).sort((a, b) => (b.score || 0) - (a.score || 0));
+  // Filtered leaderboard - only show the best score per student per unique game/stage
+  const filteredScores = (() => {
+    const baseFiltered = gameScores.filter(score => {
+      const matchSearch = score.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          score.studentNis?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          score.gameTitle?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchKelas = filterKelas === 'all' || score.studentKelas === filterKelas;
+      const matchGame = filterGame === 'all' || score.gameId === filterGame;
+      
+      // Stage Filter for Petualangan SMP
+      let matchStage = true;
+      if (filterGame === 'petualangan-smp' && filterStage !== 'all') {
+        matchStage = score.gameTitle?.includes(`Stage ${filterStage}`);
+      }
+      
+      const hasScore = (score.score || 0) > 0;
+      
+      return matchSearch && matchKelas && matchGame && matchStage && hasScore;
+    });
+
+    // Group by Student + Game Title (Stage) to pick the MAX score
+    const bestScoresMap: Record<string, any> = {};
+    baseFiltered.forEach(s => {
+      // Use studentId + gameTitle as unique key. 
+      // If studentId is missing (old data), fallback to name.
+      const key = `${s.studentId || s.studentName}_${s.gameTitle}`;
+      if (!bestScoresMap[key] || (s.score || 0) > (bestScoresMap[key].score || 0)) {
+        bestScoresMap[key] = s;
+      }
+    });
+
+    return Object.values(bestScoresMap).sort((a, b) => (b.score || 0) - (a.score || 0));
+  })();
 
   // Extract unique classes
   const uniqueClasses = Array.from(new Set(studentsList.map(s => s.kelas).concat(gameScores.map(s => s.studentKelas)))).filter(Boolean).sort();
@@ -733,7 +758,10 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
               {/* Game Filter */}
               <select
                 value={filterGame}
-                onChange={e => setFilterGame(e.target.value)}
+                onChange={e => {
+                  setFilterGame(e.target.value);
+                  setFilterStage('all');
+                }}
                 className="bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold rounded-xl p-2 cursor-pointer"
               >
                 <option value="all">Semua Game</option>
@@ -741,6 +769,21 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                   <option key={g.id} value={g.id}>{g.title}</option>
                 ))}
               </select>
+
+              {/* Stage Filter (Dynamic) */}
+              {filterGame === 'petualangan-smp' && (
+                <select
+                  value={filterStage}
+                  onChange={e => setFilterStage(e.target.value)}
+                  className="bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold rounded-xl p-2 cursor-pointer animate-in fade-in slide-in-from-right-2"
+                >
+                  <option value="all">Semua Stage</option>
+                  <option value="1">Stage 1</option>
+                  <option value="2">Stage 2</option>
+                  <option value="3">Stage 3</option>
+                  <option value="4">Stage 4</option>
+                </select>
+              )}
             </div>
           </div>
 
@@ -1581,6 +1624,7 @@ function generateStageEngine(stageNum: number) {
         invulnerableFrames: 0,
         superPowerFrames: 0,
         keyboardGunFrames: 0,
+        bulletsLeft: 0,
         shootCooldown: 0,
         animFrame: 0,
       },
@@ -1657,6 +1701,7 @@ function generateStageEngine(stageNum: number) {
         invulnerableFrames: 0,
         superPowerFrames: 0,
         keyboardGunFrames: 0,
+        bulletsLeft: 0,
         shootCooldown: 0,
         animFrame: 0,
       },
@@ -1737,6 +1782,7 @@ function generateStageEngine(stageNum: number) {
         invulnerableFrames: 0,
         superPowerFrames: 0,
         keyboardGunFrames: 0,
+        bulletsLeft: 0,
         shootCooldown: 0,
         animFrame: 0,
       },
@@ -1818,12 +1864,13 @@ function generateStageEngine(stageNum: number) {
       invulnerableFrames: 0,
       superPowerFrames: 0,
       keyboardGunFrames: 0,
+      bulletsLeft: 0,
       shootCooldown: 0,
       animFrame: 0,
     },
     bullets: [] as Array<{ x: number; y: number; vx: number; w: number; h: number }>,
     cameraX: 0,
-    worldWidth: 5600,
+    worldWidth: 6500,
     platforms: [
       { x: 0, y: 380, w: 600, h: 100, type: 'ground' },
       { x: 680, y: 380, w: 500, h: 100, type: 'ground' },
@@ -1841,7 +1888,7 @@ function generateStageEngine(stageNum: number) {
       { x: 3700, y: 380, w: 800, h: 100, type: 'ground' },
       { x: 3850, y: 280, w: 160, h: 20, type: 'platform' },
       { x: 4100, y: 230, w: 160, h: 20, type: 'platform' },
-      { x: 4600, y: 380, w: 1000, h: 100, type: 'ground' }
+      { x: 4600, y: 380, w: 1800, h: 100, type: 'ground' }
     ],
     items: [
       { id: 1, x: 250, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
@@ -1873,7 +1920,30 @@ function generateStageEngine(stageNum: number) {
       { id: 12, x: 4000, y: 344, w: 38, h: 36, type: 'computer_evil', vx: -2, minX: 3750, maxX: 4300, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       { id: 13, x: 4800, y: 344, w: 38, h: 36, type: 'computer_evil', vx: 2.2, minX: 4650, maxX: 5200, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
     ],
-    schoolGateX: 5350,
+    schoolGateX: 6250,
+    boss: {
+      x: 6200,
+      y: 380 - 100,
+      w: 80,
+      h: 100,
+      hp: 10,
+      maxHp: 10,
+      vx: 2,
+      minX: 5400,
+      maxX: 6150,
+      shootTimer: 0,
+      state: 'idle' as 'idle' | 'moving' | 'shooting' | 'dying' | 'dead',
+      stateTimer: 0,
+      lasers: [] as Array<{ x: number; y: number; vx: number; w: number; h: number }>,
+      fightStarted: false,
+      countdown: 0,
+      pattern: [1, 2, 3, 1, 3, 3, 2, 2, 1, 3, 1, 2, 1, 1],
+      patternIndex: 0,
+      direction: 'left' as 'left' | 'right',
+      targetX: 0,
+      bossRetries: 3,
+      invulnerableFrames: 0
+    }
   };
 }
 
@@ -2894,6 +2964,7 @@ function drawAlunAlunCiamis(ctx: CanvasRenderingContext2D, x: number, groundY: n
 function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boolean; currentStudent: any; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const poseImagesRef = useRef<(HTMLImageElement | null)[]>([]);
+  const bossImagesRef = useRef<(HTMLImageElement | null)[]>([]);
 
   useEffect(() => {
     const paths = [
@@ -2905,6 +2976,20 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       '/assets/aistudio/5_ca307ebd.png',     // 5: loncat 2
       '/assets/aistudio/6_0e9e4f2c.png',     // 6: loncat 3
       '/assets/aistudio/7_d58d30cc.png',     // 7: pose menembak
+    ];
+
+    const bossPaths = [
+      '/assets/aistudio/1a.png',   // 0: Idle 1a
+      '/assets/aistudio/2a.png',   // 1: Idle 2a
+      '/assets/aistudio/3a.png',   // 2: Move 3a
+      '/assets/aistudio/4a.png',   // 3: Move 4a
+      '/assets/aistudio/5a.png',   // 4: Move 5a
+      '/assets/aistudio/6a.png',   // 5: Move 6a
+      '/assets/aistudio/7a.png',   // 6: Shoot 7a
+      '/assets/aistudio/8a.png',   // 7: Shoot 8a
+      '/assets/aistudio/9a.png',   // 8: Pose tertembak 9a
+      '/assets/aistudio/10a.png',  // 9: Pose bos mati 10a
+      '/assets/aistudio/10.png',   // 10: Pose bos mati tak bergerak 10.png
     ];
 
     paths.forEach((path, idx) => {
@@ -2943,6 +3028,43 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         }
       };
     });
+
+    bossPaths.forEach((path, idx) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = path;
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || 400;
+          canvas.height = img.naturalHeight || 400;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+              if (r > 220 && g > 220 && b > 220) {
+                data[i + 3] = 0;
+              }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            const processedImg = new Image();
+            processedImg.src = canvas.toDataURL();
+            processedImg.onload = () => {
+              bossImagesRef.current[idx] = processedImg;
+            };
+          } else {
+            bossImagesRef.current[idx] = img;
+          }
+        } catch (e) {
+          bossImagesRef.current[idx] = img;
+        }
+      };
+    });
   }, []);
 
   const [currentStage, setCurrentStage] = useState<1 | 2 | 3 | 4>(1);
@@ -2958,6 +3080,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
   // Firestore Config for Stage Materi
   const [stageConfigs, setStageConfigs] = useState<{ stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string }>({});
+  const [completedStages, setCompletedStages] = useState<number[]>([]);
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'game_configs', 'petualangan-smp'), (snapshot) => {
@@ -2967,6 +3090,16 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     });
     return () => unsub();
   }, []);
+
+  useEffect(() => {
+    if (!currentStudent) return;
+    const unsub = onSnapshot(doc(db, 'student_progress', currentStudent.id), (snapshot) => {
+      if (snapshot.exists()) {
+        setCompletedStages(snapshot.data().completedStages || []);
+      }
+    });
+    return () => unsub();
+  }, [currentStudent]);
 
   const getActiveMateriIdForStage = (stageNum: number) => {
     if (stageNum === 1) return stageConfigs.stage1MateriId || 'bk-dekomposisi';
@@ -3074,6 +3207,26 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     setGameState('playing');
   };
 
+  const startBossFightStage1 = () => {
+    setCurrentStage(1);
+    resetEngineForStage(1);
+    setScore(0);
+    setLives(3);
+    setDistanceRemaining(30);
+    setActiveQuiz(null);
+    setQuizFeedback(null);
+    setShowRewardPicker(false);
+    setSelectedRewardMsg(null);
+    setSuperPowerActive(false);
+    setKeyboardGunActive(false);
+    
+    // Position player just before boss area
+    engineRef.current.player.x = 5350;
+    engineRef.current.cameraX = 5350 - 300;
+    
+    setGameState('playing');
+  };
+
   const saveFinalScore = async (finalScore: number) => {
     if (!currentStudent && !isAdmin) return;
     try {
@@ -3087,6 +3240,12 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         score: finalScore,
         playedAt: new Date().toISOString()
       });
+
+      if (gameState === 'win' && currentStudent) {
+         await setDoc(doc(db, 'student_progress', currentStudent.id), {
+           completedStages: arrayUnion(currentStage)
+         }, { merge: true });
+      }
     } catch (e) {
       console.error("Failed saving score", e);
     }
@@ -3146,7 +3305,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
   const handlePickReward = (rewardType: 'heart' | 'power' | 'score' | 'keyboard_gun') => {
     if (rewardType === 'heart') {
-      setLives(l => Math.min(5, l + 1));
+      setLives(l => l + 1);
       setSelectedRewardMsg("💖 Hati bertambah! (+1 Nyawa Berhasil Didapatkan)");
     } else if (rewardType === 'power') {
       engineRef.current.player.superPowerFrames = 450; // ~7.5 seconds of super power
@@ -3237,8 +3396,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         }
       }
 
+      const isFrozen = currentStage === 1 && engine.boss && engine.boss.countdown > 0;
       // Fire keyboard gun bullet when shoot key or button is active
-      if (keysRef.current.shoot && p.keyboardGunFrames > 0) {
+      if (keysRef.current.shoot && (p.keyboardGunFrames > 0 || (p.bulletsLeft && p.bulletsLeft > 0)) && !isFrozen) {
         if (!p.shootCooldown || p.shootCooldown <= 0) {
           p.shootCooldown = 12; // Throttle rate of fire (~0.2s)
           const bulletVx = p.direction === 'right' ? 14 : -14;
@@ -3251,6 +3411,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
             w: 22,
             h: 12
           });
+          if (p.bulletsLeft && p.bulletsLeft > 0) p.bulletsLeft--;
         }
       }
 
@@ -3267,6 +3428,50 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         if (b.x < engine.cameraX - 100 || b.x > engine.cameraX + 900) {
           engine.bullets.splice(bIdx, 1);
           continue;
+        }
+
+        let bulletRemoved = false;
+
+        // Bullet vs Boss Laser (Counter Attack)
+        if (currentStage === 1 && engine.boss && engine.boss.state !== 'dead') {
+           const boss = engine.boss;
+           for (let lIdx = boss.lasers.length - 1; lIdx >= 0; lIdx--) {
+              const l = boss.lasers[lIdx];
+              if (
+                b.x < l.x + l.w &&
+                b.x + b.w > l.x &&
+                b.y < l.y + l.h &&
+                b.y + b.h > l.y
+              ) {
+                boss.lasers.splice(lIdx, 1);
+                engine.bullets.splice(bIdx, 1);
+                bulletRemoved = true;
+                break;
+              }
+           }
+        }
+
+        if (bulletRemoved) continue;
+
+        // Bullet vs Boss hit
+        if (currentStage === 1 && engine.boss && engine.boss.state !== 'dead' && engine.boss.state !== 'dying' && (!engine.boss.countdown || engine.boss.countdown <= 0)) {
+           const boss = engine.boss;
+           if (
+             b.x < boss.x + boss.w &&
+             b.x + b.w > boss.x &&
+             b.y < boss.y + boss.h &&
+             b.y + b.h > boss.y
+           ) {
+              boss.hp--;
+              boss.invulnerableFrames = 15;
+              engine.bullets.splice(bIdx, 1);
+              if (boss.hp <= 0) {
+                boss.state = 'dying';
+                boss.stateTimer = 90;
+                setScore(s => s + 2000);
+              }
+              continue;
+           }
         }
 
         // Bullet vs Obstacle / Monster Collision
@@ -3288,19 +3493,23 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
       const moveSpeed = p.superPowerFrames > 0 ? 6.5 : 4.5;
 
-      if (keysRef.current.left) {
-        p.vx = -moveSpeed;
-        p.direction = 'left';
-      } else if (keysRef.current.right) {
-        p.vx = moveSpeed;
-        p.direction = 'right';
-      } else {
-        p.vx *= 0.8;
-      }
+      if (!isFrozen) {
+        if (keysRef.current.left) {
+          p.vx = -moveSpeed;
+          p.direction = 'left';
+        } else if (keysRef.current.right) {
+          p.vx = moveSpeed;
+          p.direction = 'right';
+        } else {
+          p.vx *= 0.8;
+        }
 
-      if (keysRef.current.jump && p.isGrounded) {
-        p.vy = p.superPowerFrames > 0 ? -14 : -12.5;
-        p.isGrounded = false;
+        if (keysRef.current.jump && p.isGrounded) {
+          p.vy = p.superPowerFrames > 0 ? -14 : -12.5;
+          p.isGrounded = false;
+        }
+      } else {
+        p.vx = 0;
       }
 
       p.vy += 0.65;
@@ -3361,6 +3570,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               setScore(s => s + 50);
             } else if (item.type === 'mystery_box') {
               triggerMysteryBoxQuiz();
+            } else if ((item as any).type === 'boss_keyboard') {
+              p.bulletsLeft = (p.bulletsLeft || 0) + 3;
             }
           }
         }
@@ -3410,6 +3621,162 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
       const remainingMeters = Math.max(0, Math.floor((engine.schoolGateX - p.x) / 30));
       setDistanceRemaining(remainingMeters);
+
+      // Boss Logic (Stage 1)
+      if (currentStage === 1 && engine.boss) {
+        const boss = engine.boss;
+        if (boss.invulnerableFrames > 0) boss.invulnerableFrames--;
+        const bossAreaX = 5400;
+
+        // Activation and Forced Position logic: move player left, boss right
+        if (p.x > bossAreaX && !boss.fightStarted && boss.state !== 'dead') {
+           p.x = bossAreaX + 60;
+           p.vx = 0;
+           boss.x = bossAreaX + 700;
+           boss.fightStarted = true;
+           boss.countdown = 300; // 5 seconds (60fps)
+           boss.state = 'idle';
+        }
+
+        // Camera Lock logic: Lock camera when player enters boss area
+        if (p.x > bossAreaX && boss.state !== 'dead') {
+          engine.cameraX = bossAreaX;
+          // Constrain player within the boss fight screen
+          if (p.x < bossAreaX + 10) p.x = bossAreaX + 10;
+          if (p.x > bossAreaX + 790 - p.width) p.x = bossAreaX + 790 - p.width;
+        }
+
+        // Boss always faces player
+        boss.direction = boss.x > p.x ? 'left' : 'right';
+
+        // Drop Keyboard logic: if player is in area, boss alive, and player is out of bullets/timer
+        if (p.x > bossAreaX && boss.fightStarted && boss.countdown <= 0 && boss.state !== 'dead' && p.keyboardGunFrames <= 0 && (!p.bulletsLeft || p.bulletsLeft <= 0)) {
+           const hasDrop = engine.items.some(it => (it as any).type === 'boss_keyboard' && !it.collected);
+           if (!hasDrop) {
+              const dropX = bossAreaX + 100 + Math.random() * 600;
+              engine.items.push({
+                id: Date.now(),
+                x: dropX,
+                y: -100,
+                w: 32,
+                h: 32,
+                type: 'boss_keyboard',
+                collected: false,
+                vy: 3.5
+              } as any);
+           }
+        }
+
+        // Update falling boss keyboards
+        engine.items.forEach(it => {
+          if ((it as any).type === 'boss_keyboard' && !it.collected) {
+             if (it.y < 380 - it.h) {
+                it.y += (it as any).vy || 2;
+             }
+          }
+        });
+
+        // Boss state machine
+        if (boss.state !== 'dead' && boss.state !== 'dying') {
+          if (!boss.fightStarted) {
+             boss.state = 'idle';
+          } else if (boss.countdown > 0) {
+             boss.countdown--;
+             boss.state = 'idle';
+             p.vx = 0; // Freeze player during countdown
+          } else {
+             boss.stateTimer--;
+             if (boss.stateTimer <= 4) { // Finish previous state action
+                const action = boss.pattern[boss.patternIndex];
+                // 1: Move 2m (60 units) toward player
+                // 2: Shoot laser
+                // 3: Move 2m (60 units) away from player
+                if (action === 1) {
+                   boss.state = 'moving';
+                   boss.stateTimer = 80; // Slower (was 40)
+                   const dir = boss.x > p.x ? -1 : 1;
+                   boss.vx = dir * 0.75; // Slower (was 1.5)
+                } else if (action === 2) {
+                   boss.state = 'shooting';
+                   boss.stateTimer = 120; // Slower (was 60)
+                   boss.shootTimer = 50; // Slower (was 25)
+                } else if (action === 3) {
+                   boss.state = 'moving';
+                   boss.stateTimer = 80; // Slower (was 40)
+                   const dir = boss.x > p.x ? 1 : -1;
+                   boss.vx = dir * 0.75; // Slower (was 1.5)
+                }
+                boss.patternIndex = (boss.patternIndex + 1) % boss.pattern.length;
+             }
+
+             if (boss.state === 'moving') {
+               boss.x += boss.vx;
+               if (boss.x < bossAreaX + 100) { boss.x = bossAreaX + 100; boss.stateTimer = 0; }
+               if (boss.x > bossAreaX + 700) { boss.x = bossAreaX + 700; boss.stateTimer = 0; }
+             }
+
+             if (boss.state === 'shooting' && boss.shootTimer > 0) {
+               boss.shootTimer--;
+               if (boss.shootTimer === 0) {
+                 const laserVx = boss.direction === 'left' ? -10 : 10;
+                 const laserX = boss.direction === 'left' ? boss.x - 10 : boss.x + boss.w;
+                 boss.lasers.push({
+                   x: laserX,
+                   y: boss.y + 42,
+                   vx: laserVx,
+                   w: 55,
+                   h: 12
+                 });
+               }
+             }
+          }
+
+          // Update Lasers & collision with player
+          for (let lIdx = boss.lasers.length - 1; lIdx >= 0; lIdx--) {
+            const l = boss.lasers[lIdx];
+            l.x += l.vx;
+            if (l.x < bossAreaX - 100 || l.x > bossAreaX + 900) {
+              boss.lasers.splice(lIdx, 1);
+              continue;
+            }
+
+            if (
+              l.x < p.x + p.width &&
+              l.x + l.w > p.x &&
+              l.y < p.y + p.height &&
+              l.y + l.h > p.y
+            ) {
+              if (p.invulnerableFrames === 0 && p.superPowerFrames === 0) {
+                p.invulnerableFrames = 60;
+                setLives(currentLives => {
+                   const next = currentLives - 1;
+                   if (next <= 0) {
+                      // Check for Boss Retries
+                      if (boss.bossRetries > 0) {
+                         boss.bossRetries--;
+                         boss.countdown = 180; // 3s reset
+                         boss.hp = 10;
+                         boss.patternIndex = 0;
+                         boss.lasers = [];
+                         p.x = bossAreaX + 60;
+                         p.vx = 0;
+                         return 3; // Reset to 3 lives
+                      } else {
+                         setGameState('gameover');
+                         saveFinalScore(score);
+                      }
+                   }
+                   return next;
+                });
+              }
+              boss.lasers.splice(lIdx, 1);
+            }
+          }
+        } else if (boss.state === 'dying') {
+          boss.stateTimer--;
+          if (boss.stateTimer <= 0) boss.state = 'dead';
+        }
+      }
 
       if (p.x >= engine.schoolGateX - 50) {
         const bonusTimeScore = lives * 150 + 250;
@@ -3788,6 +4155,171 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           ctx.fillStyle = '#fef08a';
           ctx.font = 'black 16px sans-serif';
           ctx.fillText('❓', ix + 5, floatY + 20);
+        } else if ((item as any).type === 'boss_keyboard') {
+          // Special Falling Keyboard for Boss Fight support
+          ctx.save();
+          ctx.shadowColor = '#38bdf8';
+          ctx.shadowBlur = 10;
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(ix, item.y, 30, 26);
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(ix, item.y, 30, 26);
+          ctx.font = '14px sans-serif';
+          ctx.fillText('⌨️', ix + 5, item.y + 19);
+          ctx.restore();
+        }
+      }
+
+      // Render Boss 1 & Lasers
+      if (currentStage === 1 && engine.boss) {
+        const boss = engine.boss;
+        const bx = boss.x - camX;
+        const by = boss.y;
+        
+        let bossImg: HTMLImageElement | null = null;
+        if (boss.state === 'dead') {
+          bossImg = bossImagesRef.current[10] || bossImagesRef.current[9]; // Pose bos mati tak bergerak (10.png)
+        } else if (boss.state === 'dying') {
+          bossImg = bossImagesRef.current[9]; // Pose bos mati (10a.png)
+        } else if (boss.invulnerableFrames > 0) {
+          bossImg = bossImagesRef.current[8]; // Pose tertembak player (9a.png)
+        } else if (boss.state === 'shooting') {
+          // Menembak laser: 7a.png, 8a.png (indices 6, 7)
+          bossImg = bossImagesRef.current[Math.floor(p.animFrame * 2) % 2 + 6];
+        } else if (boss.state === 'moving') {
+          // Bergerak: 3a.png, 4a.png, 5a.png, 6a.png (indices 2, 3, 4, 5)
+          bossImg = bossImagesRef.current[Math.floor(p.animFrame * 2) % 4 + 2];
+        } else {
+          // Pose idle: 1a.png, 2a.png (indices 0, 1)
+          bossImg = bossImagesRef.current[Math.floor(p.animFrame * 1) % 2];
+        }
+
+        if (bossImg && bossImg.complete) {
+           const bAspect = bossImg.naturalWidth / bossImg.naturalHeight;
+           const drawBH = 110;
+           const drawBW = drawBH * bAspect;
+           const drawX = bx + (boss.w - drawBW)/2;
+           const drawY = by + boss.h - drawBH;
+
+           ctx.save();
+           // Default pose is facing left, so flip if facing right
+           if (boss.direction === 'right') {
+              ctx.translate(drawX + drawBW, drawY);
+              ctx.scale(-1, 1);
+              ctx.drawImage(bossImg, 0, 0, drawBW, drawBH);
+           } else {
+              ctx.drawImage(bossImg, drawX, drawY, drawBW, drawBH);
+           }
+           ctx.restore();
+        }
+
+        // Boss Countdown Overlay
+        if (boss.countdown > 0) {
+            const num = Math.ceil(boss.countdown / 60);
+            ctx.save();
+            // Modern deep blur background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+            ctx.fillRect(0, 0, 800, 420);
+            
+            // Extremely Large Animated Number with Modern Look
+            const pulse = Math.sin(boss.countdown * 0.15);
+            const scale = 1.3 + pulse * 0.15; // Even larger scale
+            ctx.translate(400, 185);
+            ctx.scale(scale, scale);
+            
+            // Ultra Glow
+            ctx.shadowColor = '#3b82f6';
+            ctx.shadowBlur = 80;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'black 420px "Inter", "Arial Black", sans-serif'; // Enormous
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(num.toString(), 0, 0);
+            
+            // Vibrant Stroke Glow
+            ctx.strokeStyle = '#60a5fa';
+            ctx.lineWidth = 6;
+            ctx.globalAlpha = 0.5 + pulse * 0.3;
+            ctx.strokeText(num.toString(), 0, 0);
+            ctx.restore();
+
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#60a5fa';
+            ctx.font = 'black 36px "Inter", sans-serif';
+            ctx.shadowColor = '#000';
+            ctx.shadowBlur = 15;
+            ctx.fillText('PERSIAPAN BERTARUNG!', 400, 340);
+            
+            // Modern stylized progress indicator
+            const lineW = 400;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.fillRect(400 - lineW/2, 365, lineW, 4);
+            ctx.fillStyle = '#60a5fa';
+            ctx.shadowColor = '#60a5fa';
+            ctx.shadowBlur = 10;
+            ctx.fillRect(400 - lineW/2, 365, lineW * (boss.countdown / 300), 4);
+            ctx.restore();
+         }
+
+        // Boss Lasers
+        if (boss.state !== 'dead') {
+          boss.lasers.forEach(l => {
+             const lx = l.x - camX;
+             ctx.save();
+             ctx.shadowColor = '#3b82f6';
+             ctx.shadowBlur = 15;
+             ctx.fillStyle = '#60a5fa';
+             ctx.fillRect(lx, l.y, l.w, l.h);
+             ctx.fillStyle = '#ffffff';
+             ctx.fillRect(lx, l.y + l.h/3, l.w, l.h/3);
+             ctx.restore();
+          });
+        }
+
+        // Boss HP Bar & Label
+        if (boss.countdown <= 0 && boss.state !== 'dead') {
+          const barW = 300; // Wider
+          const barH = 16;  // Taller
+          const barX = 400 - barW / 2; // Center screen top
+          const barY = 40;
+          
+          // Container
+          ctx.save();
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+          ctx.shadowColor = '#000';
+          ctx.shadowBlur = 15;
+          ctx.roundRect(barX - 4, barY - 4, barW + 8, barH + 8, 8);
+          ctx.fill();
+          
+          // Empty Bar
+          ctx.fillStyle = '#1e293b';
+          ctx.roundRect(barX, barY, barW, barH, 4);
+          ctx.fill();
+          
+          // HP Fill with gradient
+          const hpGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+          hpGrad.addColorStop(0, '#f43f5e');
+          hpGrad.addColorStop(1, '#e11d48');
+          ctx.fillStyle = hpGrad;
+          ctx.roundRect(barX, barY, barW * (boss.hp / boss.maxHp), barH, 4);
+          ctx.fill();
+          
+          // Text
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'black 12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`BOSS: COMPUTER CORE VIRUS`, 400, barY - 12);
+          ctx.font = 'bold 11px monospace';
+          ctx.fillText(`${boss.hp} / ${boss.maxHp} HP`, 400, barY + barH - 4);
+          
+          if (boss.bossRetries > 0) {
+             ctx.fillStyle = '#fbbf24';
+             ctx.font = 'bold 10px sans-serif';
+             ctx.fillText(`Percobaan Tersisa: ${boss.bossRetries}`, 400, barY + barH + 18);
+          }
+          ctx.restore();
         }
       }
 
@@ -4153,6 +4685,18 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               ⌨️ PISTOL KEYBOARD ({Math.ceil((engineRef.current?.player?.keyboardGunFrames || 0) / 60)}s) [Z]
             </div>
           )}
+
+          {(engineRef.current?.player?.bulletsLeft || 0) > 0 && (
+            <div className="px-2.5 py-1 bg-amber-500 text-slate-950 text-[10px] font-black rounded-lg animate-pulse flex items-center gap-1 shadow-sm">
+              ⌨️ PELURU: {engineRef.current?.player?.bulletsLeft} [Z]
+            </div>
+          )}
+
+          {currentStage === 1 && engineRef.current?.boss && engineRef.current.boss.state !== 'dead' && distanceRemaining <= 30 && (
+            <div className="px-2.5 py-1 bg-rose-600 text-white text-[10px] font-black rounded-lg animate-pulse flex items-center gap-1 shadow-sm border border-rose-400">
+              👿 BOSS HP: {engineRef.current.boss.hp}/10
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 ml-auto sm:ml-0">
@@ -4216,32 +4760,38 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               </button>
               <button
                 onClick={() => startGame(2)}
+                disabled={!isAdmin && !completedStages.includes(1)}
                 className={cn(
                   "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1",
-                  currentStage === 2 ? "bg-amber-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700"
+                  currentStage === 2 ? "bg-amber-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700",
+                  !isAdmin && !completedStages.includes(1) && "opacity-50 cursor-not-allowed"
                 )}
               >
-                <span>🏕️ Stage 2</span>
+                <span>{!isAdmin && !completedStages.includes(1) ? '🔒' : '🏕️'} Stage 2</span>
                 <span className="text-[10px] opacity-80">(190m)</span>
               </button>
               <button
                 onClick={() => startGame(3)}
+                disabled={!isAdmin && !completedStages.includes(2)}
                 className={cn(
                   "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1",
-                  currentStage === 3 ? "bg-indigo-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700"
+                  currentStage === 3 ? "bg-indigo-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700",
+                  !isAdmin && !completedStages.includes(2) && "opacity-50 cursor-not-allowed"
                 )}
               >
-                <span>🏛️ Stage 3</span>
+                <span>{!isAdmin && !completedStages.includes(2) ? '🔒' : '🏛️'} Stage 3</span>
                 <span className="text-[10px] opacity-80">(200m)</span>
               </button>
               <button
                 onClick={() => startGame(4)}
+                disabled={!isAdmin && !completedStages.includes(3)}
                 className={cn(
                   "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1",
-                  currentStage === 4 ? "bg-emerald-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700"
+                  currentStage === 4 ? "bg-emerald-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700",
+                  !isAdmin && !completedStages.includes(3) && "opacity-50 cursor-not-allowed"
                 )}
               >
-                <span>🌺 Stage 4</span>
+                <span>{!isAdmin && !completedStages.includes(3) ? '🔒' : '🌺'} Stage 4</span>
                 <span className="text-[10px] opacity-80">(220m)</span>
               </button>
             </div>
@@ -4251,16 +4801,27 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               <p className="text-[11px] font-semibold">
                 • <strong>Kuis Materi:</strong> {activeCourseObj?.title || 'Informatika'}<br/>
                 • <strong>Destinasi:</strong> {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan Pramuka' : currentStage === 3 ? 'Museum Wisata Sains' : 'Alun-Alun Kota Ciamis (Monumen Rafflesia)'}<br/>
-                • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat' : currentStage === 2 ? 'Telepon Jahat Bergigi' : currentStage === 3 ? 'Keyboard Terbakar Bergigi' : 'Kombinasi Monster Cyber'}
+                • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat & Boss Core Virus' : currentStage === 2 ? 'Telepon Jahat Bergigi' : currentStage === 3 ? 'Keyboard Terbakar Bergigi' : 'Kombinasi Monster Cyber'}
               </p>
             </div>
 
-            <button
-              onClick={() => startGame(currentStage)}
-              className="px-8 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base md:text-lg rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-            >
-              <Play size={20} /> Mulai Mainkan Stage {currentStage}!
-            </button>
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <button
+                onClick={() => startGame(currentStage)}
+                className="px-8 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base md:text-lg rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <Play size={20} /> Mulai Mainkan Stage {currentStage}!
+              </button>
+
+              {isAdmin && currentStage === 1 && (
+                <button
+                  onClick={() => startBossFightStage1()}
+                  className="px-6 py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-sm md:text-base rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                >
+                  🔥 Coba Bos (Admin)
+                </button>
+              )}
+            </div>
           </div>
         )}
 
