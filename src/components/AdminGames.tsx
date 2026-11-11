@@ -1563,8 +1563,11 @@ function generateStageEngine(stageNum: number) {
         direction: 'right' as 'left' | 'right',
         invulnerableFrames: 0,
         superPowerFrames: 0,
+        keyboardGunFrames: 0,
+        shootCooldown: 0,
         animFrame: 0,
       },
+      bullets: [] as Array<{ x: number; y: number; vx: number; w: number; h: number }>,
       cameraX: 0,
       worldWidth: 6100,
       platforms: [
@@ -1634,8 +1637,11 @@ function generateStageEngine(stageNum: number) {
         direction: 'right' as 'left' | 'right',
         invulnerableFrames: 0,
         superPowerFrames: 0,
+        keyboardGunFrames: 0,
+        shootCooldown: 0,
         animFrame: 0,
       },
+      bullets: [] as Array<{ x: number; y: number; vx: number; w: number; h: number }>,
       cameraX: 0,
       worldWidth: 6400,
       platforms: [
@@ -1704,8 +1710,11 @@ function generateStageEngine(stageNum: number) {
       direction: 'right' as 'left' | 'right',
       invulnerableFrames: 0,
       superPowerFrames: 0,
+      keyboardGunFrames: 0,
+      shootCooldown: 0,
       animFrame: 0,
     },
+    bullets: [] as Array<{ x: number; y: number; vx: number; w: number; h: number }>,
     cameraX: 0,
     worldWidth: 5600,
     platforms: [
@@ -2601,6 +2610,57 @@ function drawTempatWisata(ctx: CanvasRenderingContext2D, x: number, groundY: num
 
 function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boolean; currentStudent: any; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const poseImagesRef = useRef<(HTMLImageElement | null)[]>([]);
+
+  useEffect(() => {
+    const paths = [
+      '/assets/aistudio/1_1c6e6898.png',     // 0: pose depan
+      '/assets/aistudio/2_c5278813.png',     // 1: berlari 1
+      '/assets/aistudio/2_3_8597f138.png',   // 2: berlari 2 (baru)
+      '/assets/aistudio/3_0765a0d2.png',     // 3: berlari 3
+      '/assets/aistudio/4_57a699e0.png',     // 4: loncat 1
+      '/assets/aistudio/5_ca307ebd.png',     // 5: loncat 2
+      '/assets/aistudio/6_0e9e4f2c.png',     // 6: loncat 3
+      '/assets/aistudio/7_d58d30cc.png',     // 7: pose menembak
+    ];
+
+    paths.forEach((path, idx) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = path;
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || 400;
+          canvas.height = img.naturalHeight || 400;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+              if (r > 220 && g > 220 && b > 220) {
+                data[i + 3] = 0;
+              }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            const processedImg = new Image();
+            processedImg.src = canvas.toDataURL();
+            processedImg.onload = () => {
+              poseImagesRef.current[idx] = processedImg;
+            };
+          } else {
+            poseImagesRef.current[idx] = img;
+          }
+        } catch (e) {
+          poseImagesRef.current[idx] = img;
+        }
+      };
+    });
+  }, []);
 
   const [currentStage, setCurrentStage] = useState<1 | 2 | 3>(1);
   const [gameState, setGameState] = useState<'start' | 'playing' | 'win' | 'gameover'>('start');
@@ -2643,8 +2703,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
   const [quizFeedback, setQuizFeedback] = useState<{ msg: string; isCorrect: boolean } | null>(null);
   const [showRewardPicker, setShowRewardPicker] = useState(false);
   const [selectedRewardMsg, setSelectedRewardMsg] = useState<string | null>(null);
+  const [keyboardGunActive, setKeyboardGunActive] = useState(false);
 
-  const keysRef = useRef<{ left: boolean; right: boolean; jump: boolean }>({ left: false, right: false, jump: false });
+  const keysRef = useRef<{ left: boolean; right: boolean; jump: boolean; shoot: boolean }>({ left: false, right: false, jump: false, shoot: false });
 
   const engineRef = useRef(generateStageEngine(currentStage));
 
@@ -2664,6 +2725,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     setShowRewardPicker(false);
     setSelectedRewardMsg(null);
     setSuperPowerActive(false);
+    setKeyboardGunActive(false);
     setGameState('playing');
   };
 
@@ -2710,7 +2772,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     }
   };
 
-  const handlePickReward = (rewardType: 'heart' | 'power' | 'score') => {
+  const handlePickReward = (rewardType: 'heart' | 'power' | 'score' | 'keyboard_gun') => {
     if (rewardType === 'heart') {
       setLives(l => Math.min(5, l + 1));
       setSelectedRewardMsg("💖 Hati bertambah! (+1 Nyawa Berhasil Didapatkan)");
@@ -2718,6 +2780,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       engineRef.current.player.superPowerFrames = 450; // ~7.5 seconds of super power
       setSuperPowerActive(true);
       setSelectedRewardMsg("⚡ Super Kuat Diaktifkan! Kebal rintangan & musuh selama 7.5 detik!");
+    } else if (rewardType === 'keyboard_gun') {
+      engineRef.current.player.keyboardGunFrames = 900; // 15 seconds of keyboard gun (900 frames)
+      setKeyboardGunActive(true);
+      setSelectedRewardMsg("⌨️ Pistol Keyboard Diaktifkan! Tekan [Z] atau tombol Tembak untuk membasmi monster (15 Detik)!");
     } else if (rewardType === 'score') {
       setScore(s => s + 250);
       setSelectedRewardMsg("⭐ Bonus +250 Poin Ekstra Berhasil Ditambahkan!");
@@ -2741,12 +2807,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         }
         e.preventDefault();
       }
+      if (['KeyZ', 'KeyJ', 'KeyX'].includes(e.code)) {
+        keysRef.current.shoot = true;
+        e.preventDefault();
+      }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (['ArrowLeft', 'KeyA'].includes(e.code)) keysRef.current.left = false;
       if (['ArrowRight', 'KeyD'].includes(e.code)) keysRef.current.right = false;
       if (['ArrowUp', 'KeyW', 'Space'].includes(e.code)) keysRef.current.jump = false;
+      if (['KeyZ', 'KeyJ', 'KeyX'].includes(e.code)) keysRef.current.shoot = false;
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -2776,13 +2847,70 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       }
 
       const p = engine.player;
-      p.animFrame += 0.2;
+      p.animFrame += 0.08;
 
       // Update super power state
       if (p.superPowerFrames > 0) {
         p.superPowerFrames--;
         if (p.superPowerFrames === 0) {
           setSuperPowerActive(false);
+        }
+      }
+
+      // Update keyboard gun timer state (15 sec = 900 frames)
+      if (p.keyboardGunFrames > 0) {
+        p.keyboardGunFrames--;
+        if (p.keyboardGunFrames === 0) {
+          setKeyboardGunActive(false);
+        }
+      }
+
+      // Fire keyboard gun bullet when shoot key or button is active
+      if (keysRef.current.shoot && p.keyboardGunFrames > 0) {
+        if (!p.shootCooldown || p.shootCooldown <= 0) {
+          p.shootCooldown = 12; // Throttle rate of fire (~0.2s)
+          const bulletVx = p.direction === 'right' ? 14 : -14;
+          const bulletX = p.direction === 'right' ? p.x + p.width : p.x - 22;
+          const bulletY = p.y + 16;
+          engine.bullets.push({
+            x: bulletX,
+            y: bulletY,
+            vx: bulletVx,
+            w: 22,
+            h: 12
+          });
+        }
+      }
+
+      if (p.shootCooldown && p.shootCooldown > 0) {
+        p.shootCooldown--;
+      }
+
+      // Update bullets and handle collision with monsters
+      for (let bIdx = engine.bullets.length - 1; bIdx >= 0; bIdx--) {
+        const b = engine.bullets[bIdx];
+        b.x += b.vx;
+
+        // Despawn offscreen bullets
+        if (b.x < engine.cameraX - 100 || b.x > engine.cameraX + 900) {
+          engine.bullets.splice(bIdx, 1);
+          continue;
+        }
+
+        // Bullet vs Obstacle / Monster Collision
+        for (const obs of engine.obstacles) {
+          if (obs.destroyed) continue;
+          if (
+            b.x + b.w > obs.x &&
+            b.x < obs.x + obs.w &&
+            b.y + b.h > obs.y &&
+            b.y < obs.y + obs.h
+          ) {
+            obs.destroyed = true;
+            setScore(s => s + 150);
+            engine.bullets.splice(bIdx, 1);
+            break;
+          }
         }
       }
 
@@ -3446,120 +3574,99 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         }
       }
 
-      // Draw Player Outfit per Stage
+      // Render Keyboard Gun Bullets
+      for (const b of engine.bullets) {
+        const bx = b.x - camX;
+        if (bx < -30 || bx > canvas.width + 30) continue;
+        ctx.save();
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(bx, b.y, b.w, b.h);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(bx, b.y, b.w, b.h);
+        ctx.fillStyle = '#fde047';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.fillText('⌨️', bx + 2, b.y + 10);
+        ctx.restore();
+      }
+
+      // Draw Character from Attached Image Asset Sprite Sheet
       const px = p.x - camX;
       const py = p.y;
+
+      // Draw Mini Keyboard Icon Indicator behind Character when Keyboard Gun is Active (15s)
+      if (p.keyboardGunFrames > 0) {
+        ctx.save();
+        const iconX = p.direction === 'right' ? px - 18 : px + p.width + 4;
+        const iconY = py + 10 + Math.sin(p.animFrame * 3) * 3;
+        const secLeft = Math.ceil(p.keyboardGunFrames / 60);
+
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(iconX - 2, iconY - 2, 22, 18);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(iconX - 2, iconY - 2, 22, 18);
+
+        ctx.font = '10px sans-serif';
+        ctx.fillText('⌨️', iconX + 1, iconY + 11);
+
+        ctx.fillStyle = '#fde047';
+        ctx.font = 'bold 8px monospace';
+        ctx.fillText(`${secLeft}s`, iconX + 2, iconY - 4);
+        ctx.restore();
+      }
 
       if (p.invulnerableFrames % 6 < 3) {
         ctx.save();
 
         if (p.superPowerFrames > 0) {
           ctx.shadowColor = '#facc15';
-          ctx.shadowBlur = 20;
-          ctx.fillStyle = 'rgba(250, 204, 21, 0.4)';
+          ctx.shadowBlur = 25;
+          ctx.fillStyle = 'rgba(250, 204, 21, 0.45)';
           ctx.beginPath();
-          ctx.arc(px + p.width / 2, py + p.height / 2, 35, 0, Math.PI * 2);
+          ctx.arc(px + p.width / 2, py + p.height / 2, 40, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        if (currentStage === 2) {
-          // Outfit Stage 2: Seragam Pramuka Cokelat
-          // Ransel Pramuka Cokelat
-          ctx.fillStyle = '#78350f';
-          ctx.fillRect(p.direction === 'right' ? px - 6 : px + p.width - 2, py + 12, 10, 20);
+        const isMoving = Math.abs(p.vx) > 0.5;
+        const isJumping = !p.isGrounded;
+        const isShootingWithKeyboard = p.keyboardGunFrames > 0 && (keysRef.current.shoot || (p.shootCooldown !== undefined && p.shootCooldown > 0));
 
-          // Baju Cokelat Muda Pramuka
-          ctx.fillStyle = '#d97706';
-          ctx.fillRect(px + 4, py + 12, p.width - 8, 18);
+        let activeImg: HTMLImageElement | null = null;
 
-          // Kacu / Setangan Leher Merah Putih
-          ctx.fillStyle = '#dc2626';
-          ctx.fillRect(px + p.width / 2 - 3, py + 13, 6, 12);
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(px + p.width / 2 - 1, py + 14, 2, 10);
-
-          // Celana Cokelat Tua
-          ctx.fillStyle = '#451a03';
-          ctx.fillRect(px + 4, py + 30, p.width - 8, 10);
-
-          // Kepala
-          ctx.fillStyle = '#fde047';
-          ctx.beginPath();
-          ctx.arc(px + p.width / 2, py + 8, 10, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Baret / Topi Pramuka Cokelat
-          ctx.fillStyle = '#78350f';
-          ctx.beginPath();
-          ctx.arc(px + p.width / 2, py + 4, 11, Math.PI, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#f59e0b'; // Lencana Baret
-          ctx.fillRect(px + p.width / 2 - 2, py + 2, 4, 4);
-
-        } else if (currentStage === 3) {
-          // Outfit Stage 3: Study Tour Almamater Navy Jacket
-          ctx.fillStyle = '#0369a1';
-          ctx.fillRect(p.direction === 'right' ? px - 6 : px + p.width - 2, py + 12, 10, 20);
-
-          // Jaket Almamater Navy
-          ctx.fillStyle = '#0284c7';
-          ctx.fillRect(px + 4, py + 12, p.width - 8, 18);
-
-          // ID Card Badge Kuning di Leher
-          ctx.fillStyle = '#facc15';
-          ctx.fillRect(px + p.width / 2 - 3, py + 16, 6, 8);
-
-          // Celana Slate
-          ctx.fillStyle = '#334155';
-          ctx.fillRect(px + 4, py + 30, p.width - 8, 10);
-
-          // Kepala
-          ctx.fillStyle = '#fde047';
-          ctx.beginPath();
-          ctx.arc(px + p.width / 2, py + 8, 10, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Rambut Hitam Rapi
-          ctx.fillStyle = '#0f172a';
-          ctx.beginPath();
-          ctx.arc(px + p.width / 2, py + 5, 10, Math.PI, Math.PI * 2);
-          ctx.fill();
-
+        if ((isShootingWithKeyboard || p.superPowerFrames > 0) && poseImagesRef.current[7]) {
+          activeImg = poseImagesRef.current[7]; // Pose menembak (index 7) hanya saat menembak & punya item
+        } else if (isJumping) {
+          // Loncat 3 pose: index 4, 5, 6
+          const jumpPoseIdx = p.vy < 0 ? 4 : p.vy > 2 ? 6 : 5;
+          activeImg = poseImagesRef.current[jumpPoseIdx] || poseImagesRef.current[4] || poseImagesRef.current[0];
+        } else if (isMoving) {
+          // Berlari 3 pose: index 1, 2, 3
+          const runPoseIdx = Math.floor(p.animFrame * 3) % 3 + 1;
+          activeImg = poseImagesRef.current[runPoseIdx] || poseImagesRef.current[1] || poseImagesRef.current[0];
         } else {
-          // Outfit Stage 1: Putih-Biru SMP
-          ctx.fillStyle = '#dc2626';
-          ctx.fillRect(p.direction === 'right' ? px - 6 : px + p.width - 2, py + 12, 10, 20);
-
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(px + 4, py + 12, p.width - 8, 18);
-
-          ctx.fillStyle = '#dc2626';
-          ctx.fillRect(px + p.width / 2 - 2, py + 14, 4, 10);
-
-          ctx.fillStyle = '#1e3a8a';
-          ctx.fillRect(px + 4, py + 30, p.width - 8, 10);
-
-          ctx.fillStyle = '#fde047';
-          ctx.beginPath();
-          ctx.arc(px + p.width / 2, py + 8, 10, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#0f172a';
-          ctx.beginPath();
-          ctx.arc(px + p.width / 2, py + 5, 10, Math.PI, Math.PI * 2);
-          ctx.fill();
+          // Pose depan: index 0
+          activeImg = poseImagesRef.current[0];
         }
 
-        // Eyes
-        ctx.fillStyle = '#0f172a';
-        const eyeOffsetX = p.direction === 'right' ? 3 : -3;
-        ctx.fillRect(px + p.width / 2 + eyeOffsetX, py + 7, 3, 3);
-
-        // Legs
-        ctx.fillStyle = currentStage === 2 ? '#451a03' : currentStage === 3 ? '#334155' : '#1e3a8a';
-        const legSwing = Math.sin(p.animFrame * 2) * 6;
-        ctx.fillRect(px + 6 + legSwing, py + 40, 6, 8);
-        ctx.fillRect(px + p.width - 12 - legSwing, py + 40, 6, 8);
+        if (activeImg && activeImg.complete) {
+          ctx.save();
+          if (p.direction === 'left') {
+            ctx.scale(-1, 1);
+            ctx.drawImage(activeImg, 0, 0, activeImg.naturalWidth || 400, activeImg.naturalHeight || 400, -(px + p.width + 16), py - 16, p.width + 32, p.height + 32);
+          } else {
+            ctx.drawImage(activeImg, 0, 0, activeImg.naturalWidth || 400, activeImg.naturalHeight || 400, px - 16, py - 16, p.width + 32, p.height + 32);
+          }
+          ctx.restore();
+        } else {
+          // Fallback
+          ctx.fillStyle = '#3b82f6';
+          ctx.fillRect(px, py, p.width, p.height);
+        }
 
         ctx.restore();
       }
@@ -3597,6 +3704,12 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           {superPowerActive && (
             <div className="px-2.5 py-1 bg-amber-400 text-amber-950 text-[10px] font-black rounded-lg animate-pulse flex items-center gap-1">
               ⚡ SUPER KUAT (INVINCIBLE)
+            </div>
+          )}
+
+          {keyboardGunActive && (
+            <div className="px-2.5 py-1 bg-sky-500 text-slate-950 text-[10px] font-black rounded-lg animate-pulse flex items-center gap-1 shadow-sm">
+              ⌨️ PISTOL KEYBOARD ({Math.ceil((engineRef.current?.player?.keyboardGunFrames || 0) / 60)}s) [Z]
             </div>
           )}
         </div>
@@ -3721,7 +3834,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                     <p className="text-xs font-black text-amber-300 tracking-wide uppercase">
                       🎁 PILIH 1 HADIAH SPESIAL KAMU:
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                       {/* Reward Item 1: Tambah 1 Hati */}
                       <button
                         onClick={() => handlePickReward('heart')}
@@ -3731,10 +3844,22 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                           ❤️
                         </div>
                         <span className="font-black text-xs text-white">+1 Hati</span>
-                        <span className="text-[10px] text-slate-300 font-medium leading-tight">Tambah nyawa karakter</span>
+                        <span className="text-[10px] text-slate-300 font-medium leading-tight">Tambah nyawa</span>
                       </button>
 
-                      {/* Reward Item 2: Super Kuat */}
+                      {/* Reward Item 2: Pistol Keyboard */}
+                      <button
+                        onClick={() => handlePickReward('keyboard_gun')}
+                        className="p-3 bg-gradient-to-b from-slate-800 to-sky-950/80 hover:to-sky-900 border-2 border-sky-500/50 hover:border-sky-400 rounded-2xl flex flex-col items-center text-center space-y-1.5 transition-all hover:scale-105 active:scale-95 shadow-md group"
+                      >
+                        <div className="w-10 h-10 bg-sky-500/20 text-sky-400 border border-sky-500/40 rounded-xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                          ⌨️
+                        </div>
+                        <span className="font-black text-xs text-white">Pistol Keyboard</span>
+                        <span className="text-[10px] text-slate-300 font-medium leading-tight">Tembak (15 dtk)</span>
+                      </button>
+
+                      {/* Reward Item 3: Super Kuat */}
                       <button
                         onClick={() => handlePickReward('power')}
                         className="p-3 bg-gradient-to-b from-slate-800 to-amber-950/80 hover:to-amber-900 border-2 border-amber-500/50 hover:border-amber-400 rounded-2xl flex flex-col items-center text-center space-y-1.5 transition-all hover:scale-105 active:scale-95 shadow-md group"
@@ -3743,10 +3868,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                           ⚡
                         </div>
                         <span className="font-black text-xs text-white">Super Kuat</span>
-                        <span className="text-[10px] text-slate-300 font-medium leading-tight">Kebal rintangan 7.5 dtk</span>
+                        <span className="text-[10px] text-slate-300 font-medium leading-tight">Kebal rintangan</span>
                       </button>
 
-                      {/* Reward Item 3: Bonus Poin */}
+                      {/* Reward Item 4: Bonus Poin */}
                       <button
                         onClick={() => handlePickReward('score')}
                         className="p-3 bg-gradient-to-b from-slate-800 to-emerald-950/80 hover:to-emerald-900 border-2 border-emerald-500/50 hover:border-emerald-400 rounded-2xl flex flex-col items-center text-center space-y-1.5 transition-all hover:scale-105 active:scale-95 shadow-md group"
@@ -3755,7 +3880,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                           ⭐
                         </div>
                         <span className="font-black text-xs text-white">+250 Poin</span>
-                        <span className="text-[10px] text-slate-300 font-medium leading-tight">Bonus poin ekstra</span>
+                        <span className="text-[10px] text-slate-300 font-medium leading-tight">Bonus poin</span>
                       </button>
                     </div>
                   </>
@@ -3878,10 +4003,24 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
         <div className="text-center hidden sm:block">
           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">Status Kontrol</span>
-          <span className="text-xs font-semibold text-emerald-400">Panah Kanan / Kiri + Panah Atas</span>
+          <span className="text-xs font-semibold text-emerald-400">
+            {keyboardGunActive ? "Panah + Lompat + Tekan [Z] untuk Tembak" : "Panah Kanan / Kiri + Panah Atas / Space"}
+          </span>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2">
+          {keyboardGunActive && (
+            <button
+              onMouseDown={() => (keysRef.current.shoot = true)}
+              onMouseUp={() => (keysRef.current.shoot = false)}
+              onTouchStart={() => (keysRef.current.shoot = true)}
+              onTouchEnd={() => (keysRef.current.shoot = false)}
+              className="w-24 h-14 bg-sky-600 hover:bg-sky-500 active:bg-sky-400 text-white font-black text-xs rounded-2xl border border-sky-400 flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform select-none animate-pulse"
+            >
+              TEMBAK ⌨️
+            </button>
+          )}
+
           <button
             onMouseDown={() => (keysRef.current.jump = true)}
             onMouseUp={() => (keysRef.current.jump = false)}
