@@ -283,6 +283,7 @@ export default function App() {
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [studentTab, setStudentTab] = useState<'materi' | 'games'>('materi');
   const [messageTargetStudent, setMessageTargetStudent] = useState<any>(null);
   const [isSendMessageModalOpen, setIsSendMessageModalOpen] = useState(false);
   const [assessmentNav, setAssessmentNav] = useState<{ course: string | null; kelas: string | null }>({
@@ -1269,162 +1270,196 @@ export default function App() {
             </div>
           </div>
 
-          <section className="pb-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-200 border border-slate-300 shadow-sm rounded-xl flex items-center justify-center text-brand">
-                  <LayoutGrid size={20} />
-                </div>
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Pilih Materi</h2>
-                  <p className="text-slate-600 font-bold text-sm md:text-base mt-1">Lanjutkan progres belajar Anda</p>
-                </div>
-              </div>
-              <div className="bg-slate-200 border border-slate-300 px-5 py-2.5 rounded-2xl text-xs md:text-sm font-black text-slate-700 hidden md:block tracking-widest uppercase">
-                {activeCoursesList.length} Materi Aktif
-              </div>
-            </div>
+          {/* Student Tab Navigation Header */}
+          <div className="flex items-center gap-3 p-2 bg-slate-100 rounded-3xl border border-slate-300 shadow-sm mb-6">
+            <button
+              onClick={() => setStudentTab('materi')}
+              className={cn(
+                "flex-1 py-3 px-5 rounded-2xl font-black text-sm md:text-base transition-all flex items-center justify-center gap-2.5 shadow-xs cursor-pointer",
+                studentTab === 'materi'
+                  ? "bg-brand text-white shadow-md shadow-brand/20 scale-[1.01]"
+                  : "bg-slate-200/80 text-slate-700 hover:bg-slate-200"
+              )}
+            >
+              <BookOpen size={20} />
+              <span>📚 Materi Pembelajaran</span>
+            </button>
+            <button
+              onClick={() => setStudentTab('games')}
+              className={cn(
+                "flex-1 py-3 px-5 rounded-2xl font-black text-sm md:text-base transition-all flex items-center justify-center gap-2.5 shadow-xs cursor-pointer",
+                studentTab === 'games'
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20 scale-[1.01]"
+                  : "bg-slate-200/80 text-slate-700 hover:bg-slate-200"
+              )}
+            >
+              <Gamepad2 size={20} />
+              <span>🎮 Game Edukasi / Permainan</span>
+            </button>
+          </div>
 
-            {activeCoursesList.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-                {activeCoursesList.map((course, index) => {
-                  const hasCompleted = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === course.id);
-                  const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
-                  const colors = [
-                    { bg: "bg-brand", border: "border-blue-700", icon: "text-brand" },
-                    { bg: "bg-brand", border: "border-blue-700", icon: "text-brand" },
-                    { bg: "bg-blue-600", border: "border-brand", icon: "text-blue-600" },
-                    { bg: "bg-brand", border: "border-indigo-700", icon: "text-brand" },
-                    { bg: "bg-sky-600", border: "border-sky-700", icon: "text-sky-600" },
-                    { bg: "bg-blue-700", border: "border-blue-800", icon: "text-blue-700" }
-                  ];
-                  const color = colors[index % colors.length];
-
-                  return (
-                  <motion.div 
-                    whileHover={{ y: -6 }}
-                    whileTap={{ scale: 0.98 }}
-                    key={course.id} 
-                    className={cn("group p-1 rounded-[2rem] border shadow-sm transition-all flex flex-col cursor-pointer",
-                      hasCompleted ? "bg-slate-200 border-slate-300 opacity-90" : cn(color.bg, color.border, "shadow-xl shadow-black/5")
-                    )}
-                    onClick={() => { 
-                      setActiveCourseId(course.id);
-                      setCurrentPage('course_confirm');
-                    }}
-                  >
-                    <div className={cn("flex-1 rounded-[1.8rem] p-6 transition-colors flex flex-col h-full",
-                      hasCompleted ? "bg-slate-100" : "bg-white/10 group-hover:bg-white/20"
-                    )}>
-                      <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-md mb-4 transition-transform", hasCompleted ? "bg-slate-200 border border-slate-300 shadow-slate-300/30" : "bg-slate-100 shadow-black/10 group-hover:scale-105")}>
-                        <BookOpen size={24} className={hasCompleted ? "text-emerald-600" : color.icon} />
-                      </div>
-                      
-                      <h3 className={cn("font-black text-lg md:text-xl leading-tight mb-2 transition-colors", hasCompleted ? "text-slate-900" : "text-white")}>{course.title}</h3>
-                      <div className="flex items-center gap-2 mb-6">
-                        <span className={cn("w-2 h-2 rounded-full", hasCompleted ? "bg-emerald-500" : "bg-yellow-400 animate-pulse")}></span>
-                        <p className={cn("text-xs md:text-sm font-black uppercase tracking-widest", hasCompleted ? "text-slate-600" : "text-white/90")}>{course.level}</p>
-                      </div>
-
-                      <div className={cn("mt-auto flex items-center justify-between gap-2 font-black text-sm uppercase tracking-widest pt-5 border-t",
-                        hasCompleted ? "border-slate-300" : "border-white/20"
-                      )}>
-                        {hasCompleted ? (
-                           <div className="flex flex-col gap-2 w-full">
-                              <span className="text-emerald-700 flex items-center gap-2 font-black"><CheckCircle size={18}/> SELESAI</span>
-                              <span className={cn("px-4 py-1.5 rounded-xl text-xs md:text-sm font-black border", studentAssessment?.score >= 80 ? "text-emerald-800 bg-emerald-100 border-emerald-200" : studentAssessment?.score >= 60 ? "text-amber-800 bg-amber-100 border-amber-200" : "text-rose-800 bg-rose-100 border-rose-200")}>SKOR: {studentAssessment?.score}</span>
-                           </div>
-                        ) : (
-                           <span className="text-white flex items-center gap-2 group-hover:gap-3 transition-all">MULAI BELAJAR <ArrowRight size={18} className="text-yellow-400 group-hover:translate-x-1 transition-transform" /></span>
-                        )}
-                      </div>
+          {studentTab === 'games' ? (
+            <AdminGames isAdmin={false} currentStudent={currentStudent} studentsList={students} />
+          ) : (
+            <>
+              <section className="pb-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-200 border border-slate-300 shadow-sm rounded-xl flex items-center justify-center text-brand">
+                      <LayoutGrid size={20} />
                     </div>
-                  </motion.div>
-                )})}
-              </div>
-            ) : (
-              <div className="bg-slate-100 py-20 rounded-[2rem] border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-8">
-                <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center text-slate-400 mb-6">
-                  <Lock size={48} />
-                </div>
-                <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">Belum Ada Materi Aktif</h3>
-                <p className="text-slate-600 font-semibold max-w-sm">Materi akan muncul di sini setelah administrator mengaktifkannya untuk Anda.</p>
-              </div>
-            )}
-          </section>
-
-          <section>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-14 h-14 bg-blue-100 border border-blue-200 rounded-2xl flex items-center justify-center text-brand shadow-sm">
-                <TrendingUp size={28} />
-              </div>
-              <h2 className="text-xl md:text-3xl font-black text-slate-900 uppercase tracking-tight">Riwayat Skor</h2>
-            </div>
-
-            {/* Desktop Table */}
-            <div className="hidden md:block bg-slate-100 border border-slate-300 rounded-[2.5rem] overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left min-w-[600px] border-collapse">
-                  <thead className="bg-slate-200 border-b-2 border-slate-300">
-                    <tr className="text-sm font-black text-slate-700 uppercase tracking-widest text-left">
-                      <th className="px-8 py-6">Materi Pembelajaran</th>
-                      <th className="px-8 py-6 text-center">Hasil Skor</th>
-                      <th className="px-8 py-6 text-right">Tanggal Selesai</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {studentAssessments.length > 0 ? [...studentAssessments].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map((a) => (
-                      <tr key={a.id} className="hover:bg-slate-200/80 transition-colors">
-                        <td className="px-8 py-6 font-black text-slate-900 text-base md:text-lg">{a.courseTitle}</td>
-                        <td className="px-8 py-6 text-center">
-                          <span className={cn(
-                            "px-5 py-2 rounded-2xl font-black text-base md:text-lg border shadow-sm inline-block min-w-[70px]",
-                            a.score >= 80 ? "bg-emerald-100 text-emerald-800 border-emerald-200" : a.score >= 60 ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-rose-100 text-rose-800 border-rose-200"
-                          )}>
-                            {a.score}
-                          </span>
-                        </td>
-                        <td className="px-8 py-6 text-right text-slate-600 text-sm md:text-base font-bold">
-                          {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </td>
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={3} className="px-8 py-20 text-center text-slate-500 font-bold text-lg italic">Belum ada riwayat pengerjaan materi.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Mobile Cards */}
-            <div className="md:hidden space-y-4">
-              {studentAssessments.length > 0 ? [...studentAssessments].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map((a) => (
-                <div key={a.id} className="bg-slate-100 p-5 rounded-3xl border border-slate-300 shadow-sm flex flex-col gap-4">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <h3 className="font-black text-slate-900 text-base leading-snug mb-1">{a.courseTitle}</h3>
-                      <div className="flex items-center gap-1.5 text-slate-500 font-bold text-[10px] uppercase tracking-wider">
-                        <Calendar size={12} />
-                        {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </div>
-                    </div>
-                    <div className={cn(
-                      "px-4 py-2 rounded-2xl font-black text-lg border shadow-sm shrink-0",
-                      a.score >= 80 ? "bg-emerald-100 text-emerald-800 border-emerald-200" : a.score >= 60 ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-rose-100 text-rose-800 border-rose-200"
-                    )}>
-                      {a.score}
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Pilih Materi</h2>
+                      <p className="text-slate-600 font-bold text-sm md:text-base mt-1">Lanjutkan progres belajar Anda</p>
                     </div>
                   </div>
+                  <div className="bg-slate-200 border border-slate-300 px-5 py-2.5 rounded-2xl text-xs md:text-sm font-black text-slate-700 hidden md:block tracking-widest uppercase">
+                    {activeCoursesList.length} Materi Aktif
+                  </div>
                 </div>
-              )) : (
-                <div className="bg-slate-100 py-12 rounded-3xl border border-dashed border-slate-300 text-center text-slate-500 font-bold text-sm italic">
-                  Belum ada riwayat pengerjaan materi.
+
+                {activeCoursesList.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+                    {activeCoursesList.map((course, index) => {
+                      const hasCompleted = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === course.id);
+                      const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
+                      const colors = [
+                        { bg: "bg-brand", border: "border-blue-700", icon: "text-brand" },
+                        { bg: "bg-brand", border: "border-blue-700", icon: "text-brand" },
+                        { bg: "bg-blue-600", border: "border-brand", icon: "text-blue-600" },
+                        { bg: "bg-brand", border: "border-indigo-700", icon: "text-brand" },
+                        { bg: "bg-sky-600", border: "border-sky-700", icon: "text-sky-600" },
+                        { bg: "bg-blue-700", border: "border-blue-800", icon: "text-blue-700" }
+                      ];
+                      const color = colors[index % colors.length];
+
+                      return (
+                      <motion.div 
+                        whileHover={{ y: -6 }}
+                        whileTap={{ scale: 0.98 }}
+                        key={course.id} 
+                        className={cn("group p-1 rounded-[2rem] border shadow-sm transition-all flex flex-col cursor-pointer",
+                          hasCompleted ? "bg-slate-200 border-slate-300 opacity-90" : cn(color.bg, color.border, "shadow-xl shadow-black/5")
+                        )}
+                        onClick={() => { 
+                          setActiveCourseId(course.id);
+                          setCurrentPage('course_confirm');
+                        }}
+                      >
+                        <div className={cn("flex-1 rounded-[1.8rem] p-6 transition-colors flex flex-col h-full",
+                          hasCompleted ? "bg-slate-100" : "bg-white/10 group-hover:bg-white/20"
+                        )}>
+                          <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-md mb-4 transition-transform", hasCompleted ? "bg-slate-200 border border-slate-300 shadow-slate-300/30" : "bg-slate-100 shadow-black/10 group-hover:scale-105")}>
+                            <BookOpen size={24} className={hasCompleted ? "text-emerald-600" : color.icon} />
+                          </div>
+                          
+                          <h3 className={cn("font-black text-lg md:text-xl leading-tight mb-2 transition-colors", hasCompleted ? "text-slate-900" : "text-white")}>{course.title}</h3>
+                          <div className="flex items-center gap-2 mb-6">
+                            <span className={cn("w-2 h-2 rounded-full", hasCompleted ? "bg-emerald-500" : "bg-yellow-400 animate-pulse")}></span>
+                            <p className={cn("text-xs md:text-sm font-black uppercase tracking-widest", hasCompleted ? "text-slate-600" : "text-white/90")}>{course.level}</p>
+                          </div>
+
+                          <div className={cn("mt-auto flex items-center justify-between gap-2 font-black text-sm uppercase tracking-widest pt-5 border-t",
+                            hasCompleted ? "border-slate-300" : "border-white/20"
+                          )}>
+                            {hasCompleted ? (
+                               <div className="flex flex-col gap-2 w-full">
+                                  <span className="text-emerald-700 flex items-center gap-2 font-black"><CheckCircle size={18}/> SELESAI</span>
+                                  <span className={cn("px-4 py-1.5 rounded-xl text-xs md:text-sm font-black border", studentAssessment?.score >= 80 ? "text-emerald-800 bg-emerald-100 border-emerald-200" : studentAssessment?.score >= 60 ? "text-amber-800 bg-amber-100 border-amber-200" : "text-rose-800 bg-rose-100 border-rose-200")}>SKOR: {studentAssessment?.score}</span>
+                               </div>
+                            ) : (
+                               <span className="text-white flex items-center gap-2 group-hover:gap-3 transition-all">MULAI BELAJAR <ArrowRight size={18} className="text-yellow-400 group-hover:translate-x-1 transition-transform" /></span>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )})}
+                  </div>
+                ) : (
+                  <div className="bg-slate-100 py-20 rounded-[2rem] border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-8">
+                    <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center text-slate-400 mb-6">
+                      <Lock size={48} />
+                    </div>
+                    <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">Belum Ada Materi Aktif</h3>
+                    <p className="text-slate-600 font-semibold max-w-sm">Materi akan muncul di sini setelah administrator mengaktifkannya untuk Anda.</p>
+                  </div>
+                )}
+              </section>
+
+              <section>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-14 h-14 bg-blue-100 border border-blue-200 rounded-2xl flex items-center justify-center text-brand shadow-sm">
+                    <TrendingUp size={28} />
+                  </div>
+                  <h2 className="text-xl md:text-3xl font-black text-slate-900 uppercase tracking-tight">Riwayat Skor</h2>
                 </div>
-              )}
-            </div>
-          </section>
+
+                {/* Desktop Table */}
+                <div className="hidden md:block bg-slate-100 border border-slate-300 rounded-[2.5rem] overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[600px] border-collapse">
+                      <thead className="bg-slate-200 border-b-2 border-slate-300">
+                        <tr className="text-sm font-black text-slate-700 uppercase tracking-widest text-left">
+                          <th className="px-8 py-6">Materi Pembelajaran</th>
+                          <th className="px-8 py-6 text-center">Hasil Skor</th>
+                          <th className="px-8 py-6 text-right">Tanggal Selesai</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {studentAssessments.length > 0 ? [...studentAssessments].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map((a) => (
+                          <tr key={a.id} className="hover:bg-slate-200/80 transition-colors">
+                            <td className="px-8 py-6 font-black text-slate-900 text-base md:text-lg">{a.courseTitle}</td>
+                            <td className="px-8 py-6 text-center">
+                              <span className={cn(
+                                "px-5 py-2 rounded-2xl font-black text-base md:text-lg border shadow-sm inline-block min-w-[70px]",
+                                a.score >= 80 ? "bg-emerald-100 text-emerald-800 border-emerald-200" : a.score >= 60 ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-rose-100 text-rose-800 border-rose-200"
+                              )}>
+                                {a.score}
+                              </span>
+                            </td>
+                            <td className="px-8 py-6 text-right text-slate-600 text-sm md:text-base font-bold">
+                              {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </td>
+                          </tr>
+                        )) : (
+                          <tr>
+                            <td colSpan={3} className="px-8 py-20 text-center text-slate-500 font-bold text-lg italic">Belum ada riwayat pengerjaan materi.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="md:hidden space-y-4">
+                  {studentAssessments.length > 0 ? [...studentAssessments].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map((a) => (
+                    <div key={a.id} className="bg-slate-100 p-5 rounded-3xl border border-slate-300 shadow-sm flex flex-col gap-4">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-black text-slate-900 text-base leading-snug mb-1">{a.courseTitle}</h3>
+                          <div className="flex items-center gap-1.5 text-slate-500 font-bold text-[10px] uppercase tracking-wider">
+                            <Calendar size={12} />
+                            {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </div>
+                        </div>
+                        <div className={cn(
+                          "px-4 py-2 rounded-2xl font-black text-lg border shadow-sm shrink-0",
+                          a.score >= 80 ? "bg-emerald-100 text-emerald-800 border-emerald-200" : a.score >= 60 ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-rose-100 text-rose-800 border-rose-200"
+                        )}>
+                          {a.score}
+                        </div>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="bg-slate-100 py-12 rounded-3xl border border-dashed border-slate-300 text-center text-slate-500 font-bold text-sm italic">
+                      Belum ada riwayat pengerjaan materi.
+                    </div>
+                  )}
+                </div>
+              </section>
+            </>
+          )}
         </main>
       </div>
     );
