@@ -76,6 +76,7 @@ import { twMerge } from 'tailwind-merge';
 import { db } from './firebase';
 import { collection, addDoc, doc, deleteDoc, updateDoc, setDoc, query, where, onSnapshot, increment, serverTimestamp, arrayUnion } from 'firebase/firestore';                
 import Login from './components/Login';
+import AdminGames from './components/AdminGames';
 
 enum OperationType {
   CREATE = 'create',
@@ -207,7 +208,7 @@ export default function App() {
     }
   }, [currentStudent]);
   const [password, setPassword] = useState('');
-  const [adminTab, setAdminTab] = useState<'dashboard' | 'student_management' | 'materials' | 'history' | 'assessments' | 'settings' | 'announcements'>('dashboard');
+  const [adminTab, setAdminTab] = useState<'dashboard' | 'student_management' | 'materials' | 'history' | 'assessments' | 'settings' | 'announcements' | 'games'>('dashboard');
   const [studentSubTab, setStudentSubTab] = useState<'students' | 'classes'>('classes');
   const [students, setStudents] = useState<{id: string, nis: string, nama: string, jenisKelamin: string, kelas: string}[]>([]);
   const [materialConfigs, setMaterialConfigs] = useState<Record<string, {
@@ -1552,6 +1553,7 @@ export default function App() {
       { id: 'student_management', label: 'Siswa & Kelas', icon: Users, color: 'bg-brand/10 text-brand' },
       { id: 'materials', label: 'Kelola Materi', icon: BookOpen, color: 'bg-brand/10 text-brand' },
       { id: 'assessments', label: 'Hasil Asesmen', icon: TrendingUp, color: 'bg-brand/10 text-brand' },
+      { id: 'games', label: 'Kelola Game', icon: Gamepad2, color: 'bg-brand/10 text-brand' },
       { id: 'history', label: 'Riwayat Akses', icon: GitBranch, color: 'bg-brand/10 text-brand' },
       { id: 'announcements', label: 'Pengumuman', icon: Megaphone, color: 'bg-brand/10 text-brand' },
       { id: 'settings', label: 'Pengaturan', icon: Settings, color: 'bg-brand/10 text-brand' },
@@ -1668,6 +1670,7 @@ export default function App() {
                 <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight lowercase first-letter:uppercase">
                   {adminTab === 'history' ? 'Aktivitas' : adminTab === 'student_management' ? 'Siswa & Kelas' : 
                    adminTab === 'materials' ? 'Kelola Materi' : adminTab === 'assessments' ? 'Hasil Asesmen' :
+                   adminTab === 'games' ? 'Kelola Permainan / Game Edukasi' :
                    adminTab === 'announcements' ? 'Pengumuman' : adminTab === 'settings' ? 'Pengaturan' : adminTab}
                 </h1>
                 <p className="text-slate-400 font-bold text-sm tracking-tight capitalize">
@@ -2751,7 +2754,7 @@ export default function App() {
             {adminTab === 'materials' && (
               <>
                 <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-slate-900">Pembelajaran Informatika</h2>
+                  <h2 className="text-2xl font-bold text-slate-900">Ruang Informatika</h2>
                   <p className="text-slate-600">Terbitkan materi agar dapat diakses oleh siswa di dashboard mereka.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -3626,6 +3629,10 @@ export default function App() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {adminTab === 'games' && (
+              <AdminGames isAdmin={true} studentsList={students} />
             )}
           </div>
 

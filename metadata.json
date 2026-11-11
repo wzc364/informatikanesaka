@@ -1,6 +1,6 @@
 {
-  "name": "Pembelajaran Informatika v2",
-  "description": "Aplikasi interaktif untuk mempelajari dasar-dasar pemrograman PHP mulai dari sintaks hingga koneksi database.",
+  "name": "Ruang Informatika",
+  "description": "Aplikasi media pembelajaran interaktif Informatika SMP (Berpikir Komputasional, Algoritma, Dekomposisi & Pengenalan Pola).",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

@@ -120,7 +120,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
             <div className="absolute top-0 left-0 w-full h-1.5 bg-brand" />
           </motion.div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">SMPN 1 Kawali</h1>
-          <p className="text-slate-600 font-medium">Informatika • Pembelajaran Interaktif</p>
+          <p className="text-slate-600 font-medium">Ruang Informatika • Pembelajaran Interaktif</p>
         </div>
 
         <motion.div 
