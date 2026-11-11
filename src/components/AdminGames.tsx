@@ -52,23 +52,32 @@ export interface GameItem {
 function GameCardBanner({ gameId }: { gameId: string }) {
   if (gameId === 'petualangan-smp') {
     return (
-      <div className="h-32 w-full rounded-2xl overflow-hidden bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-900 relative p-4 flex items-center justify-between text-white shadow-inner mb-4">
-        <div className="space-y-1.5 z-10">
-          <span className="text-[10px] font-black uppercase tracking-widest bg-amber-400 text-amber-950 px-2.5 py-0.5 rounded-full border border-amber-300 shadow-xs">
-            🏃 2D Platformer SMP
-          </span>
-          <h4 className="text-lg font-black tracking-tight drop-shadow-sm">Petualangan Ke Sekolah</h4>
-          <div className="flex items-center gap-1.5 text-[11px] font-bold text-sky-100 flex-wrap">
-            <span className="bg-emerald-950/70 border border-emerald-500/50 px-2 py-0.5 rounded-md">🟩 RAM (+100)</span>
-            <span className="bg-sky-950/70 border border-sky-400/50 px-2 py-0.5 rounded-md">💻 Laptop (+50)</span>
-            <span className="bg-amber-950/70 border border-amber-400/50 px-2 py-0.5 rounded-md">❓ Kuis Emas</span>
+      <div className="h-32 w-full rounded-2xl overflow-hidden bg-gradient-to-r from-sky-600 via-blue-700 to-indigo-950 relative p-4 flex items-center justify-between text-white shadow-inner mb-4">
+        <div className="space-y-1.5 z-10 max-w-[70%]">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] font-black uppercase tracking-widest bg-amber-400 text-amber-950 px-2.5 py-0.5 rounded-full border border-amber-300 shadow-xs">
+              🏃 2D Platformer SMP
+            </span>
+            <span className="text-[10px] font-bold text-sky-200 bg-white/10 px-2 py-0.5 rounded-full border border-white/20">
+              3 Stage Petualangan
+            </span>
+          </div>
+          <h4 className="text-lg font-black tracking-tight drop-shadow-sm">Petualangan Ke Sekolah & Wisata</h4>
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-sky-100 flex-wrap">
+            <span className="bg-sky-950/80 border border-sky-400/40 px-2 py-0.5 rounded-md">🏠 Rumah</span>
+            <span>➔</span>
+            <span className="bg-blue-950/80 border border-blue-400/40 px-2 py-0.5 rounded-md">🏫 SMPN 1</span>
+            <span>➔</span>
+            <span className="bg-emerald-950/80 border border-emerald-400/40 px-2 py-0.5 rounded-md">🏕️ Kemah</span>
+            <span>➔</span>
+            <span className="bg-purple-950/80 border border-purple-400/40 px-2 py-0.5 rounded-md">🏛️ Wisata</span>
           </div>
         </div>
         <div className="relative w-28 h-20 shrink-0 flex items-center justify-center">
-          <div className="absolute left-1 top-2 text-2xl animate-bounce">🎒</div>
-          <div className="absolute right-2 top-1 text-2xl">👿</div>
-          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] bg-slate-900/80 px-2 py-0.5 rounded text-amber-300 font-mono font-bold">
-            175 Meter
+          <div className="absolute left-0 top-1 text-2xl animate-bounce">🎒</div>
+          <div className="absolute right-1 top-2 text-2xl">🏛️</div>
+          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] bg-slate-900/90 px-2 py-0.5 rounded-md text-amber-300 font-mono font-bold whitespace-nowrap border border-amber-400/30">
+            3 Rute Edukasi
           </div>
         </div>
       </div>
@@ -1752,6 +1761,844 @@ function generateStageEngine(stageNum: number) {
   };
 }
 
+// ==========================================
+// DETAILED GRAPHICAL SCENERY & LOCATION ILLUSTRATIONS
+// ==========================================
+
+// 1. RUMAH SISWA (Cozy Indonesian Home)
+function drawRumah(ctx: CanvasRenderingContext2D, x: number, groundY: number, animFrame: number) {
+  if (x < -320 || x > 950) return;
+  ctx.save();
+
+  // Lawn & Stone Walkway
+  ctx.fillStyle = '#65a30d';
+  ctx.fillRect(x - 30, groundY - 8, 250, 8);
+  ctx.fillStyle = '#94a3b8';
+  for (let s = 0; s < 5; s++) {
+    ctx.beginPath();
+    ctx.ellipse(x + 75 + s * 12, groundY - 3, 7, 3.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // White Picket Fence
+  ctx.fillStyle = '#f8fafc';
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1;
+  for (let f = 0; f < 7; f++) {
+    const fx = x - 25 + f * 16;
+    ctx.beginPath();
+    ctx.moveTo(fx, groundY);
+    ctx.lineTo(fx, groundY - 22);
+    ctx.lineTo(fx + 5, groundY - 28);
+    ctx.lineTo(fx + 10, groundY - 22);
+    ctx.lineTo(fx + 10, groundY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.fillRect(x - 28, groundY - 16, 110, 4);
+
+  // Fruit Tree beside house
+  const treeX = x - 15;
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(treeX, groundY - 85, 14, 85);
+  ctx.fillStyle = '#15803d';
+  ctx.beginPath();
+  ctx.arc(treeX - 8, groundY - 90, 24, 0, Math.PI * 2);
+  ctx.arc(treeX + 20, groundY - 95, 26, 0, Math.PI * 2);
+  ctx.arc(treeX + 6, groundY - 118, 28, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#22c55e';
+  ctx.beginPath();
+  ctx.arc(treeX + 4, groundY - 105, 20, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ef4444';
+  const fruits = [[-10, -85], [4, -110], [18, -90], [14, -120], [-2, -75]];
+  for (const [fx, fy] of fruits) {
+    ctx.beginPath();
+    ctx.arc(treeX + fx, groundY + fy, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Main House Body (Cream / Warm Peach wall)
+  const bldgX = x + 35;
+  const bldgW = 145;
+  const bldgH = 95;
+  const bldgY = groundY - bldgH;
+  ctx.fillStyle = '#fef08a';
+  ctx.fillRect(bldgX, bldgY, bldgW, bldgH);
+  ctx.fillStyle = '#fde047';
+  ctx.fillRect(bldgX, groundY - 10, bldgW, 10);
+  ctx.strokeStyle = 'rgba(217, 119, 6, 0.25)';
+  ctx.lineWidth = 1;
+  for (let ly = bldgY + 14; ly < groundY - 10; ly += 12) {
+    ctx.beginPath();
+    ctx.moveTo(bldgX, ly);
+    ctx.lineTo(bldgX + bldgW, ly);
+    ctx.stroke();
+  }
+
+  // Large Living Room Window
+  const winX = bldgX + 15;
+  const winY = bldgY + 25;
+  ctx.fillStyle = '#0284c7';
+  ctx.fillRect(winX, winY, 44, 38);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(winX, winY, 44, 38);
+  ctx.beginPath();
+  ctx.moveTo(winX + 22, winY);
+  ctx.lineTo(winX + 22, winY + 38);
+  ctx.moveTo(winX, winY + 19);
+  ctx.lineTo(winX + 44, winY + 19);
+  ctx.stroke();
+  // Glass glare
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.beginPath();
+  ctx.moveTo(winX + 4, winY + 33);
+  ctx.lineTo(winX + 18, winY + 5);
+  ctx.lineTo(winX + 24, winY + 5);
+  ctx.lineTo(winX + 10, winY + 33);
+  ctx.fill();
+  // Window sill & flowerpot
+  ctx.fillStyle = '#b45309';
+  ctx.fillRect(winX - 3, winY + 38, 50, 4);
+  ctx.fillStyle = '#ea580c';
+  ctx.fillRect(winX + 16, winY + 32, 12, 8);
+  ctx.fillStyle = '#ec4899';
+  ctx.beginPath();
+  ctx.arc(winX + 19, winY + 30, 3, 0, Math.PI * 2);
+  ctx.arc(winX + 25, winY + 30, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Front Porch & Entrance Door
+  const doorX = bldgX + 78;
+  const doorY = groundY - 60;
+  ctx.fillStyle = '#b91c1c';
+  ctx.beginPath();
+  ctx.moveTo(doorX - 10, doorY - 10);
+  ctx.lineTo(doorX + 55, doorY - 10);
+  ctx.lineTo(doorX + 50, doorY - 2);
+  ctx.lineTo(doorX - 15, doorY - 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(doorX - 6, doorY - 2, 4, 60);
+  ctx.fillRect(doorX + 48, doorY - 2, 4, 60);
+  // Teak Door
+  ctx.fillStyle = '#92400e';
+  ctx.fillRect(doorX, doorY, 38, 58);
+  ctx.strokeStyle = '#451a03';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(doorX, doorY, 38, 58);
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(doorX + 5, doorY + 6, 28, 20);
+  ctx.fillRect(doorX + 5, doorY + 30, 28, 22);
+  // Knob & doormat
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath();
+  ctx.arc(doorX + 8, doorY + 32, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#065f46';
+  ctx.fillRect(doorX + 2, groundY - 3, 34, 3);
+  // House Number Plaque
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(doorX + 10, doorY - 8, 20, 7);
+  ctx.fillStyle = '#facc15';
+  ctx.font = 'bold 5px sans-serif';
+  ctx.fillText('NO. 01', doorX + 11, doorY - 3);
+
+  // Porch lantern
+  ctx.fillStyle = '#f59e0b';
+  ctx.beginPath();
+  ctx.arc(doorX + 42, doorY + 10, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(251, 191, 36, 0.3)';
+  ctx.beginPath();
+  ctx.arc(doorX + 42, doorY + 10, 9, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Terracotta Indonesian Roof (Genteng Merah)
+  const roofY = bldgY;
+  ctx.fillStyle = '#dc2626';
+  ctx.beginPath();
+  ctx.moveTo(bldgX - 18, roofY + 4);
+  ctx.lineTo(bldgX + 70, roofY - 55);
+  ctx.lineTo(bldgX + bldgW + 18, roofY + 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#991b1b';
+  ctx.lineWidth = 2;
+  for (let r = 1; r < 5; r++) {
+    const ry = roofY + 4 - r * 11;
+    const inset = r * 14;
+    ctx.beginPath();
+    ctx.moveTo(bldgX - 18 + inset, ry);
+    ctx.lineTo(bldgX + bldgW + 18 - inset, ry);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#7f1d1d';
+  ctx.fillRect(bldgX + 62, roofY - 58, 16, 5);
+
+  // Chimney with animated smoke puffs
+  const chimX = bldgX + 105;
+  ctx.fillStyle = '#b45309';
+  ctx.fillRect(chimX, roofY - 45, 14, 25);
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(chimX - 2, roofY - 48, 18, 4);
+  for (let sm = 0; sm < 3; sm++) {
+    const smokeOffset = ((animFrame * 0.8 + sm * 1.5) % 4);
+    const smokeY = roofY - 52 - smokeOffset * 10;
+    const smokeX = chimX + 6 + Math.sin(smokeOffset * 2) * 5;
+    const smokeR = 4 + smokeOffset * 2;
+    ctx.fillStyle = `rgba(226, 232, 240, ${Math.max(0, 0.7 - smokeOffset * 0.18)})`;
+    ctx.beginPath();
+    ctx.arc(smokeX, smokeY, smokeR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Attic round window
+  ctx.fillStyle = '#38bdf8';
+  ctx.beginPath();
+  ctx.arc(bldgX + 70, roofY - 22, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#f8fafc';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Signboard: "🏠 RUMAH SISWA"
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(x + 50, groundY - 120, 84, 18);
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x + 50, groundY - 120, 84, 18);
+  ctx.fillStyle = '#facc15';
+  ctx.font = 'bold 9px sans-serif';
+  ctx.fillText('🏠 RUMAH SISWA', x + 55, groundY - 108);
+
+  ctx.restore();
+}
+
+// 2. SEKOLAH (SMPN 1 KAWALI)
+function drawSekolah(ctx: CanvasRenderingContext2D, x: number, groundY: number, animFrame: number, isDeparture: boolean, subTitle: string) {
+  if (x < -400 || x > 950) return;
+  ctx.save();
+
+  // Main School Building in Background (2 floors, white & signature SMP blue)
+  const bldgX = x + 35;
+  const bldgW = 260;
+  const bldgH = 150;
+  const bldgY = groundY - bldgH;
+
+  // Base shadow
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+  ctx.fillRect(bldgX - 10, groundY - 3, bldgW + 20, 5);
+
+  // Building Walls
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(bldgX, bldgY, bldgW, bldgH);
+
+  // Blue Accent Bands
+  ctx.fillStyle = '#1e40af';
+  ctx.fillRect(bldgX, bldgY + 68, bldgW, 10);
+  ctx.fillRect(bldgX, groundY - 16, bldgW, 16);
+
+  // Classroom Windows (2 floors, 5 columns)
+  for (let fl = 0; fl < 2; fl++) {
+    const wy = fl === 0 ? bldgY + 20 : bldgY + 86;
+    for (let c = 0; c < 5; c++) {
+      if (fl === 1 && c === 2) continue; // Entrance on ground floor center
+      const wx = bldgX + 16 + c * 48;
+      ctx.fillStyle = '#2563eb';
+      ctx.fillRect(wx - 3, wy - 6, 38, 5);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(wx, wy, 32, 26);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(wx, wy, 32, 26);
+      ctx.beginPath();
+      ctx.moveTo(wx + 16, wy);
+      ctx.lineTo(wx + 16, wy + 26);
+      ctx.moveTo(wx, wy + 13);
+      ctx.lineTo(wx + 32, wy + 13);
+      ctx.stroke();
+    }
+  }
+
+  // Central Entrance & Glass Double Doors
+  const entX = bldgX + 16 + 2 * 48;
+  const entY = bldgY + 86;
+  ctx.fillStyle = '#1e3a8a';
+  ctx.fillRect(entX - 2, entY, 36, 48);
+  ctx.fillStyle = '#bae6fd';
+  ctx.fillRect(entX + 2, entY + 8, 13, 38);
+  ctx.fillRect(entX + 17, entY + 8, 13, 38);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(entX + 2, entY + 8, 13, 38);
+  ctx.strokeRect(entX + 17, entY + 8, 13, 38);
+
+  // Central Clock Tower with Pediment
+  const towerX = bldgX + bldgW / 2 - 30;
+  const towerY = bldgY - 45;
+  ctx.fillStyle = '#1e40af';
+  ctx.fillRect(towerX, towerY, 60, 45);
+  ctx.fillStyle = '#dc2626';
+  ctx.beginPath();
+  ctx.moveTo(towerX - 6, towerY);
+  ctx.lineTo(towerX + 30, towerY - 26);
+  ctx.lineTo(towerX + 66, towerY);
+  ctx.closePath();
+  ctx.fill();
+
+  // Working / Ticking Clock Face
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(towerX + 30, towerY + 22, 14, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  const clockAngle = (animFrame * 0.1);
+  ctx.beginPath();
+  ctx.moveTo(towerX + 30, towerY + 22);
+  ctx.lineTo(towerX + 30 + Math.cos(clockAngle) * 8, towerY + 22 + Math.sin(clockAngle) * 8);
+  ctx.moveTo(towerX + 30, towerY + 22);
+  ctx.lineTo(towerX + 30, towerY + 14);
+  ctx.stroke();
+  // Golden School Bell under pediment
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath();
+  ctx.arc(towerX + 30, towerY - 8, 6, 0, Math.PI);
+  ctx.lineTo(towerX + 34, towerY - 2);
+  ctx.lineTo(towerX + 26, towerY - 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Main Indonesian Red-and-White Flag on Tall Silver Mast
+  const flagMastX = x + 15;
+  const mastY = groundY - 140;
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fillRect(flagMastX, mastY, 5, 140);
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath();
+  ctx.arc(flagMastX + 2.5, mastY - 2, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Animated Waving Indonesian Flag
+  const flagW = 46;
+  const flagH = 14;
+  for (let fx = 0; fx < flagW; fx += 2) {
+    const wave = Math.sin(animFrame * 3 + fx * 0.15) * 3;
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(flagMastX + 5 + fx, mastY + 4 + wave, 2.5, flagH);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(flagMastX + 5 + fx, mastY + 4 + flagH + wave, 2.5, flagH);
+  }
+
+  // Grand School Entrance Gate & Pillars
+  const gateL = x + 65;
+  const gateR = x + 245;
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(gateL, groundY - 95, 24, 95);
+  ctx.fillRect(gateR, groundY - 95, 24, 95);
+  ctx.fillStyle = '#64748b';
+  ctx.fillRect(gateL - 3, groundY - 100, 30, 8);
+  ctx.fillRect(gateR - 3, groundY - 100, 30, 8);
+
+  // Grand Overhead Arch Signboard
+  ctx.fillStyle = '#1e3a8a';
+  ctx.fillRect(gateL - 8, groundY - 128, 220, 32);
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(gateL - 8, groundY - 128, 220, 32);
+
+  ctx.fillStyle = '#facc15';
+  ctx.font = 'bold 13px sans-serif';
+  ctx.fillText('🏫 SMPN 1 KAWALI', gateL + 30, groundY - 110);
+  ctx.fillStyle = '#93c5fd';
+  ctx.font = 'bold 8px sans-serif';
+  ctx.fillText(subTitle || 'UNGGUL DALAM PRESTASI & TEKNOLOGI', gateL + 18, groundY - 100);
+
+  // Flowerbeds & Shrubs
+  ctx.fillStyle = '#15803d';
+  for (let sh = 0; sh < 4; sh++) {
+    ctx.beginPath();
+    ctx.arc(gateL - 25 + sh * 12, groundY - 8, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = sh % 2 === 0 ? '#f43f5e' : '#fbbf24';
+    ctx.beginPath();
+    ctx.arc(gateL - 25 + sh * 12, groundY - 11, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#15803d';
+  }
+
+  // If Departure, draw parked school tour bus
+  if (isDeparture) {
+    const busX = x + 275;
+    const busY = groundY - 65;
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(busX, busY, 80, 48);
+    ctx.beginPath();
+    ctx.arc(busX + 80, busY + 24, 24, -Math.PI / 2, Math.PI / 2);
+    ctx.fill();
+    ctx.fillStyle = '#0284c7';
+    for (let bw = 0; bw < 4; bw++) {
+      ctx.fillRect(busX + 8 + bw * 17, busY + 8, 13, 16);
+    }
+    ctx.fillRect(busX + 78, busY + 8, 15, 16);
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(busX + 22, groundY - 6, 11, 0, Math.PI * 2);
+    ctx.arc(busX + 74, groundY - 6, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#cbd5e1';
+    ctx.beginPath();
+    ctx.arc(busX + 22, groundY - 6, 5, 0, Math.PI * 2);
+    ctx.arc(busX + 74, groundY - 6, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1e3a8a';
+    ctx.font = 'bold 7px sans-serif';
+    ctx.fillText('BUS SMPN 1', busX + 14, busY + 36);
+  }
+
+  ctx.restore();
+}
+
+// 3. TEMPAT KEMAH (Bumi Perkemahan Pramuka)
+function drawTempatKemah(ctx: CanvasRenderingContext2D, x: number, groundY: number, animFrame: number) {
+  if (x < -400 || x > 950) return;
+  ctx.save();
+
+  // Grand Bamboo Pioneering Gateway
+  const gateX = x + 70;
+  const gateW = 160;
+
+  const drawBambooPole = (bx: number, by: number, bw: number, bh: number) => {
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = '#a16207';
+    for (let ny = by + 15; ny < by + bh; ny += 20) {
+      ctx.fillRect(bx - 1, ny, bw + 2, 3);
+    }
+  };
+
+  const drawRopeLashing = (rx: number, ry: number) => {
+    ctx.fillStyle = '#fef08a';
+    ctx.strokeStyle = '#ca8a04';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(rx, ry, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(rx - 4, ry - 4);
+    ctx.lineTo(rx + 4, ry + 4);
+    ctx.moveTo(rx + 4, ry - 4);
+    ctx.lineTo(rx - 4, ry + 4);
+    ctx.stroke();
+  };
+
+  // Main Vertical Bamboo Towers
+  drawBambooPole(gateX, groundY - 140, 10, 140);
+  drawBambooPole(gateX + 18, groundY - 140, 10, 140);
+  drawBambooPole(gateX + gateW - 28, groundY - 140, 10, 140);
+  drawBambooPole(gateX + gateW - 10, groundY - 140, 10, 140);
+
+  // Horizontal Cross Bamboos
+  drawBambooPole(gateX - 10, groundY - 130, gateW + 20, 10);
+  drawBambooPole(gateX - 10, groundY - 95, gateW + 20, 10);
+  drawBambooPole(gateX - 5, groundY - 60, gateW + 10, 8);
+
+  // Diagonal Bracing
+  ctx.strokeStyle = '#eab308';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(gateX + 5, groundY - 130);
+  ctx.lineTo(gateX + 23, groundY - 95);
+  ctx.moveTo(gateX + gateW - 23, groundY - 130);
+  ctx.lineTo(gateX + gateW - 5, groundY - 95);
+  ctx.stroke();
+
+  // Rope Lashings on joints
+  drawRopeLashing(gateX + 5, groundY - 130);
+  drawRopeLashing(gateX + 23, groundY - 130);
+  drawRopeLashing(gateX + gateW - 23, groundY - 130);
+  drawRopeLashing(gateX + gateW - 5, groundY - 130);
+  drawRopeLashing(gateX + 5, groundY - 95);
+  drawRopeLashing(gateX + gateW - 5, groundY - 95);
+
+  // Carved Wooden Signboard: "🏕️ BUMI PERKEMAHAN PRAMUKA"
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(gateX + 12, groundY - 125, gateW - 24, 26);
+  ctx.strokeStyle = '#d97706';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(gateX + 12, groundY - 125, gateW - 24, 26);
+  ctx.fillStyle = '#fef08a';
+  ctx.font = 'bold 9.5px sans-serif';
+  ctx.fillText('🏕️ BUMI PERKEMAHAN', gateX + 20, groundY - 113);
+  ctx.fillStyle = '#fde047';
+  ctx.font = 'bold 7.5px sans-serif';
+  ctx.fillText('KWARAN GERAKAN PRAMUKA', gateX + 22, groundY - 103);
+
+  // Dual Flagpoles on Bamboo Towers
+  const flagL = gateX + 5;
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fillRect(flagL, groundY - 180, 3, 45);
+  const wave1 = Math.sin(animFrame * 3) * 2;
+  ctx.fillStyle = '#dc2626';
+  ctx.fillRect(flagL + 3, groundY - 180 + wave1, 24, 7);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(flagL + 3, groundY - 173 + wave1, 24, 7);
+
+  const flagR = gateX + gateW - 8;
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fillRect(flagR, groundY - 180, 3, 45);
+  const wave2 = Math.sin(animFrame * 3 + 1) * 2;
+  ctx.fillStyle = '#581c87';
+  ctx.fillRect(flagR + 3, groundY - 180 + wave2, 25, 14);
+  ctx.fillStyle = '#fde047';
+  ctx.beginPath();
+  ctx.arc(flagR + 15, groundY - 173 + wave2, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Left Army Green Scout Tent
+  const tent1X = x - 30;
+  const tent1Y = groundY - 65;
+  ctx.fillStyle = '#15803d';
+  ctx.beginPath();
+  ctx.moveTo(tent1X + 40, tent1Y);
+  ctx.lineTo(tent1X, groundY);
+  ctx.lineTo(tent1X + 80, groundY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#ca8a04';
+  ctx.beginPath();
+  ctx.moveTo(tent1X + 40, tent1Y);
+  ctx.lineTo(tent1X + 20, groundY);
+  ctx.lineTo(tent1X + 40, groundY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#14532d';
+  ctx.beginPath();
+  ctx.moveTo(tent1X + 40, tent1Y);
+  ctx.lineTo(tent1X + 40, groundY);
+  ctx.lineTo(tent1X + 60, groundY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#fef08a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(tent1X + 40, tent1Y);
+  ctx.lineTo(tent1X - 12, groundY);
+  ctx.moveTo(tent1X + 40, tent1Y);
+  ctx.lineTo(tent1X + 92, groundY);
+  ctx.stroke();
+
+  // Right Khaki Scout Tent
+  const tent2X = x + 245;
+  ctx.fillStyle = '#d97706';
+  ctx.beginPath();
+  ctx.moveTo(tent2X + 40, tent1Y + 5);
+  ctx.lineTo(tent2X, groundY);
+  ctx.lineTo(tent2X + 80, groundY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#78350f';
+  ctx.beginPath();
+  ctx.moveTo(tent2X + 40, tent1Y + 5);
+  ctx.lineTo(tent2X + 22, groundY);
+  ctx.lineTo(tent2X + 40, groundY);
+  ctx.closePath();
+  ctx.fill();
+
+  // Realistic Campfire with Animated Multi-layer Flame (Api Unggun)
+  const fireX = x + 150;
+  const fireY = groundY - 12;
+  ctx.fillStyle = '#64748b';
+  for (let s = 0; s < 7; s++) {
+    ctx.beginPath();
+    ctx.arc(fireX - 22 + s * 7, groundY - 3, 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#451a03';
+  ctx.beginPath();
+  ctx.moveTo(fireX - 18, fireY);
+  ctx.lineTo(fireX + 16, fireY + 8);
+  ctx.lineTo(fireX + 14, fireY + 12);
+  ctx.lineTo(fireX - 20, fireY + 4);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(fireX + 18, fireY);
+  ctx.lineTo(fireX - 16, fireY + 8);
+  ctx.lineTo(fireX - 14, fireY + 12);
+  ctx.lineTo(fireX + 20, fireY + 4);
+  ctx.fill();
+
+  // Dancing Flames: Outer Red, Middle Orange, Core Yellow
+  const fFlicker1 = Math.sin(animFrame * 5) * 4;
+  const fFlicker2 = Math.cos(animFrame * 6) * 3;
+  ctx.fillStyle = '#dc2626';
+  ctx.beginPath();
+  ctx.moveTo(fireX - 16, fireY + 4);
+  ctx.quadraticCurveTo(fireX - 14, fireY - 18 + fFlicker1, fireX, fireY - 36 + fFlicker1);
+  ctx.quadraticCurveTo(fireX + 14, fireY - 18 + fFlicker2, fireX + 16, fireY + 4);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#ea580c';
+  ctx.beginPath();
+  ctx.moveTo(fireX - 11, fireY + 4);
+  ctx.quadraticCurveTo(fireX - 8, fireY - 14 + fFlicker2, fireX, fireY - 26 + fFlicker2);
+  ctx.quadraticCurveTo(fireX + 8, fireY - 14 + fFlicker1, fireX + 11, fireY + 4);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#fde047';
+  ctx.beginPath();
+  ctx.moveTo(fireX - 6, fireY + 4);
+  ctx.quadraticCurveTo(fireX - 4, fireY - 8 + fFlicker1, fireX, fireY - 16 + fFlicker1);
+  ctx.quadraticCurveTo(fireX + 4, fireY - 8 + fFlicker2, fireX + 6, fireY + 4);
+  ctx.closePath();
+  ctx.fill();
+
+  // Floating Fire Embers
+  for (let sp = 0; sp < 4; sp++) {
+    const spY = (fireY - 10 - ((animFrame * 1.5 + sp * 8) % 35));
+    const spX = fireX + Math.sin(animFrame * 2 + sp) * 8;
+    ctx.fillStyle = '#fef08a';
+    ctx.beginPath();
+    ctx.arc(spX, spY, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Cooking Tripod with Hanging Kettle
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(fireX - 16, groundY);
+  ctx.lineTo(fireX, fireY - 38);
+  ctx.lineTo(fireX + 16, groundY);
+  ctx.stroke();
+  ctx.fillStyle = '#475569';
+  ctx.beginPath();
+  ctx.arc(fireX, fireY - 18, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Hurricane lantern on wooden pole
+  const lantX = gateX - 22;
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(lantX, groundY - 50, 4, 50);
+  ctx.fillRect(lantX, groundY - 50, 14, 3);
+  ctx.fillStyle = '#f59e0b';
+  ctx.fillRect(lantX + 10, groundY - 45, 8, 12);
+  ctx.fillStyle = 'rgba(245, 158, 11, 0.3)';
+  ctx.beginPath();
+  ctx.arc(lantX + 14, groundY - 39, 14, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// 4. TEMPAT WISATA (Museum Wisata Pengetahuan & Sains Edukasi)
+function drawTempatWisata(ctx: CanvasRenderingContext2D, x: number, groundY: number, animFrame: number) {
+  if (x < -450 || x > 950) return;
+  ctx.save();
+
+  // Museum Complex Base & Cyan Cyber Pavers
+  const bldgX = x + 30;
+  const bldgW = 310;
+  const bldgH = 160;
+  const bldgY = groundY - bldgH;
+
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(bldgX - 15, groundY - 12, bldgW + 30, 12);
+  ctx.fillStyle = '#38bdf8';
+  for (let pv = 0; pv < 10; pv++) {
+    ctx.fillRect(bldgX - 10 + pv * 32, groundY - 4, 18, 3);
+  }
+
+  // Deep Navy Tech Facade
+  ctx.fillStyle = '#1e1b4b';
+  ctx.fillRect(bldgX, bldgY + 30, bldgW, bldgH - 30);
+  ctx.fillStyle = '#312e81';
+  ctx.fillRect(bldgX + 10, bldgY + 40, bldgW - 20, bldgH - 50);
+
+  // Large Panoramic Glass Curtain Walls with Interior Exhibits
+  for (let gw = 0; gw < 4; gw++) {
+    const gx = bldgX + 22 + gw * 70;
+    const gy = bldgY + 50;
+    ctx.fillStyle = '#0369a1';
+    ctx.fillRect(gx, gy, 56, 50);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(gx, gy, 56, 50);
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(gx + 28, gy);
+    ctx.lineTo(gx + 28, gy + 50);
+    ctx.moveTo(gx, gy + 25);
+    ctx.lineTo(gx + 56, gy + 25);
+    ctx.stroke();
+
+    // Exhibits
+    if (gw === 0) {
+      ctx.fillStyle = '#ec4899';
+      ctx.beginPath();
+      ctx.arc(gx + 28, gy + 25, 8, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (gw === 1) {
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(gx + 22, gy + 15, 12, 18);
+    } else if (gw === 2) {
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(gx + 28, gy + 25, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = '#10b981';
+      ctx.fillRect(gx + 20, gy + 18, 16, 16);
+    }
+  }
+
+  // Giant Planetarium Observatory Dome on Left
+  const domeX = bldgX + 55;
+  const domeY = bldgY + 30;
+  const domeR = 50;
+  const domeGrad = ctx.createRadialGradient(domeX - 15, domeY - 20, 10, domeX, domeY, domeR);
+  domeGrad.addColorStop(0, '#e0f2fe');
+  domeGrad.addColorStop(0.5, '#0284c7');
+  domeGrad.addColorStop(1, '#0f172a');
+  ctx.fillStyle = domeGrad;
+  ctx.beginPath();
+  ctx.arc(domeX, domeY, domeR, Math.PI, 0);
+  ctx.fill();
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(domeX, domeY, domeR, Math.PI, 0);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(domeX, domeY, domeR * 0.65, Math.PI, 0);
+  ctx.stroke();
+
+  // Space Telescope Slot
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(domeX - 8, domeY - 50, 16, 35);
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath();
+  ctx.arc(domeX, domeY - 50, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Rotating Satellite Dish Antenna on Right Roof
+  const dishX = bldgX + bldgW - 45;
+  const dishY = bldgY + 20;
+  ctx.fillStyle = '#64748b';
+  ctx.fillRect(dishX - 3, dishY, 6, 12);
+  const dishAngle = Math.sin(animFrame * 0.5) * 0.3;
+  ctx.save();
+  ctx.translate(dishX, dishY);
+  ctx.rotate(dishAngle);
+  ctx.fillStyle = '#cbd5e1';
+  ctx.beginPath();
+  ctx.arc(0, 0, 16, Math.PI, 0);
+  ctx.fill();
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, -18);
+  ctx.stroke();
+  ctx.restore();
+
+  // Grand Illuminated Cyber Arch & Neon Signboard
+  const archX = bldgX + 110;
+  const archW = 140;
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(archX - 10, bldgY - 20, archW + 20, 36);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(archX - 10, bldgY - 20, archW + 20, 36);
+
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = 'bold 10px sans-serif';
+  ctx.fillText('🏛️ MUSEUM WISATA SAINS', archX + 4, bldgY - 4);
+  ctx.fillStyle = '#fde047';
+  ctx.font = 'bold 8px sans-serif';
+  ctx.fillText('EDUKASI TEKNOLOGI & INFORMATIKA', archX + 1, bldgY + 9);
+
+  // Automatic Glass Sliding Doors at Entrance
+  const doorX = archX + archW / 2 - 25;
+  const doorY = groundY - 55;
+  ctx.fillStyle = '#0284c7';
+  ctx.fillRect(doorX, doorY, 50, 43);
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillRect(doorX + 3, doorY + 3, 20, 37);
+  ctx.fillRect(doorX + 27, doorY + 3, 20, 37);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(doorX + 3, doorY + 3, 20, 37);
+  ctx.strokeRect(doorX + 27, doorY + 3, 20, 37);
+
+  // Iconic Science Lawn Monument: Animated Golden Atom Model Statue
+  const atomX = x - 25;
+  const atomY = groundY - 50;
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(atomX - 15, groundY - 18, 30, 18);
+  ctx.fillStyle = '#475569';
+  ctx.fillRect(atomX - 12, groundY - 32, 24, 14);
+
+  // Atom Nucleus
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath();
+  ctx.arc(atomX, atomY, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(250, 204, 21, 0.4)';
+  ctx.beginPath();
+  ctx.arc(atomX, atomY, 13, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 3 Animated Rotating Electron Orbital Rings
+  const orbitAngle = animFrame * 1.5;
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  for (let o = 0; o < 3; o++) {
+    ctx.save();
+    ctx.translate(atomX, atomY);
+    ctx.rotate((o * Math.PI) / 3 + orbitAngle * 0.3);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 24, 9, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    const ePos = orbitAngle + o * 2;
+    const ex = Math.cos(ePos) * 24;
+    const ey = Math.sin(ePos) * 9;
+    ctx.fillStyle = '#ec4899';
+    ctx.beginPath();
+    ctx.arc(ex, ey, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Futuristic Solar Lamp Post
+  const lampX = bldgX + bldgW + 10;
+  ctx.fillStyle = '#64748b';
+  ctx.fillRect(lampX, groundY - 70, 5, 70);
+  ctx.fillStyle = '#38bdf8';
+  ctx.beginPath();
+  ctx.arc(lampX + 2.5, groundY - 72, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
+  ctx.beginPath();
+  ctx.arc(lampX + 2.5, groundY - 72, 16, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
 function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boolean; currentStudent: any; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -2089,132 +2936,240 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
       // Render Backdrop per Stage
       if (currentStage === 2) {
-        // Stage 2: Sunset Forest / Bumi Perkemahan
+        // Stage 2: Sunset Forest & Bumi Perkemahan
         const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        skyGradient.addColorStop(0, '#7c2d12');
-        skyGradient.addColorStop(0.5, '#ea580c');
-        skyGradient.addColorStop(1, '#fef08a');
+        skyGradient.addColorStop(0, '#431407');
+        skyGradient.addColorStop(0.35, '#7c2d12');
+        skyGradient.addColorStop(0.7, '#ea580c');
+        skyGradient.addColorStop(1, '#fde047');
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Pine Trees in background
-        ctx.fillStyle = '#064e3b';
-        for (let i = 0; i < 15; i++) {
-          const treeX = i * 320 - camX * 0.3;
+        // Crescent Moon & Stars
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(680, 70, 18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#7c2d12';
+        ctx.beginPath();
+        ctx.arc(674, 66, 15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Twinkling Twilight Stars
+        ctx.fillStyle = '#ffffff';
+        const stars = [[120, 40], [240, 65], [380, 35], [520, 80], [750, 45], [820, 90]];
+        for (const [sx, sy] of stars) {
+          const starGlow = (Math.sin(p.animFrame * 2 + sx) + 1) * 0.8 + 1;
           ctx.beginPath();
-          ctx.moveTo(treeX + 40, 200);
-          ctx.lineTo(treeX, 360);
-          ctx.lineTo(treeX + 80, 360);
+          ctx.arc(sx, sy, starGlow, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        // Tenda Pramuka & Campfire
-        for (let i = 0; i < 6; i++) {
-          const tentX = i * 650 + 120 - camX * 0.5;
-          // Tenda Pramuka
-          ctx.fillStyle = '#059669';
+        // Mountain Silhouettes in distance
+        ctx.fillStyle = '#451a03';
+        ctx.beginPath();
+        for (let m = 0; m < 6; m++) {
+          const mx = m * 300 - camX * 0.15;
+          ctx.moveTo(mx - 80, 360);
+          ctx.lineTo(mx + 70, 210);
+          ctx.lineTo(mx + 220, 360);
+        }
+        ctx.fill();
+
+        // Layered Pine Forest in background
+        ctx.fillStyle = '#064e3b';
+        for (let i = 0; i < 18; i++) {
+          const treeX = i * 260 - camX * 0.35;
           ctx.beginPath();
-          ctx.moveTo(tentX + 30, 290);
-          ctx.lineTo(tentX, 360);
-          ctx.lineTo(tentX + 60, 360);
+          ctx.moveTo(treeX + 35, 190);
+          ctx.lineTo(treeX, 360);
+          ctx.lineTo(treeX + 70, 360);
           ctx.fill();
-          ctx.fillStyle = '#fef08a';
+        }
+        ctx.fillStyle = '#065f46';
+        for (let i = 0; i < 14; i++) {
+          const treeX = i * 320 + 80 - camX * 0.45;
           ctx.beginPath();
-          ctx.moveTo(tentX + 30, 290);
-          ctx.lineTo(tentX + 15, 360);
-          ctx.lineTo(tentX + 30, 360);
+          ctx.moveTo(treeX + 30, 220);
+          ctx.lineTo(treeX, 360);
+          ctx.lineTo(treeX + 60, 360);
+          ctx.fill();
+        }
+
+        // Distant Camping Tents & Small Campfires
+        for (let i = 0; i < 6; i++) {
+          const tentX = i * 650 + 120 - camX * 0.55;
+          // Distant Tent
+          ctx.fillStyle = '#047857';
+          ctx.beginPath();
+          ctx.moveTo(tentX + 25, 305);
+          ctx.lineTo(tentX, 360);
+          ctx.lineTo(tentX + 50, 360);
+          ctx.fill();
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.moveTo(tentX + 25, 305);
+          ctx.lineTo(tentX + 12, 360);
+          ctx.lineTo(tentX + 25, 360);
           ctx.fill();
 
-          // Api Unggun
-          const fireX = tentX + 90;
+          // Small Campfire with smoke
+          const fireX = tentX + 75;
           ctx.fillStyle = '#78350f';
-          ctx.fillRect(fireX - 8, 350, 16, 6);
-          const flicker = Math.sin(p.animFrame * 5) * 4;
-          ctx.fillStyle = '#f97316';
+          ctx.fillRect(fireX - 6, 354, 12, 4);
+          const flicker = Math.sin(p.animFrame * 5 + i) * 3;
+          ctx.fillStyle = '#ea580c';
           ctx.beginPath();
-          ctx.arc(fireX, 342 + flicker, 8, 0, Math.PI * 2);
+          ctx.arc(fireX, 348 + flicker, 6, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = '#fde047';
           ctx.beginPath();
-          ctx.arc(fireX, 344 + flicker, 4, 0, Math.PI * 2);
+          ctx.arc(fireX, 349 + flicker, 3, 0, Math.PI * 2);
           ctx.fill();
         }
 
       } else if (currentStage === 3) {
-        // Stage 3: Museum Wisata Edukasi Tech Sky
+        // Stage 3: Museum Wisata Edukasi Cyber Night Sky
         const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        skyGradient.addColorStop(0, '#1e1b4b');
-        skyGradient.addColorStop(0.6, '#3730a3');
+        skyGradient.addColorStop(0, '#09090b');
+        skyGradient.addColorStop(0.4, '#1e1b4b');
+        skyGradient.addColorStop(0.8, '#1e3a8a');
         skyGradient.addColorStop(1, '#0284c7');
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Tech Science Museum Backdrop Buildings
-        for (let i = 0; i < 8; i++) {
-          const bldgX = i * 500 + 50 - camX * 0.4;
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(bldgX, 220, 110, 140);
-          ctx.fillStyle = '#38bdf8';
-          ctx.fillRect(bldgX + 15, 240, 80, 10);
-          ctx.fillRect(bldgX + 15, 265, 80, 10);
-          ctx.fillRect(bldgX + 15, 290, 80, 10);
-
-          // Satellite Dish / Dome
-          ctx.fillStyle = '#64748b';
+        // Twinkling Space Stars
+        ctx.fillStyle = '#ffffff';
+        const sciStars = [[80, 30], [200, 50], [350, 25], [480, 60], [620, 35], [780, 55], [880, 20]];
+        for (const [sx, sy] of sciStars) {
+          const sRad = (Math.sin(p.animFrame * 3 + sx) + 1) * 0.7 + 1;
           ctx.beginPath();
-          ctx.arc(bldgX + 55, 220, 25, Math.PI, 0);
+          ctx.arc(sx, sy, sRad, 0, Math.PI * 2);
           ctx.fill();
         }
+
+        // Futuristic Modern City Skyline Silhouettes
+        for (let i = 0; i < 9; i++) {
+          const bldgX = i * 420 + 30 - camX * 0.35;
+          const bldgH = 130 + (i % 3) * 35;
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(bldgX, 360 - bldgH, 95, bldgH);
+
+          // Glowing Cyber Windows & Neon Lines
+          ctx.fillStyle = '#0284c7';
+          for (let wy = 360 - bldgH + 15; wy < 340; wy += 22) {
+            for (let wx = 0; wx < 3; wx++) {
+              ctx.fillRect(bldgX + 12 + wx * 26, wy, 16, 10);
+            }
+          }
+          // Spire Antenna with blinking beacon
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(bldgX + 45, 360 - bldgH - 25, 4, 25);
+          if (Math.sin(p.animFrame * 4 + i) > 0) {
+            ctx.fillStyle = '#ec4899';
+            ctx.beginPath();
+            ctx.arc(bldgX + 47, 360 - bldgH - 26, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
       } else {
-        // Stage 1: Home to School Sky
+        // Stage 1: Home to School Bright Morning Sky
         const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        skyGradient.addColorStop(0, '#38bdf8');
-        skyGradient.addColorStop(0.7, '#bae6fd');
-        skyGradient.addColorStop(1, '#e0f2fe');
+        skyGradient.addColorStop(0, '#0284c7');
+        skyGradient.addColorStop(0.35, '#38bdf8');
+        skyGradient.addColorStop(0.75, '#bae6fd');
+        skyGradient.addColorStop(1, '#f0fdf4');
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Hills
+        // Morning Sun with Warm Glow
+        ctx.fillStyle = 'rgba(254, 240, 138, 0.3)';
+        ctx.beginPath();
+        ctx.arc(710, 80, 48, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(710, 80, 26, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Fluffy Clouds
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        for (let c = 0; c < 5; c++) {
+          const cx = c * 450 + 100 - camX * 0.15;
+          const cy = 60 + (c % 2) * 30;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+          ctx.arc(cx + 20, cy - 8, 26, 0, Math.PI * 2);
+          ctx.arc(cx + 42, cy, 20, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Layered Green Rolling Hills
         ctx.fillStyle = '#86efac';
         ctx.beginPath();
-        for (let i = 0; i < 10; i++) {
-          const hillX = i * 400 - camX * 0.2;
-          ctx.arc(hillX + 200, 360, 200, Math.PI, 0, false);
+        for (let i = 0; i < 12; i++) {
+          const hillX = i * 360 - camX * 0.2;
+          ctx.arc(hillX + 180, 380, 180, Math.PI, 0, false);
         }
         ctx.fill();
 
-        // Background Houses
+        ctx.fillStyle = '#4ade80';
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const hillX = i * 420 + 80 - camX * 0.3;
+          ctx.arc(hillX + 180, 390, 160, Math.PI, 0, false);
+        }
+        ctx.fill();
+
+        // Background Neighborhood Houses
         for (let i = 0; i < 8; i++) {
-          const houseX = i * 500 + 100 - camX * 0.5;
-          ctx.fillStyle = '#fef08a';
-          ctx.fillRect(houseX, 290, 80, 70);
-          ctx.fillStyle = '#ef4444';
+          const houseX = i * 480 + 120 - camX * 0.45;
+          // House body
+          ctx.fillStyle = i % 2 === 0 ? '#fef08a' : '#fed7aa';
+          ctx.fillRect(houseX, 295, 75, 65);
+          // Roof
+          ctx.fillStyle = i % 2 === 0 ? '#dc2626' : '#b45309';
           ctx.beginPath();
-          ctx.moveTo(houseX - 10, 290);
-          ctx.lineTo(houseX + 40, 250);
-          ctx.lineTo(houseX + 90, 290);
+          ctx.moveTo(houseX - 8, 295);
+          ctx.lineTo(houseX + 37.5, 260);
+          ctx.lineTo(houseX + 83, 295);
           ctx.closePath();
           ctx.fill();
-          ctx.fillStyle = '#b45309';
-          ctx.fillRect(houseX + 30, 320, 20, 40);
+          // Door & Window
+          ctx.fillStyle = '#78350f';
+          ctx.fillRect(houseX + 12, 325, 18, 35);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(houseX + 42, 312, 22, 20);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(houseX + 42, 312, 22, 20);
+          // Garden tree beside house
+          ctx.fillStyle = '#78350f';
+          ctx.fillRect(houseX + 86, 310, 8, 50);
+          ctx.fillStyle = '#16a34a';
+          ctx.beginPath();
+          ctx.arc(houseX + 90, 305, 18, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
 
-      // Starting House / Gate
-      const startHouseX = 50 - camX;
-      ctx.fillStyle = '#fb923c';
-      ctx.fillRect(startHouseX, 260, 110, 100);
-      ctx.fillStyle = '#dc2626';
-      ctx.beginPath();
-      ctx.moveTo(startHouseX - 15, 260);
-      ctx.lineTo(startHouseX + 55, 200);
-      ctx.lineTo(startHouseX + 125, 260);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 11px sans-serif';
-      const startLabel = currentStage === 1 ? 'RUMAH' : currentStage === 2 ? 'SMPN 1 KAWALI' : 'SEKOLAH';
-      ctx.fillText(startLabel, startHouseX + 20, 240);
+      // ==========================================
+      // DETAILED STARTING LOCATION / BUILDING PER STAGE
+      // ==========================================
+      const startX = 40 - camX;
+      if (startX > -400 && startX < canvas.width + 400) {
+        if (currentStage === 1) {
+          // Stage 1 Start: RUMAH TINGGAL SISWA SMP
+          drawRumah(ctx, startX, 380, p.animFrame);
+        } else if (currentStage === 2) {
+          // Stage 2 Start: SMPN 1 KAWALI (Titik Kumpul Keberangkatan Pramuka)
+          drawSekolah(ctx, startX, 380, p.animFrame, true, 'KEBERANGKATAN PRAMUKA');
+        } else {
+          // Stage 3 Start: SMPN 1 KAWALI (Titik Kumpul Keberangkatan Study Tour)
+          drawSekolah(ctx, startX, 380, p.animFrame, true, 'KEBERANGKATAN STUDY TOUR');
+        }
+      }
 
       // Draw Platforms
       for (const plat of engine.platforms) {
@@ -2476,30 +3431,19 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         }
       }
 
-      // Final Destination Gate & Flag
+      // Final Destination Building per Stage
+      // Stage 1: SMPN 1 KAWALI (Sekolah)
+      // Stage 2: BUMI PERKEMAHAN PRAMUKA (Tempat Kemah)
+      // Stage 3: MUSEUM WISATA SAINS & TEKNOLOGI (Tempat Wisata)
       const gateX = engine.schoolGateX - camX;
-      if (gateX > -200 && gateX < canvas.width + 200) {
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(gateX, 180, 30, 200);
-        ctx.fillRect(gateX + 220, 180, 30, 200);
-
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(gateX - 10, 160, 270, 35);
-        ctx.fillStyle = '#facc15';
-        ctx.font = 'bold 14px sans-serif';
-        const gateTitle = currentStage === 1 ? 'SMPN 1 KAWALI' : currentStage === 2 ? 'BUMI PERKEMAHAN' : 'MUSEUM WISATA';
-        ctx.fillText(gateTitle, gateX + 40, 183);
-
-        // Flag
-        ctx.fillStyle = '#cbd5e1';
-        ctx.fillRect(gateX + 235, 80, 6, 100);
-        ctx.fillStyle = '#dc2626';
-        ctx.fillRect(gateX + 241, 80, 45, 18);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(gateX + 241, 98, 45, 18);
-
-        ctx.fillStyle = currentStage === 2 ? '#15803d' : currentStage === 3 ? '#0284c7' : '#38bdf8';
-        ctx.fillRect(gateX + 30, 220, 160, 160);
+      if (gateX > -400 && gateX < canvas.width + 400) {
+        if (currentStage === 1) {
+          drawSekolah(ctx, gateX - 25, 380, p.animFrame, false, 'GERBANG KEDATANGAN UTAMA');
+        } else if (currentStage === 2) {
+          drawTempatKemah(ctx, gateX - 45, 380, p.animFrame);
+        } else {
+          drawTempatWisata(ctx, gateX - 55, 380, p.animFrame);
+        }
       }
 
       // Draw Player Outfit per Stage
