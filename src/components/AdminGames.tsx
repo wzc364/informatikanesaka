@@ -217,7 +217,7 @@ interface AdminGamesProps {
 export default function AdminGames({ isAdmin, currentStudent, studentsList = [] }: AdminGamesProps) {
   const [activeTab, setActiveTab] = useState<'manage' | 'leaderboard' | 'play'>('manage');
   const [selectedGameId, setSelectedGameId] = useState<string>(GAMES_LIST[0].id);
-  const [gameConfigs, setGameConfigs] = useState<Record<string, { isActive: boolean; timerSec?: number; stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string }>>({});
+  const [gameConfigs, setGameConfigs] = useState<Record<string, { isActive: boolean; timerSec?: number; stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string }>>({});
   const [gameScores, setGameScores] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterKelas, setFilterKelas] = useState('all');
@@ -555,7 +555,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                             ⚙️ Pengaturan Materi Kuis Kotak Emas Per-Stage
                           </span>
                           <span className="text-[10px] font-bold text-brand bg-brand/10 border border-brand/20 px-2 py-0.5 rounded-full">
-                            3 Stage Game
+                            4 Stage Game
                           </span>
                         </div>
 
@@ -603,6 +603,23 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                             <select
                               value={gameConfigs['petualangan-smp']?.stage3MateriId ?? 'scratch'}
                               onChange={(e) => updateStageMateri('stage3MateriId', e.target.value)}
+                              className="bg-slate-100 border border-slate-300 text-xs font-bold rounded-lg p-1.5 text-slate-800 cursor-pointer"
+                            >
+                              {COURSES.map(c => (
+                                <option key={c.id} value={c.id}>{c.title}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Stage 4 Config */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-white rounded-xl border border-slate-300">
+                            <div>
+                              <span className="font-bold text-emerald-900 block text-xs">Stage 4: Menuju Kota CIAMIS (220m)</span>
+                              <span className="text-[10px] text-slate-500 font-semibold">Destinasi: Alun-Alun Kota Ciamis & Monumen Rafflesia</span>
+                            </div>
+                            <select
+                              value={gameConfigs['petualangan-smp']?.stage4MateriId ?? 'bk-algoritma'}
+                              onChange={(e) => updateStageMateri('stage4MateriId', e.target.value)}
                               className="bg-slate-100 border border-slate-300 text-xs font-bold rounded-lg p-1.5 text-slate-800 cursor-pointer"
                             >
                               {COURSES.map(c => (
@@ -1550,7 +1567,7 @@ function getQuizForMateri(materiId: string): Array<{ id: number; question: strin
 
 function generateStageEngine(stageNum: number) {
   if (stageNum === 2) {
-    // Stage 2: Kegiatan Pramuka (190m)
+    // Stage 2: Kegiatan Pramuka (Bumi Perkemahan - Hutan & Treetops)
     return {
       player: {
         x: 100,
@@ -1571,60 +1588,62 @@ function generateStageEngine(stageNum: number) {
       cameraX: 0,
       worldWidth: 6100,
       platforms: [
-        { x: 0, y: 380, w: 600, h: 100, type: 'ground' },
-        { x: 680, y: 380, w: 550, h: 100, type: 'ground' },
-        { x: 820, y: 280, w: 130, h: 20, type: 'platform' },
-        { x: 1000, y: 220, w: 130, h: 20, type: 'platform' },
-        { x: 1280, y: 380, w: 750, h: 100, type: 'ground' },
-        { x: 1450, y: 270, w: 150, h: 20, type: 'platform' },
-        { x: 1650, y: 200, w: 150, h: 20, type: 'platform' },
-        { x: 2100, y: 380, w: 800, h: 100, type: 'ground' },
-        { x: 2300, y: 280, w: 160, h: 20, type: 'platform' },
-        { x: 2550, y: 230, w: 160, h: 20, type: 'platform' },
-        { x: 2950, y: 380, w: 850, h: 100, type: 'ground' },
-        { x: 3100, y: 270, w: 150, h: 20, type: 'platform' },
-        { x: 3350, y: 210, w: 150, h: 20, type: 'platform' },
-        { x: 3900, y: 380, w: 850, h: 100, type: 'ground' },
-        { x: 4050, y: 280, w: 160, h: 20, type: 'platform' },
-        { x: 4300, y: 230, w: 160, h: 20, type: 'platform' },
-        { x: 4850, y: 380, w: 1200, h: 100, type: 'ground' }
+        { x: 0, y: 380, w: 500, h: 100, type: 'ground' },
+        { x: 550, y: 310, w: 120, h: 20, type: 'platform' },
+        { x: 720, y: 220, w: 160, h: 20, type: 'platform' },
+        { x: 920, y: 380, w: 600, h: 100, type: 'ground' },
+        { x: 1100, y: 280, w: 140, h: 20, type: 'platform' },
+        { x: 1300, y: 200, w: 140, h: 20, type: 'platform' },
+        { x: 1500, y: 150, w: 140, h: 20, type: 'platform' },
+        { x: 1680, y: 380, w: 700, h: 100, type: 'ground' },
+        { x: 2450, y: 300, w: 180, h: 20, type: 'platform' },
+        { x: 2700, y: 240, w: 180, h: 20, type: 'platform' },
+        { x: 2950, y: 380, w: 650, h: 100, type: 'ground' },
+        { x: 3150, y: 260, w: 150, h: 20, type: 'platform' },
+        { x: 3350, y: 180, w: 150, h: 20, type: 'platform' },
+        { x: 3550, y: 250, w: 150, h: 20, type: 'platform' },
+        { x: 3750, y: 380, w: 750, h: 100, type: 'ground' },
+        { x: 4000, y: 290, w: 130, h: 20, type: 'platform' },
+        { x: 4200, y: 210, w: 140, h: 20, type: 'platform' },
+        { x: 4400, y: 270, w: 130, h: 20, type: 'platform' },
+        { x: 4650, y: 380, w: 1200, h: 100, type: 'ground' }
       ],
       items: [
-        { id: 1, x: 250, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
-        { id: 2, x: 400, y: 330, w: 28, h: 22, type: 'ram', collected: false },
-        { id: 3, x: 860, y: 235, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
-        { id: 4, x: 1050, y: 180, w: 26, h: 24, type: 'laptop', collected: false },
-        { id: 5, x: 1500, y: 225, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
-        { id: 6, x: 1700, y: 160, w: 28, h: 22, type: 'ram', collected: false },
-        { id: 7, x: 2350, y: 235, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
-        { id: 8, x: 2600, y: 185, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 3 },
-        { id: 9, x: 3150, y: 230, w: 28, h: 22, type: 'ram', collected: false },
-        { id: 10, x: 3400, y: 170, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
-        { id: 11, x: 4100, y: 240, w: 26, h: 24, type: 'laptop', collected: false },
-        { id: 12, x: 4350, y: 190, w: 28, h: 22, type: 'ram', collected: false },
-        { id: 13, x: 5000, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 1, x: 200, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 2, x: 380, y: 330, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 3, x: 760, y: 175, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 4, x: 1340, y: 155, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 5, x: 1540, y: 105, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 6, x: 1850, y: 330, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 7, x: 2500, y: 255, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
+        { id: 8, x: 2750, y: 195, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 3 },
+        { id: 9, x: 3200, y: 215, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 10, x: 3400, y: 135, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 11, x: 4050, y: 245, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 12, x: 4250, y: 165, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 13, x: 4850, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
       ],
       obstacles: [
-        { id: 1, x: 450, y: 365, w: 60, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 2, x: 750, y: 342, w: 38, h: 38, type: 'phone_evil', vx: 1.8, minX: 700, maxX: 1150, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 3, x: 1380, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 4, x: 1550, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2, minX: 1350, maxX: 1800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 5, x: 1850, y: 200, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 150, maxY: 330, yDir: 1, destroyed: false },
-        { id: 6, x: 2250, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 7, x: 2450, y: 342, w: 38, h: 38, type: 'phone_evil', vx: 2.2, minX: 2200, maxX: 2750, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 8, x: 3050, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 9, x: 3250, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -1.9, minX: 3000, maxX: 3550, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 10, x: 3650, y: 200, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 150, maxY: 330, yDir: 1, destroyed: false },
-        { id: 11, x: 4000, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 12, x: 4200, y: 342, w: 38, h: 38, type: 'phone_evil', vx: 2.3, minX: 3950, maxX: 4500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 13, x: 5050, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2.5, minX: 4900, maxX: 5450, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 1, x: 350, y: 365, w: 60, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 2, x: 1050, y: 342, w: 38, h: 38, type: 'phone_evil', vx: 1.8, minX: 950, maxX: 1450, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 3, x: 1200, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 4, x: 1850, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2, minX: 1720, maxX: 2250, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 5, x: 2500, y: 180, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 120, maxY: 280, yDir: 1, destroyed: false },
+        { id: 6, x: 3100, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 7, x: 3300, y: 342, w: 38, h: 38, type: 'phone_evil', vx: 2.2, minX: 3000, maxX: 3500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 8, x: 3850, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4150, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -1.9, minX: 3800, maxX: 4400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 10, x: 4300, y: 180, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 120, maxY: 280, yDir: 1, destroyed: false },
+        { id: 11, x: 4800, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 12, x: 5050, y: 342, w: 38, h: 38, type: 'phone_evil', vx: 2.3, minX: 4750, maxX: 5400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 13, x: 5400, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2.5, minX: 5100, maxX: 5650, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
       schoolGateX: 5800,
     };
   }
 
   if (stageNum === 3) {
-    // Stage 3: Study Tour Edukasi (200m)
+    // Stage 3: Study Tour Edukasi (Museum Wisata Cyber & Science Skywalk)
     return {
       player: {
         x: 100,
@@ -1645,55 +1664,143 @@ function generateStageEngine(stageNum: number) {
       cameraX: 0,
       worldWidth: 6400,
       platforms: [
-        { x: 0, y: 380, w: 600, h: 100, type: 'ground' },
-        { x: 680, y: 380, w: 600, h: 100, type: 'ground' },
-        { x: 840, y: 280, w: 130, h: 20, type: 'platform' },
-        { x: 1020, y: 220, w: 130, h: 20, type: 'platform' },
-        { x: 1330, y: 380, w: 800, h: 100, type: 'ground' },
-        { x: 1500, y: 270, w: 150, h: 20, type: 'platform' },
-        { x: 1720, y: 200, w: 150, h: 20, type: 'platform' },
-        { x: 2200, y: 380, w: 850, h: 100, type: 'ground' },
-        { x: 2400, y: 280, w: 160, h: 20, type: 'platform' },
-        { x: 2650, y: 230, w: 160, h: 20, type: 'platform' },
-        { x: 3120, y: 380, w: 900, h: 100, type: 'ground' },
-        { x: 3280, y: 270, w: 150, h: 20, type: 'platform' },
-        { x: 3520, y: 210, w: 150, h: 20, type: 'platform' },
-        { x: 4100, y: 380, w: 900, h: 100, type: 'ground' },
-        { x: 4280, y: 280, w: 160, h: 20, type: 'platform' },
-        { x: 4520, y: 230, w: 160, h: 20, type: 'platform' },
-        { x: 5100, y: 380, w: 1300, h: 100, type: 'ground' }
+        { x: 0, y: 380, w: 450, h: 100, type: 'ground' },
+        { x: 500, y: 300, w: 110, h: 20, type: 'platform' },
+        { x: 650, y: 230, w: 110, h: 20, type: 'platform' },
+        { x: 800, y: 170, w: 110, h: 20, type: 'platform' },
+        { x: 960, y: 380, w: 600, h: 100, type: 'ground' },
+        { x: 1150, y: 260, w: 160, h: 20, type: 'platform' },
+        { x: 1350, y: 190, w: 160, h: 20, type: 'platform' },
+        { x: 1580, y: 240, w: 160, h: 20, type: 'platform' },
+        { x: 1800, y: 380, w: 650, h: 100, type: 'ground' },
+        { x: 2500, y: 320, w: 140, h: 20, type: 'platform' },
+        { x: 2700, y: 250, w: 140, h: 20, type: 'platform' },
+        { x: 2900, y: 190, w: 140, h: 20, type: 'platform' },
+        { x: 3100, y: 270, w: 140, h: 20, type: 'platform' },
+        { x: 3300, y: 380, w: 700, h: 100, type: 'ground' },
+        { x: 3500, y: 250, w: 150, h: 20, type: 'platform' },
+        { x: 3720, y: 180, w: 150, h: 20, type: 'platform' },
+        { x: 3950, y: 230, w: 150, h: 20, type: 'platform' },
+        { x: 4150, y: 380, w: 700, h: 100, type: 'ground' },
+        { x: 4350, y: 290, w: 130, h: 20, type: 'platform' },
+        { x: 4550, y: 210, w: 130, h: 20, type: 'platform' },
+        { x: 4750, y: 160, w: 130, h: 20, type: 'platform' },
+        { x: 4950, y: 240, w: 130, h: 20, type: 'platform' },
+        { x: 5150, y: 380, w: 1250, h: 100, type: 'ground' }
       ],
       items: [
-        { id: 1, x: 250, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
-        { id: 2, x: 400, y: 330, w: 28, h: 22, type: 'ram', collected: false },
-        { id: 3, x: 880, y: 235, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
-        { id: 4, x: 1070, y: 180, w: 26, h: 24, type: 'laptop', collected: false },
-        { id: 5, x: 1550, y: 225, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
-        { id: 6, x: 1770, y: 160, w: 28, h: 22, type: 'ram', collected: false },
-        { id: 7, x: 2450, y: 235, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
-        { id: 8, x: 2700, y: 185, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 3 },
-        { id: 9, x: 3330, y: 230, w: 28, h: 22, type: 'ram', collected: false },
-        { id: 10, x: 3570, y: 170, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
-        { id: 11, x: 4330, y: 240, w: 26, h: 24, type: 'laptop', collected: false },
-        { id: 12, x: 4570, y: 190, w: 28, h: 22, type: 'ram', collected: false },
-        { id: 13, x: 5300, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 1, x: 220, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 2, x: 540, y: 255, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 3, x: 830, y: 125, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 4, x: 1200, y: 215, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 5, x: 1400, y: 145, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 6, x: 1630, y: 195, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 7, x: 2740, y: 205, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
+        { id: 8, x: 2940, y: 145, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 3 },
+        { id: 9, x: 3550, y: 205, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 10, x: 3770, y: 135, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 11, x: 4400, y: 245, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 12, x: 4600, y: 165, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 13, x: 5350, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
       ],
       obstacles: [
-        { id: 1, x: 450, y: 365, w: 60, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 2, x: 750, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2, minX: 700, maxX: 1200, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 3, x: 1400, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 4, x: 1600, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2.2, minX: 1400, maxX: 1850, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 5, x: 1900, y: 200, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 150, maxY: 330, yDir: 1, destroyed: false },
-        { id: 6, x: 2350, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 7, x: 2550, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.4, minX: 2300, maxX: 2900, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 8, x: 3200, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 9, x: 3400, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2, minX: 3150, maxX: 3700, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 10, x: 3800, y: 200, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 150, maxY: 330, yDir: 1, destroyed: false },
-        { id: 11, x: 4200, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 12, x: 4400, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.5, minX: 4150, maxX: 4750, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 13, x: 5300, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2.8, minX: 5100, maxX: 5700, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 1, x: 320, y: 365, w: 60, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 2, x: 1100, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.2, minX: 1000, maxX: 1500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 3, x: 1350, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 4, x: 2000, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2.4, minX: 1850, maxX: 2380, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 5, x: 2800, y: 170, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 110, maxY: 270, yDir: 1, destroyed: false },
+        { id: 6, x: 3450, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 7, x: 3650, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.5, minX: 3350, maxX: 3950, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 8, x: 4300, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4500, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2.3, minX: 4200, maxX: 4800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 10, x: 4650, y: 160, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
+        { id: 11, x: 5300, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 12, x: 5500, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.6, minX: 5200, maxX: 5800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 13, x: 5850, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2.8, minX: 5600, maxX: 6050, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
       schoolGateX: 6100,
+    };
+  }
+
+  if (stageNum === 4) {
+    // Stage 4: Menuju Kota Ciamis (Alun-Alun & Monumen Bunga Rafflesia - 220m)
+    return {
+      player: {
+        x: 100,
+        y: 300,
+        width: 32,
+        height: 48,
+        vx: 0,
+        vy: 0,
+        isGrounded: false,
+        direction: 'right' as 'left' | 'right',
+        invulnerableFrames: 0,
+        superPowerFrames: 0,
+        keyboardGunFrames: 0,
+        shootCooldown: 0,
+        animFrame: 0,
+      },
+      bullets: [] as Array<{ x: number; y: number; vx: number; w: number; h: number }>,
+      cameraX: 0,
+      worldWidth: 7200,
+      platforms: [
+        { x: 0, y: 380, w: 500, h: 100, type: 'ground' },
+        { x: 550, y: 300, w: 120, h: 20, type: 'platform' },
+        { x: 720, y: 220, w: 140, h: 20, type: 'platform' },
+        { x: 900, y: 160, w: 140, h: 20, type: 'platform' },
+        { x: 1100, y: 380, w: 650, h: 100, type: 'ground' },
+        { x: 1300, y: 270, w: 150, h: 20, type: 'platform' },
+        { x: 1520, y: 200, w: 150, h: 20, type: 'platform' },
+        { x: 1800, y: 380, w: 700, h: 100, type: 'ground' },
+        { x: 2000, y: 280, w: 160, h: 20, type: 'platform' },
+        { x: 2250, y: 210, w: 160, h: 20, type: 'platform' },
+        { x: 2550, y: 150, w: 160, h: 20, type: 'platform' },
+        { x: 2800, y: 380, w: 750, h: 100, type: 'ground' },
+        { x: 3000, y: 280, w: 140, h: 20, type: 'platform' },
+        { x: 3200, y: 210, w: 140, h: 20, type: 'platform' },
+        { x: 3400, y: 270, w: 140, h: 20, type: 'platform' },
+        { x: 3650, y: 380, w: 700, h: 100, type: 'ground' },
+        { x: 3850, y: 260, w: 150, h: 20, type: 'platform' },
+        { x: 4100, y: 190, w: 150, h: 20, type: 'platform' },
+        { x: 4350, y: 250, w: 150, h: 20, type: 'platform' },
+        { x: 4600, y: 380, w: 750, h: 100, type: 'ground' },
+        { x: 4800, y: 280, w: 140, h: 20, type: 'platform' },
+        { x: 5020, y: 200, w: 140, h: 20, type: 'platform' },
+        { x: 5250, y: 150, w: 140, h: 20, type: 'platform' },
+        { x: 5500, y: 380, w: 1700, h: 100, type: 'ground' }
+      ],
+      items: [
+        { id: 1, x: 220, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 2, x: 580, y: 255, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 3, x: 930, y: 115, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 4, x: 1350, y: 225, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 5, x: 1560, y: 155, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 6, x: 2050, y: 235, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 7, x: 2300, y: 165, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
+        { id: 8, x: 2590, y: 105, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 3 },
+        { id: 9, x: 3050, y: 235, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 10, x: 3250, y: 165, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 11, x: 3900, y: 215, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 12, x: 4150, y: 145, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 13, x: 4850, y: 235, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 14, x: 5700, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
+      ],
+      obstacles: [
+        { id: 1, x: 350, y: 365, w: 60, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 2, x: 1250, y: 342, w: 38, h: 36, type: 'computer_evil', vx: 2, minX: 1150, maxX: 1650, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 3, x: 1450, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 4, x: 1950, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2.3, minX: 1820, maxX: 2380, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 5, x: 2600, y: 160, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
+        { id: 6, x: 3100, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 7, x: 3350, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.5, minX: 3000, maxX: 3600, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 8, x: 3800, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4200, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2.4, minX: 3850, maxX: 4500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 10, x: 4400, y: 160, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
+        { id: 11, x: 4900, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 12, x: 5200, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.8, minX: 4800, maxX: 5450, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 13, x: 5800, y: 342, w: 38, h: 36, type: 'computer_evil', vx: -3, minX: 5550, maxX: 6300, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      ],
+      schoolGateX: 6800,
     };
   }
 
@@ -2608,6 +2715,182 @@ function drawTempatWisata(ctx: CanvasRenderingContext2D, x: number, groundY: num
   ctx.restore();
 }
 
+// 5. ALUN-ALUN KOTA CIAMIS (Monumen Bunga Rafflesia & Taman Kota Ciamis)
+function drawAlunAlunCiamis(ctx: CanvasRenderingContext2D, x: number, groundY: number, animFrame: number) {
+  if (x < -500 || x > 950) return;
+  ctx.save();
+
+  // Alun-Alun Plaza Base & Patterned Stone Tiles
+  const plazaX = x + 20;
+  const plazaW = 340;
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(plazaX - 20, groundY - 14, plazaW + 40, 14);
+  ctx.fillStyle = '#0f172a';
+  for (let tile = 0; tile < 12; tile++) {
+    ctx.fillRect(plazaX - 15 + tile * 30, groundY - 5, 16, 4);
+  }
+
+  // Dual Grand Entrance Pillars with Priangan Batik Motif
+  const pillarL = plazaX + 10;
+  const pillarR = plazaX + plazaW - 40;
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(pillarL, groundY - 120, 30, 120);
+  ctx.fillRect(pillarR, groundY - 120, 30, 120);
+
+  // Pillar Gold Tops & Base
+  ctx.fillStyle = '#facc15';
+  ctx.fillRect(pillarL - 4, groundY - 128, 38, 8);
+  ctx.fillRect(pillarR - 4, groundY - 128, 38, 8);
+  ctx.fillRect(pillarL - 2, groundY - 8, 34, 8);
+  ctx.fillRect(pillarR - 2, groundY - 8, 34, 8);
+
+  // Batik Gold Pattern Accent on Pillars
+  ctx.strokeStyle = '#ca8a04';
+  ctx.lineWidth = 1.5;
+  for (let py = groundY - 110; py < groundY - 20; py += 18) {
+    ctx.strokeRect(pillarL + 6, py, 18, 12);
+    ctx.strokeRect(pillarR + 6, py, 18, 12);
+  }
+
+  // Overhead Arch Signboard: "ALUN-ALUN KOTA CIAMIS"
+  const archX = pillarL + 15;
+  const archW = pillarR - pillarL;
+  ctx.fillStyle = '#065f46';
+  ctx.fillRect(archX - 10, groundY - 148, archW, 30);
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(archX - 10, groundY - 148, archW, 30);
+
+  ctx.fillStyle = '#facc15';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillText('🏛️ ALUN-ALUN KOTA CIAMIS', archX + 18, groundY - 132);
+  ctx.fillStyle = '#6ee7b7';
+  ctx.font = 'bold 8px sans-serif';
+  ctx.fillText('MONUMEN RAFFLESIA & TAMAN EDUTAINMENT CIAMIS', archX + 12, groundY - 121);
+
+  // Animated Water Fountains on Left & Right Lawn
+  const fountainL = plazaX + 55;
+  const fountainR = plazaX + plazaW - 85;
+  [fountainL, fountainR].forEach((fx, idx) => {
+    // Basin
+    ctx.fillStyle = '#0284c7';
+    ctx.beginPath();
+    ctx.ellipse(fx, groundY - 8, 26, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Water Jets
+    ctx.strokeStyle = '#7dd3fc';
+    ctx.lineWidth = 2;
+    for (let j = -2; j <= 2; j++) {
+      const sprayH = 22 + Math.sin(animFrame * 4 + j + idx) * 5;
+      ctx.beginPath();
+      ctx.moveTo(fx, groundY - 8);
+      ctx.quadraticCurveTo(fx + j * 6, groundY - 8 - sprayH, fx + j * 10, groundY - 8);
+      ctx.stroke();
+    }
+  });
+
+  // Centerpiece Monument: Giant Rafflesia Arnoldii Flower Statue
+  const monX = plazaX + plazaW / 2;
+  const monY = groundY - 24;
+
+  // Octagonal Pedestal Base
+  ctx.fillStyle = '#475569';
+  ctx.beginPath();
+  ctx.moveTo(monX - 45, groundY);
+  ctx.lineTo(monX - 35, monY);
+  ctx.lineTo(monX + 35, monY);
+  ctx.lineTo(monX + 45, groundY);
+  ctx.closePath();
+  ctx.fill();
+
+  // Pedestal Plaque
+  ctx.fillStyle = '#b45309';
+  ctx.fillRect(monX - 30, monY + 6, 60, 12);
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(monX - 30, monY + 6, 60, 12);
+  ctx.fillStyle = '#fef08a';
+  ctx.font = 'bold 6.5px sans-serif';
+  ctx.fillText('BUNGA RAFFLESIA', monX - 26, monY + 14);
+
+  // GIANT RAFFLESIA FLOWER STATUE
+  const flowerY = monY - 35;
+
+  // 5 Large Mottled Red Petals
+  ctx.save();
+  ctx.translate(monX, flowerY);
+  const petalColor = '#be123c';
+  const spotColor = '#fecdd3';
+
+  for (let p = 0; p < 5; p++) {
+    const angle = (p * Math.PI * 2) / 5 - Math.PI / 2;
+    ctx.save();
+    ctx.rotate(angle);
+
+    // Petal Body
+    ctx.fillStyle = petalColor;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(-22, -32, 0, -42);
+    ctx.quadraticCurveTo(22, -32, 0, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#881337';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // White/Pink Mottled Spots on Petal
+    ctx.fillStyle = spotColor;
+    ctx.beginPath();
+    ctx.arc(0, -26, 4, 0, Math.PI * 2);
+    ctx.arc(-8, -18, 3, 0, Math.PI * 2);
+    ctx.arc(7, -18, 3.5, 0, Math.PI * 2);
+    ctx.arc(-4, -34, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // Central Cup / Disc
+  ctx.fillStyle = '#9f1239';
+  ctx.beginPath();
+  ctx.arc(0, 0, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#fda4af';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Central Opening Deep Well
+  ctx.fillStyle = '#4c0519';
+  ctx.beginPath();
+  ctx.arc(0, 0, 10, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Golden Spikes / Stamens inside Cup
+  ctx.fillStyle = '#facc15';
+  for (let s = 0; s < 6; s++) {
+    const sAngle = (s * Math.PI * 2) / 6;
+    ctx.beginPath();
+    ctx.arc(Math.cos(sAngle) * 6, Math.sin(sAngle) * 6, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Garden Shrubs around Monument
+  ctx.fillStyle = '#15803d';
+  for (let sh = 0; sh < 6; sh++) {
+    ctx.beginPath();
+    ctx.arc(monX - 40 + sh * 16, groundY - 4, 7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
 function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boolean; currentStudent: any; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const poseImagesRef = useRef<(HTMLImageElement | null)[]>([]);
@@ -2662,15 +2945,19 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     });
   }, []);
 
-  const [currentStage, setCurrentStage] = useState<1 | 2 | 3>(1);
+  const [currentStage, setCurrentStage] = useState<1 | 2 | 3 | 4>(1);
   const [gameState, setGameState] = useState<'start' | 'playing' | 'win' | 'gameover'>('start');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [distanceRemaining, setDistanceRemaining] = useState(175);
   const [superPowerActive, setSuperPowerActive] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  const gameContainerRef = useRef<HTMLDivElement | null>(null);
+  const usedQuizQuestionIndicesRef = useRef<Set<number>>(new Set());
 
   // Firestore Config for Stage Materi
-  const [stageConfigs, setStageConfigs] = useState<{ stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string }>({});
+  const [stageConfigs, setStageConfigs] = useState<{ stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string }>({});
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'game_configs', 'petualangan-smp'), (snapshot) => {
@@ -2684,12 +2971,52 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
   const getActiveMateriIdForStage = (stageNum: number) => {
     if (stageNum === 1) return stageConfigs.stage1MateriId || 'bk-dekomposisi';
     if (stageNum === 2) return stageConfigs.stage2MateriId || 'bk-pengenalan-pola';
-    return stageConfigs.stage3MateriId || 'scratch';
+    if (stageNum === 3) return stageConfigs.stage3MateriId || 'scratch';
+    return stageConfigs.stage4MateriId || 'bk-algoritma';
   };
 
   const currentMateriId = getActiveMateriIdForStage(currentStage);
   const activeCourseObj = COURSES.find(c => c.id === currentMateriId);
   const stageQuizzes = getQuizForMateri(currentMateriId);
+
+  // Master Reward Pool Definitions
+  const MASTER_REWARDS = [
+    {
+      type: 'heart' as const,
+      title: '+1 Nyawa',
+      desc: 'Tambah 1 hati',
+      icon: '💖',
+      bg: 'from-slate-800 to-rose-950/80 hover:to-rose-900 border-rose-500/50 hover:border-rose-400',
+      iconBg: 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+    },
+    {
+      type: 'keyboard_gun' as const,
+      title: 'Pistol Keyboard',
+      desc: 'Tembak (15 dtk)',
+      icon: '⌨️',
+      bg: 'from-slate-800 to-sky-950/80 hover:to-sky-900 border-sky-500/50 hover:border-sky-400',
+      iconBg: 'bg-sky-500/20 text-sky-400 border-sky-500/40'
+    },
+    {
+      type: 'power' as const,
+      title: 'Super Kuat',
+      desc: 'Kebal 7.5 dtk',
+      icon: '⚡',
+      bg: 'from-slate-800 to-amber-950/80 hover:to-amber-900 border-amber-500/50 hover:border-amber-400',
+      iconBg: 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+    },
+    {
+      type: 'score' as const,
+      title: '+250 Poin',
+      desc: 'Bonus poin',
+      icon: '⭐',
+      bg: 'from-slate-800 to-emerald-950/80 hover:to-emerald-900 border-emerald-500/50 hover:border-emerald-400',
+      iconBg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+    }
+  ];
+
+  // Dynamic reward items offered to player (1, 2, or 3 items)
+  const [availableRewards, setAvailableRewards] = useState<typeof MASTER_REWARDS>([]);
 
   // Mystery Box Quiz State
   const [activeQuiz, setActiveQuiz] = useState<{
@@ -2713,12 +3040,30 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     engineRef.current = generateStageEngine(stageNum);
   };
 
+  const toggleFullScreen = () => {
+    if (!gameContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      gameContainerRef.current.requestFullscreen().then(() => {
+        setIsFullScreen(true);
+      }).catch(err => {
+        console.error("Fullscreen request failed", err);
+        setIsFullScreen(prev => !prev);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullScreen(false);
+      }).catch(err => {
+        setIsFullScreen(false);
+      });
+    }
+  };
+
   const startGame = (stageNum: number = currentStage) => {
     setCurrentStage(stageNum as any);
     resetEngineForStage(stageNum);
     setScore(s => (gameState === 'win' ? s : 0)); // accumulate score across stages or start fresh
     setLives(3);
-    const initialDist = stageNum === 1 ? 175 : stageNum === 2 ? 190 : 200;
+    const initialDist = stageNum === 1 ? 175 : stageNum === 2 ? 190 : stageNum === 3 ? 200 : 220;
     setDistanceRemaining(initialDist);
     setActiveQuiz(null);
     setQuizFeedback(null);
@@ -2747,6 +3092,26 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     }
   };
 
+  // Helper function to trigger non-repeating quiz selection
+  const triggerMysteryBoxQuiz = () => {
+    if (stageQuizzes.length === 0) return;
+
+    // Filter available indices not used yet
+    let availableIndices = stageQuizzes
+      .map((_, idx) => idx)
+      .filter(idx => !usedQuizQuestionIndicesRef.current.has(idx));
+
+    // If all questions were used, clear the tracking set to refresh pool
+    if (availableIndices.length === 0) {
+      usedQuizQuestionIndicesRef.current.clear();
+      availableIndices = stageQuizzes.map((_, idx) => idx);
+    }
+
+    const randomChosenIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+    usedQuizQuestionIndicesRef.current.add(randomChosenIndex);
+    setActiveQuiz(stageQuizzes[randomChosenIndex]);
+  };
+
   const handleQuizAnswer = (selectedIdx: number) => {
     if (!activeQuiz) return;
     const isCorrect = selectedIdx === activeQuiz.correctIdx;
@@ -2754,9 +3119,16 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     if (isCorrect) {
       setScore(s => s + 100);
       setQuizFeedback({
-        msg: "🎉 JAWABAN BENAR! Silakan pilih 1 Hadiah Spesial untuk membantu petualanganmu!",
+        msg: "🎉 JAWABAN BENAR! Silakan pilih Hadiah Spesial untuk membantu petualanganmu!",
         isCorrect: true
       });
+
+      // Sample 1, 2, or 3 random rewards from MASTER_REWARDS
+      const rewardCount = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3 items
+      const shuffled = [...MASTER_REWARDS].sort(() => Math.random() - 0.5);
+      const chosenRewards = shuffled.slice(0, rewardCount);
+      setAvailableRewards(chosenRewards);
+
       setShowRewardPicker(true);
     } else {
       setQuizFeedback({
@@ -2988,9 +3360,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
             } else if (item.type === 'laptop') {
               setScore(s => s + 50);
             } else if (item.type === 'mystery_box') {
-              const qIdx = item.quizIdx ?? 0;
-              const qObj = stageQuizzes[qIdx % stageQuizzes.length];
-              setActiveQuiz(qObj);
+              triggerMysteryBoxQuiz();
             }
           }
         }
@@ -3050,11 +3420,22 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         return;
       }
 
+      // Dynamically adjust internal canvas pixel resolution for ultra-sharp full-screen & high-DPI rendering
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const targetW = Math.max(800, Math.floor((rect.width || 800) * dpr));
+      const targetH = Math.max(420, Math.floor((rect.height || 420) * dpr));
+
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
+
       const targetCamX = p.x - 300;
       engine.cameraX += (targetCamX - engine.cameraX) * 0.1;
       if (engine.cameraX < 0) engine.cameraX = 0;
-      if (engine.cameraX > engine.worldWidth - canvas.width) {
-        engine.cameraX = engine.worldWidth - canvas.width;
+      if (engine.cameraX > engine.worldWidth - 800) {
+        engine.cameraX = engine.worldWidth - 800;
       }
 
       const camX = engine.cameraX;
@@ -3062,16 +3443,21 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       // Clear Canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      ctx.save();
+      ctx.scale(canvas.width / 800, canvas.height / 420);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
       // Render Backdrop per Stage
       if (currentStage === 2) {
         // Stage 2: Sunset Forest & Bumi Perkemahan
-        const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, 420);
         skyGradient.addColorStop(0, '#431407');
         skyGradient.addColorStop(0.35, '#7c2d12');
         skyGradient.addColorStop(0.7, '#ea580c');
         skyGradient.addColorStop(1, '#fde047');
         ctx.fillStyle = skyGradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, 800, 420);
 
         // Crescent Moon & Stars
         ctx.fillStyle = '#fef08a';
@@ -3158,13 +3544,13 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
       } else if (currentStage === 3) {
         // Stage 3: Museum Wisata Edukasi Cyber Night Sky
-        const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, 420);
         skyGradient.addColorStop(0, '#09090b');
         skyGradient.addColorStop(0.4, '#1e1b4b');
         skyGradient.addColorStop(0.8, '#1e3a8a');
         skyGradient.addColorStop(1, '#0284c7');
         ctx.fillStyle = skyGradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, 800, 420);
 
         // Twinkling Space Stars
         ctx.fillStyle = '#ffffff';
@@ -3201,15 +3587,54 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           }
         }
 
+      } else if (currentStage === 4) {
+        // Stage 4: Sunset Sky & Mount Sawal Priangan over Alun-Alun Ciamis
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, 420);
+        skyGradient.addColorStop(0, '#31103f');
+        skyGradient.addColorStop(0.35, '#701a75');
+        skyGradient.addColorStop(0.7, '#c026d3');
+        skyGradient.addColorStop(1, '#fef08a');
+        ctx.fillStyle = skyGradient;
+        ctx.fillRect(0, 0, 800, 420);
+
+        // Evening Stars
+        ctx.fillStyle = '#ffffff';
+        const stars = [[100, 30], [250, 50], [420, 25], [600, 60], [780, 35]];
+        for (const [sx, sy] of stars) {
+          const starGlow = (Math.sin(p.animFrame * 2 + sx) + 1) * 0.8 + 1;
+          ctx.beginPath();
+          ctx.arc(sx, sy, starGlow, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Mount Sawal Silhouette in Background
+        ctx.fillStyle = '#4c1d95';
+        ctx.beginPath();
+        for (let m = 0; m < 5; m++) {
+          const mx = m * 350 - camX * 0.15;
+          ctx.moveTo(mx - 100, 360);
+          ctx.lineTo(mx + 90, 190);
+          ctx.lineTo(mx + 260, 360);
+        }
+        ctx.fill();
+
+        // Priangan City Silhouette
+        ctx.fillStyle = '#581c87';
+        for (let i = 0; i < 10; i++) {
+          const bX = i * 280 + 40 - camX * 0.35;
+          const bH = 100 + (i % 4) * 25;
+          ctx.fillRect(bX, 360 - bH, 70, bH);
+        }
+
       } else {
         // Stage 1: Home to School Bright Morning Sky
-        const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, 420);
         skyGradient.addColorStop(0, '#0284c7');
         skyGradient.addColorStop(0.35, '#38bdf8');
         skyGradient.addColorStop(0.75, '#bae6fd');
         skyGradient.addColorStop(1, '#f0fdf4');
         ctx.fillStyle = skyGradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, 800, 420);
 
         // Morning Sun with Warm Glow
         ctx.fillStyle = 'rgba(254, 240, 138, 0.3)';
@@ -3563,14 +3988,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       // Stage 1: SMPN 1 KAWALI (Sekolah)
       // Stage 2: BUMI PERKEMAHAN PRAMUKA (Tempat Kemah)
       // Stage 3: MUSEUM WISATA SAINS & TEKNOLOGI (Tempat Wisata)
+      // Stage 4: ALUN-ALUN KOTA CIAMIS (Monumen Bunga Rafflesia)
       const gateX = engine.schoolGateX - camX;
-      if (gateX > -400 && gateX < canvas.width + 400) {
+      if (gateX > -500 && gateX < canvas.width + 500) {
         if (currentStage === 1) {
           drawSekolah(ctx, gateX - 25, 380, p.animFrame, false, 'GERBANG KEDATANGAN UTAMA');
         } else if (currentStage === 2) {
           drawTempatKemah(ctx, gateX - 45, 380, p.animFrame);
-        } else {
+        } else if (currentStage === 3) {
           drawTempatWisata(ctx, gateX - 55, 380, p.animFrame);
+        } else {
+          drawAlunAlunCiamis(ctx, gateX - 65, 380, p.animFrame);
         }
       }
 
@@ -3638,8 +4066,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
         let activeImg: HTMLImageElement | null = null;
 
-        if ((isShootingWithKeyboard || p.superPowerFrames > 0) && poseImagesRef.current[7]) {
-          activeImg = poseImagesRef.current[7]; // Pose menembak (index 7) hanya saat menembak & punya item
+        if (isShootingWithKeyboard && poseImagesRef.current[7]) {
+          activeImg = poseImagesRef.current[7]; // Pose menembak (index 7) hanya saat menembak dengan pistol keyboard
         } else if (isJumping) {
           // Loncat 3 pose: index 4, 5, 6
           const jumpPoseIdx = p.vy < 0 ? 4 : p.vy > 2 ? 6 : 5;
@@ -3654,12 +4082,20 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         }
 
         if (activeImg && activeImg.complete) {
+          const naturalW = activeImg.naturalWidth || 400;
+          const naturalH = activeImg.naturalHeight || 400;
+          const aspect = naturalW / naturalH;
+          const drawH = 58;
+          const drawW = drawH * aspect;
+          const drawX = px + (p.width - drawW) / 2;
+          const drawY = py + p.height - drawH + 2; // Align feet exactly to platform top
+
           ctx.save();
           if (p.direction === 'left') {
             ctx.scale(-1, 1);
-            ctx.drawImage(activeImg, 0, 0, activeImg.naturalWidth || 400, activeImg.naturalHeight || 400, -(px + p.width + 16), py - 16, p.width + 32, p.height + 32);
+            ctx.drawImage(activeImg, 0, 0, naturalW, naturalH, -(drawX + drawW), drawY, drawW, drawH);
           } else {
-            ctx.drawImage(activeImg, 0, 0, activeImg.naturalWidth || 400, activeImg.naturalHeight || 400, px - 16, py - 16, p.width + 32, p.height + 32);
+            ctx.drawImage(activeImg, 0, 0, naturalW, naturalH, drawX, drawY, drawW, drawH);
           }
           ctx.restore();
         } else {
@@ -3671,6 +4107,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         ctx.restore();
       }
 
+      ctx.restore();
+
       animationFrameId = requestAnimationFrame(gameLoop);
     };
 
@@ -3679,14 +4117,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
   }, [gameState, activeQuiz, currentStage]);
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto font-sans">
+    <div ref={gameContainerRef} className={cn(
+      "space-y-3 font-sans transition-all duration-300",
+      isFullScreen ? "fixed inset-0 z-[9999] bg-slate-950 p-2 md:p-4 w-screen h-screen overflow-hidden flex flex-col justify-between" : "max-w-4xl mx-auto"
+    )}>
       {/* HUD Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900 text-white p-4 rounded-2xl border border-slate-800 shadow-md gap-3">
-        <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900 text-white p-3 md:p-4 rounded-2xl border border-slate-800 shadow-md gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {/* Stage Badge */}
           <div className="px-3 py-1 bg-brand text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
             <span>Stage {currentStage}:</span>
-            <span>{currentStage === 1 ? 'Berangkat Sekolah' : currentStage === 2 ? 'Kegiatan Pramuka' : 'Study Tour Edukasi'}</span>
+            <span>{currentStage === 1 ? 'Berangkat Sekolah' : currentStage === 2 ? 'Kegiatan Pramuka' : currentStage === 3 ? 'Study Tour Edukasi' : 'Menuju Kota Ciamis'}</span>
           </div>
 
           <div className="flex items-center gap-1 font-black text-rose-500 text-base">
@@ -3698,7 +4139,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           </div>
 
           <div className="text-xs font-bold text-slate-300">
-            Jarak: <span className="text-amber-400 font-mono font-black text-sm">{distanceRemaining}m</span> ke {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan' : 'Museum Wisata'}
+            Jarak: <span className="text-amber-400 font-mono font-black text-sm">{distanceRemaining}m</span> ke {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan' : currentStage === 3 ? 'Museum Wisata' : 'Alun-Alun Ciamis'}
           </div>
 
           {superPowerActive && (
@@ -3714,10 +4155,21 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           )}
         </div>
 
-        <div className="flex items-center gap-3 ml-auto sm:ml-0">
+        <div className="flex items-center gap-2 ml-auto sm:ml-0">
           <div className="px-3.5 py-1.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-black rounded-xl">
             Skor: {score}
           </div>
+
+          {/* Layar Penuh Toggle Button */}
+          <button
+            onClick={toggleFullScreen}
+            className="p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-xl transition-all active:scale-95 flex items-center gap-1 text-xs font-black"
+            title={isFullScreen ? "Keluar Layar Penuh" : "Mode Layar Penuh (Fullscreen)"}
+          >
+            {isFullScreen ? <Minimize size={18} /> : <Maximize size={18} />}
+            <span className="hidden md:inline">{isFullScreen ? "Kecilkan" : "Layar Penuh"}</span>
+          </button>
+
           <button
             onClick={onClose}
             className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors"
@@ -3728,31 +4180,34 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       </div>
 
       {/* Main Canvas Viewport */}
-      <div className="relative rounded-3xl overflow-hidden border-4 border-slate-900 bg-sky-200 shadow-2xl flex flex-col items-center justify-center">
+      <div className={cn(
+        "relative rounded-3xl overflow-hidden border-4 border-slate-900 bg-sky-200 shadow-2xl flex flex-col items-center justify-center transition-all",
+        isFullScreen ? "flex-1 w-full" : "h-[360px] md:h-[420px]"
+      )}>
         <canvas
           ref={canvasRef}
           width={800}
           height={420}
-          className="w-full h-[360px] md:h-[420px] object-cover bg-sky-200"
+          className="w-full h-full object-cover bg-sky-200"
         />
 
         {/* Start Overlay & Stage Selector */}
         {gameState === 'start' && (
-          <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 text-white space-y-4">
+          <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 text-white space-y-4 z-40 overflow-y-auto">
             <div className="w-16 h-16 bg-brand rounded-2xl flex items-center justify-center shadow-lg text-3xl animate-bounce">
               🎒
             </div>
-            <h2 className="text-2xl md:text-3xl font-black tracking-tight">Petualangan Ke Sekolah & Wisata Edukasi</h2>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight">Petualangan Ke Sekolah & Kota Ciamis</h2>
             <p className="text-xs text-slate-300 max-w-md font-medium leading-relaxed">
               Pilih Stage petualangan kamu! Kumpulkan RAM & Laptop, serta jawab Kuis Kotak Emas dari materi <strong className="text-amber-300">{activeCourseObj?.title || 'Informatika'}</strong>!
             </p>
 
             {/* Stage Selector Tabs */}
-            <div className="flex items-center gap-2 p-1.5 bg-slate-800/90 border border-slate-700 rounded-2xl max-w-lg w-full justify-center flex-wrap">
+            <div className="flex items-center gap-2 p-1.5 bg-slate-800/90 border border-slate-700 rounded-2xl max-w-2xl w-full justify-center flex-wrap">
               <button
                 onClick={() => startGame(1)}
                 className={cn(
-                  "px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5",
+                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1",
                   currentStage === 1 ? "bg-brand text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700"
                 )}
               >
@@ -3762,7 +4217,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               <button
                 onClick={() => startGame(2)}
                 className={cn(
-                  "px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5",
+                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1",
                   currentStage === 2 ? "bg-amber-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700"
                 )}
               >
@@ -3772,12 +4227,22 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               <button
                 onClick={() => startGame(3)}
                 className={cn(
-                  "px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5",
+                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1",
                   currentStage === 3 ? "bg-indigo-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700"
                 )}
               >
                 <span>🏛️ Stage 3</span>
                 <span className="text-[10px] opacity-80">(200m)</span>
+              </button>
+              <button
+                onClick={() => startGame(4)}
+                className={cn(
+                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1",
+                  currentStage === 4 ? "bg-emerald-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700"
+                )}
+              >
+                <span>🌺 Stage 4</span>
+                <span className="text-[10px] opacity-80">(220m)</span>
               </button>
             </div>
 
@@ -3785,23 +4250,23 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               <p className="font-black text-amber-400 uppercase tracking-wider text-[11px]">🎯 Informasi Stage {currentStage}:</p>
               <p className="text-[11px] font-semibold">
                 • <strong>Kuis Materi:</strong> {activeCourseObj?.title || 'Informatika'}<br/>
-                • <strong>Seragam:</strong> {currentStage === 1 ? 'Baju Putih Celana Biru SMP' : currentStage === 2 ? 'Seragam Pramuka Cokelat Kacu' : 'Jaket Study Tour Almamater'}<br/>
-                • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat' : currentStage === 2 ? 'Telepon Jahat Bergigi & Kaki' : 'Keyboard Terbakar Bergigi & Tangan'}
+                • <strong>Destinasi:</strong> {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan Pramuka' : currentStage === 3 ? 'Museum Wisata Sains' : 'Alun-Alun Kota Ciamis (Monumen Rafflesia)'}<br/>
+                • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat' : currentStage === 2 ? 'Telepon Jahat Bergigi' : currentStage === 3 ? 'Keyboard Terbakar Bergigi' : 'Kombinasi Monster Cyber'}
               </p>
             </div>
 
             <button
               onClick={() => startGame(currentStage)}
-              className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+              className="px-8 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base md:text-lg rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
             >
               <Play size={20} /> Mulai Mainkan Stage {currentStage}!
             </button>
           </div>
         )}
 
-        {/* Interactive Mystery Box Informatika Quiz Popup & Reward Choice */}
+        {/* Interactive Mystery Box Informatika Quiz Popup & Randomized Reward Choice */}
         {activeQuiz && (
-          <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 text-white space-y-4 z-50 animate-in zoom-in-95">
+          <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 text-white space-y-4 z-50 animate-in zoom-in-95 overflow-y-auto">
             <div className="w-14 h-14 bg-amber-400 text-amber-950 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg animate-bounce">
               {showRewardPicker ? '🎁' : '❓'}
             </div>
@@ -3832,56 +4297,28 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                 ) : (
                   <>
                     <p className="text-xs font-black text-amber-300 tracking-wide uppercase">
-                      🎁 PILIH 1 HADIAH SPESIAL KAMU:
+                      🎁 PILIH HADIAH SPESIAL KAMU ({availableRewards.length} PILIHAN AVAILABLE):
                     </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                      {/* Reward Item 1: Tambah 1 Hati */}
-                      <button
-                        onClick={() => handlePickReward('heart')}
-                        className="p-3 bg-gradient-to-b from-slate-800 to-rose-950/80 hover:to-rose-900 border-2 border-rose-500/50 hover:border-rose-400 rounded-2xl flex flex-col items-center text-center space-y-1.5 transition-all hover:scale-105 active:scale-95 shadow-md group"
-                      >
-                        <div className="w-10 h-10 bg-rose-500/20 text-rose-400 border border-rose-500/40 rounded-xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                          ❤️
-                        </div>
-                        <span className="font-black text-xs text-white">+1 Hati</span>
-                        <span className="text-[10px] text-slate-300 font-medium leading-tight">Tambah nyawa</span>
-                      </button>
-
-                      {/* Reward Item 2: Pistol Keyboard */}
-                      <button
-                        onClick={() => handlePickReward('keyboard_gun')}
-                        className="p-3 bg-gradient-to-b from-slate-800 to-sky-950/80 hover:to-sky-900 border-2 border-sky-500/50 hover:border-sky-400 rounded-2xl flex flex-col items-center text-center space-y-1.5 transition-all hover:scale-105 active:scale-95 shadow-md group"
-                      >
-                        <div className="w-10 h-10 bg-sky-500/20 text-sky-400 border border-sky-500/40 rounded-xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                          ⌨️
-                        </div>
-                        <span className="font-black text-xs text-white">Pistol Keyboard</span>
-                        <span className="text-[10px] text-slate-300 font-medium leading-tight">Tembak (15 dtk)</span>
-                      </button>
-
-                      {/* Reward Item 3: Super Kuat */}
-                      <button
-                        onClick={() => handlePickReward('power')}
-                        className="p-3 bg-gradient-to-b from-slate-800 to-amber-950/80 hover:to-amber-900 border-2 border-amber-500/50 hover:border-amber-400 rounded-2xl flex flex-col items-center text-center space-y-1.5 transition-all hover:scale-105 active:scale-95 shadow-md group"
-                      >
-                        <div className="w-10 h-10 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                          ⚡
-                        </div>
-                        <span className="font-black text-xs text-white">Super Kuat</span>
-                        <span className="text-[10px] text-slate-300 font-medium leading-tight">Kebal rintangan</span>
-                      </button>
-
-                      {/* Reward Item 4: Bonus Poin */}
-                      <button
-                        onClick={() => handlePickReward('score')}
-                        className="p-3 bg-gradient-to-b from-slate-800 to-emerald-950/80 hover:to-emerald-900 border-2 border-emerald-500/50 hover:border-emerald-400 rounded-2xl flex flex-col items-center text-center space-y-1.5 transition-all hover:scale-105 active:scale-95 shadow-md group"
-                      >
-                        <div className="w-10 h-10 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                          ⭐
-                        </div>
-                        <span className="font-black text-xs text-white">+250 Poin</span>
-                        <span className="text-[10px] text-slate-300 font-medium leading-tight">Bonus poin</span>
-                      </button>
+                    <div className={cn(
+                      "grid gap-2.5 max-w-md mx-auto",
+                      availableRewards.length === 1 ? "grid-cols-1" : availableRewards.length === 2 ? "grid-cols-2" : "grid-cols-3"
+                    )}>
+                      {availableRewards.map((reward) => (
+                        <button
+                          key={reward.type}
+                          onClick={() => handlePickReward(reward.type)}
+                          className={cn(
+                            "p-3 bg-gradient-to-b border-2 rounded-2xl flex flex-col items-center text-center space-y-1.5 transition-all hover:scale-105 active:scale-95 shadow-md group cursor-pointer",
+                            reward.bg
+                          )}
+                        >
+                          <div className={cn("w-10 h-10 border rounded-xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform", reward.iconBg)}>
+                            {reward.icon}
+                          </div>
+                          <span className="font-black text-xs text-white">{reward.title}</span>
+                          <span className="text-[10px] text-slate-300 font-medium leading-tight">{reward.desc}</span>
+                        </button>
+                      ))}
                     </div>
                   </>
                 )}
@@ -3907,28 +4344,30 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
         {/* Victory Screen */}
         {gameState === 'win' && (
-          <div className="absolute inset-0 bg-emerald-950/95 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 text-white space-y-4 animate-in zoom-in-95">
+          <div className="absolute inset-0 bg-emerald-950/95 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 text-white space-y-4 animate-in zoom-in-95 z-40 overflow-y-auto">
             <div className="w-20 h-20 bg-amber-400 rounded-full flex items-center justify-center text-amber-950 text-4xl shadow-2xl animate-bounce">
               🏆
             </div>
-            <h2 className="text-3xl font-black text-amber-300">
-              {currentStage === 3 ? "JUARA PETUALANGAN EDUTAINMENT! 🎉" : `Selamat! Selesai Stage ${currentStage}! 🎉`}
+            <h2 className="text-2xl md:text-3xl font-black text-amber-300">
+              {currentStage === 4 ? "JUARA PETUALANGAN KOTA CIAMIS! 🎉" : `Selamat! Selesai Stage ${currentStage}! 🎉`}
             </h2>
-            <p className="text-sm text-emerald-200 font-bold max-w-md">
+            <p className="text-xs md:text-sm text-emerald-200 font-bold max-w-md">
               {currentStage === 1
                 ? "Kamu berhasil tiba di SMPN 1 Kawali! Lanjut ke kegiatan Pramuka?"
                 : currentStage === 2
                 ? "Kamu berhasil mencapai Bumi Perkemahan Pramuka! Lanjut ke Study Tour Edukasi?"
-                : "Selamat! Kamu telah menuntaskan seluruh 3 Stage Petualangan Edukasi Informatika!"}
+                : currentStage === 3
+                ? "Kamu berhasil mencapai Museum Wisata Sains! Lanjut ke Petualangan Kota Ciamis?"
+                : "Selamat! Kamu telah menuntaskan seluruh 4 Stage Petualangan Edukasi Informatika!"}
             </p>
 
             <div className="bg-emerald-900/80 border border-emerald-700 p-4 rounded-2xl">
               <span className="text-xs text-emerald-300 uppercase font-black tracking-widest block">Total Skor Terkumpul:</span>
-              <span className="text-5xl font-black text-amber-400">{score}</span>
+              <span className="text-4xl md:text-5xl font-black text-amber-400">{score}</span>
             </div>
 
             <div className="flex gap-3 flex-wrap justify-center pt-2">
-              {currentStage < 3 ? (
+              {currentStage < 4 ? (
                 <button
                   onClick={() => startGame(currentStage + 1 as any)}
                   className="px-8 py-3.5 bg-amber-400 text-amber-950 font-black rounded-2xl text-sm hover:bg-amber-300 transition-all shadow-xl animate-pulse"
@@ -3956,7 +4395,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
         {/* Game Over Screen */}
         {gameState === 'gameover' && (
-          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 text-white space-y-4 animate-in zoom-in-95">
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 text-white space-y-4 animate-in zoom-in-95 z-40">
             <div className="w-16 h-16 bg-rose-500/20 text-rose-500 border border-rose-500/40 rounded-full flex items-center justify-center text-3xl">
               ⚠️
             </div>
@@ -3979,14 +4418,14 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       </div>
 
       {/* Touch & On-Screen Controls */}
-      <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4">
+      <div className="bg-slate-900 p-3 md:p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-3">
           <button
             onMouseDown={() => (keysRef.current.left = true)}
             onMouseUp={() => (keysRef.current.left = false)}
             onTouchStart={() => (keysRef.current.left = true)}
             onTouchEnd={() => (keysRef.current.left = false)}
-            className="w-16 h-14 bg-slate-800 hover:bg-slate-700 active:bg-brand text-white font-black text-xl rounded-2xl border border-slate-700 flex items-center justify-center shadow-lg active:scale-95 transition-transform select-none"
+            className="w-14 h-12 md:w-16 md:h-14 bg-slate-800 hover:bg-slate-700 active:bg-brand text-white font-black text-xl rounded-2xl border border-slate-700 flex items-center justify-center shadow-lg active:scale-95 transition-transform select-none"
           >
             ◀
           </button>
@@ -3995,7 +4434,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
             onMouseUp={() => (keysRef.current.right = false)}
             onTouchStart={() => (keysRef.current.right = true)}
             onTouchEnd={() => (keysRef.current.right = false)}
-            className="w-16 h-14 bg-slate-800 hover:bg-slate-700 active:bg-brand text-white font-black text-xl rounded-2xl border border-slate-700 flex items-center justify-center shadow-lg active:scale-95 transition-transform select-none"
+            className="w-14 h-12 md:w-16 md:h-14 bg-slate-800 hover:bg-slate-700 active:bg-brand text-white font-black text-xl rounded-2xl border border-slate-700 flex items-center justify-center shadow-lg active:scale-95 transition-transform select-none"
           >
             ▶
           </button>
@@ -4015,7 +4454,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               onMouseUp={() => (keysRef.current.shoot = false)}
               onTouchStart={() => (keysRef.current.shoot = true)}
               onTouchEnd={() => (keysRef.current.shoot = false)}
-              className="w-24 h-14 bg-sky-600 hover:bg-sky-500 active:bg-sky-400 text-white font-black text-xs rounded-2xl border border-sky-400 flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform select-none animate-pulse"
+              className="w-20 md:w-24 h-12 md:h-14 bg-sky-600 hover:bg-sky-500 active:bg-sky-400 text-white font-black text-xs rounded-2xl border border-sky-400 flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform select-none animate-pulse"
             >
               TEMBAK ⌨️
             </button>
@@ -4026,7 +4465,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
             onMouseUp={() => (keysRef.current.jump = false)}
             onTouchStart={() => (keysRef.current.jump = true)}
             onTouchEnd={() => (keysRef.current.jump = false)}
-            className="w-24 h-14 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-400 text-white font-black text-sm rounded-2xl border border-emerald-500 flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform select-none"
+            className="w-20 md:w-24 h-12 md:h-14 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-400 text-white font-black text-sm rounded-2xl border border-emerald-500 flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform select-none"
           >
             LOMPAT ▲
           </button>
