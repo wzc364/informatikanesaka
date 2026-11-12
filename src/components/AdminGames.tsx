@@ -33,7 +33,9 @@ import {
   GripVertical,
   MoveUp,
   MoveDown,
-  ChevronDown
+  ChevronDown,
+  MoveLeft,
+  MoveRight
 } from 'lucide-react';
 import { cn } from '../utils';
 import { doc, setDoc, collection, onSnapshot, deleteDoc, arrayUnion } from 'firebase/firestore';
@@ -213,12 +215,12 @@ export const GAMES_LIST: GameItem[] = [
   },
   {
     id: 'scratch-blocks',
-    title: 'Scratch Block Builder',
-    category: 'Informatika / Scratch',
-    description: 'Susun balok algoritma visual untuk mengarahkan Kucing Scratch meraih Bintang Emas!',
+    title: 'Koding Master SMP',
+    category: 'Algoritma & Pemrograman',
+    description: 'Bantu Robot mencapai Bintang Target! Susun balok perintah logika seefisien mungkin untuk menyelesaikan teka-teki labirin.',
     iconName: 'Code',
-    difficulty: 'Mudah',
-    defaultTimerSec: 60
+    difficulty: 'Sedang',
+    defaultTimerSec: 120
   },
   {
     id: 'dekomposisi-puzzle',
@@ -1008,7 +1010,7 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, onClose }: Inte
 
       {/* Modal Body: Full Viewport Game Area */}
       <div className="flex-1 w-full h-full p-2 md:p-6 overflow-y-auto bg-slate-950 flex flex-col justify-center items-center custom-scrollbar">
-        <div className="w-full max-w-5xl h-full flex flex-col justify-center my-auto">
+        <div className="w-full h-full flex flex-col justify-center my-auto">
           {gameId === 'pattern-master' && (
             <PatternMasterGame isAdmin={isAdmin} currentStudent={currentStudent} onClose={onClose} />
           )}
@@ -1188,41 +1190,112 @@ function PatternMasterGame({ isAdmin, currentStudent, onClose }: { isAdmin: bool
    Game 2: Scratch Block Builder
    ------------------------------------------------------------------------- */
 function ScratchBlocksGame({ isAdmin, currentStudent, onClose }: { isAdmin: boolean; currentStudent: any; onClose: () => void }) {
-  const availableBlocks = [
-    { id: 'flag', text: 'when green flag clicked', color: 'bg-amber-500 text-white' },
-    { id: 'move', text: 'move 10 steps', color: 'bg-blue-600 text-white' },
-    { id: 'turn', text: 'turn right 90 degrees', color: 'bg-blue-500 text-white' },
-    { id: 'repeat', text: 'repeat 4 times', color: 'bg-amber-600 text-white' },
-    { id: 'sound', text: 'start sound [Magic]', color: 'bg-purple-600 text-white' }
+  const [level, setLevel] = useState(1);
+  const [workspace, setWorkspace] = useState<string[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [robotPos, setRobotPos] = useState({ x: 0, y: 0, dir: 0 }); // dir: 0=E, 1=S, 2=W, 3=N
+  const [msg, setStepMsg] = useState('Pindahkan Robot ke Bintang dengan susunan balok!');
+  const [isWon, setIsWon] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const levels = [
+    { grid: [[0, 0, 0], [1, 1, 0], [2, 0, 0]], start: { x: 0, y: 0 }, goal: { x: 0, y: 2 } }, // 0=path, 1=wall, 2=goal
+    { grid: [[0, 0, 1], [1, 0, 0], [1, 1, 2]], start: { x: 0, y: 0 }, goal: { x: 2, y: 2 } },
+    { grid: [[0, 1, 2], [0, 1, 0], [0, 0, 0]], start: { x: 0, y: 2 }, goal: { x: 2, y: 0 } },
+    { grid: [[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 2, 0], [0, 0, 0, 0]], start: { x: 0, y: 0 }, goal: { x: 2, y: 2 } },
+    { grid: [[0, 0, 0, 0, 0], [1, 1, 1, 1, 0], [2, 0, 0, 0, 0], [0, 1, 1, 1, 1], [0, 0, 0, 0, 0]], start: { x: 0, y: 0 }, goal: { x: 0, y: 2 } },
   ];
 
-  const [workspace, setWorkspace] = useState<typeof availableBlocks>([]);
-  const [isRunning, setIsRunning] = useState(false);
-  const [stepMsg, setStepMsg] = useState('Susun balok algoritma di atas untuk memulainya!');
+  const currentLevelData = levels[level - 1] || levels[0];
 
-  const handleAdd = (block: typeof availableBlocks[0]) => {
-    setWorkspace(prev => [...prev, block]);
-  };
-
-  const handleClear = () => {
+  useEffect(() => {
+    setRobotPos({ x: currentLevelData.start.x, y: currentLevelData.start.y, dir: 0 });
+    setIsWon(false);
     setWorkspace([]);
-    setIsRunning(false);
-    setStepMsg('Workspace dibersihkan.');
-  };
+    setStepMsg(`Level ${level}: ${level === 1 ? 'Maju terus pantang mundur!' : 'Hati-hati tembok penghalang!'}`);
+  }, [level]);
 
-  const handleRun = () => {
-    if (workspace.length === 0) {
-      setStepMsg('Tambahkan balok terlebih dahulu!');
-      return;
-    }
+  useEffect(() => {
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+
+    const draw = () => {
+      const gridW = currentLevelData.grid[0].length;
+      const gridH = currentLevelData.grid.length;
+      const cellSize = Math.min(300 / gridW, 300 / gridH);
+      
+      ctx.clearRect(0, 0, 300, 300);
+      
+      // Draw Grid
+      currentLevelData.grid.forEach((row, y) => {
+        row.forEach((cell, x) => {
+          ctx.strokeStyle = '#e2e8f0';
+          ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          if (cell === 1) {
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(x * cellSize + 5, y * cellSize + 5, cellSize - 10, cellSize - 10);
+          } else if (cell === 2) {
+            ctx.font = `${cellSize * 0.4}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('⭐', x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
+          }
+        });
+      });
+
+      // Draw Robot
+      ctx.save();
+      ctx.translate(robotPos.x * cellSize + cellSize / 2, robotPos.y * cellSize + cellSize / 2);
+      ctx.rotate((robotPos.dir * 90 * Math.PI) / 180);
+      ctx.font = `${cellSize * 0.5}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🤖', 0, 0);
+      ctx.restore();
+    };
+
+    draw();
+  }, [robotPos, level]);
+
+  const runCode = async () => {
+    if (workspace.length === 0) return;
     setIsRunning(true);
-    setStepMsg('🚀 Menjalankan skrip Scratch...');
+    let cur = { ...robotPos, x: currentLevelData.start.x, y: currentLevelData.start.y, dir: 0 };
+    setRobotPos(cur);
 
-    setTimeout(() => {
-      setStepMsg('✅ Kucing Scratch berhasil bergerak dan meraih Bintang Emas! Skor +100 🎉');
-      setIsRunning(false);
-      saveScore(100);
-    }, 2000);
+    for (const cmd of workspace) {
+      await new Promise(r => setTimeout(r, 600));
+      if (cmd === 'MOVE') {
+        const nx = cur.x + (cur.dir === 0 ? 1 : cur.dir === 2 ? -1 : 0);
+        const ny = cur.y + (cur.dir === 1 ? 1 : cur.dir === 3 ? -1 : 0);
+        const gridH = currentLevelData.grid.length;
+        const gridW = currentLevelData.grid[0].length;
+        if (nx >= 0 && nx < gridW && ny >= 0 && ny < gridH && currentLevelData.grid[ny][nx] !== 1) {
+          cur.x = nx;
+          cur.y = ny;
+        } else {
+          setStepMsg('💥 Robot menabrak tembok!');
+          setIsRunning(false);
+          return;
+        }
+      } else if (cmd === 'RIGHT') {
+        cur.dir = (cur.dir + 1) % 4;
+      } else if (cmd === 'LEFT') {
+        cur.dir = (cur.dir + 3) % 4;
+      }
+      setRobotPos({ ...cur });
+    }
+
+    if (cur.x === currentLevelData.goal.x && cur.y === currentLevelData.goal.y) {
+      setStepMsg('🎉 Level Selesai! Kamu Hebat!');
+      setIsWon(true);
+      if (level === levels.length) {
+        saveScore(100);
+      }
+    } else {
+      setStepMsg('🤔 Robot belum sampai ke tujuan. Coba lagi!');
+    }
+    setIsRunning(false);
   };
 
   const saveScore = async (finalScore: number) => {
@@ -1230,80 +1303,76 @@ function ScratchBlocksGame({ isAdmin, currentStudent, onClose }: { isAdmin: bool
     try {
       await setDoc(doc(collection(db, 'game_scores')), {
         gameId: 'scratch-blocks',
-        gameTitle: 'Scratch Block Builder',
+        gameTitle: 'Koding Master SMP',
         studentId: currentStudent?.id || 'admin-preview',
         studentName: currentStudent?.nama || 'Admin Pratinjau',
-        studentNis: currentStudent?.nis || '-',
-        studentKelas: currentStudent?.kelas || 'Admin',
         score: finalScore,
         playedAt: new Date().toISOString()
       });
-    } catch (e) {
-      console.error("Failed saving score", e);
-    }
+    } catch (e) {}
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Block Palette */}
-        <div className="bg-slate-200/80 p-5 rounded-2xl border border-slate-300 space-y-3">
-          <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
-            <Code size={16} /> Palette Balok Scratch
-          </h4>
-          <p className="text-[11px] font-semibold text-slate-500">Klik balok untuk meletakkannya di area kerja:</p>
-          <div className="space-y-2">
-            {availableBlocks.map(b => (
-              <button
-                key={b.id}
-                onClick={() => handleAdd(b)}
-                className={cn("w-full p-3 rounded-xl font-mono text-xs font-bold text-left transition-transform active:scale-95 shadow-sm hover:brightness-110", b.color)}
-              >
-                {b.text}
-              </button>
+    <div className="flex flex-col md:flex-row gap-6 h-full p-2">
+      {/* Toolbox */}
+      <div className="flex-1 bg-slate-100 p-4 rounded-2xl border border-slate-300 space-y-4">
+        <h4 className="font-black text-sm uppercase text-slate-700">Balok Perintah</h4>
+        <div className="grid grid-cols-1 gap-2">
+          <button onClick={() => setWorkspace([...workspace, 'MOVE'])} className="p-3 bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-blue-700 transition-all">
+            <ArrowRight size={14} /> Maju 1 Langkah
+          </button>
+          <button onClick={() => setWorkspace([...workspace, 'RIGHT'])} className="p-3 bg-amber-500 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-amber-600 transition-all">
+            <RotateCcw size={14} className="rotate-180" /> Belok Kanan
+          </button>
+          <button onClick={() => setWorkspace([...workspace, 'LEFT'])} className="p-3 bg-amber-500 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-amber-600 transition-all">
+            <RotateCcw size={14} /> Belok Kiri
+          </button>
+        </div>
+
+        <div className="pt-4 border-t border-slate-200">
+          <h4 className="font-black text-xs uppercase text-slate-500 mb-2">Workspace</h4>
+          <div className="min-h-[150px] bg-white rounded-xl border-2 border-dashed border-slate-300 p-2 space-y-1">
+            {workspace.map((w, i) => (
+              <div key={i} className="px-3 py-1.5 bg-slate-200 rounded-lg text-[10px] font-black flex justify-between items-center group">
+                <span>{i + 1}. {w === 'MOVE' ? 'MAJU' : w === 'RIGHT' ? 'KANAN' : 'KIRI'}</span>
+                <button onClick={() => setWorkspace(workspace.filter((_, idx) => idx !== i))} className="text-red-500 opacity-0 group-hover:opacity-100">
+                  <X size={12} />
+                </button>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Workspace */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-300 flex flex-col justify-between space-y-4 shadow-sm">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Area Kerja Kode (*Workspace*)</h4>
-              <button onClick={handleClear} className="text-[11px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1">
-                <Trash2 size={12} /> Hapus Semua
-              </button>
-            </div>
-
-            <div className="min-h-[160px] bg-slate-100 p-3 rounded-xl border border-dashed border-slate-300 space-y-2">
-              {workspace.length > 0 ? (
-                workspace.map((b, idx) => (
-                  <div key={idx} className={cn("p-2.5 rounded-lg font-mono text-xs font-bold shadow-xs", b.color)}>
-                    {idx + 1}. {b.text}
-                  </div>
-                ))
-              ) : (
-                <div className="h-32 flex items-center justify-center text-xs text-slate-400 font-bold italic text-center">
-                  Belum ada balok terpasang.<br/>Klik balok dari sebelah kiri.
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-slate-800 text-center">
-              {stepMsg}
-            </div>
-
-            <button
-              onClick={handleRun}
-              disabled={isRunning}
-              className="w-full py-3 bg-emerald-600 text-white rounded-xl font-black text-sm shadow-md hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
-            >
-              <Play size={16} /> Jalankan Skrip Kode
-            </button>
-          </div>
+        <div className="flex gap-2">
+          <button onClick={() => setWorkspace([])} className="flex-1 py-3 bg-slate-300 text-slate-700 rounded-xl font-black text-xs">Reset</button>
+          <button onClick={runCode} disabled={isRunning} className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-md shadow-emerald-600/20">JALANKAN</button>
         </div>
+      </div>
+
+      {/* Stage */}
+      <div className="flex-[1.5] bg-white rounded-3xl border-4 border-slate-900 shadow-xl overflow-hidden flex flex-col items-center justify-center p-4 space-y-4">
+        <div className="text-center">
+          <span className="text-[10px] font-black bg-brand/10 text-brand px-2 py-0.5 rounded-full uppercase tracking-tighter">Level {level}</span>
+          <p className="text-xs font-bold text-slate-600 mt-1">{msg}</p>
+        </div>
+        
+        <canvas ref={canvasRef} width={300} height={300} className="bg-slate-50 rounded-xl border border-slate-200 shadow-inner" />
+
+        {isWon && (
+          <div className="w-full">
+            {level < levels.length ? (
+              <button onClick={() => setLevel(level + 1)} className="w-full py-4 bg-amber-400 text-amber-950 font-black rounded-2xl animate-bounce shadow-xl">
+                LANJUT LEVEL {level + 1} ➔
+              </button>
+            ) : (
+              <div className="p-4 bg-emerald-100 border-2 border-emerald-500 rounded-2xl text-center">
+                <Trophy size={32} className="mx-auto text-amber-500" />
+                <h5 className="font-black text-emerald-900 mt-2">Coding Master Tamat!</h5>
+                <p className="text-[10px] font-bold text-emerald-700">Kamu telah menguasai dasar algoritma.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1437,47 +1506,148 @@ function StarCatcherArcadeGame({ isAdmin, currentStudent, onClose }: { isAdmin: 
   const [lives, setLives] = useState(3);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
-  const [catX, setCatX] = useState(50); // percentage 0-100
-
-  const handleCatch = () => {
-    if (!isPlaying) return;
-    setScore(s => s + 10);
-    // Move cat slightly randomly to simulate active catching
-    setCatX(Math.floor(Math.random() * 80) + 10);
-  };
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  
+  // Game states in refs for high-perf loop
+  const gameStateRef = useRef({
+    catX: 400,
+    stars: [] as Array<{ x: number; y: number; speed: number; id: number }>,
+    keys: { left: false, right: false },
+    lastStarTime: 0,
+    score: 0,
+    lives: 3
+  });
 
   const startGame = () => {
     setScore(0);
     setLives(3);
     setIsPlaying(true);
     setIsGameOver(false);
-    setCatX(50);
+    gameStateRef.current = {
+      catX: 400,
+      stars: [],
+      keys: { left: false, right: false },
+      lastStarTime: 0,
+      score: 0,
+      lives: 3
+    };
   };
 
   useEffect(() => {
     if (!isPlaying) return;
-    const interval = setInterval(() => {
-      // Chance of losing life if not caught
-      if (Math.random() > 0.6) {
-        setLives(l => {
-          if (l <= 1) {
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') gameStateRef.current.keys.left = true;
+      if (e.key === 'ArrowRight') gameStateRef.current.keys.right = true;
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') gameStateRef.current.keys.left = false;
+      if (e.key === 'ArrowRight') gameStateRef.current.keys.right = false;
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    let animFrame: number;
+    const ctx = canvasRef.current?.getContext('2d');
+
+    const loop = (time: number) => {
+      if (!ctx || !canvasRef.current) return;
+      const state = gameStateRef.current;
+
+      // Update internal resolution for sharpness
+      const rect = canvasRef.current.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const targetW = Math.max(800, Math.floor(rect.width * dpr));
+      const targetH = Math.max(450, Math.floor(rect.height * dpr));
+      if (canvasRef.current.width !== targetW || canvasRef.current.height !== targetH) {
+        canvasRef.current.width = targetW;
+        canvasRef.current.height = targetH;
+      }
+
+      // Update Physics
+      if (state.keys.left) state.catX -= 7.5;
+      if (state.keys.right) state.catX += 7.5;
+      if (state.catX < 40) state.catX = 40;
+      if (state.catX > 760) state.catX = 760;
+
+      // Spawn stars
+      if (time - state.lastStarTime > Math.max(350, 950 - state.score * 1.5)) {
+        state.stars.push({
+          x: Math.random() * 720 + 40,
+          y: -30,
+          speed: 3.5 + Math.random() * 4 + (state.score / 120),
+          id: Date.now()
+        });
+        state.lastStarTime = time;
+      }
+
+      // Update stars
+      for (let i = state.stars.length - 1; i >= 0; i--) {
+        const star = state.stars[i];
+        star.y += star.speed;
+
+        // Collision check (Cat is at y=360)
+        const dx = star.x - state.catX;
+        const dy = star.y - 360;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 45) {
+          state.score += 10;
+          setScore(state.score);
+          state.stars.splice(i, 1);
+          continue;
+        }
+
+        if (star.y > 440) {
+          state.lives--;
+          setLives(state.lives);
+          state.stars.splice(i, 1);
+          if (state.lives <= 0) {
             setIsPlaying(false);
             setIsGameOver(true);
-            return 0;
+            saveScore(state.score);
+            return;
           }
-          return l - 1;
-        });
+        }
       }
-    }, 2500);
 
-    return () => clearInterval(interval);
+      // Render
+      ctx.save();
+      ctx.scale(canvasRef.current.width / 800, canvasRef.current.height / 450);
+      ctx.clearRect(0, 0, 800, 450);
+      
+      // Draw Grass/Floor
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 395, 800, 25);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 395, 800, 2);
+
+      // Draw Cat
+      ctx.font = '55px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🐱', state.catX, 365);
+
+      // Draw Stars
+      ctx.font = '35px sans-serif';
+      state.stars.forEach(s => {
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = 10;
+        ctx.fillText('⭐', s.x, s.y);
+        ctx.shadowBlur = 0;
+      });
+
+      ctx.restore();
+      animFrame = requestAnimationFrame(loop);
+    };
+
+    animFrame = requestAnimationFrame(loop);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      cancelAnimationFrame(animFrame);
+    };
   }, [isPlaying]);
-
-  useEffect(() => {
-    if (isGameOver) {
-      saveScore(score);
-    }
-  }, [isGameOver]);
 
   const saveScore = async (finalScore: number) => {
     if (!currentStudent && !isAdmin) return;
@@ -1498,66 +1668,96 @@ function StarCatcherArcadeGame({ isAdmin, currentStudent, onClose }: { isAdmin: 
   };
 
   return (
-    <div className="space-y-6 text-center">
-      <div className="flex items-center justify-between bg-slate-900 text-white p-4 rounded-2xl">
-        <div className="flex items-center gap-2 text-xs font-bold">
-          <span>Nyawa:</span>
-          {Array.from({ length: lives }).map((_, i) => (
-            <span key={i} className="text-red-500">❤️</span>
+    <div className="space-y-4 w-full h-full mx-auto flex flex-col items-center">
+      <div className="flex items-center justify-between bg-slate-900 text-white p-4 rounded-2xl w-full border border-slate-800 shadow-lg shrink-0">
+        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider">
+          <span className="text-slate-400">NYAWA:</span>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <span key={i} className={cn("transition-all text-base", i < lives ? "opacity-100 scale-100" : "opacity-20 scale-75")}>❤️</span>
           ))}
         </div>
-        <div className="text-sm font-black text-amber-400">
-          Skor: {score}
+        <div className="text-lg font-black text-amber-400 flex items-center gap-2">
+          <Trophy size={20} className="text-amber-500" />
+          SKOR: {score}
         </div>
       </div>
 
-      {!isPlaying && !isGameOver ? (
-        <div className="p-8 bg-slate-200/80 rounded-3xl border border-slate-300 space-y-4">
-          <Gamepad2 size={48} className="mx-auto text-brand" />
-          <h4 className="font-black text-xl text-slate-900">Star Catcher Arcade</h4>
-          <p className="text-xs text-slate-600 font-bold max-w-sm mx-auto">
-            Klik tombol Tangkap Bintang secepat mungkin untuk mengumpulkan skor sebelum nyawa habis!
-          </p>
-          <button
-            onClick={startGame}
-            className="px-8 py-3.5 bg-brand text-white font-black text-sm rounded-xl shadow-lg shadow-brand/20 hover:scale-105 transition-all"
-          >
-            Mulai Permainan 🎮
-          </button>
-        </div>
-      ) : isPlaying ? (
-        <div className="p-8 bg-slate-900 text-white rounded-3xl border border-slate-800 space-y-8 relative overflow-hidden">
-          <div className="flex justify-around items-center min-h-[140px]">
-            <div 
-              className="text-4xl transition-all duration-300"
-              style={{ transform: `translateX(${catX - 50}px)` }}
-            >
+      <div className="relative w-full aspect-[16/9] bg-slate-950 rounded-3xl overflow-hidden border-4 border-slate-800 shadow-2xl">
+        {!isPlaying && !isGameOver ? (
+          <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 space-y-6 z-10">
+            <div className="w-20 h-20 bg-brand rounded-2xl flex items-center justify-center text-5xl shadow-lg animate-bounce">
               🐱
             </div>
-            <div className="text-4xl animate-bounce">⭐</div>
+            <div className="space-y-2">
+              <h4 className="font-black text-3xl text-white tracking-tight">Star Catcher Arcade</h4>
+              <p className="text-sm text-slate-300 font-bold max-w-sm">
+                Gunakan <strong className="text-amber-400">Panah Kiri & Kanan</strong> untuk menggerakkan Kucing dan tangkap Bintang yang jatuh!
+              </p>
+            </div>
+            <button
+              onClick={startGame}
+              className="px-10 py-4 bg-brand text-white font-black text-lg rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+            >
+              <Play size={24} /> Mulai Mainkan!
+            </button>
           </div>
+        ) : isGameOver ? (
+          <div className="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center text-center p-8 space-y-6 z-10">
+            <div className="text-6xl animate-pulse">🙀</div>
+            <div className="space-y-1">
+              <h4 className="font-black text-3xl text-rose-500">Game Over!</h4>
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Bintang Terlewat Terlalu Banyak</p>
+            </div>
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 w-full max-w-xs">
+              <span className="text-xs text-slate-500 font-black uppercase tracking-tighter block mb-1">Skor Akhir Kamu:</span>
+              <div className="text-6xl font-black text-amber-400 drop-shadow-lg">{score}</div>
+            </div>
+            <button
+              onClick={startGame}
+              className="px-8 py-4 bg-white text-slate-950 font-black text-lg rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+            >
+              <RotateCcw size={24} /> Main Lagi
+            </button>
+          </div>
+        ) : null}
 
-          <button
-            onClick={handleCatch}
-            className="w-full py-5 bg-amber-400 hover:bg-amber-500 text-amber-950 font-black text-lg rounded-2xl shadow-xl active:scale-95 transition-transform"
-          >
-            ⭐ TANGKAP BINTANG (+10)
-          </button>
-        </div>
-      ) : (
-        <div className="p-8 bg-white rounded-3xl border border-slate-300 space-y-4">
-          <Trophy size={48} className="mx-auto text-amber-500 animate-bounce" />
-          <h4 className="font-black text-2xl text-slate-900">Game Over!</h4>
-          <p className="text-sm font-bold text-slate-600">Skor Akhir Kamu:</p>
-          <div className="text-5xl font-black text-brand">{score}</div>
-          <button
-            onClick={startGame}
-            className="px-6 py-3 bg-slate-900 text-white font-bold text-sm rounded-xl shadow-md"
-          >
-            Main Lagi 🔄
-          </button>
-        </div>
-      )}
+        <canvas
+          ref={canvasRef}
+          width={800}
+          height={450}
+          className="w-full h-full object-contain"
+        />
+
+        {/* On-Screen Mobile Controls */}
+        {isPlaying && (
+          <div className="absolute bottom-6 left-0 right-0 flex justify-between px-8 pointer-events-none sm:hidden">
+            <button
+              onMouseDown={() => gameStateRef.current.keys.left = true}
+              onMouseUp={() => gameStateRef.current.keys.left = false}
+              onTouchStart={() => gameStateRef.current.keys.left = true}
+              onTouchEnd={() => gameStateRef.current.keys.left = false}
+              className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white pointer-events-auto active:bg-white/30 transition-colors"
+            >
+              <MoveLeft size={32} />
+            </button>
+            <button
+              onMouseDown={() => gameStateRef.current.keys.right = true}
+              onMouseUp={() => gameStateRef.current.keys.right = false}
+              onTouchStart={() => gameStateRef.current.keys.right = true}
+              onTouchEnd={() => gameStateRef.current.keys.right = false}
+              className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white pointer-events-auto active:bg-white/30 transition-colors"
+            >
+              <MoveRight size={32} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+        <span>Gunakan Keyboard:</span>
+        <span className="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700">←</span>
+        <span className="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700">→</span>
+      </div>
     </div>
   );
 }
@@ -1681,7 +1881,7 @@ function generateStageEngine(stageNum: number) {
         { x: 3550, y: 250, w: 150, h: 20, type: 'platform' },
         { x: 3750, y: 380, w: 750, h: 100, type: 'ground' },
         { x: 4000, y: 290, w: 130, h: 20, type: 'platform' },
-        { x: 4200, y: 210, w: 140, h: 20, type: 'platform' },
+        { x: 4500, y: 210, w: 140, h: 20, type: 'platform' },
         { x: 4400, y: 270, w: 130, h: 20, type: 'platform' },
         { x: 4650, y: 380, w: 1550, h: 100, type: 'ground' }
       ],
@@ -1701,17 +1901,17 @@ function generateStageEngine(stageNum: number) {
         { id: 13, x: 4750, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
       ],
       obstacles: [
-        { id: 1, x: 350, y: 365, w: 60, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 1, x: 350, y: 365, w: 60, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 2, x: 1050, y: 342, w: 38, h: 38, type: 'phone_evil', vx: 1.8, minX: 950, maxX: 1450, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 3, x: 1200, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 4, x: 1850, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2, minX: 1720, maxX: 2250, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 5, x: 2500, y: 180, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 120, maxY: 280, yDir: 1, destroyed: false },
-        { id: 6, x: 3100, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 6, x: 3100, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 7, x: 3300, y: 342, w: 38, h: 38, type: 'phone_evil', vx: 2.2, minX: 3000, maxX: 3500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 8, x: 3850, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 9, x: 4150, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -1.9, minX: 3800, maxX: 4400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 10, x: 4450, y: 180, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 120, maxY: 280, yDir: 1, destroyed: false },
-        { id: 11, x: 4680, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 11, x: 4680, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
       schoolGateX: 5900,
       boss: {
@@ -1805,17 +2005,17 @@ function generateStageEngine(stageNum: number) {
         { id: 13, x: 5350, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
       ],
       obstacles: [
-        { id: 1, x: 320, y: 365, w: 60, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 1, x: 320, y: 365, w: 60, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 2, x: 1100, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.2, minX: 1000, maxX: 1500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 3, x: 1350, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 4, x: 2000, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2.4, minX: 1850, maxX: 2380, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 5, x: 2800, y: 170, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 110, maxY: 270, yDir: 1, destroyed: false },
-        { id: 6, x: 3450, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 6, x: 3450, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 7, x: 3650, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.5, minX: 3350, maxX: 3950, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 8, x: 4300, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 9, x: 4500, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2.3, minX: 4200, maxX: 4800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4500, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2.3, minX: 4500, maxX: 4800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 10, x: 4650, y: 160, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
-        { id: 11, x: 5300, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 11, x: 5300, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 12, x: 5500, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.6, minX: 5200, maxX: 5800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 13, x: 5850, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2.8, minX: 5600, maxX: 6050, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
@@ -1888,17 +2088,17 @@ function generateStageEngine(stageNum: number) {
         { id: 14, x: 5700, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
       ],
       obstacles: [
-        { id: 1, x: 350, y: 365, w: 60, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 1, x: 350, y: 365, w: 60, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 2, x: 1250, y: 342, w: 38, h: 36, type: 'computer_evil', vx: 2, minX: 1150, maxX: 1650, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 3, x: 1450, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 4, x: 1950, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2.3, minX: 1820, maxX: 2380, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 5, x: 2600, y: 160, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
-        { id: 6, x: 3100, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 6, x: 3100, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 7, x: 3350, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.5, minX: 3000, maxX: 3600, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 8, x: 3800, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 9, x: 4200, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2.4, minX: 3850, maxX: 4500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4500, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2.4, minX: 3850, maxX: 4500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 10, x: 4400, y: 160, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
-        { id: 11, x: 4900, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 11, x: 4900, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 12, x: 5200, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.8, minX: 4800, maxX: 5450, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 13, x: 5800, y: 342, w: 38, h: 36, type: 'computer_evil', vx: -3, minX: 5550, maxX: 6300, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
@@ -1962,17 +2162,17 @@ function generateStageEngine(stageNum: number) {
       { id: 13, x: 4700, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
     ],
     obstacles: [
-      { id: 1, x: 450, y: 365, w: 60, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 1, x: 450, y: 365, w: 60, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       { id: 2, x: 750, y: 344, w: 38, h: 36, type: 'computer_evil', vx: 1.6, minX: 700, maxX: 1100, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       { id: 3, x: 1350, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       { id: 4, x: 1500, y: 344, w: 38, h: 36, type: 'computer_evil', vx: -1.8, minX: 1300, maxX: 1750, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       { id: 5, x: 1800, y: 200, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 150, maxY: 330, yDir: 1, destroyed: false },
-      { id: 6, x: 2150, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 6, x: 2150, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       { id: 7, x: 2350, y: 344, w: 38, h: 36, type: 'computer_evil', vx: 2, minX: 2100, maxX: 2600, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       { id: 8, x: 2900, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       { id: 9, x: 3100, y: 344, w: 38, h: 36, type: 'computer_evil', vx: 1.8, minX: 2850, maxX: 3400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       { id: 10, x: 3500, y: 200, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 150, maxY: 330, yDir: 1, destroyed: false },
-      { id: 11, x: 3800, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 11, x: 3800, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       { id: 12, x: 4000, y: 344, w: 38, h: 36, type: 'computer_evil', vx: -2, minX: 3750, maxX: 4300, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       { id: 13, x: 4800, y: 344, w: 38, h: 36, type: 'computer_evil', vx: 2.2, minX: 4650, maxX: 5200, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
     ],
@@ -3274,6 +3474,95 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
   const [showRewardPicker, setShowRewardPicker] = useState(false);
   const [selectedRewardMsg, setSelectedRewardMsg] = useState<string | null>(null);
   const [keyboardGunActive, setKeyboardGunActive] = useState(false);
+  const [selectedOptionIdx, setSelectedOptionIdx] = useState(0);
+
+  const handlePickReward = React.useCallback((rewardType: 'heart' | 'power' | 'score' | 'keyboard_gun') => {
+    if (rewardType === 'heart') {
+      setLives(l => l + 1);
+      setSelectedRewardMsg("💖 Hati bertambah! (+1 Nyawa Berhasil Didapatkan)");
+    } else if (rewardType === 'power') {
+      if (engineRef.current?.player) {
+        engineRef.current.player.superPowerFrames = 450; // ~7.5 seconds of super power
+      }
+      setSuperPowerActive(true);
+      setSelectedRewardMsg("⚡ Super Kuat Diaktifkan! Kebal rintangan & musuh selama 7.5 detik!");
+    } else if (rewardType === 'keyboard_gun') {
+      if (engineRef.current?.player) {
+        engineRef.current.player.keyboardGunFrames = 900; // 15 seconds of keyboard gun (900 frames)
+      }
+      setKeyboardGunActive(true);
+      setSelectedRewardMsg("⌨️ Pistol Keyboard Diaktifkan! Tekan [Z] atau tombol Tembak untuk membasmi monster (15 Detik)!");
+    } else if (rewardType === 'score') {
+      setScore(s => s + 250);
+      setSelectedRewardMsg("⭐ Bonus +250 Poin Ekstra Berhasil Ditambahkan!");
+    }
+
+    setTimeout(() => {
+      setActiveQuiz(null);
+      setQuizFeedback(null);
+      setShowRewardPicker(false);
+      setSelectedRewardMsg(null);
+    }, 1800);
+  }, []);
+
+  const handleQuizAnswer = React.useCallback((selectedIdx: number) => {
+    if (!activeQuiz) return;
+    const isCorrect = selectedIdx === activeQuiz.correctIdx;
+
+    if (isCorrect) {
+      setScore(s => s + 100);
+      setQuizFeedback({
+        msg: "🎉 JAWABAN BENAR! Silakan pilih Hadiah Spesial untuk membantu petualanganmu!",
+        isCorrect: true
+      });
+
+      // Sample 1, 2, or 3 random rewards from MASTER_REWARDS
+      const rewardCount = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3 items
+      const shuffled = [...MASTER_REWARDS].sort(() => Math.random() - 0.5);
+      const chosenRewards = shuffled.slice(0, rewardCount);
+      setAvailableRewards(chosenRewards);
+
+      setShowRewardPicker(true);
+    } else {
+      setQuizFeedback({
+        msg: "❌ Jawaban kurang tepat! Tetap semangat, coba temukan Kotak Emas berikutnya!",
+        isCorrect: false
+      });
+      setTimeout(() => {
+        setActiveQuiz(null);
+        setQuizFeedback(null);
+        setShowRewardPicker(false);
+        setSelectedRewardMsg(null);
+      }, 2200);
+    }
+  }, [activeQuiz, MASTER_REWARDS]);
+
+  // Keyboard navigation for active quiz
+  useEffect(() => {
+    if (!activeQuiz || quizFeedback) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setSelectedOptionIdx(prev => (prev > 0 ? prev - 1 : activeQuiz.options.length - 1));
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        setSelectedOptionIdx(prev => (prev < activeQuiz.options.length - 1 ? prev + 1 : 0));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        handleQuizAnswer(selectedOptionIdx);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeQuiz, quizFeedback, selectedOptionIdx, handleQuizAnswer]);
+
+  useEffect(() => {
+    if (activeQuiz) {
+      setSelectedOptionIdx(0);
+    }
+  }, [activeQuiz]);
 
   const keysRef = useRef<{ left: boolean; right: boolean; jump: boolean; shoot: boolean }>({ left: false, right: false, jump: false, shoot: false });
 
@@ -3401,62 +3690,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     setActiveQuiz(stageQuizzes[randomChosenIndex]);
   };
 
-  const handleQuizAnswer = (selectedIdx: number) => {
-    if (!activeQuiz) return;
-    const isCorrect = selectedIdx === activeQuiz.correctIdx;
 
-    if (isCorrect) {
-      setScore(s => s + 100);
-      setQuizFeedback({
-        msg: "🎉 JAWABAN BENAR! Silakan pilih Hadiah Spesial untuk membantu petualanganmu!",
-        isCorrect: true
-      });
-
-      // Sample 1, 2, or 3 random rewards from MASTER_REWARDS
-      const rewardCount = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3 items
-      const shuffled = [...MASTER_REWARDS].sort(() => Math.random() - 0.5);
-      const chosenRewards = shuffled.slice(0, rewardCount);
-      setAvailableRewards(chosenRewards);
-
-      setShowRewardPicker(true);
-    } else {
-      setQuizFeedback({
-        msg: "❌ Jawaban kurang tepat! Tetap semangat, coba temukan Kotak Emas berikutnya!",
-        isCorrect: false
-      });
-      setTimeout(() => {
-        setActiveQuiz(null);
-        setQuizFeedback(null);
-        setShowRewardPicker(false);
-        setSelectedRewardMsg(null);
-      }, 2200);
-    }
-  };
-
-  const handlePickReward = (rewardType: 'heart' | 'power' | 'score' | 'keyboard_gun') => {
-    if (rewardType === 'heart') {
-      setLives(l => l + 1);
-      setSelectedRewardMsg("💖 Hati bertambah! (+1 Nyawa Berhasil Didapatkan)");
-    } else if (rewardType === 'power') {
-      engineRef.current.player.superPowerFrames = 450; // ~7.5 seconds of super power
-      setSuperPowerActive(true);
-      setSelectedRewardMsg("⚡ Super Kuat Diaktifkan! Kebal rintangan & musuh selama 7.5 detik!");
-    } else if (rewardType === 'keyboard_gun') {
-      engineRef.current.player.keyboardGunFrames = 900; // 15 seconds of keyboard gun (900 frames)
-      setKeyboardGunActive(true);
-      setSelectedRewardMsg("⌨️ Pistol Keyboard Diaktifkan! Tekan [Z] atau tombol Tembak untuk membasmi monster (15 Detik)!");
-    } else if (rewardType === 'score') {
-      setScore(s => s + 250);
-      setSelectedRewardMsg("⭐ Bonus +250 Poin Ekstra Berhasil Ditambahkan!");
-    }
-
-    setTimeout(() => {
-      setActiveQuiz(null);
-      setQuizFeedback(null);
-      setShowRewardPicker(false);
-      setSelectedRewardMsg(null);
-    }, 1800);
-  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -4023,7 +4257,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       const rect = canvas.getBoundingClientRect();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const targetW = Math.max(800, Math.floor((rect.width || 800) * dpr));
-      const targetH = Math.max(420, Math.floor((rect.height || 420) * dpr));
+      const targetH = Math.max(450, Math.floor((rect.height || 450) * dpr));
 
       if (canvas.width !== targetW || canvas.height !== targetH) {
         canvas.width = targetW;
@@ -4043,20 +4277,20 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       ctx.save();
-      ctx.scale(canvas.width / 800, canvas.height / 420);
+      ctx.scale(canvas.width / 800, canvas.height / 450);
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
       // Render Backdrop per Stage
       if (currentStage === 2) {
         // Stage 2: Sunset Forest & Bumi Perkemahan
-        const skyGradient = ctx.createLinearGradient(0, 0, 0, 420);
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
         skyGradient.addColorStop(0, '#431407');
         skyGradient.addColorStop(0.35, '#7c2d12');
         skyGradient.addColorStop(0.7, '#ea580c');
         skyGradient.addColorStop(1, '#fde047');
         ctx.fillStyle = skyGradient;
-        ctx.fillRect(0, 0, 800, 420);
+        ctx.fillRect(0, 0, 800, 450);
 
         // Crescent Moon & Stars
         ctx.fillStyle = '#fef08a';
@@ -4143,13 +4377,13 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
       } else if (currentStage === 3) {
         // Stage 3: Museum Wisata Edukasi Cyber Night Sky
-        const skyGradient = ctx.createLinearGradient(0, 0, 0, 420);
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
         skyGradient.addColorStop(0, '#09090b');
         skyGradient.addColorStop(0.4, '#1e1b4b');
         skyGradient.addColorStop(0.8, '#1e3a8a');
         skyGradient.addColorStop(1, '#0284c7');
         ctx.fillStyle = skyGradient;
-        ctx.fillRect(0, 0, 800, 420);
+        ctx.fillRect(0, 0, 800, 450);
 
         // Twinkling Space Stars
         ctx.fillStyle = '#ffffff';
@@ -4163,7 +4397,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
         // Futuristic Modern City Skyline Silhouettes
         for (let i = 0; i < 9; i++) {
-          const bldgX = i * 420 + 30 - camX * 0.35;
+          const bldgX = i * 450 + 30 - camX * 0.35;
           const bldgH = 130 + (i % 3) * 35;
           ctx.fillStyle = '#0f172a';
           ctx.fillRect(bldgX, 360 - bldgH, 95, bldgH);
@@ -4188,17 +4422,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
       } else if (currentStage === 4) {
         // Stage 4: Sunset Sky & Mount Sawal Priangan over Alun-Alun Ciamis
-        const skyGradient = ctx.createLinearGradient(0, 0, 0, 420);
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
         skyGradient.addColorStop(0, '#31103f');
         skyGradient.addColorStop(0.35, '#701a75');
         skyGradient.addColorStop(0.7, '#c026d3');
         skyGradient.addColorStop(1, '#fef08a');
         ctx.fillStyle = skyGradient;
-        ctx.fillRect(0, 0, 800, 420);
+        ctx.fillRect(0, 0, 800, 450);
 
         // Evening Stars
         ctx.fillStyle = '#ffffff';
-        const stars = [[100, 30], [250, 50], [420, 25], [600, 60], [780, 35]];
+        const stars = [[100, 30], [250, 50], [450, 25], [600, 60], [780, 35]];
         for (const [sx, sy] of stars) {
           const starGlow = (Math.sin(p.animFrame * 2 + sx) + 1) * 0.8 + 1;
           ctx.beginPath();
@@ -4227,13 +4461,13 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
       } else {
         // Stage 1: Home to School Bright Morning Sky
-        const skyGradient = ctx.createLinearGradient(0, 0, 0, 420);
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
         skyGradient.addColorStop(0, '#0284c7');
         skyGradient.addColorStop(0.35, '#38bdf8');
         skyGradient.addColorStop(0.75, '#bae6fd');
         skyGradient.addColorStop(1, '#f0fdf4');
         ctx.fillStyle = skyGradient;
-        ctx.fillRect(0, 0, 800, 420);
+        ctx.fillRect(0, 0, 800, 450);
 
         // Morning Sun with Warm Glow
         ctx.fillStyle = 'rgba(254, 240, 138, 0.3)';
@@ -4269,7 +4503,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         ctx.fillStyle = '#4ade80';
         ctx.beginPath();
         for (let i = 0; i < 10; i++) {
-          const hillX = i * 420 + 80 - camX * 0.3;
+          const hillX = i * 450 + 80 - camX * 0.3;
           ctx.arc(hillX + 180, 390, 160, Math.PI, 0, false);
         }
         ctx.fill();
@@ -4413,22 +4647,22 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         if (currentStage === 2) {
           // Stage 2 Boss Pose Mappings
           if (boss.state === 'dead' || boss.state === 'dying') {
-            // Pose kalah/mati: 11.png (boss2_11) or 8.png (boss2_8)
-            bossImg = boss2ImagesRef.current[10] || boss2ImagesRef.current[7];
+            // Pose kalah/mati: 8.png (boss2_8)
+            bossImg = boss2ImagesRef.current[7];
           } else if (boss.invulnerableFrames > 0) {
             // Pose tertembak player: 8.png (reaction squat)
             bossImg = boss2ImagesRef.current[7];
           } else if (boss.state === 'jumping') {
             // Pose meloncat:
-            // saat akan meloncat: 8.png (index 7)
-            // saat meloncat: 9.png (index 8)
-            // saat mendarat: 10.png (index 9)
+            // saat akan meloncat: 9.png (index 8)
+            // saat meloncat: 10.png (index 9)
+            // saat mendarat: 11.png (index 10)
             if (boss.jumpPhase === 'prep') {
-              bossImg = boss2ImagesRef.current[7];
-            } else if (boss.jumpPhase === 'air') {
               bossImg = boss2ImagesRef.current[8];
-            } else {
+            } else if (boss.jumpPhase === 'air') {
               bossImg = boss2ImagesRef.current[9];
+            } else {
+              bossImg = boss2ImagesRef.current[10];
             }
           } else if (boss.state === 'shooting') {
             // Pose menembak:
@@ -4491,7 +4725,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
             ctx.save();
             // Modern deep blur background
             ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-            ctx.fillRect(0, 0, 800, 420);
+            ctx.fillRect(0, 0, 800, 450);
             
             // Extremely Large Animated Number with Modern Look
             const pulse = Math.sin(boss.countdown * 0.15);
@@ -4505,7 +4739,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
             ctx.shadowColor = glowColor;
             ctx.shadowBlur = 80;
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'black 420px "Inter", "Arial Black", sans-serif'; // Enormous
+            ctx.font = 'black 450px "Inter", "Arial Black", sans-serif'; // Enormous
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(num.toString(), 0, 0);
@@ -4790,14 +5024,66 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           ctx.fillRect(ox + 8 + legStep, obs.y + 26, 5, 8);
           ctx.fillRect(ox + 25 - legStep, obs.y + 26, 5, 8);
 
-        } else if (obs.type === 'puddle') {
-          ctx.fillStyle = '#78350f';
+        } else if (obs.type === 'fire') {
+          // Stage: Api (Rintangan Api) - Improved Visuals & Slower Speed
+          const flickerSpeed = 4; // Much slower than 22
+          const flicker = Math.sin(p.animFrame * flickerSpeed) * 3;
+          const flickerLarge = Math.sin(p.animFrame * (flickerSpeed * 0.8)) * 6;
+          
+          // 1. Dark Red/Smoke Glow (Outer Base)
+          ctx.shadowColor = '#991b1b';
+          ctx.shadowBlur = 15;
+          ctx.fillStyle = '#7f1d1d';
           ctx.beginPath();
-          ctx.ellipse(ox + obs.w / 2, obs.y + 8, obs.w / 2, obs.h / 2, 0, 0, Math.PI * 2);
+          ctx.moveTo(ox - 5, obs.y + obs.h);
+          ctx.quadraticCurveTo(ox + obs.w / 2, obs.y - 15 + flickerLarge, ox + obs.w + 5, obs.y + obs.h);
           ctx.fill();
-          ctx.fillStyle = '#92400e';
-          ctx.font = '10px sans-serif';
-          ctx.fillText('💧 Lumpur', ox + 5, obs.y + 6);
+          ctx.shadowBlur = 0;
+
+          // 2. Main Red Body
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.moveTo(ox, obs.y + obs.h);
+          ctx.lineTo(ox + obs.w / 2, obs.y - 5 + flicker);
+          ctx.lineTo(ox + obs.w, obs.y + obs.h);
+          ctx.fill();
+
+          // 3. Amber Mid-Layer
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.moveTo(ox + 6, obs.y + obs.h);
+          ctx.lineTo(ox + obs.w / 2, obs.y + 5 + flickerLarge * 0.7);
+          ctx.lineTo(ox + obs.w - 6, obs.y + obs.h);
+          ctx.fill();
+
+          // 4. Yellow Core
+          ctx.fillStyle = '#fde047';
+          ctx.beginPath();
+          ctx.moveTo(ox + 12, obs.y + obs.h);
+          ctx.lineTo(ox + obs.w / 2, obs.y + 12 + flicker * 0.5);
+          ctx.lineTo(ox + obs.w - 12, obs.y + obs.h);
+          ctx.fill();
+
+          // 5. White Hot Center
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(ox + 18, obs.y + obs.h);
+          ctx.lineTo(ox + obs.w / 2, obs.y + 18 + flickerLarge * 0.3);
+          ctx.lineTo(ox + obs.w - 18, obs.y + obs.h);
+          ctx.fill();
+
+          // 6. Floating Ember Particles
+          const particleCount = 3;
+          for (let pi = 0; particleCount > pi; pi++) {
+            const px = ox + (obs.w / 2) + Math.sin(p.animFrame * (2 + pi)) * 15;
+            const py = obs.y + 10 - ((p.animFrame * 50 + pi * 100) % 60);
+            if (py < obs.y + 15) {
+              ctx.fillStyle = '#facc15';
+              ctx.beginPath();
+              ctx.arc(px, py, 2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
         } else if (obs.type === 'cone') {
           ctx.fillStyle = '#f97316';
           ctx.beginPath();
@@ -4952,8 +5238,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
   return (
     <div ref={gameContainerRef} className={cn(
-      "space-y-3 font-sans transition-all duration-300",
-      isFullScreen ? "fixed inset-0 z-[9999] bg-slate-950 p-2 md:p-4 w-screen h-screen overflow-hidden flex flex-col justify-between" : "max-w-4xl mx-auto"
+      "space-y-3 font-sans transition-all duration-300 w-full h-full flex flex-col",
+      isFullScreen ? "fixed inset-0 z-[9999] bg-slate-950 p-2 md:p-4 w-screen h-screen overflow-hidden" : "mx-auto"
     )}>
       {/* HUD Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900 text-white p-3 md:p-4 rounded-2xl border border-slate-800 shadow-md gap-3 shrink-0">
@@ -5057,15 +5343,15 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         </div>
       </div>
 
-      {/* Main Canvas Viewport */}
+      {/* Main Canvas Viewport - Fully Responsive Aspect Ratio Container */}
       <div className={cn(
         "relative rounded-3xl overflow-hidden border-4 border-slate-900 bg-sky-200 shadow-2xl flex flex-col items-center justify-center transition-all",
-        isFullScreen ? "flex-1 w-full" : "h-[360px] md:h-[420px]"
+        isFullScreen ? "fixed inset-0 w-screen h-screen z-[9999] rounded-none border-0" : "w-full aspect-[16/9]"
       )}>
         <canvas
           ref={canvasRef}
           width={800}
-          height={420}
+          height={450}
           className="w-full h-full object-cover bg-sky-200"
         />
 
@@ -5236,10 +5522,21 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                     <button
                       key={idx}
                       onClick={() => handleQuizAnswer(idx)}
-                      className="p-3 bg-slate-800 hover:bg-brand text-white border border-slate-700 hover:border-brand rounded-xl font-bold text-xs text-left transition-all active:scale-95 shadow-sm"
+                      onMouseEnter={() => setSelectedOptionIdx(idx)}
+                      className={cn(
+                        "p-3 text-white border rounded-xl font-bold text-xs text-left transition-all active:scale-95 shadow-sm flex items-center gap-2",
+                        selectedOptionIdx === idx 
+                          ? "bg-brand border-brand ring-2 ring-brand/50 scale-[1.02]" 
+                          : "bg-slate-800 border-slate-700 hover:border-slate-500"
+                      )}
                     >
-                      <span className="font-mono text-amber-400 font-black mr-2">{String.fromCharCode(65 + idx)}.</span>
-                      {opt}
+                      <span className={cn(
+                        "font-mono font-black w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
+                        selectedOptionIdx === idx ? "bg-white text-brand" : "bg-slate-700 text-amber-400"
+                      )}>
+                        {String.fromCharCode(65 + idx)}
+                      </span>
+                      <span className="flex-1">{opt}</span>
                     </button>
                   ))}
                 </div>

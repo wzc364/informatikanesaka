@@ -63,7 +63,8 @@ import {
   Image as ImageIcon,
   Puzzle,
   Cpu,
-  Calculator
+  Calculator,
+  MonitorPlay
 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
@@ -138,14 +139,9 @@ const ICON_MAP: Record<string, any> = {
   Globe,
   Brain,
   Lightbulb,
-  Gamepad2,
-  Sparkles,
-  Layers,
-  Search,
-  Eye,
-  Puzzle,
   Cpu,
-  Calculator
+  Calculator,
+  MonitorPlay
 };
 
 const parseCheatingDetail = (item: string) => {
@@ -1870,13 +1866,9 @@ export default function App() {
                       
                       <div className="flex items-center gap-3 min-w-0">
                         {/* Ilustrasi Game Berwarna-warni */}
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl overflow-hidden shrink-0 border border-indigo-300 shadow-sm relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center p-0.5">
-                          <img 
-                            src="/assets/aistudio/1_1c6e6898.png" 
-                            alt="Game Petualangan Ke Sekolah" 
-                            className="w-full h-full object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300"
-                          />
-                          <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-amber-400 border border-white rounded-full flex items-center justify-center text-[8px] font-black shadow-xs">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl shrink-0 border border-indigo-300 shadow-sm relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center">
+                          <MonitorPlay size={32} className="text-white drop-shadow-md group-hover:scale-110 transition-transform duration-300" />
+                          <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-amber-400 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black shadow-xs">
                             🎮
                           </span>
                         </div>
@@ -2048,30 +2040,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* System Health / Setup Guide - Only show if issues detected */}
-                  {/* System Health / Setup Guide - Removed Auth Check */}
-                    <div className="bg-amber-50 border border-amber-200 rounded-[2rem] p-6 flex flex-col md:flex-row items-center gap-6">
-                      <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 shrink-0">
-                        <AlertTriangle size={32} />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-black text-amber-900 mb-1">Peringatan: Sistem Autentikasi Belum Siap</h3>
-                        <p className="text-amber-800 font-medium text-sm leading-relaxed">
-                          Aplikasi mendeteksi bahwa <b>Anonymous Authentication</b> belum diaktifkan di Firebase Console. 
-                          Ini akan menyebabkan siswa gagal login via NISN. Mohon aktifkan di: 
-                          <br/>
-                          <code className="bg-amber-100 px-2 py-0.5 rounded text-amber-900 text-xs font-bold">Console &gt; Authentication &gt; Sign-in method &gt; Anonymous &gt; Enable</code>
-                        </p>
-                      </div>
-                      <a 
-                        href="https://console.firebase.google.com/" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="bg-amber-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20"
-                      >
-                        Buka Firebase Console
-                      </a>
-                    </div>
+
                   
                   {/* TOP SECTION: KARTU PARTICIPANT & MONITORING KECURANGAN SEJAJAR DI ATAS */}
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
