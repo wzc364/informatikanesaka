@@ -3819,7 +3819,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
              p.vx = 0; // Freeze player during countdown
           } else {
              boss.stateTimer--;
-             if (boss.stateTimer <= 0) { // Finish previous state action
+             if (boss.stateTimer <= 0 && boss.state !== 'jumping') { // Finish previous state action
                 const action = boss.pattern[boss.patternIndex];
                 // 1: Move toward player
                 // 2: Shoot laser / Cyber App Icons
