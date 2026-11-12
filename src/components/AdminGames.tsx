@@ -1848,8 +1848,8 @@ function generateStageEngine(stageNum: number) {
       player: {
         x: 100,
         y: 300,
-        width: 32,
-        height: 48,
+        width: 45,
+        height: 65,
         vx: 0,
         vy: 0,
         isGrounded: false,
@@ -1916,9 +1916,9 @@ function generateStageEngine(stageNum: number) {
       schoolGateX: 5900,
       boss: {
         x: 5600,
-        y: 380 - 100,
-        w: 85,
-        h: 100,
+        y: 380 - 160,
+        w: 115,
+        h: 140,
         hp: 12,
         maxHp: 12,
         vx: 2,
@@ -1948,8 +1948,8 @@ function generateStageEngine(stageNum: number) {
       player: {
         x: 100,
         y: 300,
-        width: 32,
-        height: 48,
+        width: 45,
+        height: 65,
         vx: 0,
         vy: 0,
         isGrounded: false,
@@ -2029,8 +2029,8 @@ function generateStageEngine(stageNum: number) {
       player: {
         x: 100,
         y: 300,
-        width: 32,
-        height: 48,
+        width: 45,
+        height: 65,
         vx: 0,
         vy: 0,
         isGrounded: false,
@@ -2111,8 +2111,8 @@ function generateStageEngine(stageNum: number) {
     player: {
       x: 100,
       y: 300,
-      width: 32,
-      height: 48,
+      width: 45,
+      height: 65,
       vx: 0,
       vy: 0,
       isGrounded: false,
@@ -2179,9 +2179,9 @@ function generateStageEngine(stageNum: number) {
     schoolGateX: 6250,
     boss: {
       x: 6200,
-      y: 380 - 100,
-      w: 80,
-      h: 100,
+      y: 380 - 160,
+      w: 110,
+      h: 140,
       hp: 10,
       maxHp: 10,
       vx: 2,
@@ -4699,10 +4699,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
         if (bossImg && bossImg.complete) {
            const bAspect = bossImg.naturalWidth / bossImg.naturalHeight;
-           const drawBH = 110;
+           const drawBH = 150;
            const drawBW = drawBH * bAspect;
            const drawX = bx + (boss.w - drawBW)/2;
-           const drawY = by + boss.h - drawBH;
+           const drawY = by + boss.h - drawBH - 35; // Increased upward offset to 35px
 
            ctx.save();
            if (boss.invulnerableFrames > 0 && Math.floor(boss.invulnerableFrames / 3) % 2 === 0) {
@@ -4715,6 +4715,18 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               ctx.drawImage(bossImg, 0, 0, drawBW, drawBH);
            } else {
               ctx.drawImage(bossImg, drawX, drawY, drawBW, drawBH);
+           }
+           // Draw Boss HP as Hearts
+           const heartCount = 10;
+           const heartSize = 14;
+           const hpRatio = boss.hp / boss.maxHp;
+           const startX = drawX + (drawBW - (heartCount * heartSize)) / 2;
+           const startY = drawY - 15;
+           for (let i = 0; i < heartCount; i++) {
+               ctx.fillStyle = i < (hpRatio * heartCount) ? '#ef4444' : '#1e293b';
+               ctx.font = `${heartSize}px sans-serif`;
+               ctx.textAlign = 'left';
+               ctx.fillText('❤️', startX + i * heartSize, startY);
            }
            ctx.restore();
         }
@@ -4815,6 +4827,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           const barX = 400 - barW / 2; // Center screen top
           const barY = 40;
           
+          /*
           // Container
           ctx.save();
           ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
@@ -4841,14 +4854,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           ctx.roundRect(barX, barY, barW * (boss.hp / boss.maxHp), barH, 4);
           ctx.fill();
           
-          // Text
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'black 12px sans-serif';
-          ctx.textAlign = 'center';
-          const bossTitle = currentStage === 2 ? 'BOSS: CYBER GLITCH BOT' : 'BOSS: COMPUTER CORE VIRUS';
-          ctx.fillText(bossTitle, 400, barY - 12);
-          ctx.font = 'bold 11px monospace';
-          ctx.fillText(`${boss.hp} / ${boss.maxHp} HP`, 400, barY + barH - 4);
+          // Text (Removed)
           
           if (boss.bossRetries > 0) {
              ctx.fillStyle = '#fbbf24';
@@ -4856,6 +4862,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
              ctx.fillText(`Percobaan Tersisa: ${boss.bossRetries}`, 400, barY + barH + 18);
           }
           ctx.restore();
+          */
         }
       }
 
@@ -5205,7 +5212,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           const naturalW = activeImg.naturalWidth || 400;
           const naturalH = activeImg.naturalHeight || 400;
           const aspect = naturalW / naturalH;
-          const drawH = 58;
+          const drawH = 80;
           const drawW = drawH * aspect;
           const drawX = px + (p.width - drawW) / 2;
           const drawY = py + p.height - drawH + 2; // Align feet exactly to platform top
@@ -5239,7 +5246,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
   return (
     <div ref={gameContainerRef} className={cn(
       "space-y-3 font-sans transition-all duration-300 w-full h-full flex flex-col",
-      isFullScreen ? "fixed inset-0 z-[9999] bg-slate-950 p-2 md:p-4 w-screen h-screen overflow-hidden" : "mx-auto"
+      isFullScreen ? "fixed inset-0 z-[9999] bg-slate-950 p-2 md:p-4 w-screen h-screen overflow-hidden" : "mx-auto max-w-5xl"
     )}>
       {/* HUD Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900 text-white p-3 md:p-4 rounded-2xl border border-slate-800 shadow-md gap-3 shrink-0">
@@ -5280,11 +5287,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
             </div>
           )}
 
-          {(currentStage === 1 || currentStage === 2) && engineRef.current?.boss && engineRef.current.boss.state !== 'dead' && distanceRemaining <= 30 && (
-            <div className="px-2.5 py-1 bg-rose-600 text-white text-[10px] font-black rounded-lg animate-pulse flex items-center gap-1 shadow-sm border border-rose-400">
-              👿 BOSS HP: {engineRef.current.boss.hp}/{engineRef.current.boss.maxHp}
-            </div>
-          )}
+          {/* BOSS HP Removed from HUD as requested */}
         </div>
 
         <div className="flex items-center gap-2 ml-auto sm:ml-0 flex-wrap">
@@ -5345,14 +5348,14 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
       {/* Main Canvas Viewport - Fully Responsive Aspect Ratio Container */}
       <div className={cn(
-        "relative rounded-3xl overflow-hidden border-4 border-slate-900 bg-sky-200 shadow-2xl flex flex-col items-center justify-center transition-all",
+        "relative rounded-3xl overflow-hidden border-4 border-slate-900 bg-slate-950 shadow-2xl flex flex-col items-center justify-center transition-all",
         isFullScreen ? "fixed inset-0 w-screen h-screen z-[9999] rounded-none border-0" : "w-full aspect-[16/9]"
       )}>
         <canvas
           ref={canvasRef}
           width={800}
           height={450}
-          className="w-full h-full object-cover bg-sky-200"
+          className="w-full h-full object-contain bg-slate-950"
         />
 
         {/* Start Overlay & Stage Selector */}
