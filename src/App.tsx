@@ -1861,7 +1861,100 @@ export default function App() {
                 : distinctClasses.filter(c => c === dashboardClassFilter);
 
               return (
-                <div className="space-y-8 animate-in fade-in duration-500">
+                <div className="space-y-6 animate-in fade-in duration-500">
+                  {/* Kartu Kelola Game & Kelola Materi (Ringkas, Kompak, Warna-Warni & Modern di Bagian Atas) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    {/* Kartu 1: Kelola Game Edukasi */}
+                    <div className="relative overflow-hidden bg-white/95 hover:bg-white rounded-2xl p-3 md:py-2.5 md:px-3.5 border border-indigo-200 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-3 group">
+                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all" />
+                      
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Ilustrasi Game Berwarna-warni */}
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl overflow-hidden shrink-0 border border-indigo-300 shadow-sm relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center p-0.5">
+                          <img 
+                            src="/assets/aistudio/1_1c6e6898.png" 
+                            alt="Game Petualangan Ke Sekolah" 
+                            className="w-full h-full object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300"
+                          />
+                          <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-amber-400 border border-white rounded-full flex items-center justify-center text-[8px] font-black shadow-xs">
+                            🎮
+                          </span>
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                              Game Edukatif
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500 hidden sm:inline">
+                              • 5 Game Aktif
+                            </span>
+                          </div>
+                          <h3 className="text-sm md:text-base font-black text-slate-900 leading-tight mt-0.5 truncate group-hover:text-indigo-900 transition-colors">
+                            Kelola Game Edukasi
+                          </h3>
+                          <p className="text-[11px] text-slate-600 font-medium line-clamp-1 mt-0.5">
+                            Petualangan ke Sekolah, kuis per stage, bos battle, & leaderboard.
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setAdminTab('games')}
+                        className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-black rounded-xl shadow-sm hover:shadow-indigo-500/25 active:scale-95 transition-all flex items-center gap-1 shrink-0"
+                      >
+                        <Gamepad2 size={14} className="text-amber-300" />
+                        <span>Kelola</span>
+                        <ArrowRight size={13} />
+                      </button>
+                    </div>
+
+                    {/* Kartu 2: Kelola Materi Pembelajaran */}
+                    <div className="relative overflow-hidden bg-white/95 hover:bg-white rounded-2xl p-3 md:py-2.5 md:px-3.5 border border-emerald-200 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-3 group">
+                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-emerald-500/20 transition-all" />
+                      
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Ilustrasi Materi Berwarna-warni */}
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl overflow-hidden shrink-0 border border-emerald-300 shadow-sm relative bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-500 flex items-center justify-center p-0.5">
+                          <img 
+                            src="/images/dekomposisi_perangkat_pc_1794222967274.jpg" 
+                            alt="Materi Pembelajaran Informatika" 
+                            className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
+                          />
+                          <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-400 border border-white rounded-full flex items-center justify-center text-[8px] font-black shadow-xs">
+                            📚
+                          </span>
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                              Modul Pembelajaran
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500 hidden sm:inline">
+                              • {activeCourseCount} Modul Siap
+                            </span>
+                          </div>
+                          <h3 className="text-sm md:text-base font-black text-slate-900 leading-tight mt-0.5 truncate group-hover:text-emerald-950 transition-colors">
+                            Kelola Materi Belajar
+                          </h3>
+                          <p className="text-[11px] text-slate-600 font-medium line-clamp-1 mt-0.5">
+                            Modul informatika, kuis interaktif, materi visual, & panduan siswa.
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setAdminTab('materials')}
+                        className="px-3 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black rounded-xl shadow-sm hover:shadow-emerald-500/25 active:scale-95 transition-all flex items-center gap-1 shrink-0"
+                      >
+                        <BookOpen size={14} className="text-yellow-200" />
+                        <span>Kelola</span>
+                        <ArrowRight size={13} />
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Top Modern KPI Highlights Bar */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
                     <div className="relative overflow-hidden bg-slate-100 rounded-3xl p-6 border border-slate-300 shadow-sm hover:shadow-md transition-all group">

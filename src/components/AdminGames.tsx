@@ -32,7 +32,8 @@ import {
   Minimize,
   GripVertical,
   MoveUp,
-  MoveDown
+  MoveDown,
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '../utils';
 import { doc, setDoc, collection, onSnapshot, deleteDoc, arrayUnion } from 'firebase/firestore';
@@ -52,32 +53,29 @@ export interface GameItem {
 function GameCardBanner({ gameId }: { gameId: string }) {
   if (gameId === 'petualangan-smp') {
     return (
-      <div className="h-32 w-full rounded-2xl overflow-hidden bg-gradient-to-r from-sky-600 via-blue-700 to-indigo-950 relative p-4 flex items-center justify-between text-white shadow-inner mb-4">
-        <div className="space-y-1.5 z-10 max-w-[70%]">
+      <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-900 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-indigo-400/30">
+        <div className="space-y-1 z-10 max-w-[75%]">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-black uppercase tracking-widest bg-amber-400 text-amber-950 px-2.5 py-0.5 rounded-full border border-amber-300 shadow-xs">
-              🏃 2D Platformer SMP
+            <span className="text-[9px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full border border-amber-300 shadow-xs flex items-center gap-1">
+              ⭐ Game Utama SMP
             </span>
-            <span className="text-[10px] font-bold text-sky-200 bg-white/10 px-2 py-0.5 rounded-full border border-white/20">
-              3 Stage Petualangan
+            <span className="text-[9px] font-bold text-sky-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
+              4 Stage + Bos Battle
             </span>
           </div>
-          <h4 className="text-lg font-black tracking-tight drop-shadow-sm">Petualangan Ke Sekolah & Wisata</h4>
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-sky-100 flex-wrap">
-            <span className="bg-sky-950/80 border border-sky-400/40 px-2 py-0.5 rounded-md">🏠 Rumah</span>
-            <span>➔</span>
-            <span className="bg-blue-950/80 border border-blue-400/40 px-2 py-0.5 rounded-md">🏫 SMPN 1</span>
-            <span>➔</span>
-            <span className="bg-emerald-950/80 border border-emerald-400/40 px-2 py-0.5 rounded-md">🏕️ Kemah</span>
-            <span>➔</span>
-            <span className="bg-purple-950/80 border border-purple-400/40 px-2 py-0.5 rounded-md">🏛️ Wisata</span>
+          <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
+            Petualangan Ke Sekolah & Wisata
+          </h4>
+          <div className="flex items-center gap-1 text-[9px] font-bold text-sky-100 flex-wrap">
+            <span className="bg-sky-950/80 px-1.5 py-0.2 rounded">🏠 Rumah</span>➔
+            <span className="bg-blue-950/80 px-1.5 py-0.2 rounded">🏫 SMPN 1</span>➔
+            <span className="bg-emerald-950/80 px-1.5 py-0.2 rounded">🏕️ Kemah</span>➔
+            <span className="bg-purple-950/80 px-1.5 py-0.2 rounded">🏛️ Ciamis</span>
           </div>
         </div>
-        <div className="relative w-28 h-20 shrink-0 flex items-center justify-center">
-          <div className="absolute left-0 top-1 text-2xl animate-bounce">🎒</div>
-          <div className="absolute right-1 top-2 text-2xl">🏛️</div>
-          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] bg-slate-900/90 px-2 py-0.5 rounded-md text-amber-300 font-mono font-bold whitespace-nowrap border border-amber-400/30">
-            3 Rute Edukasi
+        <div className="relative shrink-0 flex items-center justify-center pr-1">
+          <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-md">
+            🏃
           </div>
         </div>
       </div>
@@ -86,81 +84,124 @@ function GameCardBanner({ gameId }: { gameId: string }) {
 
   if (gameId === 'pattern-master') {
     return (
-      <div className="h-32 w-full rounded-2xl overflow-hidden bg-gradient-to-r from-indigo-600 via-purple-600 to-slate-900 relative p-4 flex items-center justify-between text-white shadow-inner mb-4">
-        <div className="space-y-1.5 z-10">
-          <span className="text-[10px] font-black uppercase tracking-widest bg-purple-400 text-purple-950 px-2.5 py-0.5 rounded-full border border-purple-300 shadow-xs">
-            🔍 Detektif Pola
-          </span>
-          <h4 className="text-lg font-black tracking-tight drop-shadow-sm">Detektif Pola Bilangan</h4>
-          <div className="flex items-center gap-1.5 text-xs font-mono font-black text-amber-300">
-            <span className="bg-white/10 px-2 py-1 rounded-lg">3</span> ➔
-            <span className="bg-white/10 px-2 py-1 rounded-lg">7</span> ➔
-            <span className="bg-white/10 px-2 py-1 rounded-lg">11</span> ➔
-            <span className="bg-amber-400 text-amber-950 px-2 py-1 rounded-lg animate-pulse">?</span>
+      <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-indigo-700 via-purple-700 to-slate-900 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-purple-400/30">
+        <div className="space-y-1 z-10">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-black uppercase tracking-wider bg-purple-400 text-purple-950 px-2 py-0.5 rounded-full border border-purple-300 shadow-xs">
+              🔍 Detektif Pola
+            </span>
+            <span className="text-[9px] font-bold text-purple-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
+              Matematika
+            </span>
+          </div>
+          <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
+            Detektif Pola Bilangan
+          </h4>
+          <div className="flex items-center gap-1 text-[10px] font-mono font-black text-amber-300">
+            <span className="bg-white/10 px-1.5 py-0.5 rounded">3</span>➔
+            <span className="bg-white/10 px-1.5 py-0.5 rounded">7</span>➔
+            <span className="bg-white/10 px-1.5 py-0.5 rounded">11</span>➔
+            <span className="bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded animate-pulse">?</span>
           </div>
         </div>
-        <div className="text-5xl opacity-80 shrink-0">🔎</div>
+        <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-md shrink-0">
+          🔎
+        </div>
       </div>
     );
   }
 
   if (gameId === 'scratch-blocks') {
     return (
-      <div className="h-32 w-full rounded-2xl overflow-hidden bg-gradient-to-r from-amber-500 via-orange-600 to-slate-900 relative p-4 flex items-center justify-between text-white shadow-inner mb-4">
-        <div className="space-y-1.5 z-10">
-          <span className="text-[10px] font-black uppercase tracking-widest bg-amber-300 text-amber-950 px-2.5 py-0.5 rounded-full border border-amber-200 shadow-xs">
-            🧩 Algoritma Visual
-          </span>
-          <h4 className="text-lg font-black tracking-tight drop-shadow-sm">Scratch Block Builder</h4>
-          <div className="space-y-1 text-[10px] font-mono font-bold">
-            <div className="bg-amber-400 text-amber-950 px-2 py-0.5 rounded w-fit">when 🚩 clicked</div>
-            <div className="bg-blue-500 text-white px-2 py-0.5 rounded w-fit">move 10 steps</div>
+      <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-amber-600 via-orange-600 to-slate-900 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-amber-400/30">
+        <div className="space-y-1 z-10">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-black uppercase tracking-wider bg-amber-300 text-amber-950 px-2 py-0.5 rounded-full border border-amber-200 shadow-xs">
+              🧩 Algoritma Visual
+            </span>
+            <span className="text-[9px] font-bold text-amber-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
+              Scratch
+            </span>
+          </div>
+          <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
+            Scratch Block Builder
+          </h4>
+          <div className="flex items-center gap-1.5 text-[9px] font-mono font-bold">
+            <span className="bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded">when 🚩 clicked</span>
+            <span className="bg-blue-500 text-white px-1.5 py-0.5 rounded">move 10 steps</span>
           </div>
         </div>
-        <div className="text-5xl opacity-80 shrink-0">🐱</div>
+        <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-md shrink-0">
+          🐱
+        </div>
       </div>
     );
   }
 
   if (gameId === 'dekomposisi-puzzle') {
     return (
-      <div className="h-32 w-full rounded-2xl overflow-hidden bg-gradient-to-r from-emerald-600 via-teal-700 to-slate-900 relative p-4 flex items-center justify-between text-white shadow-inner mb-4">
-        <div className="space-y-1.5 z-10">
-          <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-300 text-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-xs">
-            🧩 Modular System
-          </span>
-          <h4 className="text-lg font-black tracking-tight drop-shadow-sm">Dekomposisi Master</h4>
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-100">
-            <span className="bg-emerald-900/80 border border-emerald-400/40 px-2 py-0.5 rounded">Stok</span>
-            <span>➔</span>
-            <span className="bg-emerald-900/80 border border-emerald-400/40 px-2 py-0.5 rounded">Transaksi</span>
-            <span>➔</span>
-            <span className="bg-emerald-900/80 border border-emerald-400/40 px-2 py-0.5 rounded">Laporan</span>
+      <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-emerald-600 via-teal-700 to-slate-900 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-emerald-400/30">
+        <div className="space-y-1 z-10">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-300 text-emerald-950 px-2 py-0.5 rounded-full border border-emerald-200 shadow-xs">
+              🧩 Modular System
+            </span>
+            <span className="text-[9px] font-bold text-emerald-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
+              Berpikir Komputasional
+            </span>
+          </div>
+          <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
+            Dekomposisi Master
+          </h4>
+          <div className="flex items-center gap-1 text-[9px] font-bold text-emerald-100">
+            <span className="bg-emerald-900/80 px-1.5 py-0.5 rounded">Stok</span>➔
+            <span className="bg-emerald-900/80 px-1.5 py-0.5 rounded">Transaksi</span>➔
+            <span className="bg-emerald-900/80 px-1.5 py-0.5 rounded">Laporan</span>
           </div>
         </div>
-        <div className="text-5xl opacity-80 shrink-0">🧩</div>
+        <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-md shrink-0">
+          🧩
+        </div>
       </div>
     );
   }
 
   // star-catcher
   return (
-    <div className="h-32 w-full rounded-2xl overflow-hidden bg-gradient-to-r from-violet-600 via-fuchsia-700 to-slate-900 relative p-4 flex items-center justify-between text-white shadow-inner mb-4">
-      <div className="space-y-1.5 z-10">
-        <span className="text-[10px] font-black uppercase tracking-widest bg-fuchsia-300 text-fuchsia-950 px-2.5 py-0.5 rounded-full border border-fuchsia-200 shadow-xs">
-          ⭐ Game Arcade
-        </span>
-        <h4 className="text-lg font-black tracking-tight drop-shadow-sm">Star Catcher Arcade</h4>
-        <div className="flex items-center gap-1 text-amber-300 text-sm animate-pulse">
+    <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-violet-600 via-fuchsia-700 to-slate-900 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-fuchsia-400/30">
+      <div className="space-y-1 z-10">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[9px] font-black uppercase tracking-wider bg-fuchsia-300 text-fuchsia-950 px-2 py-0.5 rounded-full border border-fuchsia-200 shadow-xs">
+            ⭐ Game Arcade
+          </span>
+          <span className="text-[9px] font-bold text-fuchsia-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
+            Scratch Visual
+          </span>
+        </div>
+        <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
+          Star Catcher Arcade
+        </h4>
+        <div className="flex items-center gap-1 text-amber-300 text-xs animate-pulse">
           ⭐⭐⭐⭐⭐
         </div>
       </div>
-      <div className="text-5xl opacity-80 shrink-0">🚀</div>
+      <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-md shrink-0">
+        🚀
+      </div>
     </div>
   );
 }
 
 export const GAMES_LIST: GameItem[] = [
+  {
+    id: 'petualangan-smp',
+    title: 'Petualangan Ke Sekolah',
+    category: 'Permainan 2D Platformer Edukatif',
+    description: 'Petualangan seru siswa SMP menuju sekolah, bumi perkemahan, museum sains, hingga Alun-Alun Ciamis lengkap dengan aksi Bos Battle!',
+    iconName: 'Gamepad2',
+    difficulty: 'Tantangan',
+    defaultTimerSec: 90
+  },
   {
     id: 'pattern-master',
     title: 'Detektif Pola Bilangan',
@@ -196,15 +237,6 @@ export const GAMES_LIST: GameItem[] = [
     iconName: 'Gamepad2',
     difficulty: 'Tantangan',
     defaultTimerSec: 60
-  },
-  {
-    id: 'petualangan-smp',
-    title: 'Petualangan Ke Sekolah',
-    category: 'Permainan 2D Platformer',
-    description: 'Bantu anak SMP (seragam putih-biru) berangkat dari rumah ke SMPN 1 Kawali! Hindari lumpur, kerucut jalan & anjing galak.',
-    iconName: 'Gamepad2',
-    difficulty: 'Tantangan',
-    defaultTimerSec: 90
   }
 ];
 
@@ -227,10 +259,10 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
   // Drag and Drop state for game cards
   const [orderedGames, setOrderedGames] = useState<GameItem[]>(() => {
     try {
-      const saved = localStorage.getItem('ruang_info_games_order');
+      const saved = localStorage.getItem('ruang_info_games_order_v5');
       if (saved) {
         const parsedIds: string[] = JSON.parse(saved);
-        const list = parsedIds
+        let list = parsedIds
           .map(id => GAMES_LIST.find(g => g.id === id))
           .filter((g): g is GameItem => Boolean(g));
         GAMES_LIST.forEach(g => {
@@ -271,7 +303,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
       updated.splice(dropIndex, 0, movedItem);
       setOrderedGames(updated);
       try {
-        localStorage.setItem('ruang_info_games_order', JSON.stringify(updated.map(g => g.id)));
+        localStorage.setItem('ruang_info_games_order_v5', JSON.stringify(updated.map(g => g.id)));
       } catch (err) {}
     }
     setDraggedIndex(null);
@@ -291,7 +323,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
     updated.splice(targetIdx, 0, moved);
     setOrderedGames(updated);
     try {
-      localStorage.setItem('ruang_info_games_order', JSON.stringify(updated.map(g => g.id)));
+      localStorage.setItem('ruang_info_games_order_v5', JSON.stringify(updated.map(g => g.id)));
     } catch (err) {}
   };
 
@@ -486,7 +518,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                     onDrop={(e) => handleDrop(e, idx)}
                     onDragEnd={handleDragEnd}
                     className={cn(
-                      "p-6 md:p-8 rounded-[2rem] border-2 transition-all flex flex-col justify-between relative overflow-hidden bg-slate-100 shadow-sm hover:shadow-md",
+                      "p-4 md:p-5 rounded-2xl border transition-all flex flex-col justify-between relative overflow-hidden bg-slate-100 shadow-sm hover:shadow-md",
                       isGameActive ? "border-slate-300" : "border-slate-200 opacity-80",
                       isDragging && "opacity-40 scale-95 border-dashed border-amber-500",
                       isDragOver && "ring-4 ring-brand/40 border-brand scale-[1.01]"
@@ -496,37 +528,38 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                       {/* Visual Card Illustration Banner */}
                       <GameCardBanner gameId={game.id} />
 
-                      <div className="flex items-start justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-3">
+                      <div className="flex items-start justify-between gap-3 mb-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           {isAdmin && (
                             <div 
-                              className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded-xl cursor-grab active:cursor-grabbing transition-colors"
+                              className="p-1 text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded-lg cursor-grab active:cursor-grabbing transition-colors shrink-0"
                               title="Seret untuk mengubah urutan"
                             >
-                              <GripVertical size={20} />
+                              <GripVertical size={16} />
                             </div>
                           )}
                           <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-md shrink-0",
+                            "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white shadow-xs shrink-0",
+                            game.id === 'petualangan-smp' ? "bg-gradient-to-br from-blue-600 to-indigo-600" :
                             game.id === 'pattern-master' ? "bg-indigo-600" :
                             game.id === 'scratch-blocks' ? "bg-amber-500" :
-                            game.id === 'dekomposisi-puzzle' ? "bg-emerald-600" : "bg-blue-600"
+                            game.id === 'dekomposisi-puzzle' ? "bg-emerald-600" : "bg-purple-600"
                           )}>
-                            {game.iconName === 'Calculator' && <Calculator size={20} />}
-                            {game.iconName === 'Code' && <Code size={20} />}
-                            {game.iconName === 'Puzzle' && <Puzzle size={20} />}
-                            {game.iconName === 'Gamepad2' && <Gamepad2 size={20} />}
+                            {game.iconName === 'Calculator' && <Calculator size={16} />}
+                            {game.iconName === 'Code' && <Code size={16} />}
+                            {game.iconName === 'Puzzle' && <Puzzle size={16} />}
+                            {game.iconName === 'Gamepad2' && <Gamepad2 size={16} />}
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-black text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[9px] font-black text-slate-600 bg-slate-200 px-1.5 py-0.5 rounded-md">
                                 #{idx + 1}
                               </span>
-                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider truncate">
                                 {game.category}
                               </span>
                             </div>
-                            <h3 className="text-xl font-black text-slate-900 leading-tight mt-0.5">
+                            <h3 className="text-sm md:text-base font-black text-slate-900 leading-tight mt-0.5 truncate">
                               {game.title}
                             </h3>
                           </div>
@@ -534,7 +567,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
                         {isAdmin && (
                           <div className={cn(
-                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0",
+                            "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border shrink-0",
                             isGameActive 
                               ? "bg-emerald-100 text-emerald-800 border-emerald-300" 
                               : "bg-slate-200 text-slate-500 border-slate-300"
@@ -544,172 +577,172 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                         )}
                       </div>
 
-                      <p className="text-sm text-slate-600 leading-relaxed mb-6 font-medium">
+                      <p className="text-xs text-slate-600 leading-relaxed mb-3 font-medium line-clamp-2">
                         {game.description}
                       </p>
 
-                      <div className="grid grid-cols-2 gap-3 mb-6">
-                        <div className="bg-slate-200/70 p-3 rounded-xl border border-slate-300/80">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-0.5">Tingkat Kesulitan</span>
-                          <span className="text-xs font-black text-slate-800 flex items-center gap-1">
-                            <Flame size={12} className="text-amber-500" /> {game.difficulty}
-                          </span>
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <div className="bg-slate-200/80 px-2.5 py-1 rounded-lg border border-slate-300/80 flex items-center gap-1 text-[11px] font-bold text-slate-700">
+                          <Flame size={12} className="text-amber-500" />
+                          <span>{game.difficulty}</span>
                         </div>
                         {isAdmin ? (
-                          <div className="bg-slate-200/70 p-3 rounded-xl border border-slate-300/80">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-0.5">Skor Tertinggi Top</span>
-                            <span className="text-xs font-black text-emerald-700 flex items-center gap-1">
-                              <Trophy size={12} className="text-amber-500" /> {gameHighScore} Poin
-                            </span>
+                          <div className="bg-slate-200/80 px-2.5 py-1 rounded-lg border border-slate-300/80 flex items-center gap-1 text-[11px] font-bold text-emerald-800">
+                            <Trophy size={12} className="text-amber-500" />
+                            <span>{gameHighScore > 0 ? `${gameHighScore} Pts` : '0 Pts'}</span>
                           </div>
                         ) : (
-                          <div className="bg-emerald-100/90 p-3 rounded-xl border border-emerald-300 shadow-xs">
-                            <span className="text-[10px] font-black text-emerald-800 uppercase tracking-widest block mb-0.5">Skor Tertinggi Saya</span>
-                            <span className="text-xs font-black text-emerald-950 flex items-center gap-1">
-                              <Trophy size={13} className="text-amber-500 fill-amber-400" /> {myStudentHighScore > 0 ? `${myStudentHighScore} Poin` : 'Belum Ada Skor'}
-                            </span>
+                          <div className="bg-emerald-100/90 px-2.5 py-1 rounded-lg border border-emerald-300 flex items-center gap-1 text-[11px] font-bold text-emerald-950">
+                            <Trophy size={12} className="text-amber-500 fill-amber-400" />
+                            <span>{myStudentHighScore > 0 ? `${myStudentHighScore} Poin` : 'Belum Ada Skor'}</span>
+                          </div>
+                        )}
+                        {game.id === 'petualangan-smp' && (
+                          <div className="bg-blue-100/80 px-2.5 py-1 rounded-lg border border-blue-200 flex items-center gap-1 text-[11px] font-bold text-blue-800">
+                            <span>⚔️ 4 Stage • 2 Bos Battle</span>
                           </div>
                         )}
                       </div>
 
-                    {/* Admin Stage Materi Configurator */}
-                    {isAdmin && game.id === 'petualangan-smp' && (
-                      <div className="mt-4 p-4 bg-slate-200/90 rounded-2xl border border-slate-300 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
-                            ⚙️ Pengaturan Materi Kuis Kotak Emas Per-Stage
-                          </span>
-                          <span className="text-[10px] font-bold text-brand bg-brand/10 border border-brand/20 px-2 py-0.5 rounded-full">
-                            4 Stage Game
-                          </span>
-                        </div>
+                      {/* Admin Stage Materi Configurator (Collapsible for compact neatness) */}
+                      {isAdmin && game.id === 'petualangan-smp' && (
+                        <details className="group mt-1.5 mb-3 bg-slate-200/80 hover:bg-slate-200 rounded-xl border border-slate-300 transition-all overflow-hidden">
+                          <summary className="cursor-pointer list-none p-2.5 px-3 flex items-center justify-between text-xs font-black text-slate-800 select-none">
+                            <span className="flex items-center gap-1.5">
+                              <span>⚙️</span> Atur Materi Kuis Kotak Emas
+                              <span className="text-[9px] font-bold text-brand bg-brand/10 border border-brand/20 px-1.5 py-0.5 rounded-full ml-1">
+                                4 Stage
+                              </span>
+                            </span>
+                            <ChevronDown size={14} className="text-slate-500 group-open:rotate-180 transition-transform" />
+                          </summary>
 
-                        <div className="grid grid-cols-1 gap-2.5 text-xs font-medium text-slate-700">
-                          {/* Stage 1 Config */}
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-white rounded-xl border border-slate-300">
-                            <div>
-                              <span className="font-bold text-slate-900 block text-xs">Stage 1: Berangkat ke Sekolah (175m)</span>
-                              <span className="text-[10px] text-slate-500 font-semibold">Musuh: Komputer Jahat</span>
+                          <div className="p-2.5 pt-1 border-t border-slate-300 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                            {/* Stage 1 */}
+                            <div className="p-2 bg-white rounded-lg border border-slate-300 flex flex-col justify-between gap-1">
+                              <div>
+                                <span className="font-bold text-slate-900 block text-[11px] leading-tight">Stage 1: Ke Sekolah (175m)</span>
+                                <span className="text-[10px] text-slate-500">Bos: Komputer Jahat</span>
+                              </div>
+                              <select
+                                value={gameConfigs['petualangan-smp']?.stage1MateriId ?? 'bk-dekomposisi'}
+                                onChange={(e) => updateStageMateri('stage1MateriId', e.target.value)}
+                                className="bg-slate-100 border border-slate-300 text-[11px] font-bold rounded p-1 text-slate-800 cursor-pointer w-full mt-1"
+                              >
+                                {COURSES.map(c => (
+                                  <option key={c.id} value={c.id}>{c.title}</option>
+                                ))}
+                              </select>
                             </div>
-                            <select
-                              value={gameConfigs['petualangan-smp']?.stage1MateriId ?? 'bk-dekomposisi'}
-                              onChange={(e) => updateStageMateri('stage1MateriId', e.target.value)}
-                              className="bg-slate-100 border border-slate-300 text-xs font-bold rounded-lg p-1.5 text-slate-800 cursor-pointer"
-                            >
-                              {COURSES.map(c => (
-                                <option key={c.id} value={c.id}>{c.title}</option>
-                              ))}
-                            </select>
-                          </div>
 
-                          {/* Stage 2 Config */}
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-white rounded-xl border border-slate-300">
-                            <div>
-                              <span className="font-bold text-amber-900 block text-xs">Stage 2: Kegiatan Pramuka (190m)</span>
-                              <span className="text-[10px] text-slate-500 font-semibold">Musuh: Telepon Jahat Bergigi & Kaki</span>
+                            {/* Stage 2 */}
+                            <div className="p-2 bg-white rounded-lg border border-slate-300 flex flex-col justify-between gap-1">
+                              <div>
+                                <span className="font-bold text-amber-900 block text-[11px] leading-tight">Stage 2: Pramuka (190m)</span>
+                                <span className="text-[10px] text-slate-500">Bos: Telepon Jahat (Lompat)</span>
+                              </div>
+                              <select
+                                value={gameConfigs['petualangan-smp']?.stage2MateriId ?? 'bk-pengenalan-pola'}
+                                onChange={(e) => updateStageMateri('stage2MateriId', e.target.value)}
+                                className="bg-slate-100 border border-slate-300 text-[11px] font-bold rounded p-1 text-slate-800 cursor-pointer w-full mt-1"
+                              >
+                                {COURSES.map(c => (
+                                  <option key={c.id} value={c.id}>{c.title}</option>
+                                ))}
+                              </select>
                             </div>
-                            <select
-                              value={gameConfigs['petualangan-smp']?.stage2MateriId ?? 'bk-pengenalan-pola'}
-                              onChange={(e) => updateStageMateri('stage2MateriId', e.target.value)}
-                              className="bg-slate-100 border border-slate-300 text-xs font-bold rounded-lg p-1.5 text-slate-800 cursor-pointer"
-                            >
-                              {COURSES.map(c => (
-                                <option key={c.id} value={c.id}>{c.title}</option>
-                              ))}
-                            </select>
-                          </div>
 
-                          {/* Stage 3 Config */}
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-white rounded-xl border border-slate-300">
-                            <div>
-                              <span className="font-bold text-indigo-900 block text-xs">Stage 3: Study Tour Edukasi (200m)</span>
-                              <span className="text-[10px] text-slate-500 font-semibold">Musuh: Keyboard Terbakar Bergigi & Tangan</span>
+                            {/* Stage 3 */}
+                            <div className="p-2 bg-white rounded-lg border border-slate-300 flex flex-col justify-between gap-1">
+                              <div>
+                                <span className="font-bold text-indigo-900 block text-[11px] leading-tight">Stage 3: Study Tour (200m)</span>
+                                <span className="text-[10px] text-slate-500">Musuh: Keyboard Terbakar</span>
+                              </div>
+                              <select
+                                value={gameConfigs['petualangan-smp']?.stage3MateriId ?? 'scratch'}
+                                onChange={(e) => updateStageMateri('stage3MateriId', e.target.value)}
+                                className="bg-slate-100 border border-slate-300 text-[11px] font-bold rounded p-1 text-slate-800 cursor-pointer w-full mt-1"
+                              >
+                                {COURSES.map(c => (
+                                  <option key={c.id} value={c.id}>{c.title}</option>
+                                ))}
+                              </select>
                             </div>
-                            <select
-                              value={gameConfigs['petualangan-smp']?.stage3MateriId ?? 'scratch'}
-                              onChange={(e) => updateStageMateri('stage3MateriId', e.target.value)}
-                              className="bg-slate-100 border border-slate-300 text-xs font-bold rounded-lg p-1.5 text-slate-800 cursor-pointer"
-                            >
-                              {COURSES.map(c => (
-                                <option key={c.id} value={c.id}>{c.title}</option>
-                              ))}
-                            </select>
-                          </div>
 
-                          {/* Stage 4 Config */}
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-white rounded-xl border border-slate-300">
-                            <div>
-                              <span className="font-bold text-emerald-900 block text-xs">Stage 4: Menuju Kota CIAMIS (220m)</span>
-                              <span className="text-[10px] text-slate-500 font-semibold">Destinasi: Alun-Alun Kota Ciamis & Monumen Rafflesia</span>
+                            {/* Stage 4 */}
+                            <div className="p-2 bg-white rounded-lg border border-slate-300 flex flex-col justify-between gap-1">
+                              <div>
+                                <span className="font-bold text-emerald-900 block text-[11px] leading-tight">Stage 4: Alun-Alun Ciamis (220m)</span>
+                                <span className="text-[10px] text-slate-500">Destinasi: Monumen Rafflesia</span>
+                              </div>
+                              <select
+                                value={gameConfigs['petualangan-smp']?.stage4MateriId ?? 'bk-algoritma'}
+                                onChange={(e) => updateStageMateri('stage4MateriId', e.target.value)}
+                                className="bg-slate-100 border border-slate-300 text-[11px] font-bold rounded p-1 text-slate-800 cursor-pointer w-full mt-1"
+                              >
+                                {COURSES.map(c => (
+                                  <option key={c.id} value={c.id}>{c.title}</option>
+                                ))}
+                              </select>
                             </div>
-                            <select
-                              value={gameConfigs['petualangan-smp']?.stage4MateriId ?? 'bk-algoritma'}
-                              onChange={(e) => updateStageMateri('stage4MateriId', e.target.value)}
-                              className="bg-slate-100 border border-slate-300 text-xs font-bold rounded-lg p-1.5 text-slate-800 cursor-pointer"
-                            >
-                              {COURSES.map(c => (
-                                <option key={c.id} value={c.id}>{c.title}</option>
-                              ))}
-                            </select>
                           </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                        </details>
+                      )}
+                    </div>
 
-                  {/* Bottom Actions */}
-                  <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-300/80 flex-wrap">
-                    {isAdmin && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => toggleGameStatus(game.id)}
-                          className={cn(
-                            "px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 active:scale-95",
-                            isGameActive
-                              ? "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
-                              : "bg-emerald-600 text-white hover:bg-emerald-700"
-                          )}
-                        >
-                          {isGameActive ? (
-                            <>
-                              <X size={14} /> Nonaktifkan
-                            </>
-                          ) : (
-                            <>
-                              <Check size={14} /> Aktifkan
-                            </>
-                          )}
-                        </button>
-
-                        <div className="flex items-center gap-1 bg-slate-200 rounded-xl p-1 border border-slate-300">
+                    {/* Bottom Actions */}
+                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-300/80">
+                      {isAdmin && (
+                        <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => moveGame(idx, 'up')}
-                            disabled={idx === 0}
-                            className="p-1 hover:bg-white rounded-lg text-slate-700 disabled:opacity-30"
-                            title="Naikkan Urutan"
+                            onClick={() => toggleGameStatus(game.id)}
+                            className={cn(
+                              "px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95",
+                              isGameActive
+                                ? "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
+                                : "bg-emerald-600 text-white hover:bg-emerald-700"
+                            )}
                           >
-                            <MoveUp size={14} />
+                            {isGameActive ? (
+                              <>
+                                <X size={13} /> Nonaktif
+                              </>
+                            ) : (
+                              <>
+                                <Check size={13} /> Aktifkan
+                              </>
+                            )}
                           </button>
-                          <button
-                            onClick={() => moveGame(idx, 'down')}
-                            disabled={idx === orderedGames.length - 1}
-                            className="p-1 hover:bg-white rounded-lg text-slate-700 disabled:opacity-30"
-                            title="Turunkan Urutan"
-                          >
-                            <MoveDown size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    )}
 
-                    <button
-                      onClick={() => setActivePlayGameId(game.id)}
-                      className="px-5 py-2 bg-brand text-white rounded-xl text-xs font-black hover:bg-brand/90 transition-all shadow-md active:scale-95 flex items-center gap-2 ml-auto"
-                    >
-                      <Play size={14} /> {isAdmin ? "Pratinjau & Mainkan" : "Mulai Bermain"}
-                    </button>
+                          <div className="flex items-center gap-0.5 bg-slate-200 rounded-lg p-0.5 border border-slate-300">
+                            <button
+                              onClick={() => moveGame(idx, 'up')}
+                              disabled={idx === 0}
+                              className="p-1 hover:bg-white rounded text-slate-700 disabled:opacity-30"
+                              title="Naikkan Urutan"
+                            >
+                              <MoveUp size={13} />
+                            </button>
+                            <button
+                              onClick={() => moveGame(idx, 'down')}
+                              disabled={idx === orderedGames.length - 1}
+                              className="p-1 hover:bg-white rounded text-slate-700 disabled:opacity-30"
+                              title="Turunkan Urutan"
+                            >
+                              <MoveDown size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => setActivePlayGameId(game.id)}
+                        className="px-3.5 py-1.5 bg-brand text-white rounded-lg text-xs font-black hover:bg-brand/90 transition-all shadow-sm active:scale-95 flex items-center gap-1.5 ml-auto"
+                      >
+                        <Play size={13} /> {isAdmin ? "Pratinjau" : "Mainkan"}
+                      </button>
+                    </div>
                   </div>
-                </div>
               );
             })}
           </div>
@@ -1650,7 +1683,7 @@ function generateStageEngine(stageNum: number) {
         { x: 4000, y: 290, w: 130, h: 20, type: 'platform' },
         { x: 4200, y: 210, w: 140, h: 20, type: 'platform' },
         { x: 4400, y: 270, w: 130, h: 20, type: 'platform' },
-        { x: 4650, y: 380, w: 1200, h: 100, type: 'ground' }
+        { x: 4650, y: 380, w: 1550, h: 100, type: 'ground' }
       ],
       items: [
         { id: 1, x: 200, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
@@ -1665,7 +1698,7 @@ function generateStageEngine(stageNum: number) {
         { id: 10, x: 3400, y: 135, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
         { id: 11, x: 4050, y: 245, w: 26, h: 24, type: 'laptop', collected: false },
         { id: 12, x: 4250, y: 165, w: 28, h: 22, type: 'ram', collected: false },
-        { id: 13, x: 4850, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 13, x: 4750, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
       ],
       obstacles: [
         { id: 1, x: 350, y: 365, w: 60, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
@@ -1677,12 +1710,35 @@ function generateStageEngine(stageNum: number) {
         { id: 7, x: 3300, y: 342, w: 38, h: 38, type: 'phone_evil', vx: 2.2, minX: 3000, maxX: 3500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 8, x: 3850, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 9, x: 4150, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -1.9, minX: 3800, maxX: 4400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 10, x: 4300, y: 180, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 120, maxY: 280, yDir: 1, destroyed: false },
-        { id: 11, x: 4800, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 12, x: 5050, y: 342, w: 38, h: 38, type: 'phone_evil', vx: 2.3, minX: 4750, maxX: 5400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 13, x: 5400, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2.5, minX: 5100, maxX: 5650, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 10, x: 4450, y: 180, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 120, maxY: 280, yDir: 1, destroyed: false },
+        { id: 11, x: 4680, y: 365, w: 70, h: 15, type: 'puddle', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
-      schoolGateX: 5800,
+      schoolGateX: 5900,
+      boss: {
+        x: 5600,
+        y: 380 - 100,
+        w: 85,
+        h: 100,
+        hp: 12,
+        maxHp: 12,
+        vx: 2,
+        vy: 0,
+        minX: 4900,
+        maxX: 5750,
+        shootTimer: 0,
+        state: 'idle' as 'idle' | 'moving' | 'shooting' | 'jumping' | 'dying' | 'dead',
+        jumpPhase: 'none' as 'none' | 'prep' | 'air' | 'land',
+        stateTimer: 0,
+        lasers: [] as Array<{ x: number; y: number; vx: number; vy?: number; w: number; h: number; type?: string }>,
+        fightStarted: false,
+        countdown: 0,
+        pattern: [1, 4, 2, 3, 4, 2, 1, 4, 3, 4, 2],
+        patternIndex: 0,
+        direction: 'left' as 'left' | 'right',
+        targetX: 0,
+        bossRetries: 3,
+        invulnerableFrames: 0
+      }
     };
   }
 
@@ -1929,12 +1985,14 @@ function generateStageEngine(stageNum: number) {
       hp: 10,
       maxHp: 10,
       vx: 2,
+      vy: 0,
       minX: 5400,
       maxX: 6150,
       shootTimer: 0,
-      state: 'idle' as 'idle' | 'moving' | 'shooting' | 'dying' | 'dead',
+      state: 'idle' as 'idle' | 'moving' | 'shooting' | 'jumping' | 'dying' | 'dead',
+      jumpPhase: 'none' as 'none' | 'prep' | 'air' | 'land',
       stateTimer: 0,
-      lasers: [] as Array<{ x: number; y: number; vx: number; w: number; h: number }>,
+      lasers: [] as Array<{ x: number; y: number; vx: number; vy?: number; w: number; h: number; type?: string }>,
       fightStarted: false,
       countdown: 0,
       pattern: [1, 2, 3, 1, 3, 3, 2, 2, 1, 3, 1, 2, 1, 1],
@@ -2965,6 +3023,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const poseImagesRef = useRef<(HTMLImageElement | null)[]>([]);
   const bossImagesRef = useRef<(HTMLImageElement | null)[]>([]);
+  const boss2ImagesRef = useRef<(HTMLImageElement | null)[]>([]);
 
   useEffect(() => {
     const paths = [
@@ -2990,6 +3049,20 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       '/assets/aistudio/9a.png',   // 8: Pose tertembak 9a
       '/assets/aistudio/10a.png',  // 9: Pose bos mati 10a
       '/assets/aistudio/10.png',   // 10: Pose bos mati tak bergerak 10.png
+    ];
+
+    const boss2Paths = [
+      '/assets/aistudio/boss2_1.png',   // 0: idle 1
+      '/assets/aistudio/boss2_2.png',   // 1: idle 2
+      '/assets/aistudio/boss2_3.png',   // 2: jalan 1
+      '/assets/aistudio/boss2_4.png',   // 3: jalan 2
+      '/assets/aistudio/boss2_5.png',   // 4: jalan 3
+      '/assets/aistudio/boss2_6.png',   // 5: saat akan menembak
+      '/assets/aistudio/boss2_7.png',   // 6: saat menembak
+      '/assets/aistudio/boss2_8.png',   // 7: saat akan meloncat (squat)
+      '/assets/aistudio/boss2_9.png',   // 8: saat meloncat (di udara)
+      '/assets/aistudio/boss2_10.png',  // 9: saat mendarat (dust/landing)
+      '/assets/aistudio/boss2_11.png',  // 10: pose kalah/mati
     ];
 
     paths.forEach((path, idx) => {
@@ -3062,6 +3135,43 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           }
         } catch (e) {
           bossImagesRef.current[idx] = img;
+        }
+      };
+    });
+
+    boss2Paths.forEach((path, idx) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = path;
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || 400;
+          canvas.height = img.naturalHeight || 400;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+              if (r > 220 && g > 220 && b > 220) {
+                data[i + 3] = 0;
+              }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            const processedImg = new Image();
+            processedImg.src = canvas.toDataURL();
+            processedImg.onload = () => {
+              boss2ImagesRef.current[idx] = processedImg;
+            };
+          } else {
+            boss2ImagesRef.current[idx] = img;
+          }
+        } catch (e) {
+          boss2ImagesRef.current[idx] = img;
         }
       };
     });
@@ -3223,6 +3333,26 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     // Position player just before boss area
     engineRef.current.player.x = 5350;
     engineRef.current.cameraX = 5350 - 300;
+    
+    setGameState('playing');
+  };
+
+  const startBossFightStage2 = () => {
+    setCurrentStage(2);
+    resetEngineForStage(2);
+    setScore(0);
+    setLives(3);
+    setDistanceRemaining(30);
+    setActiveQuiz(null);
+    setQuizFeedback(null);
+    setShowRewardPicker(false);
+    setSelectedRewardMsg(null);
+    setSuperPowerActive(false);
+    setKeyboardGunActive(false);
+    
+    // Position player just before boss area (4900)
+    engineRef.current.player.x = 4850;
+    engineRef.current.cameraX = 4850 - 300;
     
     setGameState('playing');
   };
@@ -3396,7 +3526,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         }
       }
 
-      const isFrozen = currentStage === 1 && engine.boss && engine.boss.countdown > 0;
+      const isFrozen = (currentStage === 1 || currentStage === 2) && engine.boss && engine.boss.countdown > 0;
       // Fire keyboard gun bullet when shoot key or button is active
       if (keysRef.current.shoot && (p.keyboardGunFrames > 0 || (p.bulletsLeft && p.bulletsLeft > 0)) && !isFrozen) {
         if (!p.shootCooldown || p.shootCooldown <= 0) {
@@ -3432,8 +3562,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
         let bulletRemoved = false;
 
-        // Bullet vs Boss Laser (Counter Attack)
-        if (currentStage === 1 && engine.boss && engine.boss.state !== 'dead') {
+        // Bullet vs Boss Laser / Projectile (Counter Attack)
+        if ((currentStage === 1 || currentStage === 2) && engine.boss && engine.boss.state !== 'dead') {
            const boss = engine.boss;
            for (let lIdx = boss.lasers.length - 1; lIdx >= 0; lIdx--) {
               const l = boss.lasers[lIdx];
@@ -3454,7 +3584,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         if (bulletRemoved) continue;
 
         // Bullet vs Boss hit
-        if (currentStage === 1 && engine.boss && engine.boss.state !== 'dead' && engine.boss.state !== 'dying' && (!engine.boss.countdown || engine.boss.countdown <= 0)) {
+        if ((currentStage === 1 || currentStage === 2) && engine.boss && engine.boss.state !== 'dead' && engine.boss.state !== 'dying' && (!engine.boss.countdown || engine.boss.countdown <= 0)) {
            const boss = engine.boss;
            if (
              b.x < boss.x + boss.w &&
@@ -3622,20 +3752,23 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       const remainingMeters = Math.max(0, Math.floor((engine.schoolGateX - p.x) / 30));
       setDistanceRemaining(remainingMeters);
 
-      // Boss Logic (Stage 1)
-      if (currentStage === 1 && engine.boss) {
+      // Boss Logic (Stage 1 & Stage 2)
+      if ((currentStage === 1 || currentStage === 2) && engine.boss) {
         const boss = engine.boss;
         if (boss.invulnerableFrames > 0) boss.invulnerableFrames--;
-        const bossAreaX = 5400;
+        const bossAreaX = currentStage === 2 ? 4900 : 5400;
 
         // Activation and Forced Position logic: move player left, boss right
         if (p.x > bossAreaX && !boss.fightStarted && boss.state !== 'dead') {
            p.x = bossAreaX + 60;
            p.vx = 0;
-           boss.x = bossAreaX + 700;
+           boss.x = bossAreaX + 680;
+           boss.y = 280;
+           boss.vy = 0;
            boss.fightStarted = true;
            boss.countdown = 300; // 5 seconds (60fps)
            boss.state = 'idle';
+           boss.jumpPhase = 'none';
         }
 
         // Camera Lock logic: Lock camera when player enters boss area
@@ -3686,49 +3819,144 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
              p.vx = 0; // Freeze player during countdown
           } else {
              boss.stateTimer--;
-             if (boss.stateTimer <= 4) { // Finish previous state action
+             if (boss.stateTimer <= 0) { // Finish previous state action
                 const action = boss.pattern[boss.patternIndex];
-                // 1: Move 2m (60 units) toward player
-                // 2: Shoot laser
-                // 3: Move 2m (60 units) away from player
+                // 1: Move toward player
+                // 2: Shoot laser / Cyber App Icons
+                // 3: Move away from player
+                // 4: Jump (Prep -> Air -> Land)
                 if (action === 1) {
                    boss.state = 'moving';
-                   boss.stateTimer = 80; // Slower (was 40)
+                   boss.stateTimer = 80;
                    const dir = boss.x > p.x ? -1 : 1;
-                   boss.vx = dir * 0.75; // Slower (was 1.5)
+                   boss.vx = dir * 0.85;
                 } else if (action === 2) {
                    boss.state = 'shooting';
-                   boss.stateTimer = 120; // Slower (was 60)
-                   boss.shootTimer = 50; // Slower (was 25)
+                   boss.stateTimer = 110;
+                   boss.shootTimer = 45; // Charging pose then fire
                 } else if (action === 3) {
                    boss.state = 'moving';
-                   boss.stateTimer = 80; // Slower (was 40)
+                   boss.stateTimer = 80;
                    const dir = boss.x > p.x ? 1 : -1;
-                   boss.vx = dir * 0.75; // Slower (was 1.5)
+                   boss.vx = dir * 0.85;
+                } else if (action === 4) {
+                   // Jump Action (Stage 2)
+                   boss.state = 'jumping';
+                   boss.jumpPhase = 'prep';
+                   boss.stateTimer = 22; // Squat prep (boss2_8.png)
+                   boss.vx = 0;
                 }
                 boss.patternIndex = (boss.patternIndex + 1) % boss.pattern.length;
              }
 
              if (boss.state === 'moving') {
                boss.x += boss.vx;
-               if (boss.x < bossAreaX + 100) { boss.x = bossAreaX + 100; boss.stateTimer = 0; }
+               if (boss.x < bossAreaX + 80) { boss.x = bossAreaX + 80; boss.stateTimer = 0; }
                if (boss.x > bossAreaX + 700) { boss.x = bossAreaX + 700; boss.stateTimer = 0; }
+             }
+
+             if (boss.state === 'jumping') {
+               if (boss.jumpPhase === 'prep') {
+                 boss.vx = 0;
+                 if (boss.stateTimer <= 0) {
+                   boss.jumpPhase = 'air';
+                   boss.vy = -13; // Jump velocity
+                   const jumpDir = boss.x > p.x ? -1 : 1;
+                   const dist = Math.abs(boss.x - p.x);
+                   boss.vx = jumpDir * (dist < 180 ? 4.5 : 3.2);
+                 }
+               } else if (boss.jumpPhase === 'air') {
+                 boss.x += boss.vx;
+                 boss.y += boss.vy;
+                 boss.vy += 0.55; // Gravity
+                 if (boss.x < bossAreaX + 60) { boss.x = bossAreaX + 60; boss.vx = 0; }
+                 if (boss.x > bossAreaX + 720) { boss.x = bossAreaX + 720; boss.vx = 0; }
+
+                 // Ground level check (y: 280 on 380 ground)
+                 if (boss.y >= 280) {
+                   boss.y = 280;
+                   boss.vy = 0;
+                   boss.vx = 0;
+                   boss.jumpPhase = 'land';
+                   boss.stateTimer = 22; // Landing recovery (boss2_10.png)
+                 }
+               } else if (boss.jumpPhase === 'land') {
+                 boss.vx = 0;
+                 if (boss.stateTimer <= 0) {
+                   boss.state = 'idle';
+                   boss.jumpPhase = 'none';
+                   boss.stateTimer = 15;
+                 }
+               }
              }
 
              if (boss.state === 'shooting' && boss.shootTimer > 0) {
                boss.shootTimer--;
                if (boss.shootTimer === 0) {
-                 const laserVx = boss.direction === 'left' ? -10 : 10;
-                 const laserX = boss.direction === 'left' ? boss.x - 10 : boss.x + boss.w;
-                 boss.lasers.push({
-                   x: laserX,
-                   y: boss.y + 42,
-                   vx: laserVx,
-                   w: 55,
-                   h: 12
-                 });
+                 if (currentStage === 2) {
+                   // Stage 2: Shoot Cyber App Icons (Phone, Mail, Wifi, Chat)
+                   const laserVx = boss.direction === 'left' ? -9 : 9;
+                   const laserX = boss.direction === 'left' ? boss.x - 12 : boss.x + boss.w;
+                   boss.lasers.push({
+                     x: laserX,
+                     y: boss.y + 36,
+                     vx: laserVx,
+                     w: 36,
+                     h: 36,
+                     type: ['chat', 'wifi', 'phone', 'mail'][Math.floor(Math.random() * 4)]
+                   });
+                 } else {
+                   // Stage 1: Blue laser bar
+                   const laserVx = boss.direction === 'left' ? -10 : 10;
+                   const laserX = boss.direction === 'left' ? boss.x - 10 : boss.x + boss.w;
+                   boss.lasers.push({
+                     x: laserX,
+                     y: boss.y + 42,
+                     vx: laserVx,
+                     w: 55,
+                     h: 12
+                   });
+                 }
                }
              }
+          }
+
+          // Boss body collision with player
+          if (
+            p.x < boss.x + boss.w &&
+            p.x + p.width > boss.x &&
+            p.y < boss.y + boss.h &&
+            p.y + p.height > boss.y &&
+            boss.countdown <= 0
+          ) {
+            if (p.invulnerableFrames === 0 && p.superPowerFrames === 0) {
+              p.invulnerableFrames = 60;
+              p.vy = -6;
+              p.vx = boss.direction === 'left' ? -6 : 6;
+              setLives(currentLives => {
+                 const next = currentLives - 1;
+                 if (next <= 0) {
+                    if (boss.bossRetries > 0) {
+                       boss.bossRetries--;
+                       boss.countdown = 180;
+                       boss.hp = currentStage === 2 ? 12 : 10;
+                       boss.patternIndex = 0;
+                       boss.lasers = [];
+                       boss.y = 280;
+                       boss.vy = 0;
+                       boss.state = 'idle';
+                       boss.jumpPhase = 'none';
+                       p.x = bossAreaX + 60;
+                       p.vx = 0;
+                       return 3;
+                    } else {
+                       setGameState('gameover');
+                       saveFinalScore(score);
+                    }
+                 }
+                 return next;
+              });
+            }
           }
 
           // Update Lasers & collision with player
@@ -3755,9 +3983,13 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                       if (boss.bossRetries > 0) {
                          boss.bossRetries--;
                          boss.countdown = 180; // 3s reset
-                         boss.hp = 10;
+                         boss.hp = currentStage === 2 ? 12 : 10;
                          boss.patternIndex = 0;
                          boss.lasers = [];
+                         boss.y = 280;
+                         boss.vy = 0;
+                         boss.state = 'idle';
+                         boss.jumpPhase = 'none';
                          p.x = bossAreaX + 60;
                          p.vx = 0;
                          return 3; // Reset to 3 lives
@@ -4171,28 +4403,64 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         }
       }
 
-      // Render Boss 1 & Lasers
-      if (currentStage === 1 && engine.boss) {
+      // Render Boss (Stage 1 & Stage 2) & Projectiles
+      if ((currentStage === 1 || currentStage === 2) && engine.boss) {
         const boss = engine.boss;
         const bx = boss.x - camX;
         const by = boss.y;
         
         let bossImg: HTMLImageElement | null = null;
-        if (boss.state === 'dead') {
-          bossImg = bossImagesRef.current[10] || bossImagesRef.current[9]; // Pose bos mati tak bergerak (10.png)
-        } else if (boss.state === 'dying') {
-          bossImg = bossImagesRef.current[9]; // Pose bos mati (10a.png)
-        } else if (boss.invulnerableFrames > 0) {
-          bossImg = bossImagesRef.current[8]; // Pose tertembak player (9a.png)
-        } else if (boss.state === 'shooting') {
-          // Menembak laser: 7a.png, 8a.png (indices 6, 7)
-          bossImg = bossImagesRef.current[Math.floor(p.animFrame * 2) % 2 + 6];
-        } else if (boss.state === 'moving') {
-          // Bergerak: 3a.png, 4a.png, 5a.png, 6a.png (indices 2, 3, 4, 5)
-          bossImg = bossImagesRef.current[Math.floor(p.animFrame * 2) % 4 + 2];
+        if (currentStage === 2) {
+          // Stage 2 Boss Pose Mappings
+          if (boss.state === 'dead' || boss.state === 'dying') {
+            // Pose kalah/mati: 11.png (boss2_11) or 8.png (boss2_8)
+            bossImg = boss2ImagesRef.current[10] || boss2ImagesRef.current[7];
+          } else if (boss.invulnerableFrames > 0) {
+            // Pose tertembak player: 8.png (reaction squat)
+            bossImg = boss2ImagesRef.current[7];
+          } else if (boss.state === 'jumping') {
+            // Pose meloncat:
+            // saat akan meloncat: 8.png (index 7)
+            // saat meloncat: 9.png (index 8)
+            // saat mendarat: 10.png (index 9)
+            if (boss.jumpPhase === 'prep') {
+              bossImg = boss2ImagesRef.current[7];
+            } else if (boss.jumpPhase === 'air') {
+              bossImg = boss2ImagesRef.current[8];
+            } else {
+              bossImg = boss2ImagesRef.current[9];
+            }
+          } else if (boss.state === 'shooting') {
+            // Pose menembak:
+            // saat akan menembak: 6.png (index 5)
+            // saat menembak: 7.png (index 6)
+            if (boss.shootTimer > 0) {
+              bossImg = boss2ImagesRef.current[5];
+            } else {
+              bossImg = boss2ImagesRef.current[6];
+            }
+          } else if (boss.state === 'moving') {
+            // Pose berjalan: 3.png, 4.png, 5.png (indices 2, 3, 4)
+            bossImg = boss2ImagesRef.current[Math.floor(p.animFrame * 2) % 3 + 2];
+          } else {
+            // Pose idle: 1.png, 2.png (indices 0, 1)
+            bossImg = boss2ImagesRef.current[Math.floor(p.animFrame * 1.5) % 2];
+          }
         } else {
-          // Pose idle: 1a.png, 2a.png (indices 0, 1)
-          bossImg = bossImagesRef.current[Math.floor(p.animFrame * 1) % 2];
+          // Stage 1 Boss Pose Mappings
+          if (boss.state === 'dead') {
+            bossImg = bossImagesRef.current[10] || bossImagesRef.current[9];
+          } else if (boss.state === 'dying') {
+            bossImg = bossImagesRef.current[9];
+          } else if (boss.invulnerableFrames > 0) {
+            bossImg = bossImagesRef.current[8];
+          } else if (boss.state === 'shooting') {
+            bossImg = bossImagesRef.current[Math.floor(p.animFrame * 2) % 2 + 6];
+          } else if (boss.state === 'moving') {
+            bossImg = bossImagesRef.current[Math.floor(p.animFrame * 2) % 4 + 2];
+          } else {
+            bossImg = bossImagesRef.current[Math.floor(p.animFrame * 1) % 2];
+          }
         }
 
         if (bossImg && bossImg.complete) {
@@ -4203,6 +4471,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
            const drawY = by + boss.h - drawBH;
 
            ctx.save();
+           if (boss.invulnerableFrames > 0 && Math.floor(boss.invulnerableFrames / 3) % 2 === 0) {
+              ctx.filter = 'brightness(1.5) saturate(2)';
+           }
            // Default pose is facing left, so flip if facing right
            if (boss.direction === 'right') {
               ctx.translate(drawX + drawBW, drawY);
@@ -4229,7 +4500,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
             ctx.scale(scale, scale);
             
             // Ultra Glow
-            ctx.shadowColor = '#3b82f6';
+            const glowColor = currentStage === 2 ? '#a855f7' : '#3b82f6';
+            const strokeColor = currentStage === 2 ? '#c084fc' : '#60a5fa';
+            ctx.shadowColor = glowColor;
             ctx.shadowBlur = 80;
             ctx.fillStyle = '#ffffff';
             ctx.font = 'black 420px "Inter", "Arial Black", sans-serif'; // Enormous
@@ -4238,7 +4511,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
             ctx.fillText(num.toString(), 0, 0);
             
             // Vibrant Stroke Glow
-            ctx.strokeStyle = '#60a5fa';
+            ctx.strokeStyle = strokeColor;
             ctx.lineWidth = 6;
             ctx.globalAlpha = 0.5 + pulse * 0.3;
             ctx.strokeText(num.toString(), 0, 0);
@@ -4246,34 +4519,57 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
             ctx.save();
             ctx.textAlign = 'center';
-            ctx.fillStyle = '#60a5fa';
+            ctx.fillStyle = strokeColor;
             ctx.font = 'black 36px "Inter", sans-serif';
             ctx.shadowColor = '#000';
             ctx.shadowBlur = 15;
-            ctx.fillText('PERSIAPAN BERTARUNG!', 400, 340);
+            ctx.fillText(currentStage === 2 ? 'PERSIAPAN BERTARUNG! (STAGE 2 BOS)' : 'PERSIAPAN BERTARUNG!', 400, 340);
             
             // Modern stylized progress indicator
             const lineW = 400;
             ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
             ctx.fillRect(400 - lineW/2, 365, lineW, 4);
-            ctx.fillStyle = '#60a5fa';
-            ctx.shadowColor = '#60a5fa';
+            ctx.fillStyle = strokeColor;
+            ctx.shadowColor = strokeColor;
             ctx.shadowBlur = 10;
             ctx.fillRect(400 - lineW/2, 365, lineW * (boss.countdown / 300), 4);
             ctx.restore();
          }
 
-        // Boss Lasers
+        // Boss Lasers / Projectiles
         if (boss.state !== 'dead') {
           boss.lasers.forEach(l => {
              const lx = l.x - camX;
              ctx.save();
-             ctx.shadowColor = '#3b82f6';
-             ctx.shadowBlur = 15;
-             ctx.fillStyle = '#60a5fa';
-             ctx.fillRect(lx, l.y, l.w, l.h);
-             ctx.fillStyle = '#ffffff';
-             ctx.fillRect(lx, l.y + l.h/3, l.w, l.h/3);
+             if (currentStage === 2) {
+               // Stage 2: Cyber App Icon (Phone, Mail, Wifi, Chat)
+               const iconType = l.type || 'chat';
+               const bgCol = iconType === 'phone' ? '#22c55e' : iconType === 'mail' ? '#3b82f6' : iconType === 'wifi' ? '#0ea5e9' : '#a855f7';
+               ctx.shadowColor = bgCol;
+               ctx.shadowBlur = 14;
+               ctx.fillStyle = bgCol;
+               ctx.beginPath();
+               ctx.roundRect(lx, l.y, l.w, l.h, 8);
+               ctx.fill();
+               ctx.strokeStyle = '#ffffff';
+               ctx.lineWidth = 2;
+               ctx.stroke();
+
+               ctx.fillStyle = '#ffffff';
+               ctx.font = 'bold 16px sans-serif';
+               ctx.textAlign = 'center';
+               ctx.textBaseline = 'middle';
+               const symbol = iconType === 'phone' ? '📞' : iconType === 'mail' ? '✉️' : iconType === 'wifi' ? '📶' : '💬';
+               ctx.fillText(symbol, lx + l.w / 2, l.y + l.h / 2);
+             } else {
+               // Stage 1: Laser Bar
+               ctx.shadowColor = '#3b82f6';
+               ctx.shadowBlur = 15;
+               ctx.fillStyle = '#60a5fa';
+               ctx.fillRect(lx, l.y, l.w, l.h);
+               ctx.fillStyle = '#ffffff';
+               ctx.fillRect(lx, l.y + l.h/3, l.w, l.h/3);
+             }
              ctx.restore();
           });
         }
@@ -4300,8 +4596,13 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           
           // HP Fill with gradient
           const hpGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
-          hpGrad.addColorStop(0, '#f43f5e');
-          hpGrad.addColorStop(1, '#e11d48');
+          if (currentStage === 2) {
+            hpGrad.addColorStop(0, '#c084fc');
+            hpGrad.addColorStop(1, '#9333ea');
+          } else {
+            hpGrad.addColorStop(0, '#f43f5e');
+            hpGrad.addColorStop(1, '#e11d48');
+          }
           ctx.fillStyle = hpGrad;
           ctx.roundRect(barX, barY, barW * (boss.hp / boss.maxHp), barH, 4);
           ctx.fill();
@@ -4310,7 +4611,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           ctx.fillStyle = '#ffffff';
           ctx.font = 'black 12px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(`BOSS: COMPUTER CORE VIRUS`, 400, barY - 12);
+          const bossTitle = currentStage === 2 ? 'BOSS: CYBER GLITCH BOT' : 'BOSS: COMPUTER CORE VIRUS';
+          ctx.fillText(bossTitle, 400, barY - 12);
           ctx.font = 'bold 11px monospace';
           ctx.fillText(`${boss.hp} / ${boss.maxHp} HP`, 400, barY + barH - 4);
           
@@ -4692,9 +4994,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
             </div>
           )}
 
-          {currentStage === 1 && engineRef.current?.boss && engineRef.current.boss.state !== 'dead' && distanceRemaining <= 30 && (
+          {(currentStage === 1 || currentStage === 2) && engineRef.current?.boss && engineRef.current.boss.state !== 'dead' && distanceRemaining <= 30 && (
             <div className="px-2.5 py-1 bg-rose-600 text-white text-[10px] font-black rounded-lg animate-pulse flex items-center gap-1 shadow-sm border border-rose-400">
-              👿 BOSS HP: {engineRef.current.boss.hp}/10
+              👿 BOSS HP: {engineRef.current.boss.hp}/{engineRef.current.boss.maxHp}
             </div>
           )}
         </div>
@@ -4801,7 +5103,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               <p className="text-[11px] font-semibold">
                 • <strong>Kuis Materi:</strong> {activeCourseObj?.title || 'Informatika'}<br/>
                 • <strong>Destinasi:</strong> {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan Pramuka' : currentStage === 3 ? 'Museum Wisata Sains' : 'Alun-Alun Kota Ciamis (Monumen Rafflesia)'}<br/>
-                • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat & Boss Core Virus' : currentStage === 2 ? 'Telepon Jahat Bergigi' : currentStage === 3 ? 'Keyboard Terbakar Bergigi' : 'Kombinasi Monster Cyber'}
+                • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat & Boss Core Virus' : currentStage === 2 ? 'Telepon Jahat & Boss Cyber Glitch Bot' : currentStage === 3 ? 'Keyboard Terbakar Bergigi' : 'Kombinasi Monster Cyber'}
               </p>
             </div>
 
@@ -4818,7 +5120,16 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                   onClick={() => startBossFightStage1()}
                   className="px-6 py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-sm md:text-base rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
                 >
-                  🔥 Coba Bos (Admin)
+                  🔥 Coba Bos Stage 1 (Admin)
+                </button>
+              )}
+
+              {isAdmin && currentStage === 2 && (
+                <button
+                  onClick={() => startBossFightStage2()}
+                  className="px-6 py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-black text-sm md:text-base rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                >
+                  🔥 Coba Bos Stage 2 (Admin)
                 </button>
               )}
             </div>
