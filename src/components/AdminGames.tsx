@@ -5001,7 +5001,39 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           )}
         </div>
 
-        <div className="flex items-center gap-2 ml-auto sm:ml-0">
+        <div className="flex items-center gap-2 ml-auto sm:ml-0 flex-wrap">
+          {isAdmin && (
+            <div className="flex items-center gap-1.5 bg-slate-800/90 p-1 rounded-xl border border-purple-500/40">
+              <span className="text-[10px] font-black text-amber-400 px-1 uppercase tracking-wider hidden sm:inline">⚡ Admin:</span>
+              <button
+                onClick={() => startBossFightStage1()}
+                className="px-2 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[10px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                title="Langsung Uji Coba Bos Stage 1"
+              >
+                🔥 Bos 1
+              </button>
+              <button
+                onClick={() => startBossFightStage2()}
+                className="px-2 py-1 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-[10px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                title="Langsung Uji Coba Bos Stage 2 (Loncat & Cyber App Icons)"
+              >
+                🔥 Bos 2
+              </button>
+              <button
+                onClick={() => {
+                  if (engineRef.current?.player) {
+                    engineRef.current.player.bulletsLeft = (engineRef.current.player.bulletsLeft || 0) + 30;
+                    setKeyboardGunActive(true);
+                  }
+                }}
+                className="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                title="Tambah 30 Peluru Pistol Keyboard"
+              >
+                ⌨️ +30 Peluru
+              </button>
+            </div>
+          )}
+
           <div className="px-3.5 py-1.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-black rounded-xl">
             Skor: {score}
           </div>
@@ -5103,11 +5135,11 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               <p className="text-[11px] font-semibold">
                 • <strong>Kuis Materi:</strong> {activeCourseObj?.title || 'Informatika'}<br/>
                 • <strong>Destinasi:</strong> {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan Pramuka' : currentStage === 3 ? 'Museum Wisata Sains' : 'Alun-Alun Kota Ciamis (Monumen Rafflesia)'}<br/>
-                • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat & Boss Core Virus' : currentStage === 2 ? 'Telepon Jahat & Boss Cyber Glitch Bot' : currentStage === 3 ? 'Keyboard Terbakar Bergigi' : 'Kombinasi Monster Cyber'}
+                • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat & Boss Core Virus' : currentStage === 2 ? 'Telepon Jahat (Lompat) & Boss Cyber Bot (Senjata Aplikasi)' : currentStage === 3 ? 'Keyboard Terbakar Bergigi' : 'Kombinasi Monster Cyber'}
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-center gap-3 flex-wrap justify-center">
               <button
                 onClick={() => startGame(currentStage)}
                 className="px-8 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base md:text-lg rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
@@ -5115,22 +5147,24 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                 <Play size={20} /> Mulai Mainkan Stage {currentStage}!
               </button>
 
-              {isAdmin && currentStage === 1 && (
-                <button
-                  onClick={() => startBossFightStage1()}
-                  className="px-6 py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-sm md:text-base rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                >
-                  🔥 Coba Bos Stage 1 (Admin)
-                </button>
-              )}
+              {isAdmin && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => startBossFightStage1()}
+                    className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                    title="Uji coba pertarungan Bos Stage 1"
+                  >
+                    🔥 Coba Bos Stage 1
+                  </button>
 
-              {isAdmin && currentStage === 2 && (
-                <button
-                  onClick={() => startBossFightStage2()}
-                  className="px-6 py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-black text-sm md:text-base rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                >
-                  🔥 Coba Bos Stage 2 (Admin)
-                </button>
+                  <button
+                    onClick={() => startBossFightStage2()}
+                    className="px-4 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                    title="Uji coba pertarungan Bos Stage 2 (Tembak Aplikasi & Action Loncat)"
+                  >
+                    🔥 Coba Bos Stage 2 (Admin)
+                  </button>
+                </div>
               )}
             </div>
           </div>
