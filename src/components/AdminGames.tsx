@@ -38,7 +38,7 @@ import {
   MoveRight
 } from 'lucide-react';
 import { cn } from '../utils';
-import { doc, setDoc, collection, onSnapshot, deleteDoc, arrayUnion } from 'firebase/firestore';
+import { doc, setDoc, collection, onSnapshot, deleteDoc, arrayUnion, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { COURSES } from '../constants';
 
@@ -340,11 +340,15 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
         configs[doc.id] = doc.data();
       });
       setGameConfigs(configs);
+    }, (error) => {
+      console.error('Failed subscribing to game_configs:', error);
     });
 
     const unsubScores = onSnapshot(collection(db, 'game_scores'), (snapshot) => {
       const scores = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setGameScores(scores);
+    }, (error) => {
+      console.error('Failed subscribing to game_scores:', error);
     });
 
     return () => {
@@ -386,38 +390,63 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
     }
   };
 
-  // Filtered leaderboard - only show the best score per student per unique game/stage
-  const filteredScores = (() => {
-    const baseFiltered = gameScores.filter(score => {
-      const matchSearch = score.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          score.studentNis?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          score.gameTitle?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchKelas = filterKelas === 'all' || score.studentKelas === filterKelas;
-      const matchGame = filterGame === 'all' || score.gameId === filterGame;
-      
-      // Stage Filter for Petualangan SMP
-      let matchStage = true;
-      if (filterGame === 'petualangan-smp' && filterStage !== 'all') {
-        matchStage = score.gameTitle?.includes(`Stage ${filterStage}`);
-      }
-      
-      const hasScore = (score.score || 0) > 0;
-      
-      return matchSearch && matchKelas && matchGame && matchStage && hasScore;
-    });
-
-    // Group by Student + Game Title (Stage) to pick the MAX score
+  // Deduplicate so each student has ONLY their highest score per unique game/stage
+  const bestScoresAll = (() => {
     const bestScoresMap: Record<string, any> = {};
-    baseFiltered.forEach(s => {
-      // Use studentId + gameTitle as unique key. 
-      // If studentId is missing (old data), fallback to name.
-      const key = `${s.studentId || s.studentName}_${s.gameTitle}`;
-      if (!bestScoresMap[key] || (s.score || 0) > (bestScoresMap[key].score || 0)) {
+    gameScores.forEach(s => {
+      if ((s.score || 0) <= 0) return;
+      if (!isAdmin && s.studentId === 'admin-preview') return;
+
+      const studentKey = String(s.studentId || s.studentNis || s.studentName || 'unknown').trim().toLowerCase();
+      const stageMatch = typeof s.gameTitle === 'string' ? s.gameTitle.match(/Stage\s*(\d+)/i) : null;
+      const stageKey = stageMatch ? `stage-${stageMatch[1]}` : String(s.gameTitle || s.gameId || 'default').trim().toLowerCase();
+      const key = `${studentKey}__${s.gameId || ''}__${stageKey}`;
+
+      const existing = bestScoresMap[key];
+      if (
+        !existing ||
+        (s.score || 0) > (existing.score || 0) ||
+        ((s.score || 0) === (existing.score || 0) && (s.playedAt || '') > (existing.playedAt || ''))
+      ) {
         bestScoresMap[key] = s;
       }
     });
-
     return Object.values(bestScoresMap).sort((a, b) => (b.score || 0) - (a.score || 0));
+  })();
+
+  // Filtered leaderboard - only show the best score per student per unique game/stage
+  const filteredScores = bestScoresAll.filter(score => {
+    const matchSearch = score.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        score.studentNis?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        score.gameTitle?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchKelas = filterKelas === 'all' || score.studentKelas === filterKelas;
+    const matchGame = filterGame === 'all' || score.gameId === filterGame;
+
+    // Stage Filter for Petualangan SMP
+    let matchStage = true;
+    if (filterGame === 'petualangan-smp' && filterStage !== 'all') {
+      matchStage = new RegExp(`Stage\\s*${filterStage}\\b`, 'i').test(score.gameTitle || '');
+    }
+
+    return matchSearch && matchKelas && matchGame && matchStage;
+  });
+
+  // Highest score per stage (1-4) for current student on Petualangan SMP
+  const currentStudentStageHighScores: Record<number, number> = (() => {
+    const map: Record<number, number> = {};
+    if (!currentStudent) return map;
+    bestScoresAll.forEach(s => {
+      if (s.gameId !== 'petualangan-smp') return;
+      const isMe = (s.studentId && s.studentId === currentStudent.id) ||
+                   (!s.studentId && s.studentName === currentStudent.nama);
+      if (!isMe) return;
+      const m = typeof s.gameTitle === 'string' ? s.gameTitle.match(/Stage\s*(\d+)/i) : null;
+      if (m) {
+        const st = Number(m[1]);
+        map[st] = Math.max(map[st] || 0, s.score || 0);
+      }
+    });
+    return map;
   })();
 
   // Extract unique classes
@@ -473,7 +502,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
             )}
           >
             <Trophy size={14} className="text-amber-500" />
-            Papan Skor ({gameScores.length})
+            Papan Skor ({bestScoresAll.length})
           </button>
         </div>
       </div>
@@ -605,6 +634,20 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                           </div>
                         )}
                       </div>
+
+                      {!isAdmin && game.id === 'petualangan-smp' && Object.keys(currentStudentStageHighScores).length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                          {[1, 2, 3, 4].map(st => {
+                            const stScore = currentStudentStageHighScores[st];
+                            if (!stScore) return null;
+                            return (
+                              <span key={st} className="px-2 py-0.5 bg-amber-100/90 border border-amber-300 text-amber-950 rounded-md text-[10px] font-black">
+                                Stage {st}: {stScore} Poin
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
 
                       {/* Admin Stage Materi Configurator (Collapsible for compact neatness) */}
                       {isAdmin && game.id === 'petualangan-smp' && (
@@ -761,7 +804,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                 <Trophy className="text-amber-500" size={24} /> Papan Skor & Peringkat Siswa
               </h2>
               <p className="text-xs text-slate-500 font-bold mt-0.5">
-                Daftar nilai dan capaian skor tertinggi siswa dalam permainan edukatif.
+                Menampilkan hanya 1 skor tertinggi setiap siswa per stagenya.
               </p>
             </div>
 
@@ -906,6 +949,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
           gameId={activePlayGameId}
           isAdmin={isAdmin}
           currentStudent={currentStudent}
+          studentStageHighScores={currentStudentStageHighScores}
           onClose={() => setActivePlayGameId(null)}
         />
       )}
@@ -921,10 +965,11 @@ interface InteractiveGameModalProps {
   gameId: string;
   isAdmin: boolean;
   currentStudent?: { id: string; nama: string; kelas: string; nis: string } | null;
+  studentStageHighScores?: Record<number, number>;
   onClose: () => void;
 }
 
-function InteractiveGameModal({ gameId, isAdmin, currentStudent, onClose }: InteractiveGameModalProps) {
+function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHighScores, onClose }: InteractiveGameModalProps) {
   const currentGame = GAMES_LIST.find(g => g.id === gameId) || GAMES_LIST[0];
   const [isFullscreen, setIsFullscreen] = useState(true);
   const modalContainerRef = useRef<HTMLDivElement | null>(null);
@@ -1024,7 +1069,7 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, onClose }: Inte
             <StarCatcherArcadeGame isAdmin={isAdmin} currentStudent={currentStudent} onClose={onClose} />
           )}
           {gameId === 'petualangan-smp' && (
-            <PetualanganSMPGame isAdmin={isAdmin} currentStudent={currentStudent} onClose={onClose} />
+            <PetualanganSMPGame isAdmin={isAdmin} currentStudent={currentStudent} studentStageHighScores={studentStageHighScores} onClose={onClose} />
           )}
         </div>
       </div>
@@ -3219,7 +3264,7 @@ function drawAlunAlunCiamis(ctx: CanvasRenderingContext2D, x: number, groundY: n
   ctx.restore();
 }
 
-function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boolean; currentStudent: any; onClose: () => void }) {
+function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, onClose }: { isAdmin: boolean; currentStudent: any; studentStageHighScores?: Record<number, number>; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const poseImagesRef = useRef<(HTMLCanvasElement | HTMLImageElement | null)[]>([]);
   const bossImagesRef = useRef<(HTMLCanvasElement | HTMLImageElement | null)[]>([]);
@@ -3312,7 +3357,33 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
   const [lives, setLives] = useState(3);
   const [distanceRemaining, setDistanceRemaining] = useState(175);
   const [superPowerActive, setSuperPowerActive] = useState(false);
+  const [bossBulletsCount, setBossBulletsCount] = useState(0);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+
+  useEffect(() => {
+    const checkTouch = () => {
+      const coarse = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false;
+      const hasTouch = typeof window !== 'undefined' && ('ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0);
+      setIsTouchDevice(coarse || hasTouch);
+    };
+    checkTouch();
+
+    const onFirstTouch = () => setIsTouchDevice(true);
+    window.addEventListener('touchstart', onFirstTouch, { passive: true, once: true });
+
+    const mediaQuery = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
+    if (mediaQuery && mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', checkTouch);
+    }
+
+    return () => {
+      window.removeEventListener('touchstart', onFirstTouch);
+      if (mediaQuery && mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', checkTouch);
+      }
+    };
+  }, []);
 
   const gameContainerRef = useRef<HTMLDivElement | null>(null);
   const usedQuizQuestionIndicesRef = useRef<Set<number>>(new Set());
@@ -3519,7 +3590,12 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     }
   };
 
+  const resetKeys = () => {
+    keysRef.current = { left: false, right: false, jump: false, shoot: false };
+  };
+
   const startGame = (stageNum: number = currentStage) => {
+    resetKeys();
     setCurrentStage(stageNum as any);
     resetEngineForStage(stageNum);
     setScore(s => (gameState === 'win' ? s : 0)); // accumulate score across stages or start fresh
@@ -3532,10 +3608,12 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     setSelectedRewardMsg(null);
     setSuperPowerActive(false);
     setKeyboardGunActive(false);
+    setBossBulletsCount(0);
     setGameState('playing');
   };
 
   const startBossFightStage1 = () => {
+    resetKeys();
     setCurrentStage(1);
     resetEngineForStage(1);
     setScore(0);
@@ -3547,6 +3625,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     setSelectedRewardMsg(null);
     setSuperPowerActive(false);
     setKeyboardGunActive(false);
+    setBossBulletsCount(0);
     
     // Position player just before boss area
     engineRef.current.player.x = 5350;
@@ -3556,6 +3635,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
   };
 
   const startBossFightStage2 = () => {
+    resetKeys();
     setCurrentStage(2);
     resetEngineForStage(2);
     setScore(0);
@@ -3567,6 +3647,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     setSelectedRewardMsg(null);
     setSuperPowerActive(false);
     setKeyboardGunActive(false);
+    setBossBulletsCount(0);
     
     // Position player just before boss area (4900)
     engineRef.current.player.x = 4850;
@@ -3575,24 +3656,46 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     setGameState('playing');
   };
 
-  const saveFinalScore = async (finalScore: number) => {
+  const saveFinalScore = async (finalScore: number, didWin: boolean = false) => {
     if (!currentStudent && !isAdmin) return;
+    const studentId = currentStudent?.id || 'admin-preview';
+    const stageTitle = `Petualangan Ke Sekolah (Stage ${currentStage})`;
     try {
-      await setDoc(doc(collection(db, 'game_scores')), {
-        gameId: 'petualangan-smp',
-        gameTitle: `Petualangan Ke Sekolah (Stage ${currentStage})`,
-        studentId: currentStudent?.id || 'admin-preview',
-        studentName: currentStudent?.nama || 'Admin Pratinjau',
-        studentNis: currentStudent?.nis || '-',
-        studentKelas: currentStudent?.kelas || 'Admin',
-        score: finalScore,
-        playedAt: new Date().toISOString()
-      });
+      if (finalScore > 0) {
+        const existingSnap = await getDocs(
+          query(
+            collection(db, 'game_scores'),
+            where('studentId', '==', studentId),
+            where('gameId', '==', 'petualangan-smp')
+          )
+        );
+        let prevBest = 0;
+        existingSnap.docs.forEach(d => {
+          const data = d.data();
+          if (data.gameTitle === stageTitle && (data.score || 0) > prevBest) {
+            prevBest = data.score || 0;
+          }
+        });
 
-      if (gameState === 'win' && currentStudent) {
-         await setDoc(doc(db, 'student_progress', currentStudent.id), {
-           completedStages: arrayUnion(currentStage)
-         }, { merge: true });
+        if (finalScore > prevBest) {
+          const docId = `${studentId}_petualangan-smp_stage-${currentStage}`;
+          await setDoc(doc(db, 'game_scores', docId), {
+            gameId: 'petualangan-smp',
+            gameTitle: stageTitle,
+            studentId,
+            studentName: currentStudent?.nama || 'Admin Pratinjau',
+            studentNis: currentStudent?.nis || '-',
+            studentKelas: currentStudent?.kelas || 'Admin',
+            score: finalScore,
+            playedAt: new Date().toISOString()
+          });
+        }
+      }
+
+      if (didWin && currentStudent) {
+        await setDoc(doc(db, 'student_progress', currentStudent.id), {
+          completedStages: arrayUnion(currentStage)
+        }, { merge: true });
       }
     } catch (e) {
       console.error("Failed saving score", e);
@@ -3644,13 +3747,29 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       if (['KeyZ', 'KeyJ', 'KeyX'].includes(e.code)) keysRef.current.shoot = false;
     };
 
+    const handleVisibilityChange = () => {
+      if (document.hidden) resetKeys();
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', resetKeys);
+    window.addEventListener('mouseup', resetKeys);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', resetKeys);
+      window.removeEventListener('mouseup', resetKeys);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (gameState !== 'playing' || activeQuiz !== null) {
+      resetKeys();
+    }
+  }, [gameState, activeQuiz]);
 
   useEffect(() => {
     if (gameState !== 'playing') return;
@@ -3710,7 +3829,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
             w: 22,
             h: 12
           });
-          if (p.bulletsLeft && p.bulletsLeft > 0) p.bulletsLeft--;
+          if (p.bulletsLeft && p.bulletsLeft > 0) {
+            p.bulletsLeft--;
+            setBossBulletsCount(p.bulletsLeft);
+          }
         }
       }
 
@@ -3872,6 +3994,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               triggerMysteryBoxQuiz();
             } else if ((item as any).type === 'boss_keyboard') {
               p.bulletsLeft = (p.bulletsLeft || 0) + 3;
+              setBossBulletsCount(p.bulletsLeft);
             }
           }
         }
@@ -4126,6 +4249,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                        p.vy = 0;
                        p.isGrounded = true;
                        p.direction = 'right';
+                       resetKeys();
                        return 3;
                     } else {
                        setGameState('gameover');
@@ -4174,6 +4298,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                          p.vy = 0;
                          p.isGrounded = true;
                          p.direction = 'right';
+                         resetKeys();
                          return 3; // Reset to 3 lives
                       } else {
                          setGameState('gameover');
@@ -4197,7 +4322,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         const total = score + bonusTimeScore;
         setScore(total);
         setGameState('win');
-        saveFinalScore(total);
+        saveFinalScore(total, true);
         return;
       }
 
@@ -5228,7 +5353,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
   return (
     <div ref={gameContainerRef} className={cn(
       "space-y-3 font-sans transition-all duration-300 w-full h-full flex flex-col",
-      isFullScreen ? "fixed inset-0 z-[9999] bg-slate-950 p-2 md:p-4 w-screen h-screen overflow-hidden" : "mx-auto max-w-5xl"
+      isFullScreen ? "fixed inset-0 z-[9999] bg-slate-950 p-2 md:p-4 w-screen h-screen overflow-hidden" : "mx-auto max-w-6xl"
     )}>
       {/* HUD Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900 text-white p-3 md:p-4 rounded-2xl border border-slate-800 shadow-md gap-3 shrink-0">
@@ -5263,9 +5388,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
             </div>
           )}
 
-          {(engineRef.current?.player?.bulletsLeft || 0) > 0 && (
+          {bossBulletsCount > 0 && (
             <div className="px-2.5 py-1 bg-amber-500 text-slate-950 text-[10px] font-black rounded-lg animate-pulse flex items-center gap-1 shadow-sm">
-              ⌨️ PELURU: {engineRef.current?.player?.bulletsLeft} [Z]
+              ⌨️ PELURU: {bossBulletsCount} [Z]
             </div>
           )}
 
@@ -5293,7 +5418,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               <button
                 onClick={() => {
                   if (engineRef.current?.player) {
-                    engineRef.current.player.bulletsLeft = (engineRef.current.player.bulletsLeft || 0) + 30;
+                    const nextBullets = (engineRef.current.player.bulletsLeft || 0) + 30;
+                    engineRef.current.player.bulletsLeft = nextBullets;
+                    setBossBulletsCount(nextBullets);
                     setKeyboardGunActive(true);
                   }
                 }}
@@ -5340,6 +5467,72 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
           className="w-full h-full object-contain bg-slate-950"
         />
 
+        {/* Semi-Transparent In-Game Touch Controls Overlay (Shown on Touchscreen while playing) */}
+        {isTouchDevice && gameState === 'playing' && !activeQuiz && (
+          <div className="absolute inset-x-0 bottom-2.5 sm:bottom-4 px-3 sm:px-5 flex items-end justify-between gap-4 pointer-events-none z-30 touch-none select-none">
+            <div className="flex items-center gap-2.5 sm:gap-3 pointer-events-auto">
+              <button
+                type="button"
+                onContextMenu={(e) => e.preventDefault()}
+                onMouseDown={() => (keysRef.current.left = true)}
+                onMouseUp={() => (keysRef.current.left = false)}
+                onMouseLeave={() => (keysRef.current.left = false)}
+                onTouchStart={(e) => { e.preventDefault(); keysRef.current.left = true; }}
+                onTouchEnd={(e) => { e.preventDefault(); keysRef.current.left = false; }}
+                onTouchCancel={() => (keysRef.current.left = false)}
+                className="w-14 h-12 sm:w-16 sm:h-14 bg-slate-900/45 hover:bg-slate-800/60 active:bg-brand/75 text-white/90 font-black text-xl rounded-2xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center shadow-lg active:scale-95 transition-transform select-none touch-none"
+              >
+                ◀
+              </button>
+              <button
+                type="button"
+                onContextMenu={(e) => e.preventDefault()}
+                onMouseDown={() => (keysRef.current.right = true)}
+                onMouseUp={() => (keysRef.current.right = false)}
+                onMouseLeave={() => (keysRef.current.right = false)}
+                onTouchStart={(e) => { e.preventDefault(); keysRef.current.right = true; }}
+                onTouchEnd={(e) => { e.preventDefault(); keysRef.current.right = false; }}
+                onTouchCancel={() => (keysRef.current.right = false)}
+                className="w-14 h-12 sm:w-16 sm:h-14 bg-slate-900/45 hover:bg-slate-800/60 active:bg-brand/75 text-white/90 font-black text-xl rounded-2xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center shadow-lg active:scale-95 transition-transform select-none touch-none"
+              >
+                ▶
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-3 pointer-events-auto">
+              {(keyboardGunActive || bossBulletsCount > 0) && (
+                <button
+                  type="button"
+                  onContextMenu={(e) => e.preventDefault()}
+                  onMouseDown={() => (keysRef.current.shoot = true)}
+                  onMouseUp={() => (keysRef.current.shoot = false)}
+                  onMouseLeave={() => (keysRef.current.shoot = false)}
+                  onTouchStart={(e) => { e.preventDefault(); keysRef.current.shoot = true; }}
+                  onTouchEnd={(e) => { e.preventDefault(); keysRef.current.shoot = false; }}
+                  onTouchCancel={() => (keysRef.current.shoot = false)}
+                  className="w-20 sm:w-24 h-12 sm:h-14 bg-sky-500/50 hover:bg-sky-500/65 active:bg-sky-400/80 text-white/95 font-black text-xs rounded-2xl border border-sky-300/45 backdrop-blur-[2px] flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform select-none touch-none"
+                >
+                  TEMBAK ⌨️
+                </button>
+              )}
+
+              <button
+                type="button"
+                onContextMenu={(e) => e.preventDefault()}
+                onMouseDown={() => (keysRef.current.jump = true)}
+                onMouseUp={() => (keysRef.current.jump = false)}
+                onMouseLeave={() => (keysRef.current.jump = false)}
+                onTouchStart={(e) => { e.preventDefault(); keysRef.current.jump = true; }}
+                onTouchEnd={(e) => { e.preventDefault(); keysRef.current.jump = false; }}
+                onTouchCancel={() => (keysRef.current.jump = false)}
+                className="w-20 sm:w-24 h-12 sm:h-14 bg-emerald-500/50 hover:bg-emerald-500/65 active:bg-emerald-400/80 text-white/95 font-black text-xs sm:text-sm rounded-2xl border border-emerald-300/45 backdrop-blur-[2px] flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform select-none touch-none"
+              >
+                LOMPAT ▲
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Start Overlay & Stage Selector */}
         {gameState === 'start' && (
           <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 text-white space-y-4 z-40 overflow-y-auto">
@@ -5356,48 +5549,68 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               <button
                 onClick={() => startGame(1)}
                 className={cn(
-                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1",
+                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5",
                   currentStage === 1 ? "bg-brand text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700"
                 )}
               >
                 <span>🎒 Stage 1</span>
                 <span className="text-[10px] opacity-80">(175m)</span>
+                {(studentStageHighScores?.[1] || 0) > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-md bg-amber-400 text-amber-950 text-[9px] font-black">
+                    🏆 {studentStageHighScores?.[1]}
+                  </span>
+                )}
               </button>
               <button
                 onClick={() => startGame(2)}
                 disabled={!isAdmin && !completedStages.includes(1)}
                 className={cn(
-                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1",
+                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5",
                   currentStage === 2 ? "bg-amber-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700",
                   !isAdmin && !completedStages.includes(1) && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <span>{!isAdmin && !completedStages.includes(1) ? '🔒' : '🏕️'} Stage 2</span>
                 <span className="text-[10px] opacity-80">(190m)</span>
+                {(studentStageHighScores?.[2] || 0) > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-md bg-amber-400 text-amber-950 text-[9px] font-black">
+                    🏆 {studentStageHighScores?.[2]}
+                  </span>
+                )}
               </button>
               <button
                 onClick={() => startGame(3)}
                 disabled={!isAdmin && !completedStages.includes(2)}
                 className={cn(
-                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1",
+                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5",
                   currentStage === 3 ? "bg-indigo-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700",
                   !isAdmin && !completedStages.includes(2) && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <span>{!isAdmin && !completedStages.includes(2) ? '🔒' : '🏛️'} Stage 3</span>
                 <span className="text-[10px] opacity-80">(200m)</span>
+                {(studentStageHighScores?.[3] || 0) > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-md bg-amber-400 text-amber-950 text-[9px] font-black">
+                    🏆 {studentStageHighScores?.[3]}
+                  </span>
+                )}
               </button>
               <button
                 onClick={() => startGame(4)}
                 disabled={!isAdmin && !completedStages.includes(3)}
                 className={cn(
-                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1",
+                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5",
                   currentStage === 4 ? "bg-emerald-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700",
                   !isAdmin && !completedStages.includes(3) && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <span>{!isAdmin && !completedStages.includes(3) ? '🔒' : '🌺'} Stage 4</span>
                 <span className="text-[10px] opacity-80">(220m)</span>
+                {(studentStageHighScores?.[4] || 0) > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-md bg-amber-400 text-amber-950 text-[9px] font-black">
+                    🏆 {studentStageHighScores?.[4]}
+                  </span>
+                )}
               </button>
             </div>
 
@@ -5605,60 +5818,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         )}
       </div>
 
-      {/* Touch & On-Screen Controls */}
-      <div className="bg-slate-900 p-3 md:p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4 shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onMouseDown={() => (keysRef.current.left = true)}
-            onMouseUp={() => (keysRef.current.left = false)}
-            onTouchStart={() => (keysRef.current.left = true)}
-            onTouchEnd={() => (keysRef.current.left = false)}
-            className="w-14 h-12 md:w-16 md:h-14 bg-slate-800 hover:bg-slate-700 active:bg-brand text-white font-black text-xl rounded-2xl border border-slate-700 flex items-center justify-center shadow-lg active:scale-95 transition-transform select-none"
-          >
-            ◀
-          </button>
-          <button
-            onMouseDown={() => (keysRef.current.right = true)}
-            onMouseUp={() => (keysRef.current.right = false)}
-            onTouchStart={() => (keysRef.current.right = true)}
-            onTouchEnd={() => (keysRef.current.right = false)}
-            className="w-14 h-12 md:w-16 md:h-14 bg-slate-800 hover:bg-slate-700 active:bg-brand text-white font-black text-xl rounded-2xl border border-slate-700 flex items-center justify-center shadow-lg active:scale-95 transition-transform select-none"
-          >
-            ▶
-          </button>
-        </div>
-
-        <div className="text-center hidden sm:block">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">Status Kontrol</span>
-          <span className="text-xs font-semibold text-emerald-400">
-            {keyboardGunActive ? "Panah + Lompat + Tekan [Z] untuk Tembak" : "Panah Kanan / Kiri + Panah Atas / Space"}
+      {/* Desktop Keyboard Guide (Only shown on non-touchscreen devices) */}
+      {!isTouchDevice && (
+        <div className="bg-slate-900/90 px-4 py-2 rounded-2xl border border-slate-800 flex items-center justify-center gap-4 shrink-0 text-xs text-slate-300 font-semibold">
+          <span>⌨️ Kontrol Keyboard:</span>
+          <span className="text-emerald-400">
+            {(keyboardGunActive || bossBulletsCount > 0)
+              ? "Panah Kiri/Kanan (Gerak) • Panah Atas / Spasi (Lompat) • [Z] (Tembak)"
+              : "Panah Kiri/Kanan atau A/D (Gerak) • Panah Atas / Spasi (Lompat)"}
           </span>
         </div>
-
-        <div className="flex items-center gap-2">
-          {keyboardGunActive && (
-            <button
-              onMouseDown={() => (keysRef.current.shoot = true)}
-              onMouseUp={() => (keysRef.current.shoot = false)}
-              onTouchStart={() => (keysRef.current.shoot = true)}
-              onTouchEnd={() => (keysRef.current.shoot = false)}
-              className="w-20 md:w-24 h-12 md:h-14 bg-sky-600 hover:bg-sky-500 active:bg-sky-400 text-white font-black text-xs rounded-2xl border border-sky-400 flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform select-none animate-pulse"
-            >
-              TEMBAK ⌨️
-            </button>
-          )}
-
-          <button
-            onMouseDown={() => (keysRef.current.jump = true)}
-            onMouseUp={() => (keysRef.current.jump = false)}
-            onTouchStart={() => (keysRef.current.jump = true)}
-            onTouchEnd={() => (keysRef.current.jump = false)}
-            className="w-20 md:w-24 h-12 md:h-14 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-400 text-white font-black text-sm rounded-2xl border border-emerald-500 flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform select-none"
-          >
-            LOMPAT ▲
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
