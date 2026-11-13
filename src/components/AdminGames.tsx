@@ -3221,9 +3221,9 @@ function drawAlunAlunCiamis(ctx: CanvasRenderingContext2D, x: number, groundY: n
 
 function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boolean; currentStudent: any; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const poseImagesRef = useRef<(HTMLImageElement | null)[]>([]);
-  const bossImagesRef = useRef<(HTMLImageElement | null)[]>([]);
-  const boss2ImagesRef = useRef<(HTMLImageElement | null)[]>([]);
+  const poseImagesRef = useRef<(HTMLCanvasElement | HTMLImageElement | null)[]>([]);
+  const bossImagesRef = useRef<(HTMLCanvasElement | HTMLImageElement | null)[]>([]);
+  const boss2ImagesRef = useRef<(HTMLCanvasElement | HTMLImageElement | null)[]>([]);
 
   useEffect(() => {
     const paths = [
@@ -3265,7 +3265,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       '/assets/aistudio/boss2_11.png',  // 10: pose kalah/mati
     ];
 
-    paths.forEach((path, idx) => {
+    const processImage = (path: string, targetRef: React.MutableRefObject<(HTMLCanvasElement | HTMLImageElement | null)[]>, idx: number) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.src = path;
@@ -3288,93 +3288,22 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
               }
             }
             ctx.putImageData(imgData, 0, 0);
-            const processedImg = new Image();
-            processedImg.src = canvas.toDataURL();
-            processedImg.onload = () => {
-              poseImagesRef.current[idx] = processedImg;
-            };
+            targetRef.current[idx] = canvas;
           } else {
-            poseImagesRef.current[idx] = img;
+            targetRef.current[idx] = img;
           }
         } catch (e) {
-          poseImagesRef.current[idx] = img;
+          targetRef.current[idx] = img;
         }
       };
-    });
+      img.onerror = () => {
+        targetRef.current[idx] = null;
+      };
+    };
 
-    bossPaths.forEach((path, idx) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = path;
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth || 400;
-          canvas.height = img.naturalHeight || 400;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imgData.data;
-            for (let i = 0; i < data.length; i += 4) {
-              const r = data[i];
-              const g = data[i + 1];
-              const b = data[i + 2];
-              if (r > 220 && g > 220 && b > 220) {
-                data[i + 3] = 0;
-              }
-            }
-            ctx.putImageData(imgData, 0, 0);
-            const processedImg = new Image();
-            processedImg.src = canvas.toDataURL();
-            processedImg.onload = () => {
-              bossImagesRef.current[idx] = processedImg;
-            };
-          } else {
-            bossImagesRef.current[idx] = img;
-          }
-        } catch (e) {
-          bossImagesRef.current[idx] = img;
-        }
-      };
-    });
-
-    boss2Paths.forEach((path, idx) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = path;
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth || 400;
-          canvas.height = img.naturalHeight || 400;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imgData.data;
-            for (let i = 0; i < data.length; i += 4) {
-              const r = data[i];
-              const g = data[i + 1];
-              const b = data[i + 2];
-              if (r > 220 && g > 220 && b > 220) {
-                data[i + 3] = 0;
-              }
-            }
-            ctx.putImageData(imgData, 0, 0);
-            const processedImg = new Image();
-            processedImg.src = canvas.toDataURL();
-            processedImg.onload = () => {
-              boss2ImagesRef.current[idx] = processedImg;
-            };
-          } else {
-            boss2ImagesRef.current[idx] = img;
-          }
-        } catch (e) {
-          boss2ImagesRef.current[idx] = img;
-        }
-      };
-    });
+    paths.forEach((path, idx) => processImage(path, poseImagesRef, idx));
+    bossPaths.forEach((path, idx) => processImage(path, bossImagesRef, idx));
+    boss2Paths.forEach((path, idx) => processImage(path, boss2ImagesRef, idx));
   }, []);
 
   const [currentStage, setCurrentStage] = useState<1 | 2 | 3 | 4>(1);
@@ -3733,6 +3662,12 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
     if (!ctx) return;
 
     const engine = engineRef.current;
+
+    const isSpriteReady = (img: HTMLCanvasElement | HTMLImageElement | null | undefined): img is HTMLCanvasElement | HTMLImageElement => {
+      if (!img) return false;
+      if (img instanceof HTMLCanvasElement) return true;
+      return img.complete && (img.naturalWidth || img.width) > 0;
+    };
 
     const gameLoop = () => {
       // If quiz is open, freeze physics but keep rendering
@@ -4642,71 +4577,72 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         const boss = engine.boss;
         const bx = boss.x - camX;
         const by = boss.y;
-        
-        let bossImg: HTMLImageElement | null = null;
+
+        let bossImg: HTMLCanvasElement | HTMLImageElement | null = null;
         if (currentStage === 2) {
           // Stage 2 Boss Pose Mappings
           if (boss.state === 'dead' || boss.state === 'dying') {
-            // Pose kalah/mati: 8.png (boss2_8)
-            bossImg = boss2ImagesRef.current[7];
+            bossImg = boss2ImagesRef.current[10] || boss2ImagesRef.current[7] || boss2ImagesRef.current[0];
           } else if (boss.invulnerableFrames > 0) {
-            // Pose tertembak player: 8.png (reaction squat)
-            bossImg = boss2ImagesRef.current[7];
+            bossImg = boss2ImagesRef.current[7] || boss2ImagesRef.current[0];
           } else if (boss.state === 'jumping') {
-            // Pose meloncat:
-            // saat akan meloncat: 9.png (index 8)
-            // saat meloncat: 10.png (index 9)
-            // saat mendarat: 11.png (index 10)
             if (boss.jumpPhase === 'prep') {
-              bossImg = boss2ImagesRef.current[8];
+              bossImg = boss2ImagesRef.current[7] || boss2ImagesRef.current[0];
             } else if (boss.jumpPhase === 'air') {
-              bossImg = boss2ImagesRef.current[9];
+              bossImg = boss2ImagesRef.current[8] || boss2ImagesRef.current[0];
             } else {
-              bossImg = boss2ImagesRef.current[10];
+              bossImg = boss2ImagesRef.current[9] || boss2ImagesRef.current[0];
             }
           } else if (boss.state === 'shooting') {
-            // Pose menembak:
-            // saat akan menembak: 6.png (index 5)
-            // saat menembak: 7.png (index 6)
             if (boss.shootTimer > 0) {
-              bossImg = boss2ImagesRef.current[5];
+              bossImg = boss2ImagesRef.current[5] || boss2ImagesRef.current[0];
             } else {
-              bossImg = boss2ImagesRef.current[6];
+              bossImg = boss2ImagesRef.current[6] || boss2ImagesRef.current[0];
             }
           } else if (boss.state === 'moving') {
-            // Pose berjalan: 3.png, 4.png, 5.png (indices 2, 3, 4)
-            bossImg = boss2ImagesRef.current[Math.floor(p.animFrame * 2) % 3 + 2];
+            const frameIdx = Math.floor(p.animFrame * 2) % 3 + 2;
+            bossImg = boss2ImagesRef.current[frameIdx] || boss2ImagesRef.current[2] || boss2ImagesRef.current[0];
           } else {
-            // Pose idle: 1.png, 2.png (indices 0, 1)
-            bossImg = boss2ImagesRef.current[Math.floor(p.animFrame * 1.5) % 2];
+            const frameIdx = Math.floor(p.animFrame * 1.5) % 2;
+            bossImg = boss2ImagesRef.current[frameIdx] || boss2ImagesRef.current[0];
           }
         } else {
           // Stage 1 Boss Pose Mappings
           if (boss.state === 'dead') {
-            bossImg = bossImagesRef.current[10] || bossImagesRef.current[9];
+            bossImg = bossImagesRef.current[10] || bossImagesRef.current[9] || bossImagesRef.current[0];
           } else if (boss.state === 'dying') {
-            bossImg = bossImagesRef.current[9];
+            bossImg = bossImagesRef.current[9] || bossImagesRef.current[0];
           } else if (boss.invulnerableFrames > 0) {
-            bossImg = bossImagesRef.current[8];
+            bossImg = bossImagesRef.current[8] || bossImagesRef.current[0];
           } else if (boss.state === 'shooting') {
-            bossImg = bossImagesRef.current[Math.floor(p.animFrame * 2) % 2 + 6];
+            const frameIdx = Math.floor(p.animFrame * 2) % 2 + 6;
+            bossImg = bossImagesRef.current[frameIdx] || bossImagesRef.current[6] || bossImagesRef.current[0];
           } else if (boss.state === 'moving') {
-            bossImg = bossImagesRef.current[Math.floor(p.animFrame * 2) % 4 + 2];
+            const frameIdx = Math.floor(p.animFrame * 2) % 4 + 2;
+            bossImg = bossImagesRef.current[frameIdx] || bossImagesRef.current[2] || bossImagesRef.current[0];
           } else {
-            bossImg = bossImagesRef.current[Math.floor(p.animFrame * 1) % 2];
+            const frameIdx = Math.floor(p.animFrame * 1) % 2;
+            bossImg = bossImagesRef.current[frameIdx] || bossImagesRef.current[0];
           }
         }
 
-        if (bossImg && bossImg.complete) {
-           const bAspect = bossImg.naturalWidth / bossImg.naturalHeight;
+        if (!isSpriteReady(bossImg)) {
+          const fallbackArr = currentStage === 2 ? boss2ImagesRef.current : bossImagesRef.current;
+          bossImg = fallbackArr.find(isSpriteReady) || null;
+        }
+
+        if (bossImg && isSpriteReady(bossImg)) {
+           const imgW = (bossImg as HTMLCanvasElement).width || (bossImg as HTMLImageElement).naturalWidth || 400;
+           const imgH = (bossImg as HTMLCanvasElement).height || (bossImg as HTMLImageElement).naturalHeight || 400;
+           const bAspect = imgW / imgH;
            const drawBH = 150;
            const drawBW = drawBH * bAspect;
            const drawX = bx + (boss.w - drawBW)/2;
-           const drawY = by + boss.h - drawBH - 35; // Increased upward offset to 35px
+           const drawY = by + boss.h - drawBH - 35; // Increased upward offset to 35px so feet land on platform
 
            ctx.save();
            if (boss.invulnerableFrames > 0 && Math.floor(boss.invulnerableFrames / 3) % 2 === 0) {
-              ctx.filter = 'brightness(1.5) saturate(2)';
+              ctx.globalAlpha = 0.5; // Smooth flicker-free hit blink without filter state invalidation
            }
            // Default pose is facing left, so flip if facing right
            if (boss.direction === 'right') {
@@ -5191,26 +5127,26 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         const isJumping = !p.isGrounded;
         const isShootingWithKeyboard = p.keyboardGunFrames > 0 && (keysRef.current.shoot || (p.shootCooldown !== undefined && p.shootCooldown > 0));
 
-        let activeImg: HTMLImageElement | null = null;
+        let activeImg: HTMLCanvasElement | HTMLImageElement | null = null;
 
-        if (isShootingWithKeyboard && poseImagesRef.current[7]) {
-          activeImg = poseImagesRef.current[7]; // Pose menembak (index 7) hanya saat menembak dengan pistol keyboard
+        if (isShootingWithKeyboard && isSpriteReady(poseImagesRef.current[7])) {
+          activeImg = poseImagesRef.current[7]; // Pose menembak (index 7)
         } else if (isJumping) {
           // Loncat 3 pose: index 4, 5, 6
           const jumpPoseIdx = p.vy < 0 ? 4 : p.vy > 2 ? 6 : 5;
-          activeImg = poseImagesRef.current[jumpPoseIdx] || poseImagesRef.current[4] || poseImagesRef.current[0];
+          activeImg = [poseImagesRef.current[jumpPoseIdx], poseImagesRef.current[4], poseImagesRef.current[0]].find(isSpriteReady) || null;
         } else if (isMoving) {
           // Berlari 3 pose: index 1, 2, 3
           const runPoseIdx = Math.floor(p.animFrame * 3) % 3 + 1;
-          activeImg = poseImagesRef.current[runPoseIdx] || poseImagesRef.current[1] || poseImagesRef.current[0];
+          activeImg = [poseImagesRef.current[runPoseIdx], poseImagesRef.current[1], poseImagesRef.current[0]].find(isSpriteReady) || null;
         } else {
           // Pose depan: index 0
-          activeImg = poseImagesRef.current[0];
+          activeImg = poseImagesRef.current.find(isSpriteReady) || null;
         }
 
-        if (activeImg && activeImg.complete) {
-          const naturalW = activeImg.naturalWidth || 400;
-          const naturalH = activeImg.naturalHeight || 400;
+        if (activeImg && isSpriteReady(activeImg)) {
+          const naturalW = (activeImg as HTMLCanvasElement).width || (activeImg as HTMLImageElement).naturalWidth || 400;
+          const naturalH = (activeImg as HTMLCanvasElement).height || (activeImg as HTMLImageElement).naturalHeight || 400;
           const aspect = naturalW / naturalH;
           const drawH = 80;
           const drawW = drawH * aspect;
