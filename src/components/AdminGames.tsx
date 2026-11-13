@@ -1919,8 +1919,8 @@ function generateStageEngine(stageNum: number) {
         y: 380 - 160,
         w: 115,
         h: 140,
-        hp: 12,
-        maxHp: 12,
+        hp: 10,
+        maxHp: 10,
         vx: 2,
         vy: 0,
         minX: 4900,
@@ -3755,13 +3755,14 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         // Bullet vs Boss hit
         if ((currentStage === 1 || currentStage === 2) && engine.boss && engine.boss.state !== 'dead' && engine.boss.state !== 'dying' && (!engine.boss.countdown || engine.boss.countdown <= 0)) {
            const boss = engine.boss;
+           const bossTopY = boss.y - 45;
            if (
              b.x < boss.x + boss.w &&
              b.x + b.w > boss.x &&
              b.y < boss.y + boss.h &&
-             b.y + b.h > boss.y
+             b.y + b.h > bossTopY
            ) {
-              boss.hp--;
+              boss.hp = Math.max(0, boss.hp - 1);
               boss.invulnerableFrames = 15;
               engine.bullets.splice(bIdx, 1);
               if (boss.hp <= 0) {
@@ -3930,7 +3931,11 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         // Activation and Forced Position logic: move player left, boss right
         if (p.x > bossAreaX && !boss.fightStarted && boss.state !== 'dead') {
            p.x = bossAreaX + 60;
+           p.y = 380 - p.height;
            p.vx = 0;
+           p.vy = 0;
+           p.isGrounded = true;
+           p.direction = 'right';
            boss.x = bossAreaX + 680;
            boss.y = 280;
            boss.vy = 0;
@@ -4108,7 +4113,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                     if (boss.bossRetries > 0) {
                        boss.bossRetries--;
                        boss.countdown = 180;
-                       boss.hp = currentStage === 2 ? 12 : 10;
+                       boss.hp = boss.maxHp;
                        boss.patternIndex = 0;
                        boss.lasers = [];
                        boss.y = 280;
@@ -4116,7 +4121,11 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                        boss.state = 'idle';
                        boss.jumpPhase = 'none';
                        p.x = bossAreaX + 60;
+                       p.y = 380 - p.height;
                        p.vx = 0;
+                       p.vy = 0;
+                       p.isGrounded = true;
+                       p.direction = 'right';
                        return 3;
                     } else {
                        setGameState('gameover');
@@ -4152,7 +4161,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                       if (boss.bossRetries > 0) {
                          boss.bossRetries--;
                          boss.countdown = 180; // 3s reset
-                         boss.hp = currentStage === 2 ? 12 : 10;
+                         boss.hp = boss.maxHp;
                          boss.patternIndex = 0;
                          boss.lasers = [];
                          boss.y = 280;
@@ -4160,7 +4169,11 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
                          boss.state = 'idle';
                          boss.jumpPhase = 'none';
                          p.x = bossAreaX + 60;
+                         p.y = 380 - p.height;
                          p.vx = 0;
+                         p.vy = 0;
+                         p.isGrounded = true;
+                         p.direction = 'right';
                          return 3; // Reset to 3 lives
                       } else {
                          setGameState('gameover');
@@ -4199,11 +4212,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
         canvas.height = targetH;
       }
 
-      const targetCamX = p.x - 300;
-      engine.cameraX += (targetCamX - engine.cameraX) * 0.1;
-      if (engine.cameraX < 0) engine.cameraX = 0;
-      if (engine.cameraX > engine.worldWidth - 800) {
-        engine.cameraX = engine.worldWidth - 800;
+      const activeBossAreaX = currentStage === 2 ? 4900 : 5400;
+      const isBossArenaLocked = (currentStage === 1 || currentStage === 2) && engine.boss && p.x > activeBossAreaX && engine.boss.state !== 'dead';
+      if (isBossArenaLocked) {
+        engine.cameraX = activeBossAreaX;
+      } else {
+        const targetCamX = p.x - 300;
+        engine.cameraX += (targetCamX - engine.cameraX) * 0.1;
+        if (engine.cameraX < 0) engine.cameraX = 0;
+        if (engine.cameraX > engine.worldWidth - 800) {
+          engine.cameraX = engine.worldWidth - 800;
+        }
       }
 
       const camX = engine.cameraX;
@@ -4652,19 +4671,38 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
            } else {
               ctx.drawImage(bossImg, drawX, drawY, drawBW, drawBH);
            }
-           // Draw Boss HP as Hearts
-           const heartCount = 10;
-           const heartSize = 14;
-           const hpRatio = boss.hp / boss.maxHp;
-           const startX = drawX + (drawBW - (heartCount * heartSize)) / 2;
-           const startY = drawY - 15;
-           for (let i = 0; i < heartCount; i++) {
-               ctx.fillStyle = i < (hpRatio * heartCount) ? '#ef4444' : '#1e293b';
-               ctx.font = `${heartSize}px sans-serif`;
-               ctx.textAlign = 'left';
-               ctx.fillText('❤️', startX + i * heartSize, startY);
-           }
            ctx.restore();
+
+           // Draw Boss HP as Hearts (mirrors main character's opacity-100/scale-100 vs opacity-20/scale-75)
+           if (boss.state !== 'dead') {
+             const heartCount = boss.maxHp || 10;
+             const heartSpacing = 16;
+             const heartSize = 14;
+             const activeHearts = Math.max(0, Math.min(heartCount, boss.hp));
+             const startX = drawX + (drawBW - (heartCount * heartSpacing)) / 2;
+             const startY = drawY - 14;
+
+             ctx.save();
+             ctx.textAlign = 'center';
+             ctx.textBaseline = 'middle';
+             for (let i = 0; i < heartCount; i++) {
+               const isAlive = i < activeHearts;
+               const hx = startX + i * heartSpacing + heartSpacing / 2;
+               const hy = startY;
+               ctx.save();
+               ctx.translate(hx, hy);
+               if (!isAlive) {
+                 ctx.globalAlpha = 0.2;
+                 ctx.scale(0.75, 0.75);
+               } else {
+                 ctx.globalAlpha = 1;
+               }
+               ctx.font = `${heartSize}px sans-serif`;
+               ctx.fillText('❤️', 0, 0);
+               ctx.restore();
+             }
+             ctx.restore();
+           }
         }
 
         // Boss Countdown Overlay
@@ -5087,12 +5125,14 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
       const px = p.x - camX;
       const py = p.y;
 
-      // Draw Mini Keyboard Icon Indicator behind Character when Keyboard Gun is Active (15s)
-      if (p.keyboardGunFrames > 0) {
+      // Draw Mini Keyboard Icon Indicator behind Character when Keyboard Gun or Boss Ammo is Active
+      if (p.keyboardGunFrames > 0 || (p.bulletsLeft && p.bulletsLeft > 0)) {
         ctx.save();
         const iconX = p.direction === 'right' ? px - 18 : px + p.width + 4;
         const iconY = py + 10 + Math.sin(p.animFrame * 3) * 3;
-        const secLeft = Math.ceil(p.keyboardGunFrames / 60);
+        const label = p.keyboardGunFrames > 0
+          ? `${Math.ceil(p.keyboardGunFrames / 60)}s`
+          : `${p.bulletsLeft}x`;
 
         ctx.shadowColor = '#38bdf8';
         ctx.shadowBlur = 12;
@@ -5107,25 +5147,31 @@ function PetualanganSMPGame({ isAdmin, currentStudent, onClose }: { isAdmin: boo
 
         ctx.fillStyle = '#fde047';
         ctx.font = 'bold 8px monospace';
-        ctx.fillText(`${secLeft}s`, iconX + 2, iconY - 4);
+        ctx.fillText(label, iconX + 2, iconY - 4);
         ctx.restore();
       }
 
-      if (p.invulnerableFrames % 6 < 3) {
+      {
         ctx.save();
+        if (p.invulnerableFrames > 0 && Math.floor(p.invulnerableFrames / 3) % 2 === 0) {
+          ctx.globalAlpha = 0.45; // Keep pose visible while blinking during hit invulnerability
+        }
 
         if (p.superPowerFrames > 0) {
+          ctx.save();
           ctx.shadowColor = '#facc15';
           ctx.shadowBlur = 25;
           ctx.fillStyle = 'rgba(250, 204, 21, 0.45)';
           ctx.beginPath();
           ctx.arc(px + p.width / 2, py + p.height / 2, 40, 0, Math.PI * 2);
           ctx.fill();
+          ctx.restore();
         }
 
-        const isMoving = Math.abs(p.vx) > 0.5;
+        const isMoving = !isFrozen && Math.abs(p.vx) > 0.5;
         const isJumping = !p.isGrounded;
-        const isShootingWithKeyboard = p.keyboardGunFrames > 0 && (keysRef.current.shoot || (p.shootCooldown !== undefined && p.shootCooldown > 0));
+        const hasGunAmmo = p.keyboardGunFrames > 0 || (p.bulletsLeft !== undefined && p.bulletsLeft > 0);
+        const isShootingWithKeyboard = !isFrozen && ((hasGunAmmo && keysRef.current.shoot) || (p.shootCooldown !== undefined && p.shootCooldown > 0));
 
         let activeImg: HTMLCanvasElement | HTMLImageElement | null = null;
 
