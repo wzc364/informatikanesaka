@@ -2145,7 +2145,8 @@ function generateStageEngine(stageNum: number) {
         direction: 'left' as 'left' | 'right',
         targetX: 0,
         bossRetries: 3,
-        invulnerableFrames: 0
+        invulnerableFrames: 0,
+        itemDropTimer: 0
       }
     };
   }
@@ -2408,7 +2409,8 @@ function generateStageEngine(stageNum: number) {
       direction: 'left' as 'left' | 'right',
       targetX: 0,
       bossRetries: 3,
-      invulnerableFrames: 0
+      invulnerableFrames: 0,
+      itemDropTimer: 0
     }
   };
 }
@@ -3509,6 +3511,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
   const [gameState, setGameState] = useState<'start' | 'playing' | 'win' | 'gameover'>('start');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
+  const livesRef = useRef(lives);
+  useEffect(() => {
+    livesRef.current = lives;
+  }, [lives]);
   const [distanceRemaining, setDistanceRemaining] = useState(175);
   const [superPowerActive, setSuperPowerActive] = useState(false);
   const [bossBulletsCount, setBossBulletsCount] = useState(0);
@@ -4160,6 +4166,12 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             } else if ((item as any).type === 'boss_keyboard') {
               p.bulletsLeft = (p.bulletsLeft || 0) + 3;
               setBossBulletsCount(p.bulletsLeft);
+            } else if ((item as any).type === 'boss_hp') {
+              setLives(l => {
+                const updated = Math.min(5, l + 1);
+                livesRef.current = updated;
+                return updated;
+              });
             }
           }
         }
@@ -4231,6 +4243,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
            boss.countdown = 300; // 5 seconds (60fps)
            boss.state = 'idle';
            boss.jumpPhase = 'none';
+           boss.itemDropTimer = [180, 240, 300, 360][Math.floor(Math.random() * 4)];
         }
 
         // Camera Lock logic: Lock camera when player enters boss area
@@ -4244,32 +4257,54 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         // Boss always faces player
         boss.direction = boss.x > p.x ? 'left' : 'right';
 
-        // Drop Keyboard logic: if player is in area, boss alive, and player is out of bullets/timer
-        if (p.x > bossAreaX && boss.fightStarted && boss.countdown <= 0 && boss.state !== 'dead' && p.keyboardGunFrames <= 0 && (!p.bulletsLeft || p.bulletsLeft <= 0)) {
-           const hasDrop = engine.items.some(it => (it as any).type === 'boss_keyboard' && !it.collected);
-           if (!hasDrop) {
-              const dropX = bossAreaX + 100 + Math.random() * 600;
-              engine.items.push({
-                id: Date.now(),
-                x: dropX,
-                y: -100,
-                w: 32,
-                h: 32,
-                type: 'boss_keyboard',
-                collected: false,
-                vy: 3.5
-              } as any);
-           }
+        // Random Boss Stage Item Drops (3s, 4s, 5s, 6s intervals) -> Keyboard Ammo & +HP
+        const bossDropIntervals = [180, 240, 300, 360]; // 3 detik, 4 detik, 5 detik, 6 detik (60fps)
+        if (p.x > bossAreaX && boss.fightStarted && boss.countdown <= 0 && boss.state !== 'dead' && boss.state !== 'dying') {
+          if ((boss.itemDropTimer ?? 0) <= 0) {
+            const dropX = bossAreaX + 80 + Math.random() * 620;
+            const needsAmmo = p.keyboardGunFrames <= 0 && (!p.bulletsLeft || p.bulletsLeft <= 0);
+            const needsHp = livesRef.current < 3;
+            const hpChance = needsHp && !needsAmmo ? 0.55 : needsHp ? 0.4 : needsAmmo ? 0.25 : 0.45;
+            const dropType = Math.random() < hpChance ? 'boss_hp' : 'boss_keyboard';
+
+            engine.items.push({
+              id: Date.now() + Math.random(),
+              x: dropX,
+              y: -60,
+              w: 34,
+              h: 30,
+              type: dropType,
+              collected: false,
+              vy: 3.5,
+              groundTimer: 300, // Hilang setelah 5 detik (300 frame) di tanah
+            } as any);
+
+            boss.itemDropTimer = bossDropIntervals[Math.floor(Math.random() * bossDropIntervals.length)];
+          } else {
+            boss.itemDropTimer = (boss.itemDropTimer ?? 180) - 1;
+          }
         }
 
-        // Update falling boss keyboards
-        engine.items.forEach(it => {
-          if ((it as any).type === 'boss_keyboard' && !it.collected) {
-             if (it.y < 380 - it.h) {
-                it.y += (it as any).vy || 2;
-             }
+        // Update falling boss drop items & 5-second ground disappearance timer
+        for (let iIdx = engine.items.length - 1; iIdx >= 0; iIdx--) {
+          const it = engine.items[iIdx] as any;
+          if (it.type === 'boss_keyboard' || it.type === 'boss_hp') {
+            if (it.collected) {
+              engine.items.splice(iIdx, 1);
+              continue;
+            }
+            const groundTop = 380 - it.h;
+            if (it.y < groundTop) {
+              it.y = Math.min(groundTop, it.y + (it.vy || 3.5));
+            } else {
+              it.groundTimer = (it.groundTimer ?? 300) - 1;
+              if (it.groundTimer <= 0) {
+                it.collected = true;
+                engine.items.splice(iIdx, 1);
+              }
+            }
           }
-        });
+        }
 
         // Boss state machine
         if (boss.state !== 'dead' && boss.state !== 'dying') {
@@ -4408,6 +4443,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                        boss.vy = 0;
                        boss.state = 'idle';
                        boss.jumpPhase = 'none';
+                       boss.itemDropTimer = [180, 240, 300, 360][Math.floor(Math.random() * 4)];
+                       engine.items = engine.items.filter(it => (it as any).type !== 'boss_keyboard' && (it as any).type !== 'boss_hp');
                        p.x = bossAreaX + 60;
                        p.y = 380 - p.height;
                        p.vx = 0;
@@ -4415,6 +4452,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                        p.isGrounded = true;
                        p.direction = 'right';
                        resetKeys();
+                       livesRef.current = 3;
                        return 3;
                     } else {
                        setGameState('gameover');
@@ -4457,6 +4495,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                          boss.vy = 0;
                          boss.state = 'idle';
                          boss.jumpPhase = 'none';
+                         boss.itemDropTimer = [180, 240, 300, 360][Math.floor(Math.random() * 4)];
+                         engine.items = engine.items.filter(it => (it as any).type !== 'boss_keyboard' && (it as any).type !== 'boss_hp');
                          p.x = bossAreaX + 60;
                          p.y = 380 - p.height;
                          p.vx = 0;
@@ -4464,6 +4504,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                          p.isGrounded = true;
                          p.direction = 'right';
                          resetKeys();
+                         livesRef.current = 3;
                          return 3; // Reset to 3 lives
                       } else {
                          setGameState('gameover');
@@ -4865,18 +4906,58 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.fillStyle = '#fef08a';
           ctx.font = 'black 16px sans-serif';
           ctx.fillText('❓', ix + 5, floatY + 20);
-        } else if ((item as any).type === 'boss_keyboard') {
-          // Special Falling Keyboard for Boss Fight support
+        } else if ((item as any).type === 'boss_keyboard' || (item as any).type === 'boss_hp') {
+          const bossItem = item as any;
+          const groundTop = 380 - item.h;
+          const isOnGround = item.y >= groundTop - 1;
+          const gTimer = bossItem.groundTimer ?? 300;
+          const isExpiring = isOnGround && gTimer <= 90;
+
           ctx.save();
-          ctx.shadowColor = '#38bdf8';
-          ctx.shadowBlur = 10;
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(ix, item.y, 30, 26);
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(ix, item.y, 30, 26);
-          ctx.font = '14px sans-serif';
-          ctx.fillText('⌨️', ix + 5, item.y + 19);
+          if (isExpiring && Math.floor(gTimer / 6) % 2 === 0) {
+            ctx.globalAlpha = 0.35;
+          }
+
+          if (bossItem.type === 'boss_hp') {
+            // Item +HP Drop for Boss Fight support
+            ctx.shadowColor = '#f43f5e';
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = '#4c0519';
+            ctx.fillRect(ix, item.y, item.w, item.h);
+            ctx.strokeStyle = '#fb7185';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(ix, item.y, item.w, item.h);
+            ctx.font = '13px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('❤️', ix + item.w / 2, item.y + item.h / 2 - 4);
+            ctx.fillStyle = '#fecdd3';
+            ctx.font = 'bold 8px sans-serif';
+            ctx.fillText('+HP', ix + item.w / 2, item.y + item.h - 5);
+          } else {
+            // Special Falling Keyboard for Boss Fight support
+            ctx.shadowColor = '#38bdf8';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(ix, item.y, item.w, item.h);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(ix, item.y, item.w, item.h);
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('⌨️', ix + item.w / 2, item.y + item.h / 2);
+          }
+
+          // 5-second ground timer bar above landed drop
+          if (isOnGround) {
+            const pct = Math.max(0, Math.min(1, gTimer / 300));
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+            ctx.fillRect(ix, item.y - 7, item.w, 4);
+            ctx.fillStyle = pct > 0.35 ? (bossItem.type === 'boss_hp' ? '#fb7185' : '#38bdf8') : '#f59e0b';
+            ctx.fillRect(ix, item.y - 7, item.w * pct, 4);
+          }
           ctx.restore();
         }
       }
@@ -5538,7 +5619,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           </div>
 
           <div className="flex items-center gap-1 font-black text-rose-500 text-base">
-            {Array.from({ length: 3 }).map((_, i) => (
+            {Array.from({ length: Math.max(3, lives) }).map((_, i) => (
               <span key={i} className={cn("transition-all", i < lives ? "opacity-100 scale-100" : "opacity-20 scale-75")}>
                 ❤️
               </span>
