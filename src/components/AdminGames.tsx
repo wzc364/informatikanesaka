@@ -275,10 +275,10 @@ const BOSS2_POSE_PATHS = [
   '/assets/aistudio/boss2_5.png',   // 4: jalan 3
   '/assets/aistudio/boss2_6.png',   // 5: saat akan menembak
   '/assets/aistudio/boss2_7.png',   // 6: saat menembak
-  '/assets/aistudio/boss2_8.png',   // 7: saat akan meloncat (squat)
-  '/assets/aistudio/boss2_9.png',   // 8: saat meloncat (di udara)
-  '/assets/aistudio/boss2_10.png',  // 9: saat mendarat (dust/landing)
-  '/assets/aistudio/boss2_11.png',  // 10: pose kalah/mati
+  '/assets/aistudio/boss2_8.png',   // 7: pose tertembak / kalah (pusing & baterai lemah)
+  '/assets/aistudio/boss2_9.png',   // 8: saat akan meloncat (jongkok)
+  '/assets/aistudio/boss2_10.png',  // 9: saat meloncat (di udara)
+  '/assets/aistudio/boss2_11.png',  // 10: saat mendarat (debu pendaratan)
 ];
 
 type ProcessedSprite = HTMLCanvasElement | HTMLImageElement;
@@ -4972,16 +4972,16 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         if (currentStage === 2) {
           // Stage 2 Boss Pose Mappings
           if (boss.state === 'dead' || boss.state === 'dying') {
-            bossImg = boss2ImagesRef.current[10] || boss2ImagesRef.current[7] || boss2ImagesRef.current[0];
+            bossImg = boss2ImagesRef.current[7] || boss2ImagesRef.current[0];
           } else if (boss.invulnerableFrames > 0) {
             bossImg = boss2ImagesRef.current[7] || boss2ImagesRef.current[0];
           } else if (boss.state === 'jumping') {
             if (boss.jumpPhase === 'prep') {
-              bossImg = boss2ImagesRef.current[7] || boss2ImagesRef.current[0];
-            } else if (boss.jumpPhase === 'air') {
               bossImg = boss2ImagesRef.current[8] || boss2ImagesRef.current[0];
-            } else {
+            } else if (boss.jumpPhase === 'air') {
               bossImg = boss2ImagesRef.current[9] || boss2ImagesRef.current[0];
+            } else {
+              bossImg = boss2ImagesRef.current[10] || boss2ImagesRef.current[0];
             }
           } else if (boss.state === 'shooting') {
             if (boss.shootTimer > 0) {
