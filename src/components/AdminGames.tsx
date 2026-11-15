@@ -242,6 +242,142 @@ export const GAMES_LIST: GameItem[] = [
   }
 ];
 
+const PLAYER_POSE_PATHS = [
+  '/assets/aistudio/1_1c6e6898.png',     // 0: pose depan
+  '/assets/aistudio/2_c5278813.png',     // 1: berlari 1
+  '/assets/aistudio/2_3_8597f138.png',   // 2: berlari 2 (baru)
+  '/assets/aistudio/3_0765a0d2.png',     // 3: berlari 3
+  '/assets/aistudio/4_57a699e0.png',     // 4: loncat 1
+  '/assets/aistudio/5_ca307ebd.png',     // 5: loncat 2
+  '/assets/aistudio/6_0e9e4f2c.png',     // 6: loncat 3
+  '/assets/aistudio/7_d58d30cc.png',     // 7: pose menembak
+];
+
+const BOSS1_POSE_PATHS = [
+  '/assets/aistudio/1a.png',   // 0: Idle 1a
+  '/assets/aistudio/2a.png',   // 1: Idle 2a
+  '/assets/aistudio/3a.png',   // 2: Move 3a
+  '/assets/aistudio/4a.png',   // 3: Move 4a
+  '/assets/aistudio/5a.png',   // 4: Move 5a
+  '/assets/aistudio/6a.png',   // 5: Move 6a
+  '/assets/aistudio/7a.png',   // 6: Shoot 7a
+  '/assets/aistudio/8a.png',   // 7: Shoot 8a
+  '/assets/aistudio/9a.png',   // 8: Pose tertembak 9a
+  '/assets/aistudio/10a.png',  // 9: Pose bos mati 10a
+  '/assets/aistudio/10.png',   // 10: Pose bos mati tak bergerak 10.png
+];
+
+const BOSS2_POSE_PATHS = [
+  '/assets/aistudio/boss2_1.png',   // 0: idle 1
+  '/assets/aistudio/boss2_2.png',   // 1: idle 2
+  '/assets/aistudio/boss2_3.png',   // 2: jalan 1
+  '/assets/aistudio/boss2_4.png',   // 3: jalan 2
+  '/assets/aistudio/boss2_5.png',   // 4: jalan 3
+  '/assets/aistudio/boss2_6.png',   // 5: saat akan menembak
+  '/assets/aistudio/boss2_7.png',   // 6: saat menembak
+  '/assets/aistudio/boss2_8.png',   // 7: saat akan meloncat (squat)
+  '/assets/aistudio/boss2_9.png',   // 8: saat meloncat (di udara)
+  '/assets/aistudio/boss2_10.png',  // 9: saat mendarat (dust/landing)
+  '/assets/aistudio/boss2_11.png',  // 10: pose kalah/mati
+];
+
+type ProcessedSprite = HTMLCanvasElement | HTMLImageElement;
+const PROCESSED_SPRITE_CACHE = new Map<string, ProcessedSprite>();
+const SPRITE_LOAD_PROMISES = new Map<string, Promise<ProcessedSprite | null>>();
+
+const IS_LITTLE_ENDIAN = (() => {
+  if (typeof Uint32Array === 'undefined') return true;
+  const buf = new ArrayBuffer(4);
+  new Uint32Array(buf)[0] = 0x0a0b0c0d;
+  return new Uint8Array(buf)[0] === 0x0d;
+})();
+
+function loadProcessedSprite(
+  path: string,
+  maxHeight: number,
+  highPriority = false
+): Promise<ProcessedSprite | null> {
+  const cached = PROCESSED_SPRITE_CACHE.get(path);
+  if (cached) return Promise.resolve(cached);
+
+  const existingPromise = SPRITE_LOAD_PROMISES.get(path);
+  if (existingPromise) return existingPromise;
+
+  const promise = new Promise<ProcessedSprite | null>((resolve) => {
+    const img = new Image();
+    img.decoding = 'async';
+    if (highPriority && 'fetchPriority' in img) {
+      (img as any).fetchPriority = 'high';
+    }
+    img.crossOrigin = 'anonymous';
+
+    const finalize = async () => {
+      try {
+        if (typeof img.decode === 'function') {
+          await img.decode().catch(() => {});
+        }
+        const natW = img.naturalWidth || 400;
+        const natH = img.naturalHeight || 400;
+        const scale = natH > maxHeight ? maxHeight / natH : 1;
+        const targetW = Math.max(1, Math.round(natW * scale));
+        const targetH = Math.max(1, Math.round(natH * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, targetW, targetH);
+          const imgData = ctx.getImageData(0, 0, targetW, targetH);
+
+          if (IS_LITTLE_ENDIAN && typeof Uint32Array !== 'undefined') {
+            const buf32 = new Uint32Array(imgData.data.buffer);
+            for (let i = 0; i < buf32.length; i++) {
+              const px = buf32[i];
+              if ((px & 0xff) > 220 && ((px >> 8) & 0xff) > 220 && ((px >> 16) & 0xff) > 220) {
+                buf32[i] = 0;
+              }
+            }
+          } else {
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+              if (data[i] > 220 && data[i + 1] > 220 && data[i + 2] > 220) {
+                data[i + 3] = 0;
+              }
+            }
+          }
+
+          ctx.putImageData(imgData, 0, 0);
+          PROCESSED_SPRITE_CACHE.set(path, canvas);
+          resolve(canvas);
+        } else {
+          PROCESSED_SPRITE_CACHE.set(path, img);
+          resolve(img);
+        }
+      } catch {
+        PROCESSED_SPRITE_CACHE.set(path, img);
+        resolve(img);
+      } finally {
+        SPRITE_LOAD_PROMISES.delete(path);
+      }
+    };
+
+    img.onload = () => {
+      void finalize();
+    };
+    img.onerror = () => {
+      SPRITE_LOAD_PROMISES.delete(path);
+      resolve(null);
+    };
+    img.src = path;
+  });
+
+  SPRITE_LOAD_PROMISES.set(path, promise);
+  return promise;
+}
+
 interface AdminGamesProps {
   isAdmin: boolean;
   currentStudent?: { id: string; nama: string; kelas: string; nis: string } | null;
@@ -354,6 +490,33 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
     return () => {
       unsubConfigs();
       unsubScores();
+    };
+  }, []);
+
+  // Preload & process 8 main character poses in background idle time so game starts instantly
+  useEffect(() => {
+    let cancelled = false;
+    const warmUpPlayerSprites = () => {
+      if (cancelled) return;
+      PLAYER_POSE_PATHS.forEach((path) => {
+        if (!PROCESSED_SPRITE_CACHE.has(path)) {
+          void loadProcessedSprite(path, 200, false);
+        }
+      });
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const idleId = (window as any).requestIdleCallback(warmUpPlayerSprites, { timeout: 1200 });
+      return () => {
+        cancelled = true;
+        (window as any).cancelIdleCallback?.(idleId);
+      };
+    }
+
+    const timer = setTimeout(warmUpPlayerSprites, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
     };
   }, []);
 
@@ -1946,17 +2109,17 @@ function generateStageEngine(stageNum: number) {
         { id: 13, x: 4750, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
       ],
       obstacles: [
-        { id: 1, x: 350, y: 365, w: 60, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 2, x: 1050, y: 342, w: 38, h: 38, type: 'phone_evil', vx: 1.8, minX: 950, maxX: 1450, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 3, x: 1200, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 4, x: 1850, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2, minX: 1720, maxX: 2250, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 5, x: 2500, y: 180, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 120, maxY: 280, yDir: 1, destroyed: false },
-        { id: 6, x: 3100, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 7, x: 3300, y: 342, w: 38, h: 38, type: 'phone_evil', vx: 2.2, minX: 3000, maxX: 3500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 8, x: 3850, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 9, x: 4150, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -1.9, minX: 3800, maxX: 4400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 10, x: 4450, y: 180, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 120, maxY: 280, yDir: 1, destroyed: false },
-        { id: 11, x: 4680, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 1, x: 350, y: 360, w: 75, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 2, x: 1050, y: 328, w: 52, h: 52, type: 'phone_evil', vx: 1.8, minX: 950, maxX: 1450, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 3, x: 1200, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 4, x: 1850, y: 328, w: 52, h: 52, type: 'phone_evil', vx: -2, minX: 1720, maxX: 2250, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 5, x: 2500, y: 180, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 120, maxY: 280, yDir: 1, destroyed: false },
+        { id: 6, x: 3100, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 7, x: 3300, y: 328, w: 52, h: 52, type: 'phone_evil', vx: 2.2, minX: 3000, maxX: 3500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 8, x: 3850, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4150, y: 328, w: 52, h: 52, type: 'phone_evil', vx: -1.9, minX: 3800, maxX: 4400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 10, x: 4450, y: 180, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 120, maxY: 280, yDir: 1, destroyed: false },
+        { id: 11, x: 4680, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
       schoolGateX: 5900,
       boss: {
@@ -2050,19 +2213,19 @@ function generateStageEngine(stageNum: number) {
         { id: 13, x: 5350, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
       ],
       obstacles: [
-        { id: 1, x: 320, y: 365, w: 60, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 2, x: 1100, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.2, minX: 1000, maxX: 1500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 3, x: 1350, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 4, x: 2000, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2.4, minX: 1850, maxX: 2380, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 5, x: 2800, y: 170, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 110, maxY: 270, yDir: 1, destroyed: false },
-        { id: 6, x: 3450, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 7, x: 3650, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.5, minX: 3350, maxX: 3950, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 8, x: 4300, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 9, x: 4500, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2.3, minX: 4500, maxX: 4800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 10, x: 4650, y: 160, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
-        { id: 11, x: 5300, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 12, x: 5500, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.6, minX: 5200, maxX: 5800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 13, x: 5850, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: -2.8, minX: 5600, maxX: 6050, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 1, x: 320, y: 360, w: 75, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 2, x: 1100, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.2, minX: 1000, maxX: 1500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 3, x: 1350, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 4, x: 2000, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: -2.4, minX: 1850, maxX: 2380, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 5, x: 2800, y: 170, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 110, maxY: 270, yDir: 1, destroyed: false },
+        { id: 6, x: 3450, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 7, x: 3650, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.5, minX: 3350, maxX: 3950, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 8, x: 4300, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4500, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: -2.3, minX: 4500, maxX: 4800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 10, x: 4650, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
+        { id: 11, x: 5300, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 12, x: 5500, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.6, minX: 5200, maxX: 5800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 13, x: 5850, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: -2.8, minX: 5600, maxX: 6050, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
       schoolGateX: 6100,
     };
@@ -2095,18 +2258,18 @@ function generateStageEngine(stageNum: number) {
         { x: 550, y: 300, w: 120, h: 20, type: 'platform' },
         { x: 720, y: 220, w: 140, h: 20, type: 'platform' },
         { x: 900, y: 160, w: 140, h: 20, type: 'platform' },
-        { x: 1100, y: 380, w: 650, h: 100, type: 'ground' },
+        { x: 1100, y: 380, w: 620, h: 100, type: 'ground' },
         { x: 1300, y: 270, w: 150, h: 20, type: 'platform' },
         { x: 1520, y: 200, w: 150, h: 20, type: 'platform' },
-        { x: 1800, y: 380, w: 700, h: 100, type: 'ground' },
+        { x: 1840, y: 380, w: 660, h: 100, type: 'ground' },
         { x: 2000, y: 280, w: 160, h: 20, type: 'platform' },
         { x: 2250, y: 210, w: 160, h: 20, type: 'platform' },
         { x: 2550, y: 150, w: 160, h: 20, type: 'platform' },
-        { x: 2800, y: 380, w: 750, h: 100, type: 'ground' },
+        { x: 2800, y: 380, w: 740, h: 100, type: 'ground' },
         { x: 3000, y: 280, w: 140, h: 20, type: 'platform' },
         { x: 3200, y: 210, w: 140, h: 20, type: 'platform' },
         { x: 3400, y: 270, w: 140, h: 20, type: 'platform' },
-        { x: 3650, y: 380, w: 700, h: 100, type: 'ground' },
+        { x: 3660, y: 380, w: 690, h: 100, type: 'ground' },
         { x: 3850, y: 260, w: 150, h: 20, type: 'platform' },
         { x: 4100, y: 190, w: 150, h: 20, type: 'platform' },
         { x: 4350, y: 250, w: 150, h: 20, type: 'platform' },
@@ -2133,19 +2296,19 @@ function generateStageEngine(stageNum: number) {
         { id: 14, x: 5700, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
       ],
       obstacles: [
-        { id: 1, x: 350, y: 365, w: 60, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 2, x: 1250, y: 342, w: 38, h: 36, type: 'computer_evil', vx: 2, minX: 1150, maxX: 1650, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 3, x: 1450, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 4, x: 1950, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2.3, minX: 1820, maxX: 2380, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 5, x: 2600, y: 160, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
-        { id: 6, x: 3100, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 7, x: 3350, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.5, minX: 3000, maxX: 3600, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 8, x: 3800, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 9, x: 4500, y: 342, w: 38, h: 38, type: 'phone_evil', vx: -2.4, minX: 3850, maxX: 4500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 10, x: 4400, y: 160, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
-        { id: 11, x: 4900, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 12, x: 5200, y: 342, w: 44, h: 36, type: 'keyboard_evil', vx: 2.8, minX: 4800, maxX: 5450, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 13, x: 5800, y: 342, w: 38, h: 36, type: 'computer_evil', vx: -3, minX: 5550, maxX: 6300, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 1, x: 350, y: 360, w: 75, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 2, x: 1250, y: 330, w: 52, h: 50, type: 'computer_evil', vx: 2, minX: 1150, maxX: 1650, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 3, x: 1450, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 4, x: 1950, y: 328, w: 52, h: 52, type: 'phone_evil', vx: -2.3, minX: 1870, maxX: 2380, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 5, x: 2600, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
+        { id: 6, x: 3100, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 7, x: 3350, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.5, minX: 2950, maxX: 3500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 8, x: 3800, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4050, y: 328, w: 52, h: 52, type: 'phone_evil', vx: -2.4, minX: 3880, maxX: 4320, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 10, x: 4400, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
+        { id: 11, x: 4900, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 12, x: 5150, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.8, minX: 4750, maxX: 5300, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 13, x: 5800, y: 330, w: 52, h: 50, type: 'computer_evil', vx: -3, minX: 5550, maxX: 6300, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
       schoolGateX: 6800,
     };
@@ -2173,23 +2336,23 @@ function generateStageEngine(stageNum: number) {
     cameraX: 0,
     worldWidth: 6500,
     platforms: [
-      { x: 0, y: 380, w: 600, h: 100, type: 'ground' },
-      { x: 680, y: 380, w: 500, h: 100, type: 'ground' },
+      { x: 0, y: 380, w: 580, h: 100, type: 'ground' },
+      { x: 700, y: 380, w: 480, h: 100, type: 'ground' },
       { x: 800, y: 280, w: 120, h: 20, type: 'platform' },
       { x: 980, y: 220, w: 120, h: 20, type: 'platform' },
-      { x: 1240, y: 380, w: 700, h: 100, type: 'ground' },
+      { x: 1300, y: 380, w: 640, h: 100, type: 'ground' },
       { x: 1400, y: 270, w: 140, h: 20, type: 'platform' },
       { x: 1600, y: 200, w: 140, h: 20, type: 'platform' },
-      { x: 2000, y: 380, w: 700, h: 100, type: 'ground' },
+      { x: 2060, y: 380, w: 640, h: 100, type: 'ground' },
       { x: 2200, y: 280, w: 160, h: 20, type: 'platform' },
       { x: 2450, y: 240, w: 160, h: 20, type: 'platform' },
-      { x: 2800, y: 380, w: 800, h: 100, type: 'ground' },
+      { x: 2820, y: 380, w: 780, h: 100, type: 'ground' },
       { x: 2950, y: 270, w: 150, h: 20, type: 'platform' },
       { x: 3200, y: 210, w: 150, h: 20, type: 'platform' },
-      { x: 3700, y: 380, w: 800, h: 100, type: 'ground' },
+      { x: 3720, y: 380, w: 780, h: 100, type: 'ground' },
       { x: 3850, y: 280, w: 160, h: 20, type: 'platform' },
       { x: 4100, y: 230, w: 160, h: 20, type: 'platform' },
-      { x: 4600, y: 380, w: 1800, h: 100, type: 'ground' }
+      { x: 4620, y: 380, w: 1880, h: 100, type: 'ground' }
     ],
     items: [
       { id: 1, x: 250, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
@@ -2207,19 +2370,19 @@ function generateStageEngine(stageNum: number) {
       { id: 13, x: 4700, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
     ],
     obstacles: [
-      { id: 1, x: 450, y: 365, w: 60, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-      { id: 2, x: 750, y: 344, w: 38, h: 36, type: 'computer_evil', vx: 1.6, minX: 700, maxX: 1100, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-      { id: 3, x: 1350, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-      { id: 4, x: 1500, y: 344, w: 38, h: 36, type: 'computer_evil', vx: -1.8, minX: 1300, maxX: 1750, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-      { id: 5, x: 1800, y: 200, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 150, maxY: 330, yDir: 1, destroyed: false },
-      { id: 6, x: 2150, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-      { id: 7, x: 2350, y: 344, w: 38, h: 36, type: 'computer_evil', vx: 2, minX: 2100, maxX: 2600, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-      { id: 8, x: 2900, y: 350, w: 25, h: 30, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-      { id: 9, x: 3100, y: 344, w: 38, h: 36, type: 'computer_evil', vx: 1.8, minX: 2850, maxX: 3400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-      { id: 10, x: 3500, y: 200, w: 30, h: 30, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 150, maxY: 330, yDir: 1, destroyed: false },
-      { id: 11, x: 3800, y: 365, w: 70, h: 15, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-      { id: 12, x: 4000, y: 344, w: 38, h: 36, type: 'computer_evil', vx: -2, minX: 3750, maxX: 4300, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-      { id: 13, x: 4800, y: 344, w: 38, h: 36, type: 'computer_evil', vx: 2.2, minX: 4650, maxX: 5200, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 1, x: 450, y: 360, w: 75, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 2, x: 780, y: 330, w: 52, h: 50, type: 'computer_evil', vx: 1.6, minX: 720, maxX: 1120, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 3, x: 1360, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 4, x: 1520, y: 330, w: 52, h: 50, type: 'computer_evil', vx: -1.8, minX: 1340, maxX: 1800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 5, x: 1800, y: 200, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 150, maxY: 330, yDir: 1, destroyed: false },
+      { id: 6, x: 2150, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 7, x: 2350, y: 330, w: 52, h: 50, type: 'computer_evil', vx: 2, minX: 2100, maxX: 2620, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 8, x: 2900, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 9, x: 3100, y: 330, w: 52, h: 50, type: 'computer_evil', vx: 1.8, minX: 2860, maxX: 3420, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 10, x: 3500, y: 200, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 150, maxY: 330, yDir: 1, destroyed: false },
+      { id: 11, x: 3800, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 12, x: 4000, y: 330, w: 52, h: 50, type: 'computer_evil', vx: -2, minX: 3760, maxX: 4320, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      { id: 13, x: 4850, y: 330, w: 52, h: 50, type: 'computer_evil', vx: 2.2, minX: 4660, maxX: 5250, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
     ],
     schoolGateX: 6250,
     boss: {
@@ -3266,92 +3429,83 @@ function drawAlunAlunCiamis(ctx: CanvasRenderingContext2D, x: number, groundY: n
 
 function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, onClose }: { isAdmin: boolean; currentStudent: any; studentStageHighScores?: Record<number, number>; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const poseImagesRef = useRef<(HTMLCanvasElement | HTMLImageElement | null)[]>([]);
-  const bossImagesRef = useRef<(HTMLCanvasElement | HTMLImageElement | null)[]>([]);
-  const boss2ImagesRef = useRef<(HTMLCanvasElement | HTMLImageElement | null)[]>([]);
-
-  useEffect(() => {
-    const paths = [
-      '/assets/aistudio/1_1c6e6898.png',     // 0: pose depan
-      '/assets/aistudio/2_c5278813.png',     // 1: berlari 1
-      '/assets/aistudio/2_3_8597f138.png',   // 2: berlari 2 (baru)
-      '/assets/aistudio/3_0765a0d2.png',     // 3: berlari 3
-      '/assets/aistudio/4_57a699e0.png',     // 4: loncat 1
-      '/assets/aistudio/5_ca307ebd.png',     // 5: loncat 2
-      '/assets/aistudio/6_0e9e4f2c.png',     // 6: loncat 3
-      '/assets/aistudio/7_d58d30cc.png',     // 7: pose menembak
-    ];
-
-    const bossPaths = [
-      '/assets/aistudio/1a.png',   // 0: Idle 1a
-      '/assets/aistudio/2a.png',   // 1: Idle 2a
-      '/assets/aistudio/3a.png',   // 2: Move 3a
-      '/assets/aistudio/4a.png',   // 3: Move 4a
-      '/assets/aistudio/5a.png',   // 4: Move 5a
-      '/assets/aistudio/6a.png',   // 5: Move 6a
-      '/assets/aistudio/7a.png',   // 6: Shoot 7a
-      '/assets/aistudio/8a.png',   // 7: Shoot 8a
-      '/assets/aistudio/9a.png',   // 8: Pose tertembak 9a
-      '/assets/aistudio/10a.png',  // 9: Pose bos mati 10a
-      '/assets/aistudio/10.png',   // 10: Pose bos mati tak bergerak 10.png
-    ];
-
-    const boss2Paths = [
-      '/assets/aistudio/boss2_1.png',   // 0: idle 1
-      '/assets/aistudio/boss2_2.png',   // 1: idle 2
-      '/assets/aistudio/boss2_3.png',   // 2: jalan 1
-      '/assets/aistudio/boss2_4.png',   // 3: jalan 2
-      '/assets/aistudio/boss2_5.png',   // 4: jalan 3
-      '/assets/aistudio/boss2_6.png',   // 5: saat akan menembak
-      '/assets/aistudio/boss2_7.png',   // 6: saat menembak
-      '/assets/aistudio/boss2_8.png',   // 7: saat akan meloncat (squat)
-      '/assets/aistudio/boss2_9.png',   // 8: saat meloncat (di udara)
-      '/assets/aistudio/boss2_10.png',  // 9: saat mendarat (dust/landing)
-      '/assets/aistudio/boss2_11.png',  // 10: pose kalah/mati
-    ];
-
-    const processImage = (path: string, targetRef: React.MutableRefObject<(HTMLCanvasElement | HTMLImageElement | null)[]>, idx: number) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = path;
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth || 400;
-          canvas.height = img.naturalHeight || 400;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0);
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imgData.data;
-            for (let i = 0; i < data.length; i += 4) {
-              const r = data[i];
-              const g = data[i + 1];
-              const b = data[i + 2];
-              if (r > 220 && g > 220 && b > 220) {
-                data[i + 3] = 0;
-              }
-            }
-            ctx.putImageData(imgData, 0, 0);
-            targetRef.current[idx] = canvas;
-          } else {
-            targetRef.current[idx] = img;
-          }
-        } catch (e) {
-          targetRef.current[idx] = img;
-        }
-      };
-      img.onerror = () => {
-        targetRef.current[idx] = null;
-      };
-    };
-
-    paths.forEach((path, idx) => processImage(path, poseImagesRef, idx));
-    bossPaths.forEach((path, idx) => processImage(path, bossImagesRef, idx));
-    boss2Paths.forEach((path, idx) => processImage(path, boss2ImagesRef, idx));
-  }, []);
+  const poseImagesRef = useRef<(ProcessedSprite | null)[]>(
+    PLAYER_POSE_PATHS.map((p) => PROCESSED_SPRITE_CACHE.get(p) ?? null)
+  );
+  const bossImagesRef = useRef<(ProcessedSprite | null)[]>(
+    BOSS1_POSE_PATHS.map((p) => PROCESSED_SPRITE_CACHE.get(p) ?? null)
+  );
+  const boss2ImagesRef = useRef<(ProcessedSprite | null)[]>(
+    BOSS2_POSE_PATHS.map((p) => PROCESSED_SPRITE_CACHE.get(p) ?? null)
+  );
 
   const [currentStage, setCurrentStage] = useState<1 | 2 | 3 | 4>(1);
+  const [posesLoadedCount, setPosesLoadedCount] = useState<number>(() =>
+    PLAYER_POSE_PATHS.filter((p) => PROCESSED_SPRITE_CACHE.has(p)).length
+  );
+
+  // Load 8 main character poses immediately with high priority (or restore instantly from cache)
+  useEffect(() => {
+    let cancelled = false;
+    let readyCount = 0;
+
+    PLAYER_POSE_PATHS.forEach((path, idx) => {
+      const cached = PROCESSED_SPRITE_CACHE.get(path);
+      if (cached) {
+        poseImagesRef.current[idx] = cached;
+        readyCount += 1;
+        return;
+      }
+      void loadProcessedSprite(path, 200, true).then((sprite) => {
+        if (cancelled) return;
+        poseImagesRef.current[idx] = sprite;
+        setPosesLoadedCount(
+          PLAYER_POSE_PATHS.filter((_, i) => poseImagesRef.current[i] !== null).length
+        );
+      });
+    });
+
+    if (readyCount > 0) {
+      setPosesLoadedCount(readyCount);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Lazy-load boss sprites only for the active stage (Stage 1 or Stage 2)
+  useEffect(() => {
+    let cancelled = false;
+    if (currentStage === 1) {
+      BOSS1_POSE_PATHS.forEach((path, idx) => {
+        const cached = PROCESSED_SPRITE_CACHE.get(path);
+        if (cached) {
+          bossImagesRef.current[idx] = cached;
+          return;
+        }
+        void loadProcessedSprite(path, 280, false).then((sprite) => {
+          if (!cancelled) bossImagesRef.current[idx] = sprite;
+        });
+      });
+    } else if (currentStage === 2) {
+      BOSS2_POSE_PATHS.forEach((path, idx) => {
+        const cached = PROCESSED_SPRITE_CACHE.get(path);
+        if (cached) {
+          boss2ImagesRef.current[idx] = cached;
+          return;
+        }
+        void loadProcessedSprite(path, 280, false).then((sprite) => {
+          if (!cancelled) boss2ImagesRef.current[idx] = sprite;
+        });
+      });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentStage]);
+
   const [gameState, setGameState] = useState<'start' | 'playing' | 'win' | 'gameover'>('start');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -3820,14 +3974,14 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         if (!p.shootCooldown || p.shootCooldown <= 0) {
           p.shootCooldown = 12; // Throttle rate of fire (~0.2s)
           const bulletVx = p.direction === 'right' ? 14 : -14;
-          const bulletX = p.direction === 'right' ? p.x + p.width : p.x - 22;
-          const bulletY = p.y + 16;
+          const bulletX = p.direction === 'right' ? p.x + p.width - 8 : p.x - 18;
+          const bulletY = p.y + 28; // Aligned to enlarged character's weapon/chest height (hits monsters & boss cleanly)
           engine.bullets.push({
             x: bulletX,
             y: bulletY,
             vx: bulletVx,
-            w: 22,
-            h: 12
+            w: 26,
+            h: 18
           });
           if (p.bulletsLeft && p.bulletsLeft > 0) {
             p.bulletsLeft--;
@@ -3946,12 +4100,16 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       if (p.invulnerableFrames > 0) p.invulnerableFrames--;
 
       p.isGrounded = false;
+      const footLeft = p.x + 8;
+      const footRight = p.x + p.width - 8;
+      const prevBottom = p.y + p.height - p.vy;
       for (const plat of engine.platforms) {
         if (
-          p.x + p.width > plat.x &&
-          p.x < plat.x + plat.w &&
+          footRight > plat.x &&
+          footLeft < plat.x + plat.w &&
           p.y + p.height >= plat.y &&
-          p.y + p.height <= plat.y + 20 &&
+          prevBottom <= plat.y + 8 &&
+          p.y + p.height <= plat.y + Math.max(12, p.vy + 4) &&
           p.vy >= 0
         ) {
           p.y = plat.y - p.height;
@@ -3967,7 +4125,14 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             setGameState('gameover');
             saveFinalScore(score);
           } else {
-            p.x = Math.max(100, p.x - 200);
+            const safeGround = [...engine.platforms]
+              .reverse()
+              .find((pl) => pl.type === 'ground' && pl.x <= p.x);
+            if (safeGround) {
+              p.x = Math.max(safeGround.x + 20, Math.min(p.x - 160, safeGround.x + safeGround.w - p.width - 20));
+            } else {
+              p.x = 100;
+            }
             p.y = 200;
             p.vy = 0;
             p.invulnerableFrames = 60;
@@ -4017,10 +4182,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         }
 
         if (
-          p.x + p.width - 6 > obs.x &&
-          p.x + 6 < obs.x + obs.w &&
-          p.y + p.height > obs.y &&
-          p.y + 6 < obs.y + obs.h
+          p.x + p.width - 8 > obs.x + 4 &&
+          p.x + 8 < obs.x + obs.w - 4 &&
+          p.y + p.height > obs.y + 4 &&
+          p.y + 8 < obs.y + obs.h
         ) {
           // If player has Super Power (Kuat)
           if (p.superPowerFrames > 0) {
@@ -4196,7 +4361,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                    const laserX = boss.direction === 'left' ? boss.x - 12 : boss.x + boss.w;
                    boss.lasers.push({
                      x: laserX,
-                     y: boss.y + 36,
+                     y: boss.y + 48,
                      vx: laserVx,
                      w: 36,
                      h: 36,
@@ -4208,10 +4373,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                    const laserX = boss.direction === 'left' ? boss.x - 10 : boss.x + boss.w;
                    boss.lasers.push({
                      x: laserX,
-                     y: boss.y + 42,
+                     y: boss.y + 56,
                      vx: laserVx,
                      w: 55,
-                     h: 12
+                     h: 14
                    });
                  }
                }
@@ -4975,160 +5140,163 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         const legStep = Math.sin(p.animFrame * 4) * 4;
 
         if (obs.type === 'computer_evil') {
-          // Stage 1: Komputer Jahat
+          // Stage 1: Komputer Jahat (Scaled cleanly to obs.w x obs.h)
+          ctx.save();
+          ctx.translate(ox, obs.y);
+          ctx.scale(obs.w / 34, obs.h / 34);
+
           ctx.fillStyle = '#334155';
-          ctx.fillRect(ox - 8, obs.y + 10 + animOffset, 9, 4);
+          ctx.fillRect(-8, 10 + animOffset, 9, 4);
           ctx.fillStyle = '#dc2626';
           ctx.beginPath();
-          ctx.moveTo(ox - 8, obs.y + 8 + animOffset);
-          ctx.lineTo(ox - 13, obs.y + 12 + animOffset);
-          ctx.lineTo(ox - 8, obs.y + 16 + animOffset);
+          ctx.moveTo(-8, 8 + animOffset);
+          ctx.lineTo(-13, 12 + animOffset);
+          ctx.lineTo(-8, 16 + animOffset);
           ctx.fill();
 
           ctx.fillStyle = '#334155';
-          ctx.fillRect(ox + 33, obs.y + 10 - animOffset, 9, 4);
+          ctx.fillRect(33, 10 - animOffset, 9, 4);
           ctx.fillStyle = '#dc2626';
           ctx.beginPath();
-          ctx.moveTo(ox + 42, obs.y + 8 - animOffset);
-          ctx.lineTo(ox + 47, obs.y + 12 - animOffset);
-          ctx.lineTo(ox + 42, obs.y + 16 - animOffset);
+          ctx.moveTo(42, 8 - animOffset);
+          ctx.lineTo(47, 12 - animOffset);
+          ctx.lineTo(42, 16 - animOffset);
           ctx.fill();
 
           ctx.fillStyle = '#0f172a';
-          ctx.fillRect(ox - 1, obs.y - 1, 36, 28);
+          ctx.fillRect(-1, -1, 36, 28);
           ctx.fillStyle = '#1e293b';
-          ctx.fillRect(ox, obs.y, 34, 26);
+          ctx.fillRect(0, 0, 34, 26);
           ctx.fillStyle = '#991b1b';
-          ctx.fillRect(ox + 3, obs.y + 3, 28, 20);
+          ctx.fillRect(3, 3, 28, 20);
 
           ctx.fillStyle = '#fef08a';
           ctx.beginPath();
-          ctx.moveTo(ox + 6, obs.y + 5);
-          ctx.lineTo(ox + 13, obs.y + 9);
-          ctx.lineTo(ox + 6, obs.y + 11);
+          ctx.moveTo(6, 5);
+          ctx.lineTo(13, 9);
+          ctx.lineTo(6, 11);
           ctx.fill();
 
           ctx.beginPath();
-          ctx.moveTo(ox + 28, obs.y + 5);
-          ctx.lineTo(ox + 21, obs.y + 9);
-          ctx.lineTo(ox + 28, obs.y + 11);
+          ctx.moveTo(28, 5);
+          ctx.lineTo(21, 9);
+          ctx.lineTo(28, 11);
           ctx.fill();
 
           ctx.fillStyle = '#000000';
-          ctx.fillRect(ox + 5, obs.y + 12, 24, 9);
+          ctx.fillRect(5, 12, 24, 9);
           ctx.fillStyle = '#ffffff';
           for (let tx = 0; tx < 4; tx++) {
             ctx.beginPath();
-            ctx.moveTo(ox + 6 + tx * 5.5, obs.y + 12);
-            ctx.lineTo(ox + 8.5 + tx * 5.5, obs.y + 16);
-            ctx.lineTo(ox + 11 + tx * 5.5, obs.y + 12);
+            ctx.moveTo(6 + tx * 5.5, 12);
+            ctx.lineTo(8.5 + tx * 5.5, 16);
+            ctx.lineTo(11 + tx * 5.5, 12);
             ctx.fill();
           }
 
           ctx.fillStyle = '#334155';
-          ctx.fillRect(ox + 6 + legStep, obs.y + 26, 5, 8);
-          ctx.fillRect(ox + 22 - legStep, obs.y + 26, 5, 8);
+          ctx.fillRect(6 + legStep, 26, 5, 8);
+          ctx.fillRect(22 - legStep, 26, 5, 8);
+          ctx.restore();
 
         } else if (obs.type === 'phone_evil') {
-          // Stage 2: Telepon Jahat (Vintage/Rotary Phone dengan Gigi & Kaki)
-          // Body Telepon
-          ctx.fillStyle = '#7f1d1d';
-          ctx.fillRect(ox + 2, obs.y + 10, 32, 20);
-          ctx.fillStyle = '#4c0519';
-          ctx.fillRect(ox + 5, obs.y + 6, 26, 6);
+          // Stage 2: Telepon Jahat (Scaled cleanly to obs.w x obs.h)
+          ctx.save();
+          ctx.translate(ox, obs.y);
+          ctx.scale(obs.w / 36, obs.h / 38);
 
-          // Ganggang Telepon (Handset) di Atas
+          ctx.fillStyle = '#7f1d1d';
+          ctx.fillRect(2, 10, 32, 20);
+          ctx.fillStyle = '#4c0519';
+          ctx.fillRect(5, 6, 26, 6);
+
           ctx.fillStyle = '#991b1b';
           ctx.beginPath();
-          ctx.arc(ox + 8, obs.y + 2, 6, 0, Math.PI * 2);
-          ctx.arc(ox + 28, obs.y + 2, 6, 0, Math.PI * 2);
+          ctx.arc(8, 2, 6, 0, Math.PI * 2);
+          ctx.arc(28, 2, 6, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillRect(ox + 8, obs.y - 1, 20, 5);
+          ctx.fillRect(8, -1, 20, 5);
 
-          // Coiled Wire
           ctx.strokeStyle = '#450a0a';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(ox + 6, obs.y + 12);
-          ctx.lineTo(ox + 2, obs.y + 6);
+          ctx.moveTo(6, 12);
+          ctx.lineTo(2, 6);
           ctx.stroke();
 
-          // Rotary Dial Wheel & Angry Eyes
           ctx.fillStyle = '#fde047';
           ctx.beginPath();
-          ctx.arc(ox + 18, obs.y + 18, 7, 0, Math.PI * 2);
+          ctx.arc(18, 18, 7, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = '#dc2626';
-          ctx.fillRect(ox + 16, obs.y + 16, 4, 4);
+          ctx.fillRect(16, 16, 4, 4);
 
-          // Mouth with Sharp Fangs
           ctx.fillStyle = '#000000';
-          ctx.fillRect(ox + 6, obs.y + 22, 24, 7);
+          ctx.fillRect(6, 22, 24, 7);
           ctx.fillStyle = '#ffffff';
           for (let tx = 0; tx < 4; tx++) {
             ctx.beginPath();
-            ctx.moveTo(ox + 7 + tx * 5.5, obs.y + 22);
-            ctx.lineTo(ox + 9.5 + tx * 5.5, obs.y + 26);
-            ctx.lineTo(ox + 12 + tx * 5.5, obs.y + 22);
+            ctx.moveTo(7 + tx * 5.5, 22);
+            ctx.lineTo(9.5 + tx * 5.5, 26);
+            ctx.lineTo(12 + tx * 5.5, 22);
             ctx.fill();
           }
 
-          // Walking Legs
           ctx.fillStyle = '#450a0a';
-          ctx.fillRect(ox + 6 + legStep, obs.y + 30, 5, 8);
-          ctx.fillRect(ox + 22 - legStep, obs.y + 30, 5, 8);
+          ctx.fillRect(6 + legStep, 30, 5, 8);
+          ctx.fillRect(22 - legStep, 30, 5, 8);
+          ctx.restore();
 
         } else if (obs.type === 'keyboard_evil') {
-          // Stage 3: Keyboard Terbakar (Keyboard Jahat dengan Api, Gigi, Tangan & Kaki)
-          // Fire Flames Particle Effect Rising from Keyboard
+          // Stage 3: Keyboard Terbakar (Scaled cleanly to obs.w x obs.h)
+          ctx.save();
+          ctx.translate(ox, obs.y);
+          ctx.scale(obs.w / 38, obs.h / 34);
+
           for (let f = 0; f < 5; f++) {
             const fireOffsetX = f * 8 + 4;
             const flickerY = Math.sin(p.animFrame * 6 + f) * 5;
             ctx.fillStyle = f % 2 === 0 ? '#ef4444' : '#f59e0b';
             ctx.beginPath();
-            ctx.arc(ox + fireOffsetX, obs.y - 4 + flickerY, 5, 0, Math.PI * 2);
+            ctx.arc(fireOffsetX, -4 + flickerY, 5, 0, Math.PI * 2);
             ctx.fill();
             ctx.fillStyle = '#fde047';
             ctx.beginPath();
-            ctx.arc(ox + fireOffsetX, obs.y - 2 + flickerY, 2.5, 0, Math.PI * 2);
+            ctx.arc(fireOffsetX, -2 + flickerY, 2.5, 0, Math.PI * 2);
             ctx.fill();
           }
 
-          // Keyboard Board
           ctx.fillStyle = '#0f172a';
-          ctx.fillRect(ox - 2, obs.y + 4, 42, 24);
+          ctx.fillRect(-2, 4, 42, 24);
           ctx.fillStyle = '#1e293b';
-          ctx.fillRect(ox, obs.y + 6, 38, 20);
+          ctx.fillRect(0, 6, 38, 20);
 
-          // Hot Backlit Key Grid
           ctx.fillStyle = '#dc2626';
           for (let ky = 0; ky < 2; ky++) {
             for (let kx = 0; kx < 6; kx++) {
-              ctx.fillRect(ox + 3 + kx * 6, obs.y + 8 + ky * 5, 4, 3);
+              ctx.fillRect(3 + kx * 6, 8 + ky * 5, 4, 3);
             }
           }
 
-          // Open Jaw with Sharp Fangs along bottom spacebar
           ctx.fillStyle = '#000000';
-          ctx.fillRect(ox + 4, obs.y + 18, 30, 7);
+          ctx.fillRect(4, 18, 30, 7);
           ctx.fillStyle = '#ffffff';
           for (let tx = 0; tx < 5; tx++) {
             ctx.beginPath();
-            ctx.moveTo(ox + 5 + tx * 5.5, obs.y + 18);
-            ctx.lineTo(ox + 7.5 + tx * 5.5, obs.y + 22);
-            ctx.lineTo(ox + 10 + tx * 5.5, obs.y + 18);
+            ctx.moveTo(5 + tx * 5.5, 18);
+            ctx.lineTo(7.5 + tx * 5.5, 22);
+            ctx.lineTo(10 + tx * 5.5, 18);
             ctx.fill();
           }
 
-          // Fiery Robot Arms (Left & Right)
           ctx.fillStyle = '#ea580c';
-          ctx.fillRect(ox - 7, obs.y + 12 + animOffset, 7, 3);
-          ctx.fillRect(ox + 38, obs.y + 12 - animOffset, 7, 3);
+          ctx.fillRect(-7, 12 + animOffset, 7, 3);
+          ctx.fillRect(38, 12 - animOffset, 7, 3);
 
-          // Walking Legs
           ctx.fillStyle = '#0284c7';
-          ctx.fillRect(ox + 8 + legStep, obs.y + 26, 5, 8);
-          ctx.fillRect(ox + 25 - legStep, obs.y + 26, 5, 8);
+          ctx.fillRect(8 + legStep, 26, 5, 8);
+          ctx.fillRect(25 - legStep, 26, 5, 8);
+          ctx.restore();
 
         } else if (obs.type === 'fire') {
           // Stage: Api (Rintangan Api) - Improved Visuals & Slower Speed
@@ -5200,13 +5368,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(ox + 5, obs.y + 14, obs.w - 10, 5);
         } else if (obs.type === 'homework') {
+          ctx.save();
+          ctx.translate(ox, obs.y);
+          ctx.scale(obs.w / 26, obs.h / 30);
           ctx.fillStyle = '#ffffff';
-          ctx.fillRect(ox, obs.y, 26, 30);
+          ctx.fillRect(0, 0, 26, 30);
           ctx.strokeStyle = '#e2e8f0';
-          ctx.strokeRect(ox, obs.y, 26, 30);
+          ctx.strokeRect(0, 0, 26, 30);
           ctx.fillStyle = '#ef4444';
           ctx.font = 'bold 12px sans-serif';
-          ctx.fillText('PR', ox + 4, obs.y + 18);
+          ctx.fillText('PR', 4, 18);
+          ctx.restore();
         }
       }
 
@@ -5241,8 +5413,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         ctx.lineWidth = 2;
         ctx.strokeRect(bx, b.y, b.w, b.h);
         ctx.fillStyle = '#fde047';
-        ctx.font = 'bold 9px sans-serif';
-        ctx.fillText('⌨️', bx + 2, b.y + 10);
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⌨️', bx + 4, b.y + b.h / 2 + 1);
         ctx.restore();
       }
 
@@ -5622,6 +5795,13 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                 • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat & Boss Core Virus' : currentStage === 2 ? 'Telepon Jahat (Lompat) & Boss Cyber Bot (Senjata Aplikasi)' : currentStage === 3 ? 'Keyboard Terbakar Bergigi' : 'Kombinasi Monster Cyber'}
               </p>
             </div>
+
+            {posesLoadedCount < PLAYER_POSE_PATHS.length && (
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/90 border border-slate-700 text-[11px] font-bold text-sky-300">
+                <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
+                <span>Menyiapkan gambar pose karakter ({posesLoadedCount}/{PLAYER_POSE_PATHS.length})...</span>
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row items-center gap-3 flex-wrap justify-center">
               <button
