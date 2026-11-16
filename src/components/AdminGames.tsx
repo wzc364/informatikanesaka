@@ -42,6 +42,7 @@ import { doc, setDoc, collection, onSnapshot, deleteDoc, arrayUnion, getDocs, qu
 import { db } from '../firebase';
 import { COURSES } from '../constants';
 import ContraSnesGame from './ContraSnesGame';
+import FightingGame from './FightingGame';
 
 export interface GameItem {
   id: string;
@@ -54,6 +55,35 @@ export interface GameItem {
 }
 
 function GameCardBanner({ gameId }: { gameId: string }) {
+  if (gameId === 'infokombat') {
+    return (
+      <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-red-900 via-purple-900 to-slate-950 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-red-500/40">
+        <div className="space-y-1 z-10 max-w-[78%]">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[9px] font-black uppercase tracking-wider bg-red-600 text-white px-2 py-0.5 rounded-full border border-red-400 shadow-xs">
+              ⚔️ 16-BIT FIGHTING
+            </span>
+            <span className="text-[9px] font-bold text-red-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
+              Mortal Kombat Style
+            </span>
+          </div>
+          <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
+            Informatika Kombat
+          </h4>
+          <div className="flex items-center gap-1 text-[9px] font-mono font-black">
+            <span className="bg-blue-600 px-1.5 py-0.5 rounded">Punch</span>
+            <span className="bg-amber-600 px-1.5 py-0.5 rounded">Kick</span>
+            <span className="bg-emerald-600 px-1.5 py-0.5 rounded">Block</span>
+            <span className="bg-red-600 px-1.5 py-0.5 rounded text-amber-300">Fatality</span>
+          </div>
+        </div>
+        <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-red-300/30 flex items-center justify-center text-2xl shadow-md shrink-0">
+          ⚔️
+        </div>
+      </div>
+    );
+  }
+
   if (gameId === 'contra-snes') {
     return (
       <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-red-800 via-rose-800 to-slate-950 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-red-400/40">
@@ -225,6 +255,15 @@ function GameCardBanner({ gameId }: { gameId: string }) {
 }
 
 export const GAMES_LIST: GameItem[] = [
+  {
+    id: 'infokombat',
+    title: 'Informatika Kombat',
+    category: '16-Bit Fighting Action • Mortal Kombat Style',
+    description: 'Game pertempuran aksi 16-bit bergaya Mortal Kombat! Pilih pejuang logika & kode, gunakan serangan Punch, Kick, Block, dan jurus Fatality spesial!',
+    iconName: 'Gamepad2',
+    difficulty: 'Tantangan',
+    defaultTimerSec: 120
+  },
   {
     id: 'contra-snes',
     title: 'Informatika War',
@@ -1352,6 +1391,9 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHig
           )}
           {gameId === 'contra-snes' && (
             <ContraSnesGame isAdmin={isAdmin} currentStudent={currentStudent} studentStageHighScores={contraStageHighScores} onClose={onClose} />
+          )}
+          {gameId === 'infokombat' && (
+            <FightingGame isAdmin={isAdmin} currentStudent={currentStudent} onExit={onClose} />
           )}
         </div>
       </div>

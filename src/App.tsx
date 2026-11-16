@@ -65,7 +65,8 @@ import {
   Cpu,
   Calculator,
   MonitorPlay,
-  ClipboardList
+  ClipboardList,
+  GraduationCap
 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
@@ -296,6 +297,204 @@ export default function App() {
   });
   const [assessmentSort, setAssessmentSort] = useState<'name' | 'time'>('name');
   const [dashboardClassFilter, setDashboardClassFilter] = useState<string>('all');
+  const [gameScoresList, setGameScoresList] = useState<any[]>([]);
+  const [assessmentCategory, setAssessmentCategory] = useState<'materi' | 'game' | 'soal'>('materi');
+
+  // Seed Pola Bilangan 20 Questions Soal Set
+  useEffect(() => {
+    const seedPolaBilanganSoal = async () => {
+      try {
+        const setId = 'pola-bilangan-20-soal';
+        const existingSet = soalSets.find(s => s.id === setId);
+        if (!existingSet) {
+          await setDoc(doc(db, 'soal_sets', setId), {
+            id: setId,
+            title: 'Ujian Pola Bilangan Aritmetika & Geometri',
+            description: '20 soal pilihan ganda tentang barisan dan deret aritmetika serta geometri. Skor 5 poin per soal, waktu pengerjaan 40 menit.',
+            isActive: true,
+            isFullScreen: true,
+            isScoreVisible: true,
+            timerMode: 'title_timer',
+            titleTimerSeconds: 2400, // 40 minutes
+            defaultQuestionTimerSeconds: 120,
+            passingScore: 75,
+            shuffleQuestions: false,
+            createdAt: new Date().toISOString()
+          });
+
+          const questionsData = [
+            {
+              id: 'pb-q1', setId: setId,
+              questionText: 'Suku ke-n dari barisan aritmetika 3, 7, 11, 15, ... adalah...',
+              options: [{ text: '4n - 1', image: '' }, { text: '4n + 1', image: '' }, { text: '3n + 4', image: '' }, { text: '4n + 3', image: '' }],
+              correctAnswer: 0,
+              explanation: 'Suku pertama a = 3, beda b = 4. Un = a + (n-1)b = 3 + 4n - 4 = 4n - 1.',
+              points: 5, timerSeconds: 120, isActive: true, order: 0
+            },
+            {
+              id: 'pb-q2', setId: setId,
+              questionText: 'Diketahui barisan aritmetika 5, 8, 11, 14, ... Suku ke-10 dari barisan tersebut adalah...',
+              options: [{ text: '29', image: '' }, { text: '32', image: '' }, { text: '35', image: '' }, { text: '38', image: '' }],
+              correctAnswer: 1,
+              explanation: 'a = 5, b = 3. U10 = a + 9b = 5 + 9(3) = 5 + 27 = 32.',
+              points: 5, timerSeconds: 120, isActive: true, order: 1
+            },
+            {
+              id: 'pb-q3', setId: setId,
+              questionText: 'Rumus suku ke-n untuk barisan geometri 2, 6, 18, 54, ... adalah...',
+              options: [{ text: '2 × 3ⁿ', image: '' }, { text: '3 × 2ⁿ⁻¹', image: '' }, { text: '2 × 3ⁿ⁻¹', image: '' }, { text: '6ⁿ⁻¹', image: '' }],
+              correctAnswer: 2,
+              explanation: 'Suku pertama a = 2, rasio r = 3. Un = a × rⁿ⁻¹ = 2 × 3ⁿ⁻¹.',
+              points: 5, timerSeconds: 120, isActive: true, order: 2
+            },
+            {
+              id: 'pb-q4', setId: setId,
+              questionText: 'Suku ke-6 dari barisan geometri 1, 2, 4, 8, ... adalah...',
+              options: [{ text: '16', image: '' }, { text: '32', image: '' }, { text: '64', image: '' }, { text: '128', image: '' }],
+              correctAnswer: 1,
+              explanation: 'a = 1, r = 2. U6 = a × r⁵ = 1 × 2⁵ = 32.',
+              points: 5, timerSeconds: 120, isActive: true, order: 3
+            },
+            {
+              id: 'pb-q5', setId: setId,
+              questionText: 'Diketahui deret aritmetika 2 + 5 + 8 + 11 + ... Jumlah 10 suku pertama adalah...',
+              options: [{ text: '145', image: '' }, { text: '150', image: '' }, { text: '155', image: '' }, { text: '160', image: '' }],
+              correctAnswer: 2,
+              explanation: 'a = 2, b = 3, n = 10. Sn = n/2 (2a + (n-1)b) = 10/2 (4 + 9(3)) = 5 (31) = 155.',
+              points: 5, timerSeconds: 120, isActive: true, order: 4
+            },
+            {
+              id: 'pb-q6', setId: setId,
+              questionText: 'Suatu barisan aritmetika memiliki suku ke-4 = 14 dan suku ke-9 = 29. Suku ke-15 adalah...',
+              options: [{ text: '41', image: '' }, { text: '44', image: '' }, { text: '47', image: '' }, { text: '50', image: '' }],
+              correctAnswer: 2,
+              explanation: 'U9 - U4 = 5b => 29 - 14 = 15 => b = 3. U4 = a + 3b = 14 => a = 5. U15 = 5 + 14(3) = 47.',
+              points: 5, timerSeconds: 120, isActive: true, order: 5
+            },
+            {
+              id: 'pb-q7', setId: setId,
+              questionText: 'Rasio dari barisan geometri 64, 32, 16, 8, ... adalah...',
+              options: [{ text: '2', image: '' }, { text: '1/2', image: '' }, { text: '-2', image: '' }, { text: '1/4', image: '' }],
+              correctAnswer: 1,
+              explanation: 'Rasio r = U2 / U1 = 32 / 64 = 1/2.',
+              points: 5, timerSeconds: 120, isActive: true, order: 6
+            },
+            {
+              id: 'pb-q8', setId: setId,
+              questionText: 'Tiga suku berikutnya dari barisan bilangan 1, 3, 6, 10, 15, ... adalah...',
+              options: [{ text: '18, 22, 27', image: '' }, { text: '21, 28, 36', image: '' }, { text: '20, 26, 33', image: '' }, { text: '21, 27, 34', image: '' }],
+              correctAnswer: 1,
+              explanation: 'Ini barisan bilangan segitiga (+2, +3, +4, +5, +6, +7, +8). Suku berikutnya: 15+6=21, 21+7=28, 28+8=36.',
+              points: 5, timerSeconds: 120, isActive: true, order: 7
+            },
+            {
+              id: 'pb-q9', setId: setId,
+              questionText: 'Suku ke-8 dari barisan geometri 3, 6, 12, 24, ... adalah...',
+              options: [{ text: '192', image: '' }, { text: '384', image: '' }, { text: '768', image: '' }, { text: '1536', image: '' }],
+              correctAnswer: 1,
+              explanation: 'a = 3, r = 2. U8 = 3 × 2⁷ = 3 × 128 = 384.',
+              points: 5, timerSeconds: 120, isActive: true, order: 8
+            },
+            {
+              id: 'pb-q10', setId: setId,
+              questionText: 'Jika suku pertama barisan aritmetika adalah 7 dan bedanya 4, maka suku ke-20 adalah...',
+              options: [{ text: '79', image: '' }, { text: '83', image: '' }, { text: '87', image: '' }, { text: '91', image: '' }],
+              correctAnswer: 1,
+              explanation: 'a = 7, b = 4. U20 = 7 + 19(4) = 7 + 76 = 83.',
+              points: 5, timerSeconds: 120, isActive: true, order: 9
+            },
+            {
+              id: 'pb-q11', setId: setId,
+              questionText: 'Amuba membelah diri menjadi 2 setiap 20 menit. Jika mula-mula ada 5 amuba, banyak amuba setelah 2 jam adalah...',
+              options: [{ text: '160', image: '' }, { text: '320', image: '' }, { text: '640', image: '' }, { text: '1280', image: '' }],
+              correctAnswer: 1,
+              explanation: '2 jam = 120 menit. Banyak pembelahan = 120 / 20 = 6 kali. U7 = 5 × 2⁶ = 5 × 64 = 320.',
+              points: 5, timerSeconds: 120, isActive: true, order: 10
+            },
+            {
+              id: 'pb-q12', setId: setId,
+              questionText: 'Diketahui barisan bilangan kuadrat 1, 4, 9, 16, 25, ... Suku ke-13 barisan tersebut adalah...',
+              options: [{ text: '144', image: '' }, { text: '169', image: '' }, { text: '196', image: '' }, { text: '225', image: '' }],
+              correctAnswer: 1,
+              explanation: 'Rumus suku ke-n adalah Un = n². U13 = 13² = 169.',
+              points: 5, timerSeconds: 120, isActive: true, order: 11
+            },
+            {
+              id: 'pb-q13', setId: setId,
+              questionText: 'Jumlah 6 suku pertama dari barisan geometri 3, 6, 12, 24, ... adalah...',
+              options: [{ text: '93', image: '' }, { text: '189', image: '' }, { text: '378', image: '' }, { text: '765', image: '' }],
+              correctAnswer: 1,
+              explanation: 'a = 3, r = 2. S6 = a(r⁶ - 1)/(r - 1) = 3(64 - 1)/(2 - 1) = 3(63) = 189.',
+              points: 5, timerSeconds: 120, isActive: true, order: 12
+            },
+            {
+              id: 'pb-q14', setId: setId,
+              questionText: 'Suku kelima barisan aritmetika adalah 21 dan suku kesepuluh adalah 41. Beda barisan tersebut adalah...',
+              options: [{ text: '3', image: '' }, { text: '4', image: '' }, { text: '5', image: '' }, { text: '6', image: '' }],
+              correctAnswer: 1,
+              explanation: 'U10 - U5 = 5b => 41 - 21 = 20 => b = 4.',
+              points: 5, timerSeconds: 120, isActive: true, order: 13
+            },
+            {
+              id: 'pb-q15', setId: setId,
+              questionText: 'Seutas tali dipotong menjadi 5 bagian membentuk barisan geometri. Jika potongan terpendek 3 cm dan terpanjang 768 cm, panjang tali semula adalah...',
+              options: [{ text: '771 cm', image: '' }, { text: '1023 cm', image: '' }, { text: '1536 cm', image: '' }, { text: '3069 cm', image: '' }],
+              correctAnswer: 1,
+              explanation: 'a = 3, U5 = 3r⁴ = 768 => r⁴ = 256 => r = 4. S5 = 3(1024 - 1)/3 = 1023 cm.',
+              points: 5, timerSeconds: 120, isActive: true, order: 14
+            },
+            {
+              id: 'pb-q16', setId: setId,
+              questionText: 'Suku ke-n suatu barisan ditentukan oleh Un = 3n² - 2. Suku ke-7 dari barisan tersebut adalah...',
+              options: [{ text: '145', image: '' }, { text: '147', image: '' }, { text: '150', image: '' }, { text: '142', image: '' }],
+              correctAnswer: 0,
+              explanation: 'U7 = 3(7)² - 2 = 3(49) - 2 = 147 - 2 = 145.',
+              points: 5, timerSeconds: 120, isActive: true, order: 15
+            },
+            {
+              id: 'pb-q17', setId: setId,
+              questionText: 'Suku ke-15 dari barisan aritmetika 50, 45, 40, 35, ... adalah...',
+              options: [{ text: '-15', image: '' }, { text: '-20', image: '' }, { text: '-25', image: '' }, { text: '20', image: '' }],
+              correctAnswer: 1,
+              explanation: 'a = 50, b = -5. U15 = 50 + 14(-5) = 50 - 70 = -20.',
+              points: 5, timerSeconds: 120, isActive: true, order: 16
+            },
+            {
+              id: 'pb-q18', setId: setId,
+              questionText: 'Suatu gedung pertunjukan memiliki 15 baris kursi. Baris pertama berisi 20 kursi, baris kedua 24 kursi, baris ketiga 28 kursi, dan seterusnya. Jumlah seluruh kursi adalah...',
+              options: [{ text: '680', image: '' }, { text: '700', image: '' }, { text: '720', image: '' }, { text: '750', image: '' }],
+              correctAnswer: 2,
+              explanation: 'a = 20, b = 4, n = 15. S15 = 15/2 (40 + 56) = 7.5 (96) = 720.',
+              points: 5, timerSeconds: 120, isActive: true, order: 17
+            },
+            {
+              id: 'pb-q19', setId: setId,
+              questionText: 'Suku tengah dari barisan aritmetika 3, 7, 11, ..., 99 adalah...',
+              options: [{ text: '49', image: '' }, { text: '51', image: '' }, { text: '53', image: '' }, { text: '55', image: '' }],
+              correctAnswer: 1,
+              explanation: 'Ut = (a + Un) / 2 = (3 + 99) / 2 = 102 / 2 = 51.',
+              points: 5, timerSeconds: 120, isActive: true, order: 18
+            },
+            {
+              id: 'pb-q20', setId: setId,
+              questionText: 'Diketahui barisan geometri dengan U2 = 6 dan U5 = 162. Suku ke-4 dari barisan tersebut adalah...',
+              options: [{ text: '18', image: '' }, { text: '36', image: '' }, { text: '54', image: '' }, { text: '108', image: '' }],
+              correctAnswer: 2,
+              explanation: 'U5 / U2 = r³ = 162 / 6 = 27 => r = 3. U2 = 2a = 6 => a = 2. U4 = 2 × 3³ = 54.',
+              points: 5, timerSeconds: 120, isActive: true, order: 19
+            }
+          ];
+
+          for (const q of questionsData) {
+            await setDoc(doc(db, 'soal_questions', q.id), q);
+          }
+        }
+      } catch (err) {
+        console.error('Error seeding pola bilangan soal set:', err);
+      }
+    };
+    seedPolaBilanganSoal();
+  }, [soalSets]);
 
   const groupedClasses = useMemo(() => {
     const classMap: Record<string, number> = {};
@@ -903,6 +1102,14 @@ export default function App() {
         handleFirestoreError(error, OperationType.LIST, 'assessments');
       });
       unsubscribes.push(unsubAllAssessments);
+
+      // Game Scores (Admin)
+      const unsubGameScores = onSnapshot(collection(db, 'game_scores'), (snapshot) => {
+        setGameScoresList(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'game_scores');
+      });
+      unsubscribes.push(unsubGameScores);
 
       // Active Sessions (Admin)
       const unsubActiveSessions = onSnapshot(collection(db, 'active_sessions'), (snapshot) => {
@@ -1912,13 +2119,13 @@ export default function App() {
   if (currentPage === 'admin') {
     const menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: Home, color: 'bg-brand/10 text-brand' },
-      { id: 'student_management', label: 'Siswa & Kelas', icon: Users, color: 'bg-brand/10 text-brand' },
-      { id: 'materials', label: 'Kelola Materi', icon: BookOpen, color: 'bg-brand/10 text-brand' },
+      { id: 'materials', label: 'Kelola Materi', icon: GraduationCap, color: 'bg-brand/10 text-brand' },
+      { id: 'games', label: 'Kelola Game', icon: Gamepad2, color: 'bg-brand/10 text-brand' },
       { id: 'questions', label: 'Kelola Soal', icon: ClipboardList, color: 'bg-brand/10 text-brand' },
       { id: 'assessments', label: 'Hasil Asesmen', icon: TrendingUp, color: 'bg-brand/10 text-brand' },
-      { id: 'games', label: 'Kelola Game', icon: Gamepad2, color: 'bg-brand/10 text-brand' },
-      { id: 'history', label: 'Riwayat Akses', icon: GitBranch, color: 'bg-brand/10 text-brand' },
       { id: 'announcements', label: 'Pengumuman', icon: Megaphone, color: 'bg-brand/10 text-brand' },
+      { id: 'history', label: 'Riwayat Akses', icon: GitBranch, color: 'bg-brand/10 text-brand' },
+      { id: 'student_management', label: 'Siswa & Kelas', icon: Users, color: 'bg-brand/10 text-brand' },
       { id: 'settings', label: 'Pengaturan', icon: Settings, color: 'bg-brand/10 text-brand' },
     ] as const;
 
@@ -2193,128 +2400,68 @@ export default function App() {
                   {/* Kartu Kelola Game, Kelola Materi & Kelola Soal (Ringkas, Kompak, Warna-Warni & Modern di Bagian Atas) */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Kartu 1: Kelola Game Edukasi */}
-                    <div className="relative overflow-hidden bg-white rounded-2xl p-4 border border-indigo-200/80 shadow-xs hover:shadow-md hover:border-indigo-300/90 transition-all duration-300 flex items-center justify-between gap-3 group">
-                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-300" />
-                      
+                    <div className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl p-4 shadow-md transition-all duration-300 flex items-center justify-between gap-3 group">
                       <div className="flex items-center gap-3.5 min-w-0">
-                        {/* Ilustrasi Game Berwarna-warni */}
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl shrink-0 border border-indigo-300/80 shadow-sm relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center">
-                          <MonitorPlay size={30} className="text-white drop-shadow-md group-hover:scale-110 transition-transform duration-300" />
-                          <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-amber-400 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black shadow-xs">
-                            🎮
-                          </span>
+                        <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                          <Gamepad2 size={26} className="text-amber-300" />
                         </div>
-
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded-full">
-                              Game Edukatif
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-500 hidden sm:inline tabular-nums">
-                              • 6 Game Aktif
-                            </span>
-                          </div>
-                          <h3 className="text-sm md:text-base font-extrabold text-slate-900 leading-tight mt-1 truncate group-hover:text-indigo-900 transition-colors duration-300">
+                          <span className="text-[10px] font-black uppercase tracking-wider bg-white/25 px-2.5 py-0.5 rounded-full text-white">
                             Kelola Game Edukasi
-                          </h3>
-                          <p className="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5">
-                            Petualangan ke Sekolah, kuis per stage, bos battle, & leaderboard.
-                          </p>
+                          </span>
+                          <p className="text-xs font-bold text-indigo-100 mt-1 tabular-nums">7 Game Aktif & Arena</p>
                         </div>
                       </div>
-
                       <button
                         onClick={() => setAdminTab('games')}
-                        className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-extrabold rounded-xl shadow-sm hover:shadow-md hover:shadow-indigo-500/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 flex items-center gap-1 shrink-0"
+                        className="px-4 py-2.5 bg-white text-indigo-900 hover:bg-indigo-50 text-xs font-black rounded-xl shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
                       >
-                        <Gamepad2 size={14} className="text-amber-300" />
                         <span>Kelola</span>
-                        <ArrowRight size={13} />
+                        <ArrowRight size={14} />
                       </button>
                     </div>
 
                     {/* Kartu 2: Kelola Materi Pembelajaran */}
-                    <div className="relative overflow-hidden bg-white rounded-2xl p-4 border border-emerald-200/80 shadow-xs hover:shadow-md hover:border-emerald-300/90 transition-all duration-300 flex items-center justify-between gap-3 group">
-                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-300" />
-                      
+                    <div className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl p-4 shadow-md transition-all duration-300 flex items-center justify-between gap-3 group">
                       <div className="flex items-center gap-3.5 min-w-0">
-                        {/* Ilustrasi Materi Berwarna-warni */}
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl overflow-hidden shrink-0 border border-emerald-300/80 shadow-sm relative bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-500 flex items-center justify-center p-0.5">
-                          <img 
-                            src="/images/dekomposisi_perangkat_pc_1794222967274.jpg" 
-                            alt="Materi Pembelajaran Informatika" 
-                            className="w-full h-full object-cover rounded-xl group-hover:scale-110 transition-transform duration-300"
-                          />
-                          <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-400 border border-white rounded-full flex items-center justify-center text-[8px] font-black shadow-xs">
-                            📚
-                          </span>
+                        <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                          <GraduationCap size={26} className="text-yellow-300" />
                         </div>
-
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
-                              Modul Pembelajaran
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-500 hidden sm:inline tabular-nums">
-                              • {activeCourseCount} Modul Siap
-                            </span>
-                          </div>
-                          <h3 className="text-sm md:text-base font-extrabold text-slate-900 leading-tight mt-1 truncate group-hover:text-emerald-950 transition-colors duration-300">
+                          <span className="text-[10px] font-black uppercase tracking-wider bg-white/25 px-2.5 py-0.5 rounded-full text-white">
                             Kelola Materi Belajar
-                          </h3>
-                          <p className="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5">
-                            Modul informatika, kuis interaktif, materi visual, & panduan siswa.
-                          </p>
+                          </span>
+                          <p className="text-xs font-bold text-emerald-100 mt-1 tabular-nums">{activeCourseCount} Modul Siap</p>
                         </div>
                       </div>
-
                       <button
                         onClick={() => setAdminTab('materials')}
-                        className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-extrabold rounded-xl shadow-sm hover:shadow-md hover:shadow-emerald-500/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 flex items-center gap-1 shrink-0"
+                        className="px-4 py-2.5 bg-white text-emerald-950 hover:bg-emerald-50 text-xs font-black rounded-xl shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
                       >
-                        <BookOpen size={14} className="text-yellow-200" />
                         <span>Kelola</span>
-                        <ArrowRight size={13} />
+                        <ArrowRight size={14} />
                       </button>
                     </div>
 
-                    {/* Kartu 3: Kelola Soal (PG 4 Opsi + Gambar + Timer) */}
-                    <div className="relative overflow-hidden bg-white rounded-2xl p-4 border border-amber-200/80 shadow-xs hover:shadow-md hover:border-amber-300/90 transition-all duration-300 flex items-center justify-between gap-3 group">
-                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-amber-500/20 transition-all duration-300" />
-
+                    {/* Kartu 3: Kelola Soal & Ujian */}
+                    <div className="bg-amber-600 hover:bg-amber-700 text-white rounded-2xl p-4 shadow-md transition-all duration-300 flex items-center justify-between gap-3 group">
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl shrink-0 border border-amber-300/80 shadow-sm relative bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 flex items-center justify-center">
-                          <ClipboardList size={28} className="text-white drop-shadow-md group-hover:scale-110 transition-transform duration-300" />
-                          <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-400 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black shadow-xs">
-                            📝
-                          </span>
+                        <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                          <ClipboardList size={26} className="text-yellow-200" />
                         </div>
-
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full">
-                              Bank Soal PG 4 Opsi
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-500 hidden sm:inline tabular-nums">
-                              • {soalSets.filter(s => s.isActive).length} Kartu Aktif
-                            </span>
-                          </div>
-                          <h3 className="text-sm md:text-base font-extrabold text-slate-900 leading-tight mt-1 truncate group-hover:text-amber-950 transition-colors duration-300">
+                          <span className="text-[10px] font-black uppercase tracking-wider bg-white/25 px-2.5 py-0.5 rounded-full text-white">
                             Kelola Soal & Ujian
-                          </h3>
-                          <p className="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5">
-                            Input manual/bulk, gambar soal & opsi, timer per soal/judul.
-                          </p>
+                          </span>
+                          <p className="text-xs font-bold text-amber-100 mt-1 tabular-nums">{soalSets.filter(s => s.isActive).length} Paket Soal Aktif</p>
                         </div>
                       </div>
-
                       <button
                         onClick={() => setAdminTab('questions')}
-                        className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-extrabold rounded-xl shadow-sm hover:shadow-md hover:shadow-amber-500/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 flex items-center gap-1 shrink-0"
+                        className="px-4 py-2.5 bg-white text-amber-950 hover:bg-amber-50 text-xs font-black rounded-xl shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
                       >
-                        <ClipboardList size={14} className="text-yellow-100" />
                         <span>Kelola</span>
-                        <ArrowRight size={13} />
+                        <ArrowRight size={14} />
                       </button>
                     </div>
                   </div>
@@ -3300,498 +3447,329 @@ export default function App() {
             )}
             {adminTab === 'assessments' && (
               <div className="space-y-6">
-                {/* Header & Navigation */}
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => setAssessmentNav({ course: null, kelas: null })}
+                {/* 3 Categories Switcher Pills */}
+                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80 w-fit">
+                  <button
+                    onClick={() => { setAssessmentCategory('materi'); setAssessmentNav({ course: null, kelas: null }); }}
                     className={cn(
-                      "p-2 rounded-xl transition-colors",
-                      assessmentNav.course ? "text-slate-500 hover:bg-slate-100 hover:text-slate-700" : "text-slate-300 pointer-events-none"
+                      "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2",
+                      assessmentCategory === 'materi' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-600 hover:text-slate-900"
                     )}
                   >
-                    <BookOpen size={20} />
+                    <BookOpen size={16} />
+                    Hasil Nilai Materi ({assessments.length})
                   </button>
-                  {assessmentNav.course && <ChevronRight size={16} className="text-slate-400" />}
-                  {assessmentNav.course && (
-                    <button 
-                      onClick={() => setAssessmentNav(prev => ({ ...prev, kelas: null }))}
-                      className={cn(
-                        "font-bold transition-colors",
-                        assessmentNav.kelas ? "text-slate-500 hover:text-slate-700" : "text-slate-900"
-                      )}
-                    >
-                      {assessmentNav.course}
-                    </button>
-                  )}
-                  {assessmentNav.kelas && <ChevronRight size={16} className="text-slate-400" />}
-                  {assessmentNav.kelas && (
-                    <span className="font-bold text-slate-900">Kelas {assessmentNav.kelas}</span>
-                  )}
+                  <button
+                    onClick={() => { setAssessmentCategory('game'); setAssessmentNav({ course: null, kelas: null }); }}
+                    className={cn(
+                      "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2",
+                      assessmentCategory === 'game' ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" : "text-slate-600 hover:text-slate-900"
+                    )}
+                  >
+                    <Gamepad2 size={16} />
+                    Hasil Skor Game ({gameScoresList.length})
+                  </button>
+                  <button
+                    onClick={() => { setAssessmentCategory('soal'); setAssessmentNav({ course: null, kelas: null }); }}
+                    className={cn(
+                      "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2",
+                      assessmentCategory === 'soal' ? "bg-amber-600 text-white shadow-md shadow-amber-600/20" : "text-slate-600 hover:text-slate-900"
+                    )}
+                  >
+                    <ClipboardList size={16} />
+                    Hasil Nilai Soal / Ujian ({assessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).length})
+                  </button>
                 </div>
 
-                {/* Content View */}
-                {!assessmentNav.course ? (
-                  /* 1. Course Cards */
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {Object.values(groupedAssessments).length > 0 ? Object.values(groupedAssessments).map((courseData) => {
-                      const totalSubmissions = Object.values(courseData.classes).reduce((acc, c) => acc + c.results.length, 0);
-                      const avgScore = totalSubmissions > 0 ? Math.round(Object.values(courseData.classes).reduce((acc, c) => acc + c.results.reduce((s, r) => s + r.score, 0), 0) / totalSubmissions) : 0;
-                      
-                      return (
+                {/* CATEGORY 1: HASIL NILAI MATERI */}
+                {assessmentCategory === 'materi' && (
+                  <div className="space-y-6 animate-in fade-in duration-300">
+                    {/* Header & Navigation */}
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={() => setAssessmentNav({ course: null, kelas: null })}
+                        className={cn(
+                          "p-2 rounded-xl transition-colors",
+                          assessmentNav.course ? "text-slate-500 hover:bg-slate-100 hover:text-slate-700" : "text-slate-300 pointer-events-none"
+                        )}
+                      >
+                        <BookOpen size={20} />
+                      </button>
+                      {assessmentNav.course && <ChevronRight size={16} className="text-slate-400" />}
+                      {assessmentNav.course && (
                         <button 
-                          key={courseData.title}
-                          onClick={() => setAssessmentNav({ course: courseData.title, kelas: null })}
-                          className="bg-white p-6 rounded-3xl border border-slate-200/80 text-left hover:border-brand/40 group hover:shadow-lg hover:shadow-brand/10 transition-all duration-300 flex flex-col relative overflow-hidden shadow-xs"
+                          onClick={() => setAssessmentNav(prev => ({ ...prev, kelas: null }))}
+                          className={cn(
+                            "font-bold transition-colors",
+                            assessmentNav.kelas ? "text-slate-500 hover:text-slate-700" : "text-slate-900"
+                          )}
                         >
-                          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <BookOpen size={64} />
-                          </div>
-                          <div className="w-14 h-14 bg-brand/10 text-brand rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-brand group-hover:text-white transition-all duration-300 shadow-xs">
-                            <BookOpen size={28} />
-                          </div>
-                          <h4 className="text-xl font-extrabold text-slate-900 mb-2 leading-tight group-hover:text-brand transition-colors">{courseData.title}</h4>
-                          
-                          <div className="mt-auto space-y-4">
-                            <div className="flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 tabular-nums">
-                              <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg">
-                                <Users size={12} className="text-brand" /> {Object.keys(courseData.classes).length} Kelas
-                              </span>
-                              <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg">
-                                <CheckCircle size={12} className="text-emerald-500" /> {totalSubmissions} Done
-                              </span>
-                            </div>
-
-                            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                              <div className="flex flex-col">
-                                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Rerata Skor</span>
-                                <span className={cn(
-                                  "text-lg font-black tabular-nums",
-                                  avgScore >= 80 ? "text-emerald-600" : avgScore >= 60 ? "text-amber-600" : "text-rose-600"
-                                )}>{avgScore}</span>
-                              </div>
-                              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300">
-                                <ChevronRight size={20} />
-                              </div>
-                            </div>
-                          </div>
+                          {assessmentNav.course}
                         </button>
-                      );
-                    }) : (
-                      <div className="col-span-full py-20 bg-slate-50/80 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
-                        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
-                          <TrendingUp size={40} className="opacity-30" />
-                        </div>
-                        <p className="font-extrabold text-lg tracking-tight mb-1 text-slate-700">Belum Ada Data Asesmen</p>
-                        <p className="text-sm font-medium text-slate-500">Data akan muncul setelah siswa menyelesaikan kursus.</p>
-                      </div>
-                    )}
-                  </div>
-                ) : !assessmentNav.kelas ? (
-                  /* 2. Class Cards */
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {assessmentNav.course && groupedAssessments[assessmentNav.course] ? Object.values(groupedAssessments[assessmentNav.course].classes).map((classData) => {
-                      const submissions = classData.results.length;
-                      const avgScore = submissions > 0 ? Math.round(classData.results.reduce((acc, r) => acc + r.score, 0) / submissions) : 0;
+                      )}
+                      {assessmentNav.kelas && <ChevronRight size={16} className="text-slate-400" />}
+                      {assessmentNav.kelas && (
+                        <span className="font-bold text-slate-900">Kelas {assessmentNav.kelas}</span>
+                      )}
+                    </div>
 
-                      return (
-                        <button 
-                          key={classData.name}
-                          onClick={() => setAssessmentNav({ ...assessmentNav, kelas: classData.name })}
-                          className="bg-white p-6 rounded-3xl border border-slate-200/80 text-left hover:border-brand/40 group hover:shadow-lg hover:shadow-brand/5 transition-all duration-300 flex flex-col relative shadow-xs"
-                        >
-                          <div className="w-12 h-12 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-brand group-hover:text-white transition-all duration-300">
-                            <Users size={24} />
-                          </div>
-                          <h4 className="text-2xl font-extrabold text-slate-900 mb-1">Kelas {classData.name}</h4>
-                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6 tabular-nums">
-                            <CheckCircle size={10} className="text-emerald-500" />
-                            {submissions} Siswa Selesai
-                          </div>
+                    {!assessmentNav.course ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {Object.values(groupedAssessments).length > 0 ? Object.values(groupedAssessments).map((courseData) => {
+                          const totalSubmissions = Object.values(courseData.classes).reduce((acc, c) => acc + c.results.length, 0);
+                          const avgScore = totalSubmissions > 0 ? Math.round(Object.values(courseData.classes).reduce((acc, c) => acc + c.results.reduce((s, r) => s + r.score, 0), 0) / totalSubmissions) : 0;
                           
-                          <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-                            <div className="flex flex-col">
-                              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Nilai Rata-rata</span>
-                              <span className={cn(
-                                "text-lg font-black tabular-nums",
-                                avgScore >= 80 ? "text-emerald-600" : avgScore >= 60 ? "text-amber-600" : "text-rose-600"
-                              )}>{avgScore}</span>
-                            </div>
-                            <div className="flex -space-x-2">
-                              {[1, 2, 3].map(i => (
-                                <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-600 uppercase">
-                                  {classData.name[0]}
+                          return (
+                            <button 
+                              key={courseData.title}
+                              onClick={() => setAssessmentNav({ course: courseData.title, kelas: null })}
+                              className="bg-white p-6 rounded-3xl border border-slate-200/80 text-left hover:border-brand/40 group hover:shadow-lg hover:shadow-brand/10 transition-all duration-300 flex flex-col relative overflow-hidden shadow-xs"
+                            >
+                              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <BookOpen size={64} />
+                              </div>
+                              <div className="w-14 h-14 bg-brand/10 text-brand rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-brand group-hover:text-white transition-all duration-300 shadow-xs">
+                                <BookOpen size={28} />
+                              </div>
+                              <h4 className="text-xl font-extrabold text-slate-900 mb-2 leading-tight group-hover:text-brand transition-colors">{courseData.title}</h4>
+                              
+                              <div className="mt-auto space-y-4">
+                                <div className="flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 tabular-nums">
+                                  <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg">
+                                    <Users size={12} className="text-brand" /> {Object.keys(courseData.classes).length} Kelas
+                                  </span>
+                                  <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg">
+                                    <CheckCircle size={12} className="text-emerald-500" /> {totalSubmissions} Done
+                                  </span>
                                 </div>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-                            <ChevronRight size={16} className="text-brand" />
-                          </div>
-                        </button>
-                      );
-                    }) : null}
-                  </div>
-                ) : (
-                  /* 3. Student Score List */
-                  <div className="space-y-4">
-                    {/* Class Stats Summary */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {(() => {
-                        if (!assessmentNav.course || !assessmentNav.kelas) return null;
-                        const classData = groupedAssessments[assessmentNav.course]?.classes?.[assessmentNav.kelas];
-                        const completed = classData?.results.length || 0;
-                        const studentsInClass = students.filter(s => s.kelas === assessmentNav.kelas).length;
-                        const avgScore = completed > 0 ? Math.round(classData.results.reduce((acc, r) => acc + r.score, 0) / completed) : 0;
 
-                        return (
-                          <>
-                            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
-                              <div className="w-10 h-10 bg-blue-50 text-brand rounded-xl flex items-center justify-center">
-                                <Users size={20} />
+                                <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Rerata Skor</span>
+                                    <span className={cn(
+                                      "text-lg font-black tabular-nums",
+                                      avgScore >= 80 ? "text-emerald-600" : avgScore >= 60 ? "text-amber-600" : "text-rose-600"
+                                    )}>{avgScore}</span>
+                                  </div>
+                                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300">
+                                    <ChevronRight size={20} />
+                                  </div>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Partisipasi</p>
-                                <p className="text-sm font-extrabold text-slate-900 tabular-nums">{completed} / {studentsInClass} Siswa</p>
-                              </div>
+                            </button>
+                          );
+                        }) : (
+                          <div className="col-span-full py-20 bg-slate-50/80 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
+                            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                              <TrendingUp size={40} className="opacity-30" />
                             </div>
-                            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
-                              <div className="w-10 h-10 bg-emerald-50 text-emerald-700 rounded-xl flex items-center justify-center">
-                                <TrendingUp size={20} />
+                            <p className="font-extrabold text-lg tracking-tight mb-1 text-slate-700">Belum Ada Data Asesmen Materi</p>
+                            <p className="text-sm font-medium text-slate-500">Data akan muncul setelah siswa menyelesaikan modul materi.</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : !assessmentNav.kelas ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {assessmentNav.course && groupedAssessments[assessmentNav.course] ? Object.values(groupedAssessments[assessmentNav.course].classes).map((classData) => {
+                          const submissions = classData.results.length;
+                          const avgScore = submissions > 0 ? Math.round(classData.results.reduce((acc, r) => acc + r.score, 0) / submissions) : 0;
+
+                          return (
+                            <button 
+                              key={classData.name}
+                              onClick={() => setAssessmentNav({ ...assessmentNav, kelas: classData.name })}
+                              className="bg-white p-6 rounded-3xl border border-slate-200/80 text-left hover:border-brand/40 group hover:shadow-lg hover:shadow-brand/5 transition-all duration-300 flex flex-col relative shadow-xs"
+                            >
+                              <div className="w-12 h-12 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-brand group-hover:text-white transition-all duration-300">
+                                <Users size={24} />
                               </div>
-                              <div>
-                                <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Rata-rata Kelas</p>
-                                <p className="text-sm font-extrabold text-slate-900 tabular-nums">{avgScore} Poin</p>
+                              <h4 className="text-2xl font-extrabold text-slate-900 mb-1">Kelas {classData.name}</h4>
+                              <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6 tabular-nums">
+                                <CheckCircle size={10} className="text-emerald-500" />
+                                {submissions} Siswa Selesai
                               </div>
-                            </div>
-                            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
-                              <div className="w-10 h-10 bg-amber-50 text-amber-700 rounded-xl flex items-center justify-center">
-                                <CheckCircle size={20} />
+                              
+                              <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Nilai Rata-rata</span>
+                                  <span className={cn(
+                                    "text-lg font-black tabular-nums",
+                                    avgScore >= 80 ? "text-emerald-600" : avgScore >= 60 ? "text-amber-600" : "text-rose-600"
+                                  )}>{avgScore}</span>
+                                </div>
+                                <div className="flex -space-x-2">
+                                  {[1, 2, 3].map(i => (
+                                    <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-600 uppercase">
+                                      {classData.name[0]}
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Status Materi</p>
-                                <p className="text-sm font-extrabold text-slate-900">{completed === studentsInClass ? 'Selesai Semua' : 'Dalam Proses'}</p>
+                              
+                              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                                <ChevronRight size={16} className="text-brand" />
                               </div>
-                            </div>
-                          </>
-                        );
-                      })()}
+                            </button>
+                          );
+                        }) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
+                {/* CATEGORY 2: HASIL SKOR GAME */}
+                {assessmentCategory === 'game' && (
+                  <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-extrabold text-slate-900">Hasil Skor Game Edukasi Siswa</h3>
+                        <p className="text-xs text-slate-500">Daftar skor perolehan siswa dari berbagai game edukasi dan fighting arena.</p>
+                      </div>
+                      <span className="px-3 py-1 bg-indigo-50 text-indigo-700 font-extrabold text-xs rounded-xl border border-indigo-200">
+                        Total {gameScoresList.length} Skor Game
+                      </span>
                     </div>
 
                     <div className="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs">
-                      <div className="p-6 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50/90 gap-4">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-extrabold text-slate-900">Daftar Nilai Siswa</h4>
-                            <span className="bg-brand/10 text-brand text-[10px] px-2.5 py-0.5 rounded-full font-extrabold uppercase tracking-wider">Kelas {assessmentNav.kelas}</span>
-                          </div>
-                          <p className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
-                            <BookOpen size={12} /> {assessmentNav.course}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-3">
-                          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 shadow-xs">
-                            <button 
-                              onClick={() => setAssessmentSort('time')}
-                              className={cn(
-                                "px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 flex items-center gap-1.5",
-                                assessmentSort === 'time' ? "bg-brand text-white shadow-sm shadow-brand/20" : "text-slate-600 hover:bg-white"
-                              )}
-                            >
-                              <Clock size={14} /> Teranyar
-                            </button>
-                            <button 
-                              onClick={() => setAssessmentSort('name')}
-                              className={cn(
-                                "px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 flex items-center gap-1.5",
-                                assessmentSort === 'name' ? "bg-brand text-white shadow-sm shadow-brand/20" : "text-slate-600 hover:bg-white"
-                              )}
-                            >
-                              <Type size={14} /> Abjad
-                            </button>
-                          </div>
-
-                          {groupedAssessments[assessmentNav.course]?.classes?.[assessmentNav.kelas]?.results?.length > 0 && (
-                            <button 
-                              onClick={() => deleteAssessment({
-                                isBulkClass: true,
-                                kelas: assessmentNav.kelas || undefined,
-                                courseTitle: assessmentNav.course || undefined
-                              })}
-                              className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-1.5 active:scale-95"
-                              title="Hapus semua nilai asesmen siswa di kelas ini"
-                            >
-                              <Trash2 size={14} />
-                              <span>Reset Kelas</span>
-                            </button>
-                          )}
-
-                          <button 
-                            onClick={() => setAssessmentNav(prev => ({ ...prev, kelas: null }))}
-                            className="bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/80 px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-xs"
-                          >
-                            Kembali
-                          </button>
-                        </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[700px]">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-extrabold tracking-wider">
+                              <th className="p-4 pl-6">Siswa</th>
+                              <th className="p-4">Kelas</th>
+                              <th className="p-4">Judul Game</th>
+                              <th className="p-4 text-center">Skor / Level</th>
+                              <th className="p-4 text-center">Waktu Main</th>
+                              <th className="p-4 text-right pr-6">Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {gameScoresList.length > 0 ? (
+                              [...gameScoresList].sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()).map(scoreItem => (
+                                <tr key={scoreItem.id} className="hover:bg-indigo-50/30 transition-colors">
+                                  <td className="p-4 pl-6 font-bold text-slate-900 text-sm">
+                                    {scoreItem.studentName || 'Siswa'}
+                                  </td>
+                                  <td className="p-4">
+                                    <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold">
+                                      Kelas {scoreItem.kelas || '-'}
+                                    </span>
+                                  </td>
+                                  <td className="p-4 font-semibold text-slate-800 text-xs flex items-center gap-1.5">
+                                    <Gamepad2 size={14} className="text-indigo-600" />
+                                    {scoreItem.gameTitle || scoreItem.gameId || 'Game Edukasi'}
+                                  </td>
+                                  <td className="p-4 text-center">
+                                    <span className="px-3 py-1 bg-indigo-600 text-white rounded-xl text-xs font-black tabular-nums">
+                                      {scoreItem.score ?? 0} Poin
+                                    </span>
+                                  </td>
+                                  <td className="p-4 text-center text-xs text-slate-500 tabular-nums">
+                                    {scoreItem.timestamp ? new Date(scoreItem.timestamp).toLocaleString('id-ID') : '-'}
+                                  </td>
+                                  <td className="p-4 text-right pr-6">
+                                    <button
+                                      onClick={async () => {
+                                        if (!confirm('Hapus skor game ini?')) return;
+                                        try {
+                                          await deleteDoc(doc(db, 'game_scores', scoreItem.id));
+                                        } catch (err) {
+                                          console.error(err);
+                                        }
+                                      }}
+                                      className="p-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-xl transition-all"
+                                      title="Hapus Skor"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={6} className="p-12 text-center text-slate-400 font-semibold">
+                                  Belum ada skor game yang tersimpan.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
                       </div>
+                    </div>
+                  </div>
+                )}
 
-                      {(() => {
-                        if (!assessmentNav.course || !assessmentNav.kelas) return null;
-                        const classResults = groupedAssessments[assessmentNav.course]?.classes?.[assessmentNav.kelas]?.results || [];
-                        const studentIdsWithResults = new Set(classResults.map(r => r.studentId));
-                        
-                        // Find students in this class who haven't completed this course
-                        const missingStudents = students
-                          .filter(s => s.kelas === assessmentNav.kelas && !studentIdsWithResults.has(s.id))
-                          .map(s => ({
-                            id: `missing-${s.id}`,
-                            studentId: s.id,
-                            studentName: s.nama,
-                            score: -1, // Special value for UI
-                            completedAt: null,
-                            cheatingAttempts: 0,
-                            isMissing: true
-                          }));
+                {/* CATEGORY 3: HASIL NILAI SOAL */}
+                {assessmentCategory === 'soal' && (
+                  <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-extrabold text-slate-900">Hasil Nilai Soal & Ujian Siswa</h3>
+                        <p className="text-xs text-slate-500">Hasil pengerjaan paket soal latihan dan ujian pilihan ganda.</p>
+                      </div>
+                      <span className="px-3 py-1 bg-amber-50 text-amber-800 font-extrabold text-xs rounded-xl border border-amber-200">
+                        Total {assessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).length} Ujian Selesai
+                      </span>
+                    </div>
 
-                        const sortedList = [...classResults, ...missingStudents]
-                          .sort((a, b) => {
-                            if (assessmentSort === 'time') {
-                              if (a.isMissing && b.isMissing) return a.studentName.localeCompare(b.studentName);
-                              if (a.isMissing) return 1;
-                              if (b.isMissing) return -1;
-                              return new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime();
-                            } else {
-                              return a.studentName.localeCompare(b.studentName);
-                            }
-                          });
-
-                        return (
-                          <>
-                            {/* Desktop View Table */}
-                            <div className="hidden md:block overflow-x-auto">
-                              <table className="w-full text-left border-collapse border-spacing-0">
-                                <thead>
-                                  <tr className="bg-slate-50/90 text-slate-500 text-[10px] uppercase font-extrabold tracking-wider border-b border-slate-200/80">
-                                    <th className="p-4 pl-6 border-r border-slate-100">
-                                      <div className="flex items-center gap-2">
-                                        <Users size={14} className="text-slate-400" />
-                                        <span>Nama Siswa</span>
-                                      </div>
-                                    </th>
-                                    <th className="p-4 text-center border-r border-slate-100">
-                                      <div className="flex items-center justify-center gap-2">
-                                        <TrendingUp size={14} className="text-slate-400" />
-                                        <span>Skor</span>
-                                      </div>
-                                    </th>
-                                    <th className="p-4 text-center border-r border-slate-100">
-                                      <div className="flex items-center justify-center gap-2">
-                                        <Megaphone size={14} className="text-slate-400" />
-                                        <span>Potensi Curang</span>
-                                      </div>
-                                    </th>
-                                    <th className="p-4 text-center border-r border-slate-100">
-                                      <div className="flex items-center justify-center gap-2">
-                                        <Timer size={14} className="text-slate-400" />
-                                        <span>Durasi</span>
-                                      </div>
-                                    </th>
-                                    <th className="p-4 text-center border-r border-slate-100">
-                                      <div className="flex items-center justify-center gap-2">
-                                        <Clock size={14} className="text-slate-400" />
-                                        <span>Waktu Selesai</span>
-                                      </div>
-                                    </th>
-                                    <th className="p-4 text-right pr-6">Aksi</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                  {sortedList.map((res) => (
-                                    <tr key={res.id} className={cn(
-                                      "hover:bg-blue-50/40 transition-colors duration-200 group", 
-                                      res.isMissing ? "bg-slate-50/60 font-medium" : "bg-white"
-                                    )}>
-                                      <td className="p-4 pl-6 border-r border-slate-100/70">
-                                        <div className="flex items-center gap-3">
-                                          <div className={cn(
-                                            "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase text-white shadow-xs",
-                                            res.isMissing ? "bg-slate-300" : "bg-gradient-to-br from-brand to-indigo-600"
-                                          )}>
-                                            {res.studentName.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
-                                          </div>
-                                          <div className="flex flex-col">
-                                            <span className={cn("text-sm font-bold", res.isMissing ? "text-slate-400" : "text-slate-900")}>
-                                              {res.studentName}
-                                            </span>
-                                            {res.isMissing && (
-                                              <div className="flex items-center gap-1 mt-0.5">
-                                                <span className="text-[9px] font-extrabold text-rose-500 uppercase tracking-widest bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">Belum Selesai</span>
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </td>
-                                      <td className="p-4 text-center border-r border-slate-100/70">
-                                        {res.isMissing ? (
-                                          <div className="w-8 h-8 bg-slate-100 rounded-lg mx-auto flex items-center justify-center">
-                                            <span className="text-slate-400 text-xs font-bold">-</span>
-                                          </div>
-                                        ) : (
-                                          <div className={cn(
-                                            "px-3 py-1 rounded-xl text-xs font-extrabold inline-flex items-center gap-1.5 shadow-xs tabular-nums",
-                                            res.score >= 80 ? "bg-emerald-500 text-white" : res.score >= 60 ? "bg-amber-400 text-amber-950" : "bg-rose-500 text-white"
-                                          )}>
-                                            {res.score}
-                                          </div>
-                                        )}
-                                      </td>
-                                      <td className="p-4 text-center border-r border-slate-100/70">
-                                        {res.isMissing ? (
-                                          <span className="text-slate-300">-</span>
-                                        ) : res.cheatingAttempts > 0 ? (
-                                          <div 
-                                            title={res.cheatingDetails ? "Detail kecurangan:\n" + res.cheatingDetails.map((t: string) => parseCheatingDetail(t)).join('\n') : undefined} 
-                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-rose-50 text-rose-600 border border-rose-200 cursor-help shadow-xs tabular-nums"
-                                          >
-                                            <Megaphone size={10} />
-                                            {res.cheatingAttempts}x Deteksi
-                                          </div>
-                                        ) : (
-                                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/70">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                            Aman
-                                          </div>
-                                        )}
-                                      </td>
-                                      <td className="p-4 text-center border-r border-slate-100/70">
-                                        {res.isMissing ? (
-                                          <span className="text-slate-300">-</span>
-                                        ) : (
-                                          <span className="text-xs font-bold text-slate-700 tabular-nums">
-                                            {(() => {
-                                              const totalSec = res.durationSeconds || 0;
-                                              if (totalSec === 0) return "-";
-                                              const m = Math.floor(totalSec / 60);
-                                              const s = totalSec % 60;
-                                              return `${m}m ${s}s`;
-                                            })()}
-                                          </span>
-                                        )}
-                                      </td>
-                                      <td className="p-4 text-center border-r border-slate-100/70">
-                                        {!res.isMissing && res.completedAt ? (
-                                          <div className="flex flex-col items-center tabular-nums">
-                                            <span className="text-xs font-bold text-slate-800">
-                                              {new Date(res.completedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                            <span className="text-[10px] text-slate-400 font-bold whitespace-nowrap uppercase tracking-tighter">
-                                              {new Date(res.completedAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
-                                            </span>
-                                          </div>
-                                        ) : (
-                                          <span className="text-slate-300">-</span>
-                                        )}
-                                      </td>
-                                      <td className="p-4 text-right pr-6">
-                                        {!res.isMissing && (
-                                          <button 
-                                            onClick={() => deleteAssessment({
-                                              id: res.id,
-                                              studentName: res.studentName,
-                                              courseTitle: assessmentNav.course || undefined,
-                                              score: res.score,
-                                              kelas: assessmentNav.kelas || undefined
-                                            })}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200/80 rounded-xl transition-all duration-300 shadow-xs active:scale-95 text-xs font-bold ml-auto"
-                                            title="Hapus Nilai Asesmen"
-                                          >
-                                            <Trash2 size={14} />
-                                            <span>Hapus</span>
-                                          </button>
-                                        )}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-
-                            {/* Mobile View: Cards */}
-                            <div className="block md:hidden divide-y divide-slate-100">
-                              {sortedList.map((res) => (
-                                <div key={res.id} className="p-4 bg-white space-y-3">
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="flex items-center gap-3">
-                                      <div className={cn(
-                                        "w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black uppercase text-white shadow-xs shrink-0",
-                                        res.isMissing ? "bg-slate-300" : "bg-gradient-to-br from-brand to-indigo-600"
-                                      )}>
-                                        {res.studentName.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
-                                      </div>
-                                      <div>
-                                        <h5 className={cn("text-sm font-bold leading-tight", res.isMissing ? "text-slate-400" : "text-slate-900")}>
-                                          {res.studentName}
-                                        </h5>
-                                        {res.isMissing ? (
-                                          <span className="inline-block mt-0.5 text-[9px] font-extrabold text-rose-500 uppercase tracking-widest bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
-                                            Belum Selesai
-                                          </span>
-                                        ) : (
-                                          <span className="text-[11px] text-slate-400 font-medium tabular-nums">
-                                            {res.completedAt ? new Date(res.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ' • ' + new Date(res.completedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                    {!res.isMissing && (
-                                      <div className={cn(
-                                        "px-3 py-1 rounded-xl text-xs font-extrabold shrink-0 tabular-nums",
-                                        res.score >= 80 ? "bg-emerald-500 text-white" : res.score >= 60 ? "bg-amber-400 text-amber-950" : "bg-rose-500 text-white"
-                                      )}>
-                                        {res.score}
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {!res.isMissing && (
-                                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                                      <div className="flex items-center gap-2">
-                                        {res.cheatingAttempts > 0 ? (
-                                          <span className="text-[10px] font-extrabold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 tabular-nums">
-                                            {res.cheatingAttempts}x Curang
-                                          </span>
-                                        ) : (
-                                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                                            Aman
-                                          </span>
-                                        )}
-                                        {res.durationSeconds ? (
-                                          <span className="text-[10px] font-bold text-slate-400 tabular-nums">
-                                            ⏱ {Math.floor(res.durationSeconds / 60)}m {res.durationSeconds % 60}s
-                                          </span>
-                                        ) : null}
-                                      </div>
-                                      <button 
-                                        onClick={() => deleteAssessment({
-                                          id: res.id,
-                                          studentName: res.studentName,
-                                          courseTitle: assessmentNav.course || undefined,
-                                          score: res.score,
-                                          kelas: assessmentNav.kelas || undefined
-                                        })}
-                                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-1.5 active:scale-95"
-                                      >
-                                        <Trash2 size={13} />
-                                        <span>Hapus Nilai</span>
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </>
-                        );
-                      })()}
+                    <div className="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[700px]">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-extrabold tracking-wider">
+                              <th className="p-4 pl-6">Siswa</th>
+                              <th className="p-4">Kelas</th>
+                              <th className="p-4">Paket Soal</th>
+                              <th className="p-4 text-center">Nilai / Skor</th>
+                              <th className="p-4 text-center">Waktu Selesai</th>
+                              <th className="p-4 text-right pr-6">Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {assessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).length > 0 ? (
+                              assessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).map(item => (
+                                <tr key={item.id} className="hover:bg-amber-50/30 transition-colors">
+                                  <td className="p-4 pl-6 font-bold text-slate-900 text-sm">
+                                    {item.studentName}
+                                  </td>
+                                  <td className="p-4">
+                                    <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold">
+                                      Kelas {item.studentKelas || '-'}
+                                    </span>
+                                  </td>
+                                  <td className="p-4 font-semibold text-slate-800 text-xs flex items-center gap-1.5">
+                                    <ClipboardList size={14} className="text-amber-600" />
+                                    {item.courseTitle || 'Paket Soal Ujian'}
+                                  </td>
+                                  <td className="p-4 text-center">
+                                    <span className="px-3 py-1 bg-amber-600 text-white rounded-xl text-xs font-black tabular-nums">
+                                      {item.score} Poin
+                                    </span>
+                                  </td>
+                                  <td className="p-4 text-center text-xs text-slate-500 tabular-nums">
+                                    {item.completedAt ? new Date(item.completedAt).toLocaleString('id-ID') : '-'}
+                                  </td>
+                                  <td className="p-4 text-right pr-6">
+                                    <button
+                                      onClick={() => deleteAssessment(item.id)}
+                                      className="p-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded-xl transition-all"
+                                      title="Hapus Nilai"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={6} className="p-12 text-center text-slate-400 font-semibold">
+                                  Belum ada hasil ujian soal yang tersimpan.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 )}
