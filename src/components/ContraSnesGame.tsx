@@ -543,6 +543,42 @@ export default function ContraSnesGame({
     jump: false,
     shoot: false,
   });
+  const inputMetaRef = useRef<{
+    lastHoriz: 'left' | 'right' | null;
+    jumpBufferFrames: number;
+    shootBufferFrames: number;
+    coyoteFrames: number;
+  }>({
+    lastHoriz: null,
+    jumpBufferFrames: 0,
+    shootBufferFrames: 0,
+    coyoteFrames: 0,
+  });
+
+  const setControlState = (control: 'left' | 'right' | 'up' | 'down' | 'jump' | 'shoot', active: boolean) => {
+    const prev = keysRef.current[control];
+    keysRef.current[control] = active;
+    if (control === 'left') {
+      if (active && !prev) inputMetaRef.current.lastHoriz = 'left';
+      else if (!active && inputMetaRef.current.lastHoriz === 'left') {
+        inputMetaRef.current.lastHoriz = keysRef.current.right ? 'right' : null;
+      }
+    } else if (control === 'right') {
+      if (active && !prev) inputMetaRef.current.lastHoriz = 'right';
+      else if (!active && inputMetaRef.current.lastHoriz === 'right') {
+        inputMetaRef.current.lastHoriz = keysRef.current.left ? 'left' : null;
+      }
+    } else if (control === 'jump') {
+      if (active && !prev) inputMetaRef.current.jumpBufferFrames = 10;
+    } else if (control === 'shoot') {
+      if (active && !prev) inputMetaRef.current.shootBufferFrames = 7;
+    }
+  };
+
+  const resetAllInputs = () => {
+    keysRef.current = { left: false, right: false, up: false, down: false, jump: false, shoot: false };
+    inputMetaRef.current = { lastHoriz: null, jumpBufferFrames: 0, shootBufferFrames: 0, coyoteFrames: 0 };
+  };
 
   // Mutable Engine Ref
   const engineRef = useRef<any>(null);
@@ -628,15 +664,15 @@ export default function ContraSnesGame({
           phase: 0,
         });
       } else if (roll === 1) {
-        // Flying Cyber Drone
+        // Flying Cyber Attack Helicopter
         const yPos = 140 + ((eid * 37) % 120);
         enemies.push({
           id: eid++,
           type: 'drone',
           x,
           y: yPos,
-          w: 34,
-          h: 26,
+          w: 50,
+          h: 28,
           vx: -(1.4 + stageNum * 0.25),
           vy: 0,
           hp: 1 + Math.floor(stageNum / 2),
@@ -862,16 +898,23 @@ export default function ContraSnesGame({
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (pendingWeaponQuiz || gameState !== 'playing') return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) return;
       const code = e.code;
-      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(code)) {
+      const key = e.key;
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(code) || ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(key)) {
         e.preventDefault();
+        if (document.activeElement instanceof HTMLButtonElement) {
+          document.activeElement.blur();
+        }
       }
-      if (code === 'ArrowLeft' || code === 'KeyA') keysRef.current.left = true;
-      if (code === 'ArrowRight' || code === 'KeyD') keysRef.current.right = true;
-      if (code === 'KeyW') keysRef.current.up = true;
-      if (code === 'ArrowDown' || code === 'KeyS') keysRef.current.down = true;
-      if (code === 'ArrowUp') keysRef.current.jump = true;
-      if (code === 'KeyJ' || code === 'KeyZ' || code === 'Enter') keysRef.current.shoot = true;
+      if (code === 'ArrowLeft' || code === 'KeyA' || key === 'ArrowLeft' || key === 'a' || key === 'A') setControlState('left', true);
+      if (code === 'ArrowRight' || code === 'KeyD' || key === 'ArrowRight' || key === 'd' || key === 'D') setControlState('right', true);
+      if (code === 'KeyW' || key === 'w' || key === 'W') setControlState('up', true);
+      if (code === 'ArrowDown' || code === 'KeyS' || key === 'ArrowDown' || key === 's' || key === 'S') setControlState('down', true);
+      if ((code === 'ArrowUp' || key === 'ArrowUp') && !e.repeat) setControlState('jump', true);
+      else if (code === 'ArrowUp' || key === 'ArrowUp') keysRef.current.jump = true;
+      if (code === 'KeyJ' || code === 'KeyZ' || code === 'Enter' || key === 'j' || key === 'J' || key === 'z' || key === 'Z') setControlState('shoot', true);
       if (code === 'Digit1') selectActiveWeapon('N');
       if (code === 'Digit2') selectActiveWeapon('S');
       if (code === 'Digit3') selectActiveWeapon('L');
@@ -881,25 +924,22 @@ export default function ContraSnesGame({
 
     const up = (e: KeyboardEvent) => {
       const code = e.code;
-      if (code === 'ArrowLeft' || code === 'KeyA') keysRef.current.left = false;
-      if (code === 'ArrowRight' || code === 'KeyD') keysRef.current.right = false;
-      if (code === 'KeyW') keysRef.current.up = false;
-      if (code === 'ArrowDown' || code === 'KeyS') keysRef.current.down = false;
-      if (code === 'ArrowUp') keysRef.current.jump = false;
-      if (code === 'KeyJ' || code === 'KeyZ' || code === 'Enter') keysRef.current.shoot = false;
-    };
-
-    const resetKeys = () => {
-      keysRef.current = { left: false, right: false, up: false, down: false, jump: false, shoot: false };
+      const key = e.key;
+      if (code === 'ArrowLeft' || code === 'KeyA' || key === 'ArrowLeft' || key === 'a' || key === 'A') setControlState('left', false);
+      if (code === 'ArrowRight' || code === 'KeyD' || key === 'ArrowRight' || key === 'd' || key === 'D') setControlState('right', false);
+      if (code === 'KeyW' || key === 'w' || key === 'W') setControlState('up', false);
+      if (code === 'ArrowDown' || code === 'KeyS' || key === 'ArrowDown' || key === 's' || key === 'S') setControlState('down', false);
+      if (code === 'ArrowUp' || key === 'ArrowUp') setControlState('jump', false);
+      if (code === 'KeyJ' || code === 'KeyZ' || code === 'Enter' || key === 'j' || key === 'J' || key === 'z' || key === 'Z') setControlState('shoot', false);
     };
 
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
-    window.addEventListener('blur', resetKeys);
+    window.addEventListener('blur', resetAllInputs);
     return () => {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
-      window.removeEventListener('blur', resetKeys);
+      window.removeEventListener('blur', resetAllInputs);
     };
   }, [gameState, pendingWeaponQuiz]);
 
@@ -1710,58 +1750,72 @@ export default function ContraSnesGame({
       });
     };
 
-    const tick = () => {
-      const eng = engineRef.current;
-      if (!eng) return;
+    const STEP_MS = 1000 / 60;
+    let lastTime = performance.now();
+    let accumulator = 0;
 
-      // Freeze physics while Informatika Weapon Quiz is open!
-      if (!pendingWeaponQuiz) {
-        eng.frame += 1;
-        const p = eng.player;
-        const k = keysRef.current;
+    const stepPhysics = (eng: any) => {
+      eng.frame += 1;
+      const p = eng.player;
+      const k = keysRef.current;
+      const meta = inputMetaRef.current;
 
-        // Movement & 8-way Aim
-        const moveDir = (k.right ? 1 : 0) - (k.left ? 1 : 0);
-        p.vx = moveDir * 3.8;
-        if (moveDir !== 0) {
-          p.facing = moveDir as 1 | -1;
-          p.animTick += 1;
-        }
+      if (meta.jumpBufferFrames > 0) meta.jumpBufferFrames -= 1;
+      if (meta.shootBufferFrames > 0) meta.shootBufferFrames -= 1;
+      if (p.isGrounded) meta.coyoteFrames = 7;
+      else if (meta.coyoteFrames > 0) meta.coyoteFrames -= 1;
 
-        p.isProne = p.isGrounded && k.down && moveDir === 0;
+      // Movement & 8-way Aim (supports key-rollover)
+      let moveDir = 0;
+      if (k.left && k.right) {
+        moveDir = meta.lastHoriz === 'left' ? -1 : 1;
+      } else if (k.right) {
+        moveDir = 1;
+      } else if (k.left) {
+        moveDir = -1;
+      }
+      p.vx = moveDir * 3.8;
+      if (moveDir !== 0) {
+        p.facing = moveDir as 1 | -1;
+        p.animTick += 1;
+      }
 
-        // 8-direction aiming logic (Contra style!)
-        if (k.up && moveDir !== 0) {
-          p.aimX = moveDir;
-          p.aimY = -1;
-        } else if (k.up && moveDir === 0) {
-          p.aimX = 0;
-          p.aimY = -1;
-        } else if (k.down && !p.isGrounded && moveDir !== 0) {
-          p.aimX = moveDir;
-          p.aimY = 1;
-        } else if (k.down && !p.isGrounded && moveDir === 0) {
-          p.aimX = 0;
-          p.aimY = 1;
+      p.isProne = p.isGrounded && k.down && moveDir === 0;
+
+      // 8-direction aiming logic (Contra style!)
+      if (k.up && moveDir !== 0) {
+        p.aimX = moveDir;
+        p.aimY = -1;
+      } else if (k.up && moveDir === 0) {
+        p.aimX = 0;
+        p.aimY = -1;
+      } else if (k.down && !p.isGrounded && moveDir !== 0) {
+        p.aimX = moveDir;
+        p.aimY = 1;
+      } else if (k.down && !p.isGrounded && moveDir === 0) {
+        p.aimX = 0;
+        p.aimY = 1;
+      } else {
+        p.aimX = p.facing;
+        p.aimY = 0;
+      }
+
+      // Jump with input buffer & coyote time (or drop down from elevated steel platform with down+jump)
+      if ((k.jump || meta.jumpBufferFrames > 0) && (p.isGrounded || meta.coyoteFrames > 0)) {
+        meta.jumpBufferFrames = 0;
+        meta.coyoteFrames = 0;
+        if (k.down && p.y < 320 && p.isGrounded) {
+          p.y += 18;
+          p.isGrounded = false;
         } else {
-          p.aimX = p.facing;
-          p.aimY = 0;
+          p.vy = -11.4;
+          p.isGrounded = false;
+          audioRef.current.jump();
         }
+      }
 
-        // Jump (or drop down from elevated steel platform with down+jump)
-        if (k.jump && p.isGrounded) {
-          if (k.down && p.y < 320) {
-            p.y += 18;
-            p.isGrounded = false;
-          } else {
-            p.vy = -11.4;
-            p.isGrounded = false;
-            audioRef.current.jump();
-          }
-        }
-
-        // Gravity & Position
-        p.vy = Math.min(11, p.vy + 0.52);
+      // Gravity & Position
+      p.vy = Math.min(11, p.vy + 0.52);
         const prevBottom = p.y + p.h;
         p.x += p.vx;
         p.y += p.vy;
@@ -1798,10 +1852,11 @@ export default function ContraSnesGame({
           if (eng.frame % 15 === 0 || p.shieldFrames === 0) setShieldFrames(p.shieldFrames);
         }
 
-        // Shooting & Muzzle Flash
+        // Shooting & Muzzle Flash (with tap buffer so quick shots never drop)
         if (p.muzzleTick > 0) p.muzzleTick -= 1;
         if (p.shootCd > 0) p.shootCd -= 1;
-        if (k.shoot && p.shootCd <= 0) {
+        if ((k.shoot || meta.shootBufferFrames > 0) && p.shootCd <= 0) {
+          meta.shootBufferFrames = 0;
           firePlayerWeapon(eng);
         }
 
@@ -2219,6 +2274,25 @@ export default function ContraSnesGame({
           ft.life -= 1;
           if (ft.life <= 0) eng.floatingTexts.splice(i, 1);
         }
+    };
+
+    const tick = (now: number) => {
+      const eng = engineRef.current;
+      if (!eng) return;
+
+      const dt = Math.min(50, Math.max(0, now - lastTime));
+      lastTime = now;
+
+      // Freeze physics while Informatika Weapon Quiz is open!
+      if (!pendingWeaponQuiz) {
+        accumulator += dt;
+        let subSteps = 0;
+        while (accumulator >= STEP_MS && subSteps < 3) {
+          stepPhysics(eng);
+          accumulator -= STEP_MS;
+          subSteps += 1;
+        }
+        if (subSteps >= 3) accumulator = 0;
       }
 
       // ================= RENDER HIGH-CLARITY 2X DPR SCENE =================
@@ -2513,28 +2587,149 @@ export default function ContraSnesGame({
           ctx.fillStyle = '#fb923c';
           ctx.fillRect(en.x + 2, en.y - 6, (en.w - 4) * Math.max(0, en.hp / tMax), 4);
         } else {
-          // Sleek Flying Cyber Drone with Twin Plasma Rotors
-          ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
-          ctx.beginPath();
-          ctx.ellipse(en.x + en.w / 2 + 12, en.y + en.h / 2, 10, 4, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = eng.frame % 4 < 2 ? 'rgba(56, 189, 248, 0.65)' : 'rgba(168, 85, 247, 0.65)';
-          ctx.fillRect(en.x + 3, en.y + en.h + 1, 10, 2.5);
-          ctx.fillRect(en.x + en.w - 13, en.y + en.h + 1, 10, 2.5);
+          // Proportionally Accurate 16-bit SNES Attack Helicopter (Facing Left)
+          const cx = en.x + en.w / 2 - 3;
+          const cy = en.y + en.h / 2 + 1;
+          const bladeSweep = Math.cos(eng.frame * 0.85 + en.id) * 26;
+          const tailSpin = eng.frame * 0.9 + en.id;
 
-          ctx.fillStyle = '#6d28d9';
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(-0.07); // Natural forward nose-down flight pitch
+          ctx.lineWidth = 1.4;
+          ctx.strokeStyle = '#020617';
+
+          // 1. Landing Skids & Struts (bottom)
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 1.8;
           ctx.beginPath();
-          ctx.ellipse(en.x + en.w / 2, en.y + en.h / 2, 18, 12, 0, 0, Math.PI * 2);
+          ctx.moveTo(-10, 7);
+          ctx.lineTo(-12, 13);
+          ctx.moveTo(5, 7);
+          ctx.lineTo(7, 13);
+          // Curved horizontal skid rail
+          ctx.moveTo(-17, 11);
+          ctx.lineTo(-14, 13);
+          ctx.lineTo(11, 13);
+          ctx.lineTo(13, 12);
+          ctx.stroke();
+
+          ctx.lineWidth = 1.4;
+          ctx.strokeStyle = '#020617';
+
+          // 2. Tapered Tail Boom & Vertical Stabilizer Fin (right rear)
+          ctx.fillStyle = '#334155';
+          ctx.beginPath();
+          ctx.moveTo(8, -5);
+          ctx.lineTo(31, -7);
+          ctx.lineTo(31, -4);
+          ctx.lineTo(9, 1);
+          ctx.closePath();
           ctx.fill();
           ctx.stroke();
-          // Top Fin & Glowing Scanner Visor
-          ctx.fillStyle = '#a855f7';
-          ctx.fillRect(en.x + 11, en.y - 3, 12, 5);
+
+          // Horizontal tail winglet
+          ctx.fillStyle = '#475569';
+          ctx.fillRect(22, -6, 6, 2.5);
+
+          // Vertical tail fin (swept back)
+          ctx.fillStyle = '#dc2626';
+          ctx.beginPath();
+          ctx.moveTo(27, -5);
+          ctx.lineTo(30, -16);
+          ctx.lineTo(34, -16);
+          ctx.lineTo(32, -4);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Spinning Tail Rotor (cross blades + blur ring)
+          ctx.save();
+          ctx.translate(31, -11);
+          ctx.fillStyle = 'rgba(226, 232, 240, 0.25)';
+          ctx.beginPath();
+          ctx.arc(0, 0, 5.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.rotate(tailSpin);
+          ctx.strokeStyle = '#e2e8f0';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(-5, 0);
+          ctx.lineTo(5, 0);
+          ctx.moveTo(0, -5);
+          ctx.lineTo(0, 5);
+          ctx.stroke();
+          ctx.restore();
+
+          // 3. Main Armored Fuselage (tapered gunship profile)
+          ctx.fillStyle = '#3b4963';
+          ctx.beginPath();
+          ctx.moveTo(-22, 3);    // Nose tip
+          ctx.lineTo(-15, -4);   // Nose upper slope
+          ctx.lineTo(-5, -9);    // Cockpit top
+          ctx.lineTo(9, -9);     // Engine deck rear
+          ctx.lineTo(13, -3);    // Rear bulkhead
+          ctx.lineTo(9, 6);      // Belly rear
+          ctx.lineTo(-13, 7);    // Belly front
+          ctx.lineTo(-21, 5);    // Chin under-nose
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Upper Turbine Engine Cowling + Glowing Jet Exhaust
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(-5, -12, 14, 4);
+          ctx.strokeRect(-5, -12, 14, 4);
+          ctx.fillStyle = eng.frame % 6 < 3 ? '#fb923c' : '#fde047';
+          ctx.fillRect(9, -11, 4, 2.5);
+
+          // Red/Amber Tactical Fuselage Stripe
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(-10, 1, 18, 2.5);
+
+          // 4. Armored Glass Cockpit Canopy (front-left)
           ctx.fillStyle = '#38bdf8';
-          ctx.fillRect(en.x + 7, en.y + 9, 16, 7);
-          ctx.strokeRect(en.x + 7, en.y + 9, 16, 7);
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(en.x + 9, en.y + 10, 5, 3);
+          ctx.beginPath();
+          ctx.moveTo(-16, -2);
+          ctx.lineTo(-11, -7.5);
+          ctx.lineTo(-3, -7.5);
+          ctx.lineTo(-3, -1);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          // Cockpit divider bar & glass specular highlight
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(-9.5, -7.5, 1.5, 6.5);
+          ctx.fillStyle = '#e0f2fe';
+          ctx.fillRect(-13.5, -5.5, 3, 1.8);
+
+          // 5. Stub Wing & Twin Rocket Pod + Chin Autocannon
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(-3, 2, 10, 5);
+          ctx.strokeRect(-3, 2, 10, 5);
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(-4, 3, 2, 3);
+          // Chin autocannon pointing toward player
+          ctx.fillStyle = '#cbd5e1';
+          ctx.fillRect(-25, 4.5, 6, 2.5);
+          ctx.strokeRect(-25, 4.5, 6, 2.5);
+
+          // 6. Main Rotor Mast, Hub & High-Speed Spinning Rotor Blades
+          ctx.fillStyle = '#64748b';
+          ctx.fillRect(0, -16, 4, 5);
+          ctx.strokeRect(0, -16, 4, 5);
+          ctx.fillStyle = '#cbd5e1';
+          ctx.fillRect(-1, -17.5, 6, 2.5);
+          // Motion-blur rotor disc
+          ctx.fillStyle = 'rgba(226, 232, 240, 0.22)';
+          ctx.beginPath();
+          ctx.ellipse(2, -16.5, 27, 2.6, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // Sweeping main blades
+          ctx.fillStyle = '#f8fafc';
+          ctx.fillRect(2 - Math.abs(bladeSweep), -17.3, Math.max(4, Math.abs(bladeSweep) * 2), 1.8);
+
+          ctx.restore();
         }
         ctx.restore();
       });
@@ -2848,12 +3043,11 @@ export default function ContraSnesGame({
               <button
                 type="button"
                 onContextMenu={e => e.preventDefault()}
-                onTouchStart={e => { e.preventDefault(); keysRef.current.up = true; }}
-                onTouchEnd={e => { e.preventDefault(); keysRef.current.up = false; }}
-                onMouseDown={() => (keysRef.current.up = true)}
-                onMouseUp={() => (keysRef.current.up = false)}
-                onMouseLeave={() => (keysRef.current.up = false)}
-                className="h-10 bg-slate-900/50 active:bg-brand/75 text-white font-black text-sm rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center"
+                onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture?.(e.pointerId); setControlState('up', true); }}
+                onPointerUp={e => { e.preventDefault(); setControlState('up', false); }}
+                onPointerCancel={() => setControlState('up', false)}
+                onLostPointerCapture={() => setControlState('up', false)}
+                className="h-10 bg-slate-900/50 active:bg-brand/75 text-white font-black text-sm rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center select-none touch-none"
               >
                 ▲
               </button>
@@ -2861,24 +3055,22 @@ export default function ContraSnesGame({
               <button
                 type="button"
                 onContextMenu={e => e.preventDefault()}
-                onTouchStart={e => { e.preventDefault(); keysRef.current.left = true; }}
-                onTouchEnd={e => { e.preventDefault(); keysRef.current.left = false; }}
-                onMouseDown={() => (keysRef.current.left = true)}
-                onMouseUp={() => (keysRef.current.left = false)}
-                onMouseLeave={() => (keysRef.current.left = false)}
-                className="h-10 bg-slate-900/50 active:bg-brand/75 text-white font-black text-sm rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center"
+                onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture?.(e.pointerId); setControlState('left', true); }}
+                onPointerUp={e => { e.preventDefault(); setControlState('left', false); }}
+                onPointerCancel={() => setControlState('left', false)}
+                onLostPointerCapture={() => setControlState('left', false)}
+                className="h-10 bg-slate-900/50 active:bg-brand/75 text-white font-black text-sm rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center select-none touch-none"
               >
                 ◀
               </button>
               <button
                 type="button"
                 onContextMenu={e => e.preventDefault()}
-                onTouchStart={e => { e.preventDefault(); keysRef.current.down = true; }}
-                onTouchEnd={e => { e.preventDefault(); keysRef.current.down = false; }}
-                onMouseDown={() => (keysRef.current.down = true)}
-                onMouseUp={() => (keysRef.current.down = false)}
-                onMouseLeave={() => (keysRef.current.down = false)}
-                className="h-10 bg-slate-900/50 active:bg-brand/75 text-white font-black text-sm rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center"
+                onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture?.(e.pointerId); setControlState('down', true); }}
+                onPointerUp={e => { e.preventDefault(); setControlState('down', false); }}
+                onPointerCancel={() => setControlState('down', false)}
+                onLostPointerCapture={() => setControlState('down', false)}
+                className="h-10 bg-slate-900/50 active:bg-brand/75 text-white font-black text-sm rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center select-none touch-none"
                 title="Tiarap"
               >
                 ▼
@@ -2886,12 +3078,11 @@ export default function ContraSnesGame({
               <button
                 type="button"
                 onContextMenu={e => e.preventDefault()}
-                onTouchStart={e => { e.preventDefault(); keysRef.current.right = true; }}
-                onTouchEnd={e => { e.preventDefault(); keysRef.current.right = false; }}
-                onMouseDown={() => (keysRef.current.right = true)}
-                onMouseUp={() => (keysRef.current.right = false)}
-                onMouseLeave={() => (keysRef.current.right = false)}
-                className="h-10 bg-slate-900/50 active:bg-brand/75 text-white font-black text-sm rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center"
+                onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture?.(e.pointerId); setControlState('right', true); }}
+                onPointerUp={e => { e.preventDefault(); setControlState('right', false); }}
+                onPointerCancel={() => setControlState('right', false)}
+                onLostPointerCapture={() => setControlState('right', false)}
+                className="h-10 bg-slate-900/50 active:bg-brand/75 text-white font-black text-sm rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center select-none touch-none"
               >
                 ▶
               </button>
@@ -2902,12 +3093,11 @@ export default function ContraSnesGame({
               <button
                 type="button"
                 onContextMenu={e => e.preventDefault()}
-                onTouchStart={e => { e.preventDefault(); keysRef.current.shoot = true; }}
-                onTouchEnd={e => { e.preventDefault(); keysRef.current.shoot = false; }}
-                onMouseDown={() => (keysRef.current.shoot = true)}
-                onMouseUp={() => (keysRef.current.shoot = false)}
-                onMouseLeave={() => (keysRef.current.shoot = false)}
-                className="w-20 sm:w-24 h-12 sm:h-14 bg-red-600/55 active:bg-red-500/85 text-white font-black text-xs rounded-2xl border border-red-300/50 backdrop-blur-[2px] flex items-center justify-center shadow-lg"
+                onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture?.(e.pointerId); setControlState('shoot', true); }}
+                onPointerUp={e => { e.preventDefault(); setControlState('shoot', false); }}
+                onPointerCancel={() => setControlState('shoot', false)}
+                onLostPointerCapture={() => setControlState('shoot', false)}
+                className="w-20 sm:w-24 h-12 sm:h-14 bg-red-600/55 active:bg-red-500/85 text-white font-black text-xs rounded-2xl border border-red-300/50 backdrop-blur-[2px] flex items-center justify-center shadow-lg select-none touch-none"
               >
                 TEMBAK 🔥
               </button>
@@ -2916,12 +3106,11 @@ export default function ContraSnesGame({
                 aria-label="Loncat (Panah Atas)"
                 title="Loncat (Panah Atas)"
                 onContextMenu={e => e.preventDefault()}
-                onTouchStart={e => { e.preventDefault(); keysRef.current.jump = true; }}
-                onTouchEnd={e => { e.preventDefault(); keysRef.current.jump = false; }}
-                onMouseDown={() => (keysRef.current.jump = true)}
-                onMouseUp={() => (keysRef.current.jump = false)}
-                onMouseLeave={() => (keysRef.current.jump = false)}
-                className="w-16 sm:w-20 h-12 sm:h-14 bg-emerald-600/60 active:bg-emerald-500/85 text-white font-black text-2xl rounded-2xl border border-emerald-300/60 backdrop-blur-[2px] flex items-center justify-center shadow-lg"
+                onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture?.(e.pointerId); setControlState('jump', true); }}
+                onPointerUp={e => { e.preventDefault(); setControlState('jump', false); }}
+                onPointerCancel={() => setControlState('jump', false)}
+                onLostPointerCapture={() => setControlState('jump', false)}
+                className="w-16 sm:w-20 h-12 sm:h-14 bg-emerald-600/60 active:bg-emerald-500/85 text-white font-black text-2xl rounded-2xl border border-emerald-300/60 backdrop-blur-[2px] flex items-center justify-center shadow-lg select-none touch-none"
               >
                 ⬆️
               </button>

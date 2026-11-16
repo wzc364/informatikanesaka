@@ -2215,16 +2215,21 @@ function generateStageEngine(stageNum: number) {
       items: [
         { id: 1, x: 200, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
         { id: 2, x: 380, y: 330, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 101, x: 580, y: 265, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 3, x: 760, y: 175, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
         { id: 4, x: 1340, y: 155, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 102, x: 1150, y: 235, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 5, x: 1540, y: 105, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
         { id: 6, x: 1850, y: 330, w: 28, h: 22, type: 'ram', collected: false },
         { id: 7, x: 2500, y: 255, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
+        { id: 103, x: 2250, y: 330, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 8, x: 2750, y: 195, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 3 },
         { id: 9, x: 3200, y: 215, w: 28, h: 22, type: 'ram', collected: false },
         { id: 10, x: 3400, y: 135, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 104, x: 3600, y: 205, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 11, x: 4050, y: 245, w: 26, h: 24, type: 'laptop', collected: false },
         { id: 12, x: 4250, y: 165, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 105, x: 4540, y: 165, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 13, x: 4750, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
       ],
       obstacles: [
@@ -2265,7 +2270,8 @@ function generateStageEngine(stageNum: number) {
         targetX: 0,
         bossRetries: 3,
         invulnerableFrames: 0,
-        itemDropTimer: 0
+        itemDropTimer: 0,
+        hpDropTimer: 0
       }
     };
   }
@@ -2320,16 +2326,20 @@ function generateStageEngine(stageNum: number) {
       items: [
         { id: 1, x: 220, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
         { id: 2, x: 540, y: 255, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 101, x: 690, y: 185, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 3, x: 830, y: 125, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
         { id: 4, x: 1200, y: 215, w: 26, h: 24, type: 'laptop', collected: false },
         { id: 5, x: 1400, y: 145, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
         { id: 6, x: 1630, y: 195, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 102, x: 2540, y: 275, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 7, x: 2740, y: 205, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
         { id: 8, x: 2940, y: 145, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 3 },
         { id: 9, x: 3550, y: 205, w: 28, h: 22, type: 'ram', collected: false },
         { id: 10, x: 3770, y: 135, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 103, x: 4000, y: 185, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 11, x: 4400, y: 245, w: 26, h: 24, type: 'laptop', collected: false },
         { id: 12, x: 4600, y: 165, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 104, x: 4800, y: 115, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 13, x: 5350, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
       ],
       obstacles: [
@@ -2402,17 +2412,22 @@ function generateStageEngine(stageNum: number) {
       items: [
         { id: 1, x: 220, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
         { id: 2, x: 580, y: 255, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 101, x: 760, y: 175, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 3, x: 930, y: 115, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
         { id: 4, x: 1350, y: 225, w: 26, h: 24, type: 'laptop', collected: false },
         { id: 5, x: 1560, y: 155, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
         { id: 6, x: 2050, y: 235, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 102, x: 2150, y: 330, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 7, x: 2300, y: 165, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
         { id: 8, x: 2590, y: 105, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 3 },
         { id: 9, x: 3050, y: 235, w: 28, h: 22, type: 'ram', collected: false },
         { id: 10, x: 3250, y: 165, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 103, x: 3440, y: 225, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 11, x: 3900, y: 215, w: 26, h: 24, type: 'laptop', collected: false },
         { id: 12, x: 4150, y: 145, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 104, x: 4400, y: 205, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 13, x: 4850, y: 235, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 105, x: 5290, y: 105, w: 30, h: 26, type: 'ammo', collected: false },
         { id: 14, x: 5700, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
       ],
       obstacles: [
@@ -2477,16 +2492,20 @@ function generateStageEngine(stageNum: number) {
     items: [
       { id: 1, x: 250, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
       { id: 2, x: 400, y: 330, w: 28, h: 22, type: 'ram', collected: false },
+      { id: 101, x: 500, y: 330, w: 30, h: 26, type: 'ammo', collected: false },
       { id: 3, x: 840, y: 235, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
       { id: 4, x: 1020, y: 180, w: 26, h: 24, type: 'laptop', collected: false },
+      { id: 102, x: 1640, y: 330, w: 30, h: 26, type: 'ammo', collected: false },
       { id: 5, x: 1450, y: 225, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
       { id: 6, x: 1650, y: 160, w: 28, h: 22, type: 'ram', collected: false },
       { id: 7, x: 2250, y: 235, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
       { id: 8, x: 2500, y: 195, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 3 },
+      { id: 103, x: 2880, y: 330, w: 30, h: 26, type: 'ammo', collected: false },
       { id: 9, x: 3000, y: 230, w: 28, h: 22, type: 'ram', collected: false },
       { id: 10, x: 3250, y: 170, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
       { id: 11, x: 3900, y: 240, w: 26, h: 24, type: 'laptop', collected: false },
       { id: 12, x: 4150, y: 190, w: 28, h: 22, type: 'ram', collected: false },
+      { id: 104, x: 4320, y: 330, w: 30, h: 26, type: 'ammo', collected: false },
       { id: 13, x: 4700, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
     ],
     obstacles: [
@@ -2529,7 +2548,8 @@ function generateStageEngine(stageNum: number) {
       targetX: 0,
       bossRetries: 3,
       invulnerableFrames: 0,
-      itemDropTimer: 0
+      itemDropTimer: 0,
+      hpDropTimer: 0
     }
   };
 }
@@ -3767,10 +3787,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       setSelectedRewardMsg("⚡ Super Kuat Diaktifkan! Kebal rintangan & musuh selama 7.5 detik!");
     } else if (rewardType === 'keyboard_gun') {
       if (engineRef.current?.player) {
-        engineRef.current.player.keyboardGunFrames = 900; // 15 seconds of keyboard gun (900 frames)
+        engineRef.current.player.keyboardGunFrames = (engineRef.current.player.keyboardGunFrames || 0) + 900; // Stack +15 seconds
       }
       setKeyboardGunActive(true);
-      setSelectedRewardMsg("⌨️ Pistol Keyboard Diaktifkan! Tekan [Z] atau tombol Tembak untuk membasmi monster (15 Detik)!");
+      setSelectedRewardMsg("⌨️ Pistol Keyboard Diaktifkan & Di-Stack (+15 Detik)! Tekan [Z] atau tombol Tembak!");
     } else if (rewardType === 'score') {
       setScore(s => s + 250);
       setSelectedRewardMsg("⭐ Bonus +250 Poin Ekstra Berhasil Ditambahkan!");
@@ -3844,11 +3864,29 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
   }, [activeQuiz]);
 
   const keysRef = useRef<{ left: boolean; right: boolean; jump: boolean; shoot: boolean }>({ left: false, right: false, jump: false, shoot: false });
+  const inputMetaRef = useRef<{
+    lastHoriz: 'left' | 'right' | null;
+    jumpBufferFrames: number;
+    shootBufferFrames: number;
+    coyoteFrames: number;
+  }>({
+    lastHoriz: null,
+    jumpBufferFrames: 0,
+    shootBufferFrames: 0,
+    coyoteFrames: 0,
+  });
+  const lastDistanceRef = useRef<number>(-1);
+  const canvasSizeRef = useRef<{ width: number; height: number }>({ width: 800, height: 450 });
 
   const engineRef = useRef(generateStageEngine(currentStage));
+  const fxParticlesRef = useRef<Array<{ x: number; y: number; vx: number; vy: number; size: number; color: string; life: number; maxLife: number }>>([]);
+  const fxPopupsRef = useRef<Array<{ x: number; y: number; text: string; color: string; life: number }>>([]);
 
   const resetEngineForStage = (stageNum: number) => {
     engineRef.current = generateStageEngine(stageNum);
+    fxParticlesRef.current = [];
+    fxPopupsRef.current = [];
+    lastDistanceRef.current = -1;
   };
 
   const toggleFullScreen = () => {
@@ -3871,6 +3909,33 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
 
   const resetKeys = () => {
     keysRef.current = { left: false, right: false, jump: false, shoot: false };
+    inputMetaRef.current = { lastHoriz: null, jumpBufferFrames: 0, shootBufferFrames: 0, coyoteFrames: 0 };
+  };
+
+  const setControlState = (control: 'left' | 'right' | 'jump' | 'shoot', active: boolean) => {
+    const prev = keysRef.current[control];
+    keysRef.current[control] = active;
+    if (control === 'left') {
+      if (active && !prev) {
+        inputMetaRef.current.lastHoriz = 'left';
+      } else if (!active && inputMetaRef.current.lastHoriz === 'left') {
+        inputMetaRef.current.lastHoriz = keysRef.current.right ? 'right' : null;
+      }
+    } else if (control === 'right') {
+      if (active && !prev) {
+        inputMetaRef.current.lastHoriz = 'right';
+      } else if (!active && inputMetaRef.current.lastHoriz === 'right') {
+        inputMetaRef.current.lastHoriz = keysRef.current.left ? 'left' : null;
+      }
+    } else if (control === 'jump') {
+      if (active && !prev) {
+        inputMetaRef.current.jumpBufferFrames = 10;
+      }
+    } else if (control === 'shoot') {
+      if (active && !prev) {
+        inputMetaRef.current.shootBufferFrames = 8;
+      }
+    }
   };
 
   const startGame = (stageNum: number = currentStage) => {
@@ -3880,6 +3945,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
     setScore(s => (gameState === 'win' ? s : 0)); // accumulate score across stages or start fresh
     setLives(3);
     const initialDist = stageNum === 1 ? 175 : stageNum === 2 ? 190 : stageNum === 3 ? 200 : 220;
+    lastDistanceRef.current = initialDist;
     setDistanceRemaining(initialDist);
     setActiveQuiz(null);
     setQuizFeedback(null);
@@ -4005,25 +4071,46 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['ArrowLeft', 'KeyA'].includes(e.code)) keysRef.current.left = true;
-      if (['ArrowRight', 'KeyD'].includes(e.code)) keysRef.current.right = true;
-      if (['ArrowUp', 'KeyW', 'Space'].includes(e.code)) {
-        if (!keysRef.current.jump) {
-          keysRef.current.jump = true;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+        return;
+      }
+
+      const code = e.code;
+      const key = e.key;
+      const isLeft = code === 'ArrowLeft' || code === 'KeyA' || key === 'ArrowLeft' || key === 'a' || key === 'A';
+      const isRight = code === 'ArrowRight' || code === 'KeyD' || key === 'ArrowRight' || key === 'd' || key === 'D';
+      const isJump = code === 'ArrowUp' || code === 'KeyW' || code === 'Space' || key === 'ArrowUp' || key === 'w' || key === 'W' || key === ' ';
+      const isShoot = code === 'KeyZ' || code === 'KeyJ' || code === 'KeyX' || key === 'z' || key === 'Z' || key === 'j' || key === 'J' || key === 'x' || key === 'X';
+
+      if (isLeft || isRight || isJump || isShoot || code === 'ArrowDown' || key === 'ArrowDown') {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLButtonElement) {
+          document.activeElement.blur();
         }
-        e.preventDefault();
       }
-      if (['KeyZ', 'KeyJ', 'KeyX'].includes(e.code)) {
-        keysRef.current.shoot = true;
-        e.preventDefault();
-      }
+
+      if (isLeft) setControlState('left', true);
+      if (isRight) setControlState('right', true);
+      if (isJump && !e.repeat) setControlState('jump', true);
+      if (isShoot) setControlState('shoot', true);
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (['ArrowLeft', 'KeyA'].includes(e.code)) keysRef.current.left = false;
-      if (['ArrowRight', 'KeyD'].includes(e.code)) keysRef.current.right = false;
-      if (['ArrowUp', 'KeyW', 'Space'].includes(e.code)) keysRef.current.jump = false;
-      if (['KeyZ', 'KeyJ', 'KeyX'].includes(e.code)) keysRef.current.shoot = false;
+      const code = e.code;
+      const key = e.key;
+      if (code === 'ArrowLeft' || code === 'KeyA' || key === 'ArrowLeft' || key === 'a' || key === 'A') {
+        setControlState('left', false);
+      }
+      if (code === 'ArrowRight' || code === 'KeyD' || key === 'ArrowRight' || key === 'd' || key === 'D') {
+        setControlState('right', false);
+      }
+      if (code === 'ArrowUp' || code === 'KeyW' || code === 'Space' || key === 'ArrowUp' || key === 'w' || key === 'W' || key === ' ') {
+        setControlState('jump', false);
+      }
+      if (code === 'KeyZ' || code === 'KeyJ' || code === 'KeyX' || key === 'z' || key === 'Z' || key === 'j' || key === 'J' || key === 'x' || key === 'X') {
+        setControlState('shoot', false);
+      }
     };
 
     const handleVisibilityChange = () => {
@@ -4033,13 +4120,11 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('blur', resetKeys);
-    window.addEventListener('mouseup', resetKeys);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', resetKeys);
-      window.removeEventListener('mouseup', resetKeys);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
@@ -4051,6 +4136,25 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
   }, [gameState, activeQuiz]);
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const syncSize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.max(800, Math.floor((canvas.clientWidth || 800) * dpr));
+      const h = Math.max(450, Math.floor((canvas.clientHeight || 450) * dpr));
+      canvasSizeRef.current = { width: w, height: h };
+    };
+    syncSize();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(syncSize) : null;
+    ro?.observe(canvas);
+    window.addEventListener('resize', syncSize);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', syncSize);
+    };
+  }, [isFullScreen, gameState]);
+
+  useEffect(() => {
     if (gameState !== 'playing') return;
 
     let animationFrameId: number;
@@ -4060,6 +4164,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
     if (!ctx) return;
 
     const engine = engineRef.current;
+    const STEP_MS = 1000 / 60;
+    let lastTime = performance.now();
+    let accumulator = 0;
 
     const isSpriteReady = (img: HTMLCanvasElement | HTMLImageElement | null | undefined): img is HTMLCanvasElement | HTMLImageElement => {
       if (!img) return false;
@@ -4067,15 +4174,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       return img.complete && (img.naturalWidth || img.width) > 0;
     };
 
-    const gameLoop = () => {
-      // If quiz is open, freeze physics but keep rendering
-      if (activeQuiz !== null) {
-        animationFrameId = requestAnimationFrame(gameLoop);
-        return;
-      }
-
+    const stepPhysics = (): boolean => {
       const p = engine.player;
+      const meta = inputMetaRef.current;
       p.animFrame += 0.08;
+      if (meta.jumpBufferFrames > 0) meta.jumpBufferFrames--;
+      if (meta.shootBufferFrames > 0) meta.shootBufferFrames--;
+      if (p.isGrounded) {
+        meta.coyoteFrames = 8;
+      } else if (meta.coyoteFrames > 0) {
+        meta.coyoteFrames--;
+      }
 
       // Update super power state
       if (p.superPowerFrames > 0) {
@@ -4093,10 +4202,32 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         }
       }
 
+      const spawnFxSparks = (x: number, y: number, color: string, count = 8, speed = 3.2) => {
+        for (let s = 0; s < count; s++) {
+          const ang = (Math.PI * 2 * s) / count + (Math.random() - 0.5) * 0.5;
+          const spd = 1.2 + Math.random() * speed;
+          fxParticlesRef.current.push({
+            x,
+            y,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd - 0.9,
+            size: 2.2 + Math.random() * 2.5,
+            color: s % 2 === 0 ? '#fef08a' : color,
+            life: 18 + Math.floor(Math.random() * 10),
+            maxLife: 28,
+          });
+        }
+      };
+
+      const spawnFxPopup = (x: number, y: number, text: string, color = '#fde047') => {
+        fxPopupsRef.current.push({ x, y, text, color, life: 40 });
+      };
+
       const isFrozen = (currentStage === 1 || currentStage === 2) && engine.boss && engine.boss.countdown > 0;
-      // Fire keyboard gun bullet when shoot key or button is active
-      if (keysRef.current.shoot && (p.keyboardGunFrames > 0 || (p.bulletsLeft && p.bulletsLeft > 0)) && !isFrozen) {
+      // Fire keyboard gun bullet when shoot key, tap buffer, or button is active
+      if ((keysRef.current.shoot || meta.shootBufferFrames > 0) && (p.keyboardGunFrames > 0 || (p.bulletsLeft && p.bulletsLeft > 0)) && !isFrozen) {
         if (!p.shootCooldown || p.shootCooldown <= 0) {
+          meta.shootBufferFrames = 0;
           p.shootCooldown = 12; // Throttle rate of fire (~0.2s)
           const bulletVx = p.direction === 'right' ? 14 : -14;
           const bulletX = p.direction === 'right' ? p.x + p.width - 8 : p.x - 18;
@@ -4108,7 +4239,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             w: 26,
             h: 18
           });
-          if (p.bulletsLeft && p.bulletsLeft > 0) {
+          spawnFxSparks(p.direction === 'right' ? bulletX + 18 : bulletX + 4, bulletY + 9, '#38bdf8', 5, 2.2);
+          if (p.keyboardGunFrames <= 0 && p.bulletsLeft && p.bulletsLeft > 0) {
             p.bulletsLeft--;
             setBossBulletsCount(p.bulletsLeft);
           }
@@ -4143,6 +4275,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                 b.y < l.y + l.h &&
                 b.y + b.h > l.y
               ) {
+                spawnFxSparks(l.x + l.w / 2, l.y + l.h / 2, '#60a5fa', 10, 3.5);
                 boss.lasers.splice(lIdx, 1);
                 engine.bullets.splice(bIdx, 1);
                 bulletRemoved = true;
@@ -4165,11 +4298,14 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
            ) {
               boss.hp = Math.max(0, boss.hp - 1);
               boss.invulnerableFrames = 15;
+              spawnFxSparks(b.x + b.w / 2, b.y + b.h / 2, '#f97316', 12, 4);
+              spawnFxPopup(boss.x + boss.w / 2, boss.y - 24, '💥 HIT!', '#fb923c');
               engine.bullets.splice(bIdx, 1);
               if (boss.hp <= 0) {
                 boss.state = 'dying';
                 boss.stateTimer = 90;
                 setScore(s => s + 2000);
+                spawnFxPopup(boss.x + boss.w / 2, boss.y - 50, '+2000 BOSS!', '#4ade80');
               }
               continue;
            }
@@ -4186,6 +4322,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ) {
             obs.destroyed = true;
             setScore(s => s + 150);
+            spawnFxSparks(obs.x + obs.w / 2, obs.y + obs.h / 2, '#ef4444', 12, 3.8);
+            spawnFxPopup(obs.x + obs.w / 2, obs.y - 10, '+150', '#fde047');
             engine.bullets.splice(bIdx, 1);
             break;
           }
@@ -4195,19 +4333,37 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       const moveSpeed = p.superPowerFrames > 0 ? 6.5 : 4.5;
 
       if (!isFrozen) {
-        if (keysRef.current.left) {
+        let desiredDir: 'left' | 'right' | null = null;
+        if (keysRef.current.left && keysRef.current.right) {
+          desiredDir = meta.lastHoriz || 'right';
+        } else if (keysRef.current.left) {
+          desiredDir = 'left';
+        } else if (keysRef.current.right) {
+          desiredDir = 'right';
+        }
+
+        if (desiredDir === 'left') {
           p.vx = -moveSpeed;
           p.direction = 'left';
-        } else if (keysRef.current.right) {
+        } else if (desiredDir === 'right') {
           p.vx = moveSpeed;
           p.direction = 'right';
         } else {
-          p.vx *= 0.8;
+          p.vx *= p.isGrounded ? 0.55 : 0.85;
+          if (Math.abs(p.vx) < 0.2) p.vx = 0;
         }
 
-        if (keysRef.current.jump && p.isGrounded) {
+        if ((keysRef.current.jump || meta.jumpBufferFrames > 0) && (p.isGrounded || meta.coyoteFrames > 0)) {
           p.vy = p.superPowerFrames > 0 ? -14 : -12.5;
           p.isGrounded = false;
+          meta.coyoteFrames = 0;
+          meta.jumpBufferFrames = 0;
+          spawnFxSparks(p.x + p.width / 2, p.y + p.height, '#cbd5e1', 6, 1.8);
+        }
+
+        // Responsive short-hop control when releasing jump key early while ascending
+        if (!keysRef.current.jump && p.vy < -5.5) {
+          p.vy *= 0.86;
         }
       } else {
         p.vx = 0;
@@ -4241,6 +4397,20 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           p.vy = 0;
           p.isGrounded = true;
         }
+      }
+
+      // Running footstep dust puffs on ground
+      if (p.isGrounded && Math.abs(p.vx) > 1.8 && Math.floor(p.animFrame * 12) % 6 === 0 && fxParticlesRef.current.length < 120) {
+        fxParticlesRef.current.push({
+          x: p.x + (p.direction === 'right' ? 8 : p.width - 8),
+          y: p.y + p.height - 2,
+          vx: (p.direction === 'right' ? -1 : 1) * (0.7 + Math.random() * 0.8),
+          vy: -(0.3 + Math.random() * 0.7),
+          size: 3,
+          color: 'rgba(226, 232, 240, 0.7)',
+          life: 14,
+          maxLife: 14,
+        });
       }
 
       if (p.y > 480) {
@@ -4278,19 +4448,30 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             item.collected = true;
             if (item.type === 'ram') {
               setScore(s => s + 100);
+              spawnFxSparks(item.x + item.w / 2, item.y + item.h / 2, '#4ade80', 10, 2.8);
+              spawnFxPopup(item.x + item.w / 2, item.y - 8, '+100 RAM', '#4ade80');
             } else if (item.type === 'laptop') {
               setScore(s => s + 50);
+              spawnFxSparks(item.x + item.w / 2, item.y + item.h / 2, '#38bdf8', 8, 2.5);
+              spawnFxPopup(item.x + item.w / 2, item.y - 8, '+50 💻', '#38bdf8');
             } else if (item.type === 'mystery_box') {
+              spawnFxSparks(item.x + item.w / 2, item.y + item.h / 2, '#facc15', 14, 3.4);
               triggerMysteryBoxQuiz();
-            } else if ((item as any).type === 'boss_keyboard') {
-              p.bulletsLeft = (p.bulletsLeft || 0) + 3;
+            } else if ((item as any).type === 'boss_keyboard' || (item as any).type === 'ammo') {
+              const ammoGain = (item as any).amount ?? [3, 4, 5][Math.floor(Math.random() * 3)];
+              p.bulletsLeft = (p.bulletsLeft || 0) + ammoGain;
               setBossBulletsCount(p.bulletsLeft);
+              spawnFxSparks(item.x + item.w / 2, item.y + item.h / 2, '#38bdf8', 10, 2.8);
+              spawnFxPopup(item.x + item.w / 2, item.y - 10, `+${ammoGain} PELURU ⌨️`, '#38bdf8');
             } else if ((item as any).type === 'boss_hp') {
+              const hpGain = (item as any).amount ?? [1, 2, 3, 4][Math.floor(Math.random() * 4)];
               setLives(l => {
-                const updated = Math.min(5, l + 1);
+                const updated = Math.min(8, l + hpGain);
                 livesRef.current = updated;
                 return updated;
               });
+              spawnFxSparks(item.x + item.w / 2, item.y + item.h / 2, '#fb7185', 12, 3);
+              spawnFxPopup(item.x + item.w / 2, item.y - 10, `❤️ +${hpGain} HP!`, '#fb7185');
             }
           }
         }
@@ -4339,7 +4520,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       }
 
       const remainingMeters = Math.max(0, Math.floor((engine.schoolGateX - p.x) / 30));
-      setDistanceRemaining(remainingMeters);
+      if (remainingMeters !== lastDistanceRef.current) {
+        lastDistanceRef.current = remainingMeters;
+        setDistanceRemaining(remainingMeters);
+      }
 
       // Boss Logic (Stage 1 & Stage 2)
       if ((currentStage === 1 || currentStage === 2) && engine.boss) {
@@ -4363,6 +4547,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
            boss.state = 'idle';
            boss.jumpPhase = 'none';
            boss.itemDropTimer = [180, 240, 300, 360][Math.floor(Math.random() * 4)];
+           (boss as any).hpDropTimer = [180, 240, 300, 360][Math.floor(Math.random() * 4)];
         }
 
         // Camera Lock logic: Lock camera when player enters boss area
@@ -4376,31 +4561,54 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         // Boss always faces player
         boss.direction = boss.x > p.x ? 'left' : 'right';
 
-        // Random Boss Stage Item Drops (3s, 4s, 5s, 6s intervals) -> Keyboard Ammo & +HP
-        const bossDropIntervals = [180, 240, 300, 360]; // 3 detik, 4 detik, 5 detik, 6 detik (60fps)
+        // Separate Independent Boss Stage Drops:
+        // 1) Item Tembak Peluru (+3 / +4 / +5 random, stackable)
+        // 2) Item +HP (+1 / +2 / +3 / +4 random)
+        // Each uses random 3s / 4s / 5s / 6s timers so sometimes 1 drops, sometimes BOTH drop together!
+        const bossDropIntervals = [180, 240, 300, 360];
         if (p.x > bossAreaX && boss.fightStarted && boss.countdown <= 0 && boss.state !== 'dead' && boss.state !== 'dying') {
+          let ammoDropX = -1;
           if ((boss.itemDropTimer ?? 0) <= 0) {
-            const dropX = bossAreaX + 80 + Math.random() * 620;
-            const needsAmmo = p.keyboardGunFrames <= 0 && (!p.bulletsLeft || p.bulletsLeft <= 0);
-            const needsHp = livesRef.current < 3;
-            const hpChance = needsHp && !needsAmmo ? 0.55 : needsHp ? 0.4 : needsAmmo ? 0.25 : 0.45;
-            const dropType = Math.random() < hpChance ? 'boss_hp' : 'boss_keyboard';
-
+            ammoDropX = bossAreaX + 80 + Math.random() * 620;
+            const ammoAmount = [3, 4, 5][Math.floor(Math.random() * 3)];
             engine.items.push({
               id: Date.now() + Math.random(),
-              x: dropX,
+              x: ammoDropX,
               y: -60,
-              w: 34,
-              h: 30,
-              type: dropType,
+              w: 36,
+              h: 32,
+              type: 'boss_keyboard',
+              amount: ammoAmount,
               collected: false,
               vy: 3.5,
-              groundTimer: 300, // Hilang setelah 5 detik (300 frame) di tanah
+              groundTimer: 300, // Hilang setelah 5 detik di tanah
             } as any);
-
             boss.itemDropTimer = bossDropIntervals[Math.floor(Math.random() * bossDropIntervals.length)];
           } else {
             boss.itemDropTimer = (boss.itemDropTimer ?? 180) - 1;
+          }
+
+          if (((boss as any).hpDropTimer ?? 0) <= 0) {
+            let hpDropX = bossAreaX + 80 + Math.random() * 620;
+            if (ammoDropX >= 0 && Math.abs(hpDropX - ammoDropX) < 110) {
+              hpDropX = ammoDropX > bossAreaX + 390 ? ammoDropX - 130 : ammoDropX + 130;
+            }
+            const hpAmount = [1, 2, 3, 4][Math.floor(Math.random() * 4)];
+            engine.items.push({
+              id: Date.now() + Math.random() + 0.5,
+              x: hpDropX,
+              y: -60,
+              w: 36,
+              h: 32,
+              type: 'boss_hp',
+              amount: hpAmount,
+              collected: false,
+              vy: 3.5,
+              groundTimer: 300, // Hilang setelah 5 detik di tanah
+            } as any);
+            (boss as any).hpDropTimer = bossDropIntervals[Math.floor(Math.random() * bossDropIntervals.length)];
+          } else {
+            (boss as any).hpDropTimer = ((boss as any).hpDropTimer ?? 240) - 1;
           }
         }
 
@@ -4563,6 +4771,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                        boss.state = 'idle';
                        boss.jumpPhase = 'none';
                        boss.itemDropTimer = [180, 240, 300, 360][Math.floor(Math.random() * 4)];
+                       (boss as any).hpDropTimer = [180, 240, 300, 360][Math.floor(Math.random() * 4)];
                        engine.items = engine.items.filter(it => (it as any).type !== 'boss_keyboard' && (it as any).type !== 'boss_hp');
                        p.x = bossAreaX + 60;
                        p.y = 380 - p.height;
@@ -4615,6 +4824,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                          boss.state = 'idle';
                          boss.jumpPhase = 'none';
                          boss.itemDropTimer = [180, 240, 300, 360][Math.floor(Math.random() * 4)];
+                         (boss as any).hpDropTimer = [180, 240, 300, 360][Math.floor(Math.random() * 4)];
                          engine.items = engine.items.filter(it => (it as any).type !== 'boss_keyboard' && (it as any).type !== 'boss_hp');
                          p.x = bossAreaX + 60;
                          p.y = 380 - p.height;
@@ -4638,6 +4848,15 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           }
         } else if (boss.state === 'dying') {
           boss.stateTimer--;
+          if (boss.stateTimer % 8 === 0) {
+            spawnFxSparks(
+              boss.x + Math.random() * boss.w,
+              boss.y - 20 + Math.random() * boss.h,
+              boss.stateTimer % 16 === 0 ? '#facc15' : '#ef4444',
+              12,
+              4.2
+            );
+          }
           if (boss.stateTimer <= 0) boss.state = 'dead';
         }
       }
@@ -4648,18 +4867,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         setScore(total);
         setGameState('win');
         saveFinalScore(total, true);
-        return;
-      }
-
-      // Dynamically adjust internal canvas pixel resolution for ultra-sharp full-screen & high-DPI rendering
-      const rect = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const targetW = Math.max(800, Math.floor((rect.width || 800) * dpr));
-      const targetH = Math.max(450, Math.floor((rect.height || 450) * dpr));
-
-      if (canvas.width !== targetW || canvas.height !== targetH) {
-        canvas.width = targetW;
-        canvas.height = targetH;
+        return true;
       }
 
       const activeBossAreaX = currentStage === 2 ? 4900 : 5400;
@@ -4668,11 +4876,59 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         engine.cameraX = activeBossAreaX;
       } else {
         const targetCamX = p.x - 300;
-        engine.cameraX += (targetCamX - engine.cameraX) * 0.1;
+        engine.cameraX += (targetCamX - engine.cameraX) * 0.12;
         if (engine.cameraX < 0) engine.cameraX = 0;
         if (engine.cameraX > engine.worldWidth - 800) {
           engine.cameraX = engine.worldWidth - 800;
         }
+      }
+
+      // Advance FX Particles & Floating Score Popups in fixed 60Hz steps
+      for (let i = fxParticlesRef.current.length - 1; i >= 0; i--) {
+        const pt = fxParticlesRef.current[i];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.vy += 0.12;
+        pt.life -= 1;
+        if (pt.life <= 0) {
+          fxParticlesRef.current.splice(i, 1);
+        }
+      }
+      for (let i = fxPopupsRef.current.length - 1; i >= 0; i--) {
+        const fp = fxPopupsRef.current[i];
+        fp.y -= 0.7;
+        fp.life -= 1;
+        if (fp.life <= 0) {
+          fxPopupsRef.current.splice(i, 1);
+        }
+      }
+
+      return false;
+    };
+
+    const gameLoop = (now: number) => {
+      const dt = Math.min(50, Math.max(0, now - lastTime));
+      lastTime = now;
+
+      if (activeQuiz === null) {
+        accumulator += dt;
+        let subSteps = 0;
+        while (accumulator >= STEP_MS && subSteps < 3) {
+          const ended = stepPhysics();
+          accumulator -= STEP_MS;
+          subSteps++;
+          if (ended) return;
+        }
+        if (subSteps >= 3) accumulator = 0;
+      }
+
+      const p = engine.player;
+
+      // Apply cached internal canvas pixel resolution (avoids per-frame forced layout reflow)
+      const { width: targetW, height: targetH } = canvasSizeRef.current;
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
       }
 
       const camX = engine.cameraX;
@@ -4685,97 +4941,134 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
-      // Render Backdrop per Stage
+      // Render Backdrop per Stage (High-Detail Multi-Layer Parallax & Atmospheric Effects)
       if (currentStage === 2) {
         // Stage 2: Sunset Forest & Bumi Perkemahan
         const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
-        skyGradient.addColorStop(0, '#431407');
+        skyGradient.addColorStop(0, '#2e0f04');
         skyGradient.addColorStop(0.35, '#7c2d12');
-        skyGradient.addColorStop(0.7, '#ea580c');
+        skyGradient.addColorStop(0.72, '#ea580c');
         skyGradient.addColorStop(1, '#fde047');
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, 800, 450);
 
-        // Crescent Moon & Stars
+        // Luminous Crescent Moon Halo & Stars
+        const moonHalo = ctx.createRadialGradient(680, 70, 8, 680, 70, 60);
+        moonHalo.addColorStop(0, 'rgba(254, 240, 138, 0.35)');
+        moonHalo.addColorStop(1, 'rgba(254, 240, 138, 0)');
+        ctx.fillStyle = moonHalo;
+        ctx.beginPath();
+        ctx.arc(680, 70, 60, 0, Math.PI * 2);
+        ctx.fill();
+
         ctx.fillStyle = '#fef08a';
         ctx.beginPath();
         ctx.arc(680, 70, 18, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#7c2d12';
+        ctx.fillStyle = '#5c1f0b';
         ctx.beginPath();
         ctx.arc(674, 66, 15, 0, Math.PI * 2);
         ctx.fill();
 
         // Twinkling Twilight Stars
         ctx.fillStyle = '#ffffff';
-        const stars = [[120, 40], [240, 65], [380, 35], [520, 80], [750, 45], [820, 90]];
+        const stars = [[70, 32], [120, 40], [190, 24], [240, 65], [310, 48], [380, 35], [460, 28], [520, 80], [590, 42], [750, 45], [785, 82]];
         for (const [sx, sy] of stars) {
-          const starGlow = (Math.sin(p.animFrame * 2 + sx) + 1) * 0.8 + 1;
+          const starGlow = (Math.sin(p.animFrame * 2 + sx) + 1) * 0.75 + 0.9;
           ctx.beginPath();
           ctx.arc(sx, sy, starGlow, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        // Mountain Silhouettes in distance
+        // Far Mountain Silhouettes + Warm Rim Highlight
         ctx.fillStyle = '#451a03';
         ctx.beginPath();
         for (let m = 0; m < 6; m++) {
-          const mx = m * 300 - camX * 0.15;
-          ctx.moveTo(mx - 80, 360);
-          ctx.lineTo(mx + 70, 210);
-          ctx.lineTo(mx + 220, 360);
+          const mx = m * 300 - (camX * 0.14) % 300;
+          ctx.moveTo(mx - 80, 365);
+          ctx.lineTo(mx + 70, 200);
+          ctx.lineTo(mx + 220, 365);
         }
         ctx.fill();
 
-        // Layered Pine Forest in background
-        ctx.fillStyle = '#064e3b';
-        for (let i = 0; i < 18; i++) {
-          const treeX = i * 260 - camX * 0.35;
-          ctx.beginPath();
-          ctx.moveTo(treeX + 35, 190);
-          ctx.lineTo(treeX, 360);
-          ctx.lineTo(treeX + 70, 360);
-          ctx.fill();
+        // Layered Tiered Pine Trees in Background (3 depth tiers)
+        const drawPine = (tx: number, baseH: number, col: string) => {
+          ctx.fillStyle = col;
+          for (let tier = 0; tier < 3; tier++) {
+            const topY = 365 - baseH + tier * (baseH * 0.22);
+            const botY = 365 - baseH * (0.48 - tier * 0.24);
+            const halfW = 18 + tier * 9;
+            ctx.beginPath();
+            ctx.moveTo(tx, topY);
+            ctx.lineTo(tx - halfW, botY);
+            ctx.lineTo(tx + halfW, botY);
+            ctx.closePath();
+            ctx.fill();
+          }
+        };
+        for (let i = -1; i < 16; i++) {
+          drawPine(i * 170 - (camX * 0.3) % 170, 165 + (i % 3) * 18, '#064e3b');
         }
-        ctx.fillStyle = '#065f46';
-        for (let i = 0; i < 14; i++) {
-          const treeX = i * 320 + 80 - camX * 0.45;
-          ctx.beginPath();
-          ctx.moveTo(treeX + 30, 220);
-          ctx.lineTo(treeX, 360);
-          ctx.lineTo(treeX + 60, 360);
-          ctx.fill();
+        for (let i = -1; i < 14; i++) {
+          drawPine(i * 210 + 75 - (camX * 0.42) % 210, 135 + (i % 2) * 20, '#065f46');
         }
 
-        // Distant Camping Tents & Small Campfires
-        for (let i = 0; i < 6; i++) {
-          const tentX = i * 650 + 120 - camX * 0.55;
-          // Distant Tent
-          ctx.fillStyle = '#047857';
-          ctx.beginPath();
-          ctx.moveTo(tentX + 25, 305);
-          ctx.lineTo(tentX, 360);
-          ctx.lineTo(tentX + 50, 360);
-          ctx.fill();
-          ctx.fillStyle = '#fbbf24';
-          ctx.beginPath();
-          ctx.moveTo(tentX + 25, 305);
-          ctx.lineTo(tentX + 12, 360);
-          ctx.lineTo(tentX + 25, 360);
-          ctx.fill();
+        // Evening Forest Mist Band
+        const mistGrad = ctx.createLinearGradient(0, 315, 0, 380);
+        mistGrad.addColorStop(0, 'rgba(254, 215, 170, 0)');
+        mistGrad.addColorStop(1, 'rgba(254, 215, 170, 0.16)');
+        ctx.fillStyle = mistGrad;
+        ctx.fillRect(0, 315, 800, 65);
 
-          // Small Campfire with smoke
-          const fireX = tentX + 75;
-          ctx.fillStyle = '#78350f';
-          ctx.fillRect(fireX - 6, 354, 12, 4);
-          const flicker = Math.sin(p.animFrame * 5 + i) * 3;
-          ctx.fillStyle = '#ea580c';
+        // Distant Camping Tents, Lanterns, Campfires & Glowing Fireflies
+        for (let i = 0; i < 7; i++) {
+          const tentX = i * 540 + 110 - camX * 0.52;
+          if (tentX > -120 && tentX < 920) {
+            ctx.fillStyle = '#047857';
+            ctx.beginPath();
+            ctx.moveTo(tentX + 26, 304);
+            ctx.lineTo(tentX, 362);
+            ctx.lineTo(tentX + 52, 362);
+            ctx.fill();
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.moveTo(tentX + 26, 304);
+            ctx.lineTo(tentX + 13, 362);
+            ctx.lineTo(tentX + 26, 362);
+            ctx.fill();
+
+            // Small Campfire with glow
+            const fireX = tentX + 76;
+            const fireGlow = ctx.createRadialGradient(fireX, 348, 2, fireX, 348, 24);
+            fireGlow.addColorStop(0, 'rgba(251, 146, 60, 0.42)');
+            fireGlow.addColorStop(1, 'rgba(251, 146, 60, 0)');
+            ctx.fillStyle = fireGlow;
+            ctx.beginPath();
+            ctx.arc(fireX, 348, 24, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(fireX - 6, 356, 12, 4);
+            const flicker = Math.sin(p.animFrame * 5 + i) * 3;
+            ctx.fillStyle = '#ea580c';
+            ctx.beginPath();
+            ctx.arc(fireX, 349 + flicker, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fde047';
+            ctx.beginPath();
+            ctx.arc(fireX, 350 + flicker, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // Bobbing Golden Forest Fireflies (Kunang-kunang)
+        for (let ff = 0; ff < 14; ff++) {
+          const fx = ((ff * 83 - camX * 0.5 + Math.sin(p.animFrame * 1.4 + ff) * 18) % 820 + 820) % 820 - 10;
+          const fy = 265 + ((ff * 37) % 95) + Math.cos(p.animFrame * 2.2 + ff) * 10;
+          const alpha = 0.4 + 0.6 * Math.abs(Math.sin(p.animFrame * 3 + ff));
+          ctx.fillStyle = `rgba(253, 224, 71, ${alpha.toFixed(2)})`;
           ctx.beginPath();
-          ctx.arc(fireX, 348 + flicker, 6, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#fde047';
-          ctx.beginPath();
-          ctx.arc(fireX, 349 + flicker, 3, 0, Math.PI * 2);
+          ctx.arc(fx, fy, 2.2, 0, Math.PI * 2);
           ctx.fill();
         }
 
@@ -4784,42 +5077,68 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
         skyGradient.addColorStop(0, '#09090b');
         skyGradient.addColorStop(0.4, '#1e1b4b');
-        skyGradient.addColorStop(0.8, '#1e3a8a');
+        skyGradient.addColorStop(0.78, '#1e3a8a');
         skyGradient.addColorStop(1, '#0284c7');
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, 800, 450);
 
-        // Twinkling Space Stars
+        // Cosmic Nebula Glow Band
+        const nebGrad = ctx.createRadialGradient(420, 130, 20, 420, 130, 280);
+        nebGrad.addColorStop(0, 'rgba(56, 189, 248, 0.18)');
+        nebGrad.addColorStop(0.5, 'rgba(168, 85, 247, 0.1)');
+        nebGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = nebGrad;
+        ctx.fillRect(0, 0, 800, 340);
+
+        // Twinkling Space Stars + Occasional Shooting Star
         ctx.fillStyle = '#ffffff';
-        const sciStars = [[80, 30], [200, 50], [350, 25], [480, 60], [620, 35], [780, 55], [880, 20]];
+        const sciStars = [[55, 38], [130, 62], [200, 45], [275, 24], [350, 52], [430, 32], [510, 68], [620, 35], [710, 58], [780, 28]];
         for (const [sx, sy] of sciStars) {
-          const sRad = (Math.sin(p.animFrame * 3 + sx) + 1) * 0.7 + 1;
+          const sRad = (Math.sin(p.animFrame * 3 + sx) + 1) * 0.7 + 0.9;
           ctx.beginPath();
           ctx.arc(sx, sy, sRad, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        // Futuristic Modern City Skyline Silhouettes
-        for (let i = 0; i < 9; i++) {
-          const bldgX = i * 450 + 30 - camX * 0.35;
-          const bldgH = 130 + (i % 3) * 35;
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(bldgX, 360 - bldgH, 95, bldgH);
+        // Elevated Cyber Monorail Track & Gliding Train in Distance
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, 250, 800, 5);
+        for (let px = -((camX * 0.25) % 160); px < 840; px += 160) {
+          ctx.fillRect(px, 255, 8, 125);
+        }
+        const trainX = ((p.animFrame * 90) % 1100) - 200;
+        ctx.fillStyle = '#0ea5e9';
+        ctx.fillRect(trainX, 240, 110, 10);
+        ctx.fillStyle = '#e0f2fe';
+        for (let tw = 0; tw < 5; tw++) {
+          ctx.fillRect(trainX + 10 + tw * 20, 242, 12, 5);
+        }
 
-          // Glowing Cyber Windows & Neon Lines
-          ctx.fillStyle = '#0284c7';
-          for (let wy = 360 - bldgH + 15; wy < 340; wy += 22) {
+        // Futuristic Modern City Skyline Silhouettes
+        for (let i = 0; i < 12; i++) {
+          const bldgX = i * 360 + 25 - camX * 0.35;
+          if (bldgX < -130 || bldgX > 900) continue;
+          const bldgH = 125 + (i % 3) * 38;
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(bldgX, 365 - bldgH, 98, bldgH);
+          ctx.strokeStyle = '#1e293b';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(bldgX, 365 - bldgH, 98, bldgH);
+
+          // Glowing Cyber Windows & Neon Trim Lines
+          ctx.fillStyle = i % 2 === 0 ? '#0284c7' : '#38bdf8';
+          for (let wy = 365 - bldgH + 16; wy < 342; wy += 20) {
             for (let wx = 0; wx < 3; wx++) {
-              ctx.fillRect(bldgX + 12 + wx * 26, wy, 16, 10);
+              ctx.fillRect(bldgX + 12 + wx * 26, wy, 16, 9);
             }
           }
           // Spire Antenna with blinking beacon
           ctx.fillStyle = '#38bdf8';
-          ctx.fillRect(bldgX + 45, 360 - bldgH - 25, 4, 25);
+          ctx.fillRect(bldgX + 46, 365 - bldgH - 26, 4, 26);
           if (Math.sin(p.animFrame * 4 + i) > 0) {
             ctx.fillStyle = '#ec4899';
             ctx.beginPath();
-            ctx.arc(bldgX + 47, 360 - bldgH - 26, 4, 0, Math.PI * 2);
+            ctx.arc(bldgX + 48, 365 - bldgH - 28, 4.5, 0, Math.PI * 2);
             ctx.fill();
           }
         }
@@ -4827,75 +5146,123 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       } else if (currentStage === 4) {
         // Stage 4: Sunset Sky & Mount Sawal Priangan over Alun-Alun Ciamis
         const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
-        skyGradient.addColorStop(0, '#31103f');
+        skyGradient.addColorStop(0, '#2e1065');
         skyGradient.addColorStop(0.35, '#701a75');
-        skyGradient.addColorStop(0.7, '#c026d3');
+        skyGradient.addColorStop(0.7, '#d946ef');
         skyGradient.addColorStop(1, '#fef08a');
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, 800, 450);
 
+        // Radiant Golden Dusk Sun Glow
+        const duskSun = ctx.createRadialGradient(640, 170, 12, 640, 170, 120);
+        duskSun.addColorStop(0, 'rgba(254, 240, 138, 0.55)');
+        duskSun.addColorStop(1, 'rgba(254, 240, 138, 0)');
+        ctx.fillStyle = duskSun;
+        ctx.beginPath();
+        ctx.arc(640, 170, 120, 0, Math.PI * 2);
+        ctx.fill();
+
         // Evening Stars
         ctx.fillStyle = '#ffffff';
-        const stars = [[100, 30], [250, 50], [450, 25], [600, 60], [780, 35]];
+        const stars = [[80, 28], [160, 48], [250, 32], [360, 56], [450, 25], [560, 44], [690, 38], [775, 58]];
         for (const [sx, sy] of stars) {
-          const starGlow = (Math.sin(p.animFrame * 2 + sx) + 1) * 0.8 + 1;
+          const starGlow = (Math.sin(p.animFrame * 2 + sx) + 1) * 0.75 + 0.9;
           ctx.beginPath();
           ctx.arc(sx, sy, starGlow, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        // Mount Sawal Silhouette in Background
+        // Mount Sawal Twin-Peak Silhouette in Background
         ctx.fillStyle = '#4c1d95';
         ctx.beginPath();
-        for (let m = 0; m < 5; m++) {
-          const mx = m * 350 - camX * 0.15;
-          ctx.moveTo(mx - 100, 360);
-          ctx.lineTo(mx + 90, 190);
-          ctx.lineTo(mx + 260, 360);
+        for (let m = 0; m < 6; m++) {
+          const mx = m * 340 - (camX * 0.14) % 340;
+          ctx.moveTo(mx - 100, 365);
+          ctx.lineTo(mx + 65, 188);
+          ctx.lineTo(mx + 125, 232);
+          ctx.lineTo(mx + 175, 198);
+          ctx.lineTo(mx + 275, 365);
         }
         ctx.fill();
 
-        // Priangan City Silhouette
-        ctx.fillStyle = '#581c87';
-        for (let i = 0; i < 10; i++) {
-          const bX = i * 280 + 40 - camX * 0.35;
-          const bH = 100 + (i % 4) * 25;
-          ctx.fillRect(bX, 360 - bH, 70, bH);
+        // Priangan Town Silhouette with Lit Golden Windows & Mosque Dome
+        for (let i = 0; i < 14; i++) {
+          const bX = i * 250 + 40 - camX * 0.36;
+          if (bX < -100 || bX > 900) continue;
+          const bH = 95 + (i % 4) * 24;
+          ctx.fillStyle = '#581c87';
+          ctx.fillRect(bX, 365 - bH, 74, bH);
+          if (i % 3 === 0) {
+            // Traditional dome accent
+            ctx.beginPath();
+            ctx.arc(bX + 37, 365 - bH, 20, Math.PI, 0);
+            ctx.fill();
+          }
+          ctx.fillStyle = '#fde047';
+          for (let wy = 365 - bH + 14; wy < 345; wy += 18) {
+            ctx.fillRect(bX + 12, wy, 10, 8);
+            ctx.fillRect(bX + 32, wy, 10, 8);
+            ctx.fillRect(bX + 52, wy, 10, 8);
+          }
         }
 
       } else {
-        // Stage 1: Home to School Bright Morning Sky
+        // Stage 1: Home to School Bright Morning Sky (Multi-Depth Hills, Birds, Electric Poles & Houses)
         const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
         skyGradient.addColorStop(0, '#0284c7');
-        skyGradient.addColorStop(0.35, '#38bdf8');
-        skyGradient.addColorStop(0.75, '#bae6fd');
+        skyGradient.addColorStop(0.38, '#38bdf8');
+        skyGradient.addColorStop(0.76, '#bae6fd');
         skyGradient.addColorStop(1, '#f0fdf4');
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, 800, 450);
 
-        // Morning Sun with Warm Glow
-        ctx.fillStyle = 'rgba(254, 240, 138, 0.3)';
+        // Morning Sun with Soft Radial Glow & Warm Rays
+        const sunGrad = ctx.createRadialGradient(705, 78, 18, 705, 78, 86);
+        sunGrad.addColorStop(0, 'rgba(254, 240, 138, 0.65)');
+        sunGrad.addColorStop(0.5, 'rgba(254, 240, 138, 0.22)');
+        sunGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+        ctx.fillStyle = sunGrad;
         ctx.beginPath();
-        ctx.arc(710, 80, 48, 0, Math.PI * 2);
+        ctx.arc(705, 78, 86, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = '#fde047';
         ctx.beginPath();
-        ctx.arc(710, 80, 26, 0, Math.PI * 2);
+        ctx.arc(705, 78, 27, 0, Math.PI * 2);
         ctx.fill();
 
-        // Fluffy Clouds
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-        for (let c = 0; c < 5; c++) {
-          const cx = c * 450 + 100 - camX * 0.15;
-          const cy = 60 + (c % 2) * 30;
+        // Gliding Morning Birds
+        ctx.strokeStyle = '#0369a1';
+        ctx.lineWidth = 1.6;
+        for (let b = 0; b < 4; b++) {
+          const bx = ((b * 185 - camX * 0.1 + p.animFrame * 24) % 860 + 860) % 860 - 30;
+          const by = 70 + (b % 2) * 32 + Math.sin(p.animFrame * 2 + b) * 4;
+          const wing = Math.sin(p.animFrame * 6 + b) * 4;
           ctx.beginPath();
-          ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-          ctx.arc(cx + 20, cy - 8, 26, 0, Math.PI * 2);
-          ctx.arc(cx + 42, cy, 20, 0, Math.PI * 2);
+          ctx.moveTo(bx - 7, by + wing);
+          ctx.quadraticCurveTo(bx - 3, by - 4, bx, by);
+          ctx.quadraticCurveTo(bx + 3, by - 4, bx + 7, by + wing);
+          ctx.stroke();
+        }
+
+        // Fluffy Two-Tone Clouds
+        for (let c = 0; c < 6; c++) {
+          const cx = (((c * 340 + 80 - camX * 0.14 - p.animFrame * 8) % 1040) + 1040) % 1040 - 120;
+          const cy = 58 + (c % 2) * 34;
+          ctx.fillStyle = 'rgba(224, 242, 254, 0.9)';
+          ctx.beginPath();
+          ctx.arc(cx, cy + 4, 22, 0, Math.PI * 2);
+          ctx.arc(cx + 22, cy - 2, 26, 0, Math.PI * 2);
+          ctx.arc(cx + 46, cy + 4, 20, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+          ctx.beginPath();
+          ctx.arc(cx, cy, 21, 0, Math.PI * 2);
+          ctx.arc(cx + 22, cy - 8, 25, 0, Math.PI * 2);
+          ctx.arc(cx + 44, cy, 19, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        // Layered Green Rolling Hills
+        // Layered Green Rolling Hills with Soft Sunlit Rim
         ctx.fillStyle = '#86efac';
         ctx.beginPath();
         for (let i = 0; i < 12; i++) {
@@ -4912,35 +5279,73 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         }
         ctx.fill();
 
-        // Background Neighborhood Houses
-        for (let i = 0; i < 8; i++) {
+        // Utility Poles & Power Wires in Midground
+        ctx.strokeStyle = 'rgba(71, 85, 105, 0.45)';
+        ctx.lineWidth = 1.2;
+        for (let pIdx = -1; pIdx < 6; pIdx++) {
+          const poleX = pIdx * 240 - (camX * 0.4) % 240;
+          ctx.fillStyle = '#64748b';
+          ctx.fillRect(poleX, 245, 5, 130);
+          ctx.fillRect(poleX - 8, 254, 21, 3);
+          ctx.beginPath();
+          ctx.moveTo(poleX + 2, 255);
+          ctx.quadraticCurveTo(poleX + 120, 272, poleX + 242, 255);
+          ctx.stroke();
+        }
+
+        // Background Neighborhood Houses & School-Zone Signs
+        for (let i = 0; i < 10; i++) {
           const houseX = i * 480 + 120 - camX * 0.45;
-          // House body
+          if (houseX < -120 || houseX > 920) continue;
+          // House body + trim
           ctx.fillStyle = i % 2 === 0 ? '#fef08a' : '#fed7aa';
-          ctx.fillRect(houseX, 295, 75, 65);
-          // Roof
+          ctx.fillRect(houseX, 295, 78, 68);
+          ctx.fillStyle = 'rgba(0,0,0,0.08)';
+          ctx.fillRect(houseX, 295, 78, 6);
+          // Roof with eaves
           ctx.fillStyle = i % 2 === 0 ? '#dc2626' : '#b45309';
           ctx.beginPath();
-          ctx.moveTo(houseX - 8, 295);
-          ctx.lineTo(houseX + 37.5, 260);
-          ctx.lineTo(houseX + 83, 295);
+          ctx.moveTo(houseX - 9, 297);
+          ctx.lineTo(houseX + 39, 259);
+          ctx.lineTo(houseX + 87, 297);
           ctx.closePath();
           ctx.fill();
           // Door & Window
           ctx.fillStyle = '#78350f';
-          ctx.fillRect(houseX + 12, 325, 18, 35);
+          ctx.fillRect(houseX + 12, 324, 18, 39);
           ctx.fillStyle = '#38bdf8';
-          ctx.fillRect(houseX + 42, 312, 22, 20);
+          ctx.fillRect(houseX + 42, 312, 24, 21);
           ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 1.5;
-          ctx.strokeRect(houseX + 42, 312, 22, 20);
+          ctx.strokeRect(houseX + 42, 312, 24, 21);
           // Garden tree beside house
           ctx.fillStyle = '#78350f';
-          ctx.fillRect(houseX + 86, 310, 8, 50);
-          ctx.fillStyle = '#16a34a';
+          ctx.fillRect(houseX + 90, 310, 9, 53);
+          ctx.fillStyle = '#15803d';
           ctx.beginPath();
-          ctx.arc(houseX + 90, 305, 18, 0, Math.PI * 2);
+          ctx.arc(houseX + 94, 305, 19, 0, Math.PI * 2);
           ctx.fill();
+          ctx.fillStyle = '#22c55e';
+          ctx.beginPath();
+          ctx.arc(houseX + 91, 299, 13, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Roadside School Zone Signpost every 2 houses
+          if (i % 2 === 1) {
+            const signX = houseX + 130;
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(signX, 326, 4, 37);
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath();
+            ctx.moveTo(signX + 2, 308);
+            ctx.lineTo(signX + 14, 328);
+            ctx.lineTo(signX - 10, 328);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
         }
       }
 
@@ -4955,36 +5360,85 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         } else if (currentStage === 2) {
           // Stage 2 Start: SMPN 1 KAWALI (Titik Kumpul Keberangkatan Pramuka)
           drawSekolah(ctx, startX, 380, p.animFrame, true, 'KEBERANGKATAN PRAMUKA');
-        } else {
+        } else if (currentStage === 3) {
           // Stage 3 Start: SMPN 1 KAWALI (Titik Kumpul Keberangkatan Study Tour)
           drawSekolah(ctx, startX, 380, p.animFrame, true, 'KEBERANGKATAN STUDY TOUR');
+        } else {
+          // Stage 4 Start: SMPN 1 KAWALI (Menuju Alun-Alun Ciamis)
+          drawSekolah(ctx, startX, 380, p.animFrame, true, 'MENUJU ALUN-ALUN CIAMIS');
         }
       }
 
-      // Draw Platforms
+      // Draw Detailed Beveled Ground Strata & Steel/Wood Floating Platforms
       for (const plat of engine.platforms) {
         const px = plat.x - camX;
         if (px + plat.w < -50 || px > canvas.width + 50) continue;
 
         if (plat.type === 'ground') {
-          ctx.fillStyle = currentStage === 2 ? '#15803d' : currentStage === 3 ? '#0284c7' : '#22c55e';
-          ctx.fillRect(px, plat.y, plat.w, 15);
-          ctx.fillStyle = currentStage === 2 ? '#451a03' : currentStage === 3 ? '#334155' : '#b45309';
-          ctx.fillRect(px, plat.y + 15, plat.w, plat.h - 15);
-          ctx.fillStyle = currentStage === 3 ? '#38bdf8' : '#16a34a';
-          for (let gx = 0; gx < plat.w; gx += 20) {
-            ctx.fillRect(px + gx, plat.y + 12, 10, 5);
+          const soilDark = currentStage === 2 ? '#3b1605' : currentStage === 3 ? '#1e293b' : currentStage === 4 ? '#3f1d2b' : '#92400e';
+          const soilLight = currentStage === 2 ? '#52220c' : currentStage === 3 ? '#334155' : currentStage === 4 ? '#581c87' : '#b45309';
+          const turfTop = currentStage === 2 ? '#15803d' : currentStage === 3 ? '#0284c7' : currentStage === 4 ? '#16a34a' : '#22c55e';
+          const turfHighlight = currentStage === 2 ? '#4ade80' : currentStage === 3 ? '#7dd3fc' : '#86efac';
+
+          // Underground Soil / Concrete Strata
+          ctx.fillStyle = soilLight;
+          ctx.fillRect(px, plat.y + 14, plat.w, plat.h - 14);
+          ctx.fillStyle = soilDark;
+          ctx.fillRect(px, plat.y + 34, plat.w, plat.h - 34);
+
+          // Embedded Stones / Cyber Circuit Seams
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+          for (let sx = 8; sx < plat.w - 16; sx += 36) {
+            ctx.fillRect(px + sx, plat.y + 24, 14, 6);
+            ctx.fillRect(px + sx + 16, plat.y + 44, 10, 5);
           }
+
+          // Top Turf / Cyber Tile Layer + Overhang Contact Shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+          ctx.fillRect(px, plat.y + 14, plat.w, 4);
+          ctx.fillStyle = turfTop;
+          ctx.fillRect(px, plat.y, plat.w, 14);
+          ctx.fillStyle = turfHighlight;
+          ctx.fillRect(px, plat.y, plat.w, 3);
+
+          // Grass Tufts / Scalloped Turf Border
+          ctx.fillStyle = currentStage === 3 ? '#38bdf8' : turfTop;
+          for (let gx = 0; gx < plat.w - 10; gx += 20) {
+            ctx.fillRect(px + gx, plat.y + 11, 10, 5);
+            if (currentStage !== 3 && gx % 40 === 0) {
+              ctx.fillRect(px + gx + 4, plat.y - 3, 4, 3);
+            }
+          }
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(px, plat.y, plat.w, plat.h);
         } else {
-          ctx.fillStyle = '#eab308';
+          // Elevated Beveled Ledge Platform with Drop Shadow & Riveted Metal Brackets
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+          ctx.fillRect(px + 3, plat.y + 4, plat.w, plat.h);
+
+          const ledgeFill = currentStage === 3 ? '#0284c7' : '#d97706';
+          const ledgeDark = currentStage === 3 ? '#0f172a' : '#92400e';
+          ctx.fillStyle = ledgeFill;
           ctx.fillRect(px, plat.y, plat.w, plat.h);
-          ctx.strokeStyle = '#a16207';
-          ctx.lineWidth = 3;
+          ctx.fillStyle = currentStage === 3 ? '#7dd3fc' : '#fde047';
+          ctx.fillRect(px, plat.y, plat.w, 4);
+          ctx.fillStyle = ledgeDark;
+          ctx.fillRect(px, plat.y + plat.h - 4, plat.w, 4);
+          // Plank / Brick Vertical Seams & End Brackets
+          for (let sx = 24; sx < plat.w - 8; sx += 24) {
+            ctx.fillRect(px + sx, plat.y + 4, 2, plat.h - 8);
+          }
+          ctx.fillStyle = '#334155';
+          ctx.fillRect(px, plat.y, 7, plat.h);
+          ctx.fillRect(px + plat.w - 7, plat.y, 7, plat.h);
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 2;
           ctx.strokeRect(px, plat.y, plat.w, plat.h);
         }
       }
 
-      // Draw Items (RAM, Laptop, Kotak Emas Quiz)
+      // Draw Detailed Items (Laptop, RAM, Kotak Emas Quiz, Boss Drops)
       for (const item of engine.items) {
         if (item.collected) continue;
         const ix = item.x - camX;
@@ -4993,38 +5447,97 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         const floatY = item.y + Math.sin(p.animFrame * 1.5) * 3;
 
         if (item.type === 'laptop') {
-          // Laptop Icon (+50 Poin)
+          // Detailed Silver Laptop (+50 Poin) with Glowing Screen
+          ctx.save();
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.25)';
+          ctx.beginPath();
+          ctx.arc(ix + 12, floatY + 9, 17, 0, Math.PI * 2);
+          ctx.fill();
           ctx.fillStyle = '#334155';
           ctx.fillRect(ix, floatY, 24, 15);
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(ix, floatY, 24, 15);
           ctx.fillStyle = '#38bdf8';
           ctx.fillRect(ix + 2, floatY + 2, 20, 11);
-          ctx.fillStyle = '#0284c7';
-          ctx.font = 'bold 8px sans-serif';
-          ctx.fillText('💻', ix + 5, floatY + 11);
-          ctx.fillStyle = '#94a3b8';
+          // Mini code bars on screen
+          ctx.fillStyle = '#e0f2fe';
+          ctx.fillRect(ix + 4, floatY + 4, 11, 2);
+          ctx.fillRect(ix + 4, floatY + 8, 15, 2);
+          ctx.fillStyle = '#cbd5e1';
           ctx.fillRect(ix - 3, floatY + 15, 30, 5);
+          ctx.strokeRect(ix - 3, floatY + 15, 30, 5);
+          ctx.restore();
         } else if (item.type === 'ram') {
-          // RAM Chip Icon (+100 Poin)
+          // Detailed Green PCB RAM Stick (+100 Poin) with Gold Pins & Shine
+          ctx.save();
+          ctx.fillStyle = 'rgba(74, 222, 128, 0.24)';
+          ctx.beginPath();
+          ctx.arc(ix + 13, floatY + 9, 17, 0, Math.PI * 2);
+          ctx.fill();
           ctx.fillStyle = '#16a34a';
           ctx.fillRect(ix, floatY, 26, 18);
-          ctx.fillStyle = '#15803d';
+          ctx.strokeStyle = '#052e16';
+          ctx.lineWidth = 1.5;
           ctx.strokeRect(ix, floatY, 26, 18);
           ctx.fillStyle = '#0f172a';
           ctx.fillRect(ix + 3, floatY + 3, 5, 8);
           ctx.fillRect(ix + 10, floatY + 3, 5, 8);
           ctx.fillRect(ix + 17, floatY + 3, 5, 8);
           ctx.fillStyle = '#eab308';
-          ctx.fillRect(ix + 2, floatY + 15, 22, 3);
+          for (let pin = 2; pin < 24; pin += 4) {
+            ctx.fillRect(ix + pin, floatY + 15, 2.5, 3.5);
+          }
+          ctx.restore();
         } else if (item.type === 'mystery_box') {
-          // Kotak Emas Informatika (Interactive Quiz Box)
+          // Beveled Golden Kotak Emas Informatika (Interactive Quiz Box)
+          ctx.save();
+          ctx.fillStyle = 'rgba(250, 204, 21, 0.32)';
+          ctx.beginPath();
+          ctx.arc(ix + 14, floatY + 14, 21 + Math.sin(p.animFrame * 3) * 2.5, 0, Math.PI * 2);
+          ctx.fill();
           ctx.fillStyle = '#f59e0b';
           ctx.fillRect(ix, floatY, 28, 28);
-          ctx.strokeStyle = '#b45309';
+          ctx.fillStyle = '#fde047';
+          ctx.fillRect(ix + 2, floatY + 2, 24, 4);
+          ctx.strokeStyle = '#78350f';
           ctx.lineWidth = 2;
           ctx.strokeRect(ix, floatY, 28, 28);
-          ctx.fillStyle = '#fef08a';
-          ctx.font = 'black 16px sans-serif';
-          ctx.fillText('❓', ix + 5, floatY + 20);
+          // Corner rivets
+          ctx.fillStyle = '#78350f';
+          ctx.fillRect(ix + 2, floatY + 2, 3, 3);
+          ctx.fillRect(ix + 23, floatY + 2, 3, 3);
+          ctx.fillRect(ix + 2, floatY + 23, 3, 3);
+          ctx.fillRect(ix + 23, floatY + 23, 3, 3);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '900 17px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 3;
+          ctx.strokeText('?', ix + 14, floatY + 15);
+          ctx.fillText('?', ix + 14, floatY + 15);
+          ctx.restore();
+        } else if ((item as any).type === 'ammo') {
+          // Stage Collectible Bullet Stack Item (Random +3 / +4 / +5 bullets)
+          ctx.save();
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.28)';
+          ctx.beginPath();
+          ctx.arc(ix + item.w / 2, floatY + item.h / 2, 19 + Math.sin(p.animFrame * 3) * 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(ix, floatY, item.w, item.h);
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(ix, floatY, item.w, item.h);
+          ctx.font = '13px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('⌨️', ix + item.w / 2, floatY + item.h / 2 - 4);
+          ctx.fillStyle = '#7dd3fc';
+          ctx.font = 'bold 8px sans-serif';
+          ctx.fillText('+PELURU', ix + item.w / 2, floatY + item.h - 4);
+          ctx.restore();
         } else if ((item as any).type === 'boss_keyboard' || (item as any).type === 'boss_hp') {
           const bossItem = item as any;
           const groundTop = 380 - item.h;
@@ -5038,7 +5551,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           }
 
           if (bossItem.type === 'boss_hp') {
-            // Item +HP Drop for Boss Fight support
+            // Item +HP Drop (+1 / +2 / +3 / +4 HP)
+            const hpAmt = bossItem.amount ?? 1;
             ctx.shadowColor = '#f43f5e';
             ctx.shadowBlur = 12;
             ctx.fillStyle = '#4c0519';
@@ -5049,12 +5563,13 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             ctx.font = '13px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('❤️', ix + item.w / 2, item.y + item.h / 2 - 4);
+            ctx.fillText('❤️', ix + item.w / 2, item.y + item.h / 2 - 5);
             ctx.fillStyle = '#fecdd3';
-            ctx.font = 'bold 8px sans-serif';
-            ctx.fillText('+HP', ix + item.w / 2, item.y + item.h - 5);
+            ctx.font = '900 8px sans-serif';
+            ctx.fillText(`+${hpAmt} HP`, ix + item.w / 2, item.y + item.h - 5);
           } else {
-            // Special Falling Keyboard for Boss Fight support
+            // Special Falling Keyboard Bullet Drop (+3 / +4 / +5 Peluru)
+            const ammoAmt = bossItem.amount ?? 3;
             ctx.shadowColor = '#38bdf8';
             ctx.shadowBlur = 10;
             ctx.fillStyle = '#0f172a';
@@ -5062,10 +5577,13 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             ctx.strokeStyle = '#38bdf8';
             ctx.lineWidth = 2;
             ctx.strokeRect(ix, item.y, item.w, item.h);
-            ctx.font = '14px sans-serif';
+            ctx.font = '13px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('⌨️', ix + item.w / 2, item.y + item.h / 2);
+            ctx.fillText('⌨️', ix + item.w / 2, item.y + item.h / 2 - 5);
+            ctx.fillStyle = '#7dd3fc';
+            ctx.font = '900 8px sans-serif';
+            ctx.fillText(`+${ammoAmt} 🔫`, ix + item.w / 2, item.y + item.h - 5);
           }
 
           // 5-second ground timer bar above landed drop
@@ -5148,6 +5666,21 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
            const drawBW = drawBH * bAspect;
            const drawX = bx + (boss.w - drawBW)/2;
            const drawY = by + boss.h - drawBH - 35; // Increased upward offset to 35px so feet land on platform
+
+           // Boss Ground Shadow + Charging Aura
+           if (boss.state !== 'dead') {
+             const airRatio = Math.max(0.45, Math.min(1, 1 - (280 - boss.y) / 240));
+             ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
+             ctx.beginPath();
+             ctx.ellipse(bx + boss.w / 2, 380, 42 * airRatio, 7 * airRatio, 0, 0, Math.PI * 2);
+             ctx.fill();
+           }
+           if (boss.state === 'shooting' && boss.shootTimer > 0 && boss.shootTimer < 22) {
+             ctx.fillStyle = currentStage === 2 ? 'rgba(168, 85, 247, 0.25)' : 'rgba(59, 130, 246, 0.25)';
+             ctx.beginPath();
+             ctx.arc(bx + boss.w / 2, by + boss.h / 2 - 20, 62 + Math.sin(p.animFrame * 8) * 6, 0, Math.PI * 2);
+             ctx.fill();
+           }
 
            ctx.save();
            if (boss.invulnerableFrames > 0 && Math.floor(boss.invulnerableFrames / 3) % 2 === 0) {
@@ -5559,25 +6092,66 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             }
           }
         } else if (obs.type === 'cone') {
+          // Upgraded Safety Traffic Cone with Heavy Base & Reflective Bands
+          ctx.save();
+          ctx.fillStyle = 'rgba(0,0,0,0.22)';
+          ctx.beginPath();
+          ctx.ellipse(ox + obs.w / 2, obs.y + obs.h, obs.w * 0.55, 4, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(ox - 2, obs.y + obs.h - 5, obs.w + 4, 5);
           ctx.fillStyle = '#f97316';
           ctx.beginPath();
-          ctx.moveTo(ox + obs.w / 2, obs.y);
-          ctx.lineTo(ox, obs.y + obs.h);
-          ctx.lineTo(ox + obs.w, obs.y + obs.h);
+          ctx.moveTo(ox + obs.w / 2 - 3, obs.y);
+          ctx.lineTo(ox + obs.w / 2 + 3, obs.y);
+          ctx.lineTo(ox + obs.w - 2, obs.y + obs.h - 5);
+          ctx.lineTo(ox + 2, obs.y + obs.h - 5);
+          ctx.closePath();
           ctx.fill();
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(ox + 5, obs.y + 14, obs.w - 10, 5);
+          ctx.strokeStyle = '#7c2d12';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.fillStyle = '#f8fafc';
+          ctx.fillRect(ox + 7, obs.y + 12, obs.w - 14, 5);
+          ctx.fillRect(ox + 5, obs.y + 23, obs.w - 10, 4);
+          ctx.restore();
         } else if (obs.type === 'homework') {
+          // Upgraded Flying PR Paper with Animated Wings & Notebook Lines
           ctx.save();
           ctx.translate(ox, obs.y);
           ctx.scale(obs.w / 26, obs.h / 30);
+          const wingFlap = Math.sin(p.animFrame * 6) * 5;
+          // Little flying wings
+          ctx.fillStyle = '#e2e8f0';
+          ctx.beginPath();
+          ctx.moveTo(0, 12);
+          ctx.lineTo(-10, 6 + wingFlap);
+          ctx.lineTo(-7, 17);
+          ctx.closePath();
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(26, 12);
+          ctx.lineTo(36, 6 + wingFlap);
+          ctx.lineTo(33, 17);
+          ctx.closePath();
+          ctx.fill();
+          // Notebook page
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, 26, 30);
-          ctx.strokeStyle = '#e2e8f0';
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 1.2;
           ctx.strokeRect(0, 0, 26, 30);
+          ctx.strokeStyle = '#bae6fd';
+          ctx.lineWidth = 0.8;
+          for (let ly = 7; ly < 27; ly += 5) {
+            ctx.beginPath();
+            ctx.moveTo(2, ly);
+            ctx.lineTo(24, ly);
+            ctx.stroke();
+          }
           ctx.fillStyle = '#ef4444';
           ctx.font = 'bold 12px sans-serif';
-          ctx.fillText('PR', 4, 18);
+          ctx.fillText('PR', 4, 19);
           ctx.restore();
         }
       }
@@ -5600,16 +6174,23 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         }
       }
 
-      // Render Keyboard Gun Bullets
+      // Render Keyboard Gun Bullets with Cyber Speed Trail
       for (const b of engine.bullets) {
         const bx = b.x - camX;
-        if (bx < -30 || bx > canvas.width + 30) continue;
+        if (bx < -40 || bx > canvas.width + 40) continue;
         ctx.save();
+        const trailX = b.vx > 0 ? bx - 18 : bx + b.w;
+        const trailGrad = ctx.createLinearGradient(trailX, b.y, trailX + 18, b.y);
+        trailGrad.addColorStop(0, b.vx > 0 ? 'rgba(56, 189, 248, 0)' : 'rgba(56, 189, 248, 0.5)');
+        trailGrad.addColorStop(1, b.vx > 0 ? 'rgba(56, 189, 248, 0.5)' : 'rgba(56, 189, 248, 0)');
+        ctx.fillStyle = trailGrad;
+        ctx.fillRect(trailX, b.y + 4, 18, b.h - 8);
+
         ctx.shadowColor = '#38bdf8';
         ctx.shadowBlur = 10;
         ctx.fillStyle = '#0284c7';
         ctx.fillRect(bx, b.y, b.w, b.h);
-        ctx.strokeStyle = '#38bdf8';
+        ctx.strokeStyle = '#7dd3fc';
         ctx.lineWidth = 2;
         ctx.strokeRect(bx, b.y, b.w, b.h);
         ctx.fillStyle = '#fde047';
@@ -5622,6 +6203,15 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       // Draw Character from Attached Image Asset Sprite Sheet
       const px = p.x - camX;
       const py = p.y;
+
+      // Ground Contact Shadow directly beneath character
+      const shadowScale = p.isGrounded ? 1 : Math.max(0.4, 1 - (380 - (py + p.height)) / 240);
+      if (shadowScale > 0.35 && py + p.height <= 390) {
+        ctx.fillStyle = `rgba(0, 0, 0, ${(0.28 * shadowScale).toFixed(2)})`;
+        ctx.beginPath();
+        ctx.ellipse(px + p.width / 2, Math.min(380, p.isGrounded ? py + p.height : 380), 18 * shadowScale, 4.5 * shadowScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       // Draw Mini Keyboard Icon Indicator behind Character when Keyboard Gun or Boss Ammo is Active
       if (p.keyboardGunFrames > 0 || (p.bulletsLeft && p.bulletsLeft > 0)) {
@@ -5666,6 +6256,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.restore();
         }
 
+        const isFrozen = (currentStage === 1 || currentStage === 2) && engine.boss && engine.boss.countdown > 0;
         const isMoving = !isFrozen && Math.abs(p.vx) > 0.5;
         const isJumping = !p.isGrounded;
         const hasGunAmmo = p.keyboardGunFrames > 0 || (p.bulletsLeft !== undefined && p.bulletsLeft > 0);
@@ -5711,6 +6302,33 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.fillRect(px, py, p.width, p.height);
         }
 
+        ctx.restore();
+      }
+
+      // Draw Visual FX Particles + Floating Score Popups
+      for (let i = 0; i < fxParticlesRef.current.length; i++) {
+        const pt = fxParticlesRef.current[i];
+        const fxX = pt.x - camX;
+        if (fxX < -20 || fxX > 820) continue;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
+        ctx.fillStyle = pt.color;
+        ctx.fillRect(fxX - pt.size / 2, pt.y - pt.size / 2, pt.size, pt.size);
+        ctx.restore();
+      }
+
+      for (let i = 0; i < fxPopupsRef.current.length; i++) {
+        const fp = fxPopupsRef.current[i];
+        const fxX = fp.x - camX;
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, fp.life / 16);
+        ctx.font = '900 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#0f172a';
+        ctx.strokeText(fp.text, fxX, fp.y);
+        ctx.fillStyle = fp.color;
+        ctx.fillText(fp.text, fxX, fp.y);
         ctx.restore();
       }
 
@@ -5847,12 +6465,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
               <button
                 type="button"
                 onContextMenu={(e) => e.preventDefault()}
-                onMouseDown={() => (keysRef.current.left = true)}
-                onMouseUp={() => (keysRef.current.left = false)}
-                onMouseLeave={() => (keysRef.current.left = false)}
-                onTouchStart={(e) => { e.preventDefault(); keysRef.current.left = true; }}
-                onTouchEnd={(e) => { e.preventDefault(); keysRef.current.left = false; }}
-                onTouchCancel={() => (keysRef.current.left = false)}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.setPointerCapture?.(e.pointerId);
+                  setControlState('left', true);
+                }}
+                onPointerUp={(e) => {
+                  e.preventDefault();
+                  setControlState('left', false);
+                }}
+                onPointerCancel={() => setControlState('left', false)}
+                onLostPointerCapture={() => setControlState('left', false)}
                 className="w-14 h-12 sm:w-16 sm:h-14 bg-slate-900/45 hover:bg-slate-800/60 active:bg-brand/75 text-white/90 font-black text-xl rounded-2xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center shadow-lg active:scale-95 transition-transform select-none touch-none"
               >
                 ◀
@@ -5860,12 +6483,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
               <button
                 type="button"
                 onContextMenu={(e) => e.preventDefault()}
-                onMouseDown={() => (keysRef.current.right = true)}
-                onMouseUp={() => (keysRef.current.right = false)}
-                onMouseLeave={() => (keysRef.current.right = false)}
-                onTouchStart={(e) => { e.preventDefault(); keysRef.current.right = true; }}
-                onTouchEnd={(e) => { e.preventDefault(); keysRef.current.right = false; }}
-                onTouchCancel={() => (keysRef.current.right = false)}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.setPointerCapture?.(e.pointerId);
+                  setControlState('right', true);
+                }}
+                onPointerUp={(e) => {
+                  e.preventDefault();
+                  setControlState('right', false);
+                }}
+                onPointerCancel={() => setControlState('right', false)}
+                onLostPointerCapture={() => setControlState('right', false)}
                 className="w-14 h-12 sm:w-16 sm:h-14 bg-slate-900/45 hover:bg-slate-800/60 active:bg-brand/75 text-white/90 font-black text-xl rounded-2xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center shadow-lg active:scale-95 transition-transform select-none touch-none"
               >
                 ▶
@@ -5877,12 +6505,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                 <button
                   type="button"
                   onContextMenu={(e) => e.preventDefault()}
-                  onMouseDown={() => (keysRef.current.shoot = true)}
-                  onMouseUp={() => (keysRef.current.shoot = false)}
-                  onMouseLeave={() => (keysRef.current.shoot = false)}
-                  onTouchStart={(e) => { e.preventDefault(); keysRef.current.shoot = true; }}
-                  onTouchEnd={(e) => { e.preventDefault(); keysRef.current.shoot = false; }}
-                  onTouchCancel={() => (keysRef.current.shoot = false)}
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.setPointerCapture?.(e.pointerId);
+                    setControlState('shoot', true);
+                  }}
+                  onPointerUp={(e) => {
+                    e.preventDefault();
+                    setControlState('shoot', false);
+                  }}
+                  onPointerCancel={() => setControlState('shoot', false)}
+                  onLostPointerCapture={() => setControlState('shoot', false)}
                   className="w-20 sm:w-24 h-12 sm:h-14 bg-sky-500/50 hover:bg-sky-500/65 active:bg-sky-400/80 text-white/95 font-black text-xs rounded-2xl border border-sky-300/45 backdrop-blur-[2px] flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform select-none touch-none"
                 >
                   TEMBAK ⌨️
@@ -5892,12 +6525,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
               <button
                 type="button"
                 onContextMenu={(e) => e.preventDefault()}
-                onMouseDown={() => (keysRef.current.jump = true)}
-                onMouseUp={() => (keysRef.current.jump = false)}
-                onMouseLeave={() => (keysRef.current.jump = false)}
-                onTouchStart={(e) => { e.preventDefault(); keysRef.current.jump = true; }}
-                onTouchEnd={(e) => { e.preventDefault(); keysRef.current.jump = false; }}
-                onTouchCancel={() => (keysRef.current.jump = false)}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.setPointerCapture?.(e.pointerId);
+                  setControlState('jump', true);
+                }}
+                onPointerUp={(e) => {
+                  e.preventDefault();
+                  setControlState('jump', false);
+                }}
+                onPointerCancel={() => setControlState('jump', false)}
+                onLostPointerCapture={() => setControlState('jump', false)}
                 className="w-20 sm:w-24 h-12 sm:h-14 bg-emerald-500/50 hover:bg-emerald-500/65 active:bg-emerald-400/80 text-white/95 font-black text-xs sm:text-sm rounded-2xl border border-emerald-300/45 backdrop-blur-[2px] flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform select-none touch-none"
               >
                 LOMPAT ▲
