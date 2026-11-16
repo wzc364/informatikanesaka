@@ -64,7 +64,8 @@ import {
   Puzzle,
   Cpu,
   Calculator,
-  MonitorPlay
+  MonitorPlay,
+  ClipboardList
 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
@@ -72,13 +73,15 @@ import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { COURSES } from './constants';
-import { Topic } from './types';
+import { Topic, SoalSet, SoalQuestion } from './types';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { db } from './firebase';
 import { collection, addDoc, doc, deleteDoc, updateDoc, setDoc, query, where, onSnapshot, increment, serverTimestamp, arrayUnion } from 'firebase/firestore';                
 import Login from './components/Login';
 import AdminGames from './components/AdminGames';
+import AdminSoal from './components/AdminSoal';
+import StudentSoalRunner from './components/StudentSoalRunner';
 
 enum OperationType {
   CREATE = 'create',
@@ -157,7 +160,7 @@ const parseCheatingDetail = (item: string) => {
 };
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'login' | 'admin' | 'course' | 'student_dashboard' | 'course_confirm'>(() => {
+  const [currentPage, setCurrentPage] = useState<'login' | 'admin' | 'course' | 'student_dashboard' | 'course_confirm' | 'soal' | 'soal_confirm'>(() => {
     // If admin, it could be in localStorage, otherwise we check sessionStorage
     const savedAdminPage = localStorage.getItem('currentPage');
     const savedStudentPage = sessionStorage.getItem('currentPage');
@@ -205,7 +208,7 @@ export default function App() {
     }
   }, [currentStudent]);
   const [password, setPassword] = useState('');
-  const [adminTab, setAdminTab] = useState<'dashboard' | 'student_management' | 'materials' | 'history' | 'assessments' | 'settings' | 'announcements' | 'games'>('dashboard');
+  const [adminTab, setAdminTab] = useState<'dashboard' | 'student_management' | 'materials' | 'questions' | 'history' | 'assessments' | 'settings' | 'announcements' | 'games'>('dashboard');
   const [studentSubTab, setStudentSubTab] = useState<'students' | 'classes'>('classes');
   const [students, setStudents] = useState<{id: string, nis: string, nama: string, jenisKelamin: string, kelas: string}[]>([]);
   const [materialConfigs, setMaterialConfigs] = useState<Record<string, {
@@ -280,7 +283,11 @@ export default function App() {
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [studentTab, setStudentTab] = useState<'materi' | 'games'>('materi');
+  const [studentTab, setStudentTab] = useState<'materi' | 'soal' | 'games'>('materi');
+  const [soalSets, setSoalSets] = useState<SoalSet[]>([]);
+  const [soalQuestions, setSoalQuestions] = useState<SoalQuestion[]>([]);
+  const [activeSoalSetId, setActiveSoalSetId] = useState<string | null>(() => sessionStorage.getItem('activeSoalSetId'));
+  const [isPreviewingSoal, setIsPreviewingSoal] = useState(false);
   const [messageTargetStudent, setMessageTargetStudent] = useState<any>(null);
   const [isSendMessageModalOpen, setIsSendMessageModalOpen] = useState(false);
   const [assessmentNav, setAssessmentNav] = useState<{ course: string | null; kelas: string | null }>({
@@ -872,6 +879,21 @@ export default function App() {
     });
     unsubscribes.push(unsubAnnouncements);
 
+    // Soal Sets & Soal Questions (Global)
+    const unsubSoalSets = onSnapshot(collection(db, 'soal_sets'), (snapshot) => {
+      setSoalSets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'soal_sets');
+    });
+    unsubscribes.push(unsubSoalSets);
+
+    const unsubSoalQuestions = onSnapshot(collection(db, 'soal_questions'), (snapshot) => {
+      setSoalQuestions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'soal_questions');
+    });
+    unsubscribes.push(unsubSoalQuestions);
+
     // Admin Data
     if (isAdmin) {
       // 2. All Assessments (Admin)
@@ -1151,6 +1173,9 @@ export default function App() {
                     for (const c of COURSES) {
                       await deleteDoc(doc(db, 'active_sessions', `${currentStudent.id}_${c.id}`)).catch(()=> {});
                     }
+                    for (const s of soalSets) {
+                      await deleteDoc(doc(db, 'active_sessions', `${currentStudent.id}_soal_${s.id}`)).catch(()=> {});
+                    }
                   } catch(e) {}
                 }
 
@@ -1268,35 +1293,164 @@ export default function App() {
           </div>
 
           {/* Student Tab Navigation Header */}
-          <div className="flex items-center gap-3 p-2 bg-slate-100 rounded-3xl border border-slate-300 shadow-sm mb-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 p-2 bg-slate-100 rounded-3xl border border-slate-300 shadow-sm mb-6">
             <button
               onClick={() => setStudentTab('materi')}
               className={cn(
-                "flex-1 py-3 px-5 rounded-2xl font-black text-sm md:text-base transition-all flex items-center justify-center gap-2.5 shadow-xs cursor-pointer",
+                "flex-1 py-3 px-4 rounded-2xl font-black text-sm md:text-base transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer",
                 studentTab === 'materi'
                   ? "bg-brand text-white shadow-md shadow-brand/20 scale-[1.01]"
                   : "bg-slate-200/80 text-slate-700 hover:bg-slate-200"
               )}
             >
-              <BookOpen size={20} />
+              <BookOpen size={19} />
               <span>📚 Materi Pembelajaran</span>
+            </button>
+            <button
+              onClick={() => setStudentTab('soal')}
+              className={cn(
+                "flex-1 py-3 px-4 rounded-2xl font-black text-sm md:text-base transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer",
+                studentTab === 'soal'
+                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20 scale-[1.01]"
+                  : "bg-slate-200/80 text-slate-700 hover:bg-slate-200"
+              )}
+            >
+              <ClipboardList size={19} />
+              <span>📝 Latihan & Ujian Soal</span>
             </button>
             <button
               onClick={() => setStudentTab('games')}
               className={cn(
-                "flex-1 py-3 px-5 rounded-2xl font-black text-sm md:text-base transition-all flex items-center justify-center gap-2.5 shadow-xs cursor-pointer",
+                "flex-1 py-3 px-4 rounded-2xl font-black text-sm md:text-base transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer",
                 studentTab === 'games'
                   ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20 scale-[1.01]"
                   : "bg-slate-200/80 text-slate-700 hover:bg-slate-200"
               )}
             >
-              <Gamepad2 size={20} />
-              <span>🎮 Game Edukasi / Permainan</span>
+              <Gamepad2 size={19} />
+              <span>🎮 Game Edukasi</span>
             </button>
           </div>
 
           {studentTab === 'games' ? (
             <AdminGames isAdmin={false} currentStudent={currentStudent} studentsList={students} />
+          ) : studentTab === 'soal' ? (
+            (() => {
+              const activeSoalSets = soalSets.filter(s => {
+                if (!s.isActive) return false;
+                const activeQCount = soalQuestions.filter(q => q.setId === s.id && q.isActive !== false).length;
+                return activeQCount > 0;
+              });
+
+              return (
+                <>
+                  <section className="pb-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-100 border border-emerald-200 shadow-sm rounded-xl flex items-center justify-center text-emerald-700">
+                          <ClipboardList size={20} />
+                        </div>
+                        <div>
+                          <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Daftar Paket Soal</h2>
+                          <p className="text-slate-600 font-bold text-sm md:text-base mt-1">Pilih kartu soal sesuai judul yang aktif</p>
+                        </div>
+                      </div>
+                      <div className="bg-slate-200 border border-slate-300 px-5 py-2.5 rounded-2xl text-xs md:text-sm font-black text-slate-700 hidden md:block tracking-widest uppercase">
+                        {activeSoalSets.length} Paket Soal Aktif
+                      </div>
+                    </div>
+
+                    {activeSoalSets.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+                        {activeSoalSets.map((set, index) => {
+                          const courseKey = `soal_${set.id}`;
+                          const hasCompleted = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
+                          const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
+                          const activeQs = soalQuestions.filter(q => q.setId === set.id && q.isActive !== false);
+                          const colors = [
+                            { bg: "bg-emerald-600", border: "border-emerald-700", icon: "text-emerald-600" },
+                            { bg: "bg-blue-600", border: "border-blue-700", icon: "text-blue-600" },
+                            { bg: "bg-indigo-600", border: "border-indigo-700", icon: "text-indigo-600" },
+                            { bg: "bg-teal-600", border: "border-teal-700", icon: "text-teal-600" },
+                          ];
+                          const color = colors[index % colors.length];
+
+                          return (
+                            <motion.div
+                              whileHover={{ y: -6 }}
+                              whileTap={{ scale: 0.98 }}
+                              key={set.id}
+                              onClick={() => {
+                                setActiveSoalSetId(set.id);
+                                sessionStorage.setItem('activeSoalSetId', set.id);
+                                setIsPreviewingSoal(false);
+                                setCurrentPage('soal_confirm');
+                              }}
+                              className={cn(
+                                "group p-1 rounded-[2rem] border shadow-sm transition-all flex flex-col cursor-pointer",
+                                hasCompleted ? "bg-slate-200 border-slate-300 opacity-90" : cn(color.bg, color.border, "shadow-xl shadow-black/5")
+                              )}
+                            >
+                              <div className={cn("flex-1 rounded-[1.8rem] p-6 transition-colors flex flex-col h-full", hasCompleted ? "bg-slate-100" : "bg-white/10 group-hover:bg-white/20")}>
+                                <div className="flex items-start justify-between gap-2 mb-4">
+                                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-md", hasCompleted ? "bg-slate-200 border border-slate-300" : "bg-slate-100")}>
+                                    <ClipboardList size={24} className={hasCompleted ? "text-emerald-600" : color.icon} />
+                                  </div>
+                                  <span className={cn("px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider", hasCompleted ? "bg-slate-200 text-slate-700" : "bg-white/20 text-white")}>
+                                    {activeQs.length} Soal PG
+                                  </span>
+                                </div>
+
+                                <h3 className={cn("font-black text-lg md:text-xl leading-tight mb-2", hasCompleted ? "text-slate-900" : "text-white")}>{set.title}</h3>
+                                {set.description && (
+                                  <p className={cn("text-xs font-medium line-clamp-2 mb-4", hasCompleted ? "text-slate-600" : "text-white/85")}>{set.description}</p>
+                                )}
+
+                                <div className="flex flex-wrap items-center gap-1.5 mb-5">
+                                  <span className={cn("px-2.5 py-0.5 rounded-lg text-[10px] font-black", hasCompleted ? "bg-amber-100 text-amber-800" : "bg-black/20 text-white")}>
+                                    {set.timerMode === 'per_soal' ? '⏱️ Timer Per Soal' : set.titleTimerSeconds > 0 ? `⏱️ ${Math.ceil(set.titleTimerSeconds / 60)} Menit` : '⏱️ Tanpa Batas'}
+                                  </span>
+                                  {set.isFullScreen && (
+                                    <span className={cn("px-2.5 py-0.5 rounded-lg text-[10px] font-black", hasCompleted ? "bg-rose-100 text-rose-700" : "bg-black/20 text-white")}>
+                                      🔒 Fullscreen
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className={cn("mt-auto flex items-center justify-between gap-2 font-black text-sm uppercase tracking-widest pt-4 border-t", hasCompleted ? "border-slate-300" : "border-white/20")}>
+                                  {hasCompleted ? (
+                                    <div className="flex flex-col gap-2 w-full">
+                                      <span className="text-emerald-700 flex items-center gap-2 font-black"><CheckCircle size={18} /> SUDAH DIKERJAKAN</span>
+                                      {(set.isScoreVisible ?? true) && (
+                                        <span className={cn("px-4 py-1.5 rounded-xl text-xs md:text-sm font-black border", (studentAssessment?.score ?? 0) >= 80 ? "text-emerald-800 bg-emerald-100 border-emerald-200" : (studentAssessment?.score ?? 0) >= 60 ? "text-amber-800 bg-amber-100 border-amber-200" : "text-rose-800 bg-rose-100 border-rose-200")}>
+                                          SKOR: {studentAssessment?.score}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-white flex items-center gap-2 group-hover:gap-3 transition-all">
+                                      KERJAKAN SOAL <ArrowRight size={18} className="text-yellow-400 group-hover:translate-x-1 transition-transform" />
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="bg-slate-100 py-20 rounded-[2rem] border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-8">
+                        <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center text-slate-400 mb-6">
+                          <Lock size={48} />
+                        </div>
+                        <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">Belum Ada Paket Soal Aktif</h3>
+                        <p className="text-slate-600 font-semibold max-w-sm">Paket soal akan tampil di sini setelah guru mengaktifkan kartu soal.</p>
+                      </div>
+                    )}
+                  </section>
+                </>
+              );
+            })()
           ) : (
             <>
               <section className="pb-6">
@@ -1579,11 +1733,188 @@ export default function App() {
     );
   }
 
+  if (currentPage === 'soal_confirm') {
+    const selectedSoalSet = soalSets.find(s => s.id === activeSoalSetId);
+    if (!selectedSoalSet) {
+      return (
+        <div className="min-h-screen bg-slate-300 flex items-center justify-center p-6">
+          <div className="bg-slate-100 p-8 rounded-3xl border border-slate-300 text-center space-y-4 max-w-md w-full shadow-xl">
+            <h3 className="font-black text-lg text-slate-900">Paket Soal Tidak Ditemukan</h3>
+            <button
+              onClick={() => setCurrentPage(isAdmin ? 'admin' : 'student_dashboard')}
+              className="px-6 py-3 bg-brand text-white rounded-xl font-bold text-sm"
+            >
+              Kembali ke Dashboard
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const activeQs = soalQuestions.filter(q => q.setId === selectedSoalSet.id && q.isActive !== false);
+    const courseKey = `soal_${selectedSoalSet.id}`;
+    const hasCompleted = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
+    const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
+    const isFullScreen = selectedSoalSet.isFullScreen || false;
+    const isScoreVisible = selectedSoalSet.isScoreVisible ?? true;
+
+    return (
+      <div className="min-h-screen bg-slate-300 text-slate-900 flex flex-col p-4 md:p-8 items-center justify-center overflow-y-auto custom-scrollbar">
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-2xl overflow-hidden shadow-2xl my-4 md:my-auto"
+        >
+          <div className="bg-slate-900 p-6 md:p-8 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+            <div className="relative z-10 flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-emerald-500/30 border border-emerald-400/50 flex items-center justify-center text-yellow-300 font-bold shadow-md shrink-0 mt-0.5">
+                  <ClipboardList size={28} />
+                </div>
+                <div>
+                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 block mb-1">
+                    Konfirmasi Pengerjaan Soal
+                  </span>
+                  <h2 className="text-xl md:text-2xl font-black text-white leading-snug">
+                    {selectedSoalSet.title}
+                  </h2>
+                </div>
+              </div>
+              <button
+                onClick={() => setCurrentPage('student_dashboard')}
+                className="p-2.5 hover:bg-white/10 rounded-2xl transition-colors text-slate-300 hover:text-white shrink-0"
+              >
+                <X size={22} />
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 md:p-8 space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Target Kelas</span>
+                <span className="px-3 py-1 rounded-xl text-xs font-black bg-blue-100 text-blue-800 border border-blue-200 w-fit">
+                  {selectedSoalSet.kelas || 'Semua Kelas'}
+                </span>
+              </div>
+
+              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Jumlah Soal PG</span>
+                <span className="font-black text-slate-900 text-sm">{activeQs.length} Butir Soal (4 Opsi)</span>
+              </div>
+
+              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Pengaturan Timer</span>
+                <span className="font-black text-xs text-amber-800 bg-amber-100 border border-amber-200 px-3 py-1 rounded-xl w-fit">
+                  {selectedSoalSet.timerMode === 'per_soal'
+                    ? `⏱️ Per Soal (${selectedSoalSet.defaultQuestionTimerSeconds || 30}d default)`
+                    : selectedSoalSet.titleTimerSeconds > 0
+                    ? `⏱️ Per Judul (${Math.floor(selectedSoalSet.titleTimerSeconds / 60)}m ${selectedSoalSet.titleTimerSeconds % 60}d)`
+                    : '⏱️ Tanpa Batas Waktu'}
+                </span>
+              </div>
+
+              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Mode Keamanan</span>
+                <span className={cn("font-black text-xs px-3 py-1 rounded-xl border w-fit", isFullScreen ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-emerald-100 text-emerald-800 border-emerald-200")}>
+                  {isFullScreen ? "🔒 Fullscreen (Terpantau)" : "🔓 Mode Normal"}
+                </span>
+              </div>
+            </div>
+
+            {hasCompleted ? (
+              <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-start gap-4">
+                <CheckCircle size={24} className="text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-black text-emerald-900 text-base mb-1">Paket Soal Ini Sudah Dikerjakan</h4>
+                  <p className="text-sm text-emerald-800 font-medium">
+                    {isScoreVisible
+                      ? <>Skor terakhir Anda: <span className="font-black underline">{studentAssessment?.score ?? 0}</span>. Anda dapat mengerjakan ulang jika diizinkan guru.</>
+                      : 'Jawaban Anda telah tersimpan di sistem guru.'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl flex items-start gap-4">
+                <Info size={24} className="text-brand shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-black text-slate-900 text-base mb-1">Siap Mengerjakan?</h4>
+                  <p className="text-sm text-slate-700 font-medium">
+                    Pastikan koneksi stabil. {isFullScreen && 'Dilarang keluar dari layar penuh atau membuka tab lain selama ujian berlangsung.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-5 border-t border-slate-300">
+              <button
+                onClick={() => setCurrentPage('student_dashboard')}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-200 text-sm"
+              >
+                Kembali
+              </button>
+              <button
+                onClick={() => setCurrentPage('soal')}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-all"
+              >
+                <CheckCircle size={20} />
+                {hasCompleted ? "Kerjakan Ulang Soal" : "Mulai Kerjakan Soal"}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (currentPage === 'soal') {
+    const selectedSoalSet = soalSets.find(s => s.id === activeSoalSetId);
+    if (!selectedSoalSet) {
+      return (
+        <div className="min-h-screen bg-slate-300 flex items-center justify-center p-6">
+          <div className="bg-slate-100 p-8 rounded-3xl border border-slate-300 text-center space-y-4 max-w-md w-full shadow-xl">
+            <h3 className="font-black text-lg text-slate-900">Paket Soal Tidak Tersedia</h3>
+            <button
+              onClick={() => setCurrentPage(isAdmin ? 'admin' : 'student_dashboard')}
+              className="px-6 py-3 bg-brand text-white rounded-xl font-bold text-sm"
+            >
+              Kembali ke Dashboard
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const setQuestions = soalQuestions.filter(q => q.setId === selectedSoalSet.id);
+    return (
+      <StudentSoalRunner
+        soalSet={selectedSoalSet}
+        questions={setQuestions}
+        currentStudent={currentStudent}
+        isAdminPreview={isAdmin || isPreviewingSoal}
+        onExit={() => {
+          setIsPreviewingSoal(false);
+          if (isAdmin) {
+            setAdminTab('questions');
+            setCurrentPage('admin');
+          } else {
+            setCurrentPage('student_dashboard');
+          }
+        }}
+        onFirestoreError={(err, op, path) =>
+          handleFirestoreError(err, op === 'delete' ? OperationType.DELETE : OperationType.WRITE, path)
+        }
+      />
+    );
+  }
+
   if (currentPage === 'admin') {
     const menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: Home, color: 'bg-brand/10 text-brand' },
       { id: 'student_management', label: 'Siswa & Kelas', icon: Users, color: 'bg-brand/10 text-brand' },
       { id: 'materials', label: 'Kelola Materi', icon: BookOpen, color: 'bg-brand/10 text-brand' },
+      { id: 'questions', label: 'Kelola Soal', icon: ClipboardList, color: 'bg-brand/10 text-brand' },
       { id: 'assessments', label: 'Hasil Asesmen', icon: TrendingUp, color: 'bg-brand/10 text-brand' },
       { id: 'games', label: 'Kelola Game', icon: Gamepad2, color: 'bg-brand/10 text-brand' },
       { id: 'history', label: 'Riwayat Akses', icon: GitBranch, color: 'bg-brand/10 text-brand' },
@@ -1701,7 +2032,7 @@ export default function App() {
               <div>
                 <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight lowercase first-letter:uppercase">
                   {adminTab === 'history' ? 'Aktivitas' : adminTab === 'student_management' ? 'Siswa & Kelas' : 
-                   adminTab === 'materials' ? 'Kelola Materi' : adminTab === 'assessments' ? 'Hasil Asesmen' :
+                   adminTab === 'materials' ? 'Kelola Materi' : adminTab === 'questions' ? 'Kelola Soal' : adminTab === 'assessments' ? 'Hasil Asesmen' :
                    adminTab === 'games' ? 'Kelola Permainan / Game Edukasi' :
                    adminTab === 'announcements' ? 'Pengumuman' : adminTab === 'settings' ? 'Pengaturan' : adminTab}
                 </h1>
@@ -1858,8 +2189,8 @@ export default function App() {
 
               return (
                 <div className="space-y-6 animate-in fade-in duration-500">
-                  {/* Kartu Kelola Game & Kelola Materi (Ringkas, Kompak, Warna-Warni & Modern di Bagian Atas) */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {/* Kartu Kelola Game, Kelola Materi & Kelola Soal (Ringkas, Kompak, Warna-Warni & Modern di Bagian Atas) */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
                     {/* Kartu 1: Kelola Game Edukasi */}
                     <div className="relative overflow-hidden bg-white/95 hover:bg-white rounded-2xl p-3 md:py-2.5 md:px-3.5 border border-indigo-200 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-3 group">
                       <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all" />
@@ -1941,6 +2272,46 @@ export default function App() {
                         className="px-3 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black rounded-xl shadow-sm hover:shadow-emerald-500/25 active:scale-95 transition-all flex items-center gap-1 shrink-0"
                       >
                         <BookOpen size={14} className="text-yellow-200" />
+                        <span>Kelola</span>
+                        <ArrowRight size={13} />
+                      </button>
+                    </div>
+
+                    {/* Kartu 3: Kelola Soal (PG 4 Opsi + Gambar + Timer) */}
+                    <div className="relative overflow-hidden bg-white/95 hover:bg-white rounded-2xl p-3 md:py-2.5 md:px-3.5 border border-amber-200 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-3 group">
+                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-amber-500/20 transition-all" />
+
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl shrink-0 border border-amber-300 shadow-sm relative bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 flex items-center justify-center">
+                          <ClipboardList size={30} className="text-white drop-shadow-md group-hover:scale-110 transition-transform duration-300" />
+                          <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-400 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black shadow-xs">
+                            📝
+                          </span>
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                              Bank Soal PG 4 Opsi
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500 hidden sm:inline">
+                              • {soalSets.filter(s => s.isActive).length} Kartu Aktif
+                            </span>
+                          </div>
+                          <h3 className="text-sm md:text-base font-black text-slate-900 leading-tight mt-0.5 truncate group-hover:text-amber-950 transition-colors">
+                            Kelola Soal & Ujian
+                          </h3>
+                          <p className="text-[11px] text-slate-600 font-medium line-clamp-1 mt-0.5">
+                            Input manual/bulk, gambar soal & opsi, timer per soal/judul.
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setAdminTab('questions')}
+                        className="px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-black rounded-xl shadow-sm hover:shadow-amber-500/25 active:scale-95 transition-all flex items-center gap-1 shrink-0"
+                      >
+                        <ClipboardList size={14} className="text-yellow-100" />
                         <span>Kelola</span>
                         <ArrowRight size={13} />
                       </button>
@@ -3732,6 +4103,29 @@ export default function App() {
             {adminTab === 'games' && (
               <AdminGames isAdmin={true} studentsList={students} />
             )}
+            {adminTab === 'questions' && (
+              <AdminSoal
+                soalSets={soalSets}
+                soalQuestions={soalQuestions}
+                onPreviewSet={(set) => {
+                  setActiveSoalSetId(set.id);
+                  sessionStorage.setItem('activeSoalSetId', set.id);
+                  setIsPreviewingSoal(true);
+                  setCurrentPage('soal');
+                }}
+                onFirestoreError={(err, op, path) => {
+                  const opEnum =
+                    op === 'create'
+                      ? OperationType.CREATE
+                      : op === 'update'
+                      ? OperationType.UPDATE
+                      : op === 'delete'
+                      ? OperationType.DELETE
+                      : OperationType.WRITE;
+                  handleFirestoreError(err, opEnum, path);
+                }}
+              />
+            )}
           </div>
 
           <AnimatePresence>
@@ -4562,6 +4956,9 @@ export default function App() {
                   try {
                     for (const c of COURSES) {
                       await deleteDoc(doc(db, 'active_sessions', `${currentStudent.id}_${c.id}`)).catch(()=> {});
+                    }
+                    for (const s of soalSets) {
+                      await deleteDoc(doc(db, 'active_sessions', `${currentStudent.id}_soal_${s.id}`)).catch(()=> {});
                     }
                   } catch(e) {}
                 }

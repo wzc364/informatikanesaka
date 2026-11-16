@@ -106,6 +106,45 @@
         "cheatingAttempts": { "type": "number" },
         "cheatingDetails": { "type": "array", "items": { "type": "string" } }
       }
+    },
+    "SoalSet": {
+      "title": "Soal Set",
+      "description": "Kartu paket soal pilihan ganda 4 opsi berdasarkan judul.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "kelas": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "isFullScreen": { "type": "boolean" },
+        "isScoreVisible": { "type": "boolean" },
+        "timerMode": { "type": "string", "enum": ["per_judul", "per_soal"] },
+        "titleTimerSeconds": { "type": "number" },
+        "defaultQuestionTimerSeconds": { "type": "number" },
+        "shuffleQuestions": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "isActive", "timerMode"]
+    },
+    "SoalQuestion": {
+      "title": "Soal Question",
+      "description": "Butir soal PG 4 opsi dengan dukungan gambar soal/opsi dan timer per soal.",
+      "type": "object",
+      "properties": {
+        "setId": { "type": "string" },
+        "order": { "type": "number" },
+        "isActive": { "type": "boolean" },
+        "questionText": { "type": "string" },
+        "questionImage": { "type": "string" },
+        "options": { "type": "array" },
+        "correctAnswer": { "type": "number" },
+        "timerSeconds": { "type": "number" },
+        "explanation": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["setId", "isActive", "options", "correctAnswer"]
     }
   },
   "firestore": {
@@ -140,6 +179,14 @@
     "/active_sessions/{sessionId}": {
       "schema": "ActiveSession",
       "description": "Tracks currently active student sessions."
+    },
+    "/soal_sets/{setId}": {
+      "schema": "SoalSet",
+      "description": "Title-based question bank cards."
+    },
+    "/soal_questions/{questionId}": {
+      "schema": "SoalQuestion",
+      "description": "Multiple-choice 4-option questions belonging to a SoalSet."
     }
   }
 }
