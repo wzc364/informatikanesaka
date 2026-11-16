@@ -66,6 +66,9 @@ import queenIdleUrl from '../assets/images/queen_idle_1794840565562.jpg';
 import queenAttackUrl from '../assets/images/queen_attack_1794840568272.jpg';
 import queenPunchUrl from '../assets/images/queen_punch_1794841144254.jpg';
 import queenSpecialUrl from '../assets/images/queen_special_1794841144544.jpg';
+import arenaCourtyardUrl from '../assets/images/arena_courtyard_1794842649485.jpg';
+import arenaPitUrl from '../assets/images/arena_pit_1794842650148.jpg';
+import arenaThroneUrl from '../assets/images/arena_throne_1794842650958.jpg';
 
 enum OperationType {
   CREATE = 'create',
@@ -949,6 +952,71 @@ const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
 const FIGHTER_SPRITE_CACHE: Partial<Record<FighterId, Record<SpritePoseKey, HTMLCanvasElement | null>>> = {};
 const KEYED_URL_CACHE = new Map<string, HTMLCanvasElement>();
 const INFLIGHT_URL_LOADS = new Map<string, Promise<HTMLCanvasElement | null>>();
+
+const ARENA_BG_URLS: Record<1 | 2 | 3, string> = {
+  1: arenaCourtyardUrl,
+  2: arenaPitUrl,
+  3: arenaThroneUrl,
+};
+const ARENA_BG_CACHE: Partial<Record<1 | 2 | 3, HTMLCanvasElement>> = {};
+let arenaBgInitialized = false;
+
+function ensureArenaBackgroundsLoaded() {
+  if (arenaBgInitialized || typeof window === 'undefined') return;
+  arenaBgInitialized = true;
+
+  ([1, 2, 3] as const).forEach((stageNum) => {
+    const url = ARENA_BG_URLS[stageNum];
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.decoding = 'async';
+    if ('fetchPriority' in img) {
+      (img as any).fetchPriority = stageNum === 1 ? 'high' : 'auto';
+    }
+    img.src = url;
+
+    const bakeToOffscreen = () => {
+      if (!img.naturalWidth || !img.naturalHeight) return;
+      const off = document.createElement('canvas');
+      off.width = STAGE_W;
+      off.height = STAGE_H;
+      const octx = off.getContext('2d');
+      if (!octx) return;
+
+      // Draw crisp cover fit into exact 800x450 canvas once for zero per-frame rescaling cost
+      const scale = Math.max(STAGE_W / img.naturalWidth, STAGE_H / img.naturalHeight);
+      const dw = img.naturalWidth * scale;
+      const dh = img.naturalHeight * scale;
+      const dx = (STAGE_W - dw) * 0.5;
+      const dy = (STAGE_H - dh) * 0.5;
+      octx.imageSmoothingEnabled = true;
+      octx.imageSmoothingQuality = 'high';
+      octx.drawImage(img, dx, dy, dw, dh);
+
+      // Subtle dark contrast scrim + floor anchor horizon line so fighters stand out clearly
+      const scrim = octx.createLinearGradient(0, 0, 0, STAGE_H);
+      scrim.addColorStop(0, 'rgba(0,0,0,0.22)');
+      scrim.addColorStop(0.55, 'rgba(0,0,0,0.06)');
+      scrim.addColorStop(0.84, 'rgba(0,0,0,0.24)');
+      scrim.addColorStop(1, 'rgba(0,0,0,0.38)');
+      octx.fillStyle = scrim;
+      octx.fillRect(0, 0, STAGE_W, STAGE_H);
+
+      ARENA_BG_CACHE[stageNum] = off;
+    };
+
+    if (typeof img.decode === 'function') {
+      img
+        .decode()
+        .then(bakeToOffscreen)
+        .catch(() => {
+          if (img.complete && img.naturalWidth > 0) bakeToOffscreen();
+        });
+    } else {
+      img.onload = bakeToOffscreen;
+    }
+  });
+}
 let fighterSpritesInitialized = false;
 let spriteLoadedCount = 0;
 let spriteTotalCount = 0;
@@ -2176,175 +2244,227 @@ function drawHumanFighter(
   ctx.restore();
 }
 
-// Draw authentic SNES Mortal Kombat Arena Background
+// Draw authentic SNES Mortal Kombat Arena Background (Pre-baked AI Image + Vector Fallback)
 function drawArenaBackground(ctx: CanvasRenderingContext2D, stage: 1 | 2 | 3, time: number, fatalityDarkness: number) {
-  if (stage === 1) {
-    const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    sky.addColorStop(0, '#070b1e');
-    sky.addColorStop(0.55, '#171c3a');
-    sky.addColorStop(1, '#2d1e38');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, STAGE_W, GROUND_Y);
+  ensureArenaBackgroundsLoaded();
+  const cachedBg = ARENA_BG_CACHE[stage];
 
-    ctx.fillStyle = '#fef3c7';
-    ctx.shadowColor = '#fde68a';
-    ctx.shadowBlur = 24;
-    ctx.beginPath();
-    ctx.arc(620, 92, 42, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
+  if (cachedBg) {
+    // 1:1 hardware canvas blit (<0.2ms/frame)
+    ctx.drawImage(cachedBg, 0, 0);
 
-    ctx.fillStyle = '#0f1224';
-    ctx.beginPath();
-    ctx.moveTo(60, 260);
-    ctx.lineTo(220, 260);
-    ctx.lineTo(140, 200);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillRect(90, 260, 100, 122);
-
-    ctx.beginPath();
-    ctx.moveTo(560, 250);
-    ctx.lineTo(740, 250);
-    ctx.lineTo(650, 185);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillRect(590, 250, 120, 132);
-
-    ctx.fillStyle = '#1e1b2e';
-    ctx.fillRect(0, 315, STAGE_W, 67);
-    [85, 290, 510, 715].forEach((px) => {
-      ctx.fillStyle = '#2e2942';
-      ctx.fillRect(px - 18, 120, 36, 262);
-      ctx.fillStyle = '#474063';
-      ctx.fillRect(px - 22, 112, 44, 14);
-      ctx.fillRect(px - 22, 368, 44, 14);
-    });
-
-    [160, 220, 360, 440, 590, 640].forEach((mx, idx) => {
-      const cheer = Math.abs(Math.sin(time * 0.006 + idx)) * 6;
-      ctx.fillStyle = '#090b14';
-      ctx.beginPath();
-      ctx.arc(mx, 336 - cheer, 9, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillRect(mx - 10, 345 - cheer, 20, 36);
-    });
-
-    [195, 605].forEach((bx) => {
-      ctx.fillStyle = '#44403c';
-      ctx.fillRect(bx - 14, 345, 28, 37);
-      const flick = Math.sin(time * 0.03 + bx) * 5;
-      ctx.fillStyle = '#f97316';
-      ctx.beginPath();
-      ctx.moveTo(bx - 12, 345);
-      ctx.lineTo(bx + flick, 310 - Math.abs(flick));
-      ctx.lineTo(bx + 12, 345);
-      ctx.fill();
-      ctx.fillStyle = '#fef08a';
-      ctx.beginPath();
-      ctx.moveTo(bx - 6, 345);
-      ctx.lineTo(bx + flick * 0.5, 323);
-      ctx.lineTo(bx + 6, 345);
-      ctx.fill();
-    });
-  } else if (stage === 2) {
-    const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    sky.addColorStop(0, '#041219');
-    sky.addColorStop(0.6, '#0b2936');
-    sky.addColorStop(1, '#123d33');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, STAGE_W, GROUND_Y);
-
-    ctx.fillStyle = '#d1fae5';
-    ctx.shadowColor = '#34d399';
-    ctx.shadowBlur = 30;
-    ctx.beginPath();
-    ctx.arc(400, 120, 68, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    ctx.fillStyle = '#071d24';
-    ctx.beginPath();
-    ctx.moveTo(0, 382);
-    ctx.lineTo(140, 210);
-    ctx.lineTo(290, 310);
-    ctx.lineTo(430, 230);
-    ctx.lineTo(590, 320);
-    ctx.lineTo(740, 195);
-    ctx.lineTo(800, 270);
-    ctx.lineTo(800, 382);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = '#1f2937';
-    ctx.fillRect(0, 345, STAGE_W, 37);
-    for (let x = 40; x < STAGE_W; x += 120) {
-      ctx.fillStyle = '#374151';
-      ctx.fillRect(x - 10, 310, 20, 72);
-      const f = Math.sin(time * 0.025 + x) * 4;
-      ctx.fillStyle = '#10b981';
-      ctx.beginPath();
-      ctx.moveTo(x - 8, 310);
-      ctx.lineTo(x + f, 282);
-      ctx.lineTo(x + 8, 310);
-      ctx.fill();
+    // Subtle live ambient torch / brazier glow pulse so the AI stage feels alive
+    ctx.save();
+    const pulse = 0.08 + Math.sin(time * 0.012) * 0.04;
+    if (stage === 1) {
+      [158, 642].forEach((tx) => {
+        const glow = ctx.createRadialGradient(tx, 272, 4, tx, 272, 68);
+        glow.addColorStop(0, `rgba(251, 146, 60, ${pulse * 1.9})`);
+        glow.addColorStop(1, 'rgba(251, 146, 60, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(tx, 272, 68, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    } else if (stage === 2) {
+      [52, 748].forEach((tx) => {
+        const glow = ctx.createRadialGradient(tx, 215, 4, tx, 215, 64);
+        glow.addColorStop(0, `rgba(16, 185, 129, ${pulse * 1.8})`);
+        glow.addColorStop(1, 'rgba(16, 185, 129, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(tx, 215, 64, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    } else {
+      [62, 738].forEach((tx) => {
+        const glow = ctx.createRadialGradient(tx, 210, 4, tx, 210, 72);
+        glow.addColorStop(0, `rgba(245, 158, 11, ${pulse * 2.0})`);
+        glow.addColorStop(1, 'rgba(245, 158, 11, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(tx, 210, 72, 0, Math.PI * 2);
+        ctx.fill();
+      });
     }
+
+    // Subtle horizon floor anchor line at GROUND_Y
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    ctx.lineTo(STAGE_W, GROUND_Y);
+    ctx.stroke();
+    ctx.restore();
   } else {
-    const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    sky.addColorStop(0, '#1a0408');
-    sky.addColorStop(0.55, '#3b0912');
-    sky.addColorStop(1, '#581217');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, STAGE_W, GROUND_Y);
+    if (stage === 1) {
+      const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+      sky.addColorStop(0, '#070b1e');
+      sky.addColorStop(0.55, '#171c3a');
+      sky.addColorStop(1, '#2d1e38');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, STAGE_W, GROUND_Y);
 
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
-    ctx.lineWidth = 8;
-    ctx.beginPath();
-    ctx.arc(400, 185, 92, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.14)';
-    ctx.beginPath();
-    ctx.arc(400, 185, 76, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#22060b';
-    ctx.fillRect(350, 210, 100, 172);
-    ctx.fillStyle = '#991b1b';
-    ctx.fillRect(365, 225, 70, 140);
-
-    [90, 710].forEach((px) => {
-      ctx.fillStyle = '#291518';
-      ctx.fillRect(px - 22, 60, 44, 322);
-      ctx.fillStyle = '#f59e0b';
-      const fl = Math.sin(time * 0.035 + px) * 5;
+      ctx.fillStyle = '#fef3c7';
+      ctx.shadowColor = '#fde68a';
+      ctx.shadowBlur = 24;
       ctx.beginPath();
-      ctx.moveTo(px - 14, 245);
-      ctx.lineTo(px + fl, 200);
-      ctx.lineTo(px + 14, 245);
+      ctx.arc(620, 92, 42, 0, Math.PI * 2);
       ctx.fill();
-    });
-  }
+      ctx.shadowBlur = 0;
 
-  const floorGrad = ctx.createLinearGradient(0, GROUND_Y, 0, STAGE_H);
-  floorGrad.addColorStop(0, stage === 3 ? '#3b1518' : '#2c2938');
-  floorGrad.addColorStop(1, '#09090b');
-  ctx.fillStyle = floorGrad;
-  ctx.fillRect(0, GROUND_Y, STAGE_W, STAGE_H - GROUND_Y);
+      ctx.fillStyle = '#0f1224';
+      ctx.beginPath();
+      ctx.moveTo(60, 260);
+      ctx.lineTo(220, 260);
+      ctx.lineTo(140, 200);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(90, 260, 100, 122);
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(0, GROUND_Y);
-  ctx.lineTo(STAGE_W, GROUND_Y);
-  ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(560, 250);
+      ctx.lineTo(740, 250);
+      ctx.lineTo(650, 185);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(590, 250, 120, 132);
 
-  for (let i = -6; i <= 6; i++) {
-    const topX = STAGE_W / 2 + i * 70;
-    const botX = STAGE_W / 2 + i * 115;
+      ctx.fillStyle = '#1e1b2e';
+      ctx.fillRect(0, 315, STAGE_W, 67);
+      [85, 290, 510, 715].forEach((px) => {
+        ctx.fillStyle = '#2e2942';
+        ctx.fillRect(px - 18, 120, 36, 262);
+        ctx.fillStyle = '#474063';
+        ctx.fillRect(px - 22, 112, 44, 14);
+        ctx.fillRect(px - 22, 368, 44, 14);
+      });
+
+      [160, 220, 360, 440, 590, 640].forEach((mx, idx) => {
+        const cheer = Math.abs(Math.sin(time * 0.006 + idx)) * 6;
+        ctx.fillStyle = '#090b14';
+        ctx.beginPath();
+        ctx.arc(mx, 336 - cheer, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(mx - 10, 345 - cheer, 20, 36);
+      });
+
+      [195, 605].forEach((bx) => {
+        ctx.fillStyle = '#44403c';
+        ctx.fillRect(bx - 14, 345, 28, 37);
+        const flick = Math.sin(time * 0.03 + bx) * 5;
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath();
+        ctx.moveTo(bx - 12, 345);
+        ctx.lineTo(bx + flick, 310 - Math.abs(flick));
+        ctx.lineTo(bx + 12, 345);
+        ctx.fill();
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.moveTo(bx - 6, 345);
+        ctx.lineTo(bx + flick * 0.5, 323);
+        ctx.lineTo(bx + 6, 345);
+        ctx.fill();
+      });
+    } else if (stage === 2) {
+      const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+      sky.addColorStop(0, '#041219');
+      sky.addColorStop(0.6, '#0b2936');
+      sky.addColorStop(1, '#123d33');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, STAGE_W, GROUND_Y);
+
+      ctx.fillStyle = '#d1fae5';
+      ctx.shadowColor = '#34d399';
+      ctx.shadowBlur = 30;
+      ctx.beginPath();
+      ctx.arc(400, 120, 68, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = '#071d24';
+      ctx.beginPath();
+      ctx.moveTo(0, 382);
+      ctx.lineTo(140, 210);
+      ctx.lineTo(290, 310);
+      ctx.lineTo(430, 230);
+      ctx.lineTo(590, 320);
+      ctx.lineTo(740, 195);
+      ctx.lineTo(800, 270);
+      ctx.lineTo(800, 382);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(0, 345, STAGE_W, 37);
+      for (let x = 40; x < STAGE_W; x += 120) {
+        ctx.fillStyle = '#374151';
+        ctx.fillRect(x - 10, 310, 20, 72);
+        const f = Math.sin(time * 0.025 + x) * 4;
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath();
+        ctx.moveTo(x - 8, 310);
+        ctx.lineTo(x + f, 282);
+        ctx.lineTo(x + 8, 310);
+        ctx.fill();
+      }
+    } else {
+      const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+      sky.addColorStop(0, '#1a0408');
+      sky.addColorStop(0.55, '#3b0912');
+      sky.addColorStop(1, '#581217');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, STAGE_W, GROUND_Y);
+
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.arc(400, 185, 92, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.14)';
+      ctx.beginPath();
+      ctx.arc(400, 185, 76, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#22060b';
+      ctx.fillRect(350, 210, 100, 172);
+      ctx.fillStyle = '#991b1b';
+      ctx.fillRect(365, 225, 70, 140);
+
+      [90, 710].forEach((px) => {
+        ctx.fillStyle = '#291518';
+        ctx.fillRect(px - 22, 60, 44, 322);
+        ctx.fillStyle = '#f59e0b';
+        const fl = Math.sin(time * 0.035 + px) * 5;
+        ctx.beginPath();
+        ctx.moveTo(px - 14, 245);
+        ctx.lineTo(px + fl, 200);
+        ctx.lineTo(px + 14, 245);
+        ctx.fill();
+      });
+    }
+
+    const floorGrad = ctx.createLinearGradient(0, GROUND_Y, 0, STAGE_H);
+    floorGrad.addColorStop(0, stage === 3 ? '#3b1518' : '#2c2938');
+    floorGrad.addColorStop(1, '#09090b');
+    ctx.fillStyle = floorGrad;
+    ctx.fillRect(0, GROUND_Y, STAGE_W, STAGE_H - GROUND_Y);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(topX, GROUND_Y);
-    ctx.lineTo(botX, STAGE_H);
+    ctx.moveTo(0, GROUND_Y);
+    ctx.lineTo(STAGE_W, GROUND_Y);
     ctx.stroke();
+
+    for (let i = -6; i <= 6; i++) {
+      const topX = STAGE_W / 2 + i * 70;
+      const botX = STAGE_W / 2 + i * 115;
+      ctx.beginPath();
+      ctx.moveTo(topX, GROUND_Y);
+      ctx.lineTo(botX, STAGE_H);
+      ctx.stroke();
+    }
   }
 
   if (fatalityDarkness > 0) {
@@ -2565,6 +2685,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   }, [playMode]);
 
   useEffect(() => {
+    ensureArenaBackgroundsLoaded();
     ensureFighterSpritesLoaded();
     const unsubProgress = subscribeSpriteLoadProgress((loaded, total) => {
       setSpriteProgress({ loaded, total });
