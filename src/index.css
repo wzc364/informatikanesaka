@@ -7,11 +7,12 @@
   --color-accent-hover: #ca8a04;
   --color-frame: #cbd5e1;
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 @layer base {
   body {
-    @apply bg-slate-300 text-slate-800 antialiased;
+    @apply bg-slate-300 text-slate-800 antialiased font-sans;
   }
 }
 
@@ -41,20 +42,34 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #3b82f6; /* blue-500 */
+    background: rgba(100, 116, 139, 0.45);
     border-radius: 20px;
     border: 1px solid transparent;
     background-clip: padding-box;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #1d4ed8; /* blue-700 */
+    background: #1d4ed8;
     background-clip: padding-box;
   }
 
   /* Firefox support */
   * {
     scrollbar-width: thin;
-    scrollbar-color: #3b82f6 transparent;
+    scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
   }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.55);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #1d4ed8;
 }

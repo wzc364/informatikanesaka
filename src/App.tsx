@@ -1923,20 +1923,20 @@ export default function App() {
     ] as const;
 
     return (
-      <div className="flex h-screen bg-slate-300 overflow-hidden">
+      <div className="flex h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/40 text-slate-900 overflow-hidden">
         {/* Mobile Header */}
-        <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-slate-100 border-b border-slate-300 z-50 flex items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <div className="bg-slate-200 w-10 h-10 rounded-xl flex items-center justify-center shadow-sm overflow-hidden relative border border-slate-300">
+        <div className="md:hidden fixed top-3 left-3 right-3 h-14 bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-2xl shadow-lg shadow-slate-900/5 z-50 flex items-center justify-between px-3.5 transition-all duration-300">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-slate-100 w-9 h-9 rounded-xl flex items-center justify-center shadow-xs overflow-hidden relative border border-slate-200/80 ring-1 ring-black/5">
               <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
             </div>
-            <h2 className="text-sm font-bold text-slate-900">SMPN 1 Kawali</h2>
+            <h2 className="text-sm font-extrabold text-slate-900 tracking-tight">SMPN 1 Kawali</h2>
           </div>
           <button 
             onClick={() => setIsAdminSidebarOpen(true)}
-            className="p-2 text-slate-600 hover:bg-slate-200 rounded-lg"
+            className="p-2 text-slate-700 hover:text-brand hover:bg-slate-100/80 rounded-xl transition-all duration-300 active:scale-95"
           >
-            <Menu size={24} />
+            <Menu size={22} />
           </button>
         </div>
 
@@ -1955,22 +1955,22 @@ export default function App() {
 
         {/* Sidebar Navigation */}
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-slate-100 border-r border-slate-300 p-6 flex flex-col transition-transform duration-300 transform md:relative md:translate-x-0",
-          isAdminSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-3 left-3 z-50 w-72 bg-white/85 backdrop-blur-xl border border-slate-200/80 rounded-3xl shadow-2xl shadow-slate-900/10 p-5 flex flex-col transition-all duration-300 transform md:relative md:inset-auto md:m-4 md:mr-0 md:h-[calc(100vh-2rem)] md:shadow-xl md:shadow-slate-900/[0.04] md:translate-x-0",
+          isAdminSidebarOpen ? "translate-x-0" : "-translate-x-[calc(100%+1.5rem)]"
         )}>
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between pb-5 mb-5 border-b border-slate-200/70">
             <div className="flex items-center gap-3">
-              <div className="bg-slate-200 w-12 h-12 rounded-xl flex items-center justify-center shadow-md overflow-hidden relative border border-slate-300">
+              <div className="bg-slate-100 w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden relative border border-slate-200/80 ring-2 ring-white">
                 <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
               </div>
               <div>
-                <h2 className="text-lg font-black text-slate-900 leading-tight uppercase tracking-tight">SMPN 1 KAWALI</h2>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Informatika</p>
+                <h2 className="text-base font-extrabold text-slate-900 leading-tight uppercase tracking-tight">SMPN 1 KAWALI</h2>
+                <p className="text-[10px] font-bold text-brand uppercase tracking-widest mt-0.5">Informatika</p>
               </div>
             </div>
             <button 
               onClick={() => setIsAdminSidebarOpen(false)}
-              className="md:hidden p-1 text-slate-400 hover:text-slate-600"
+              className="md:hidden p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all duration-300"
             >
               <X size={20} />
             </button>
@@ -1987,29 +1987,29 @@ export default function App() {
                   setIsAdminSidebarOpen(false);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all font-bold text-sm group",
+                  "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-300 font-bold text-sm group relative",
                   adminTab === item.id 
-                    ? "bg-brand text-white shadow-lg shadow-brand/20 lg:scale-[1.02] relative" 
-                    : "text-slate-500 hover:bg-frame hover:text-brand"
+                    ? "bg-gradient-to-r from-brand to-blue-600 text-white shadow-lg shadow-brand/25" 
+                    : "text-slate-600 hover:bg-slate-100/90 hover:text-brand hover:translate-x-0.5"
                 )}
               >
-                {adminTab === item.id && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-accent rounded-r-full" />}
+                {adminTab === item.id && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-accent rounded-r-full shadow-xs" />}
                 <div className={cn(
-                  "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
-                  adminTab === item.id ? "bg-white/20 text-white" : "bg-brand/10 text-brand"
+                  "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0",
+                  adminTab === item.id ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500 group-hover:bg-brand/10 group-hover:text-brand"
                 )}>
                   <item.icon size={16} />
                 </div>
-                {item.label}
+                <span className="truncate">{item.label}</span>
               </button>
             ))}
           </nav>
-          <div className="pt-6 mt-6 border-t border-slate-100">
+          <div className="pt-4 mt-4 border-t border-slate-200/70">
             <button 
               onClick={() => { setIsAdmin(false); setCurrentPage('login'); }} 
-              className="w-full flex items-center gap-3 text-red-500 hover:bg-red-50 p-4 rounded-2xl transition-all font-bold text-sm"
+              className="w-full flex items-center gap-3 text-rose-600 hover:bg-rose-50/90 border border-transparent hover:border-rose-200/70 p-3 rounded-2xl transition-all duration-300 font-bold text-sm group"
             >
-              <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-rose-50 group-hover:bg-rose-100 flex items-center justify-center transition-colors duration-300">
                 <LogOut size={16} />
               </div>
               Logout Admin
@@ -2017,41 +2017,41 @@ export default function App() {
           </div>
         </aside>
 
-        <main className="flex-1 p-4 md:p-10 pt-20 md:pt-10 overflow-y-auto w-full bg-frame">
-          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-            <div className="flex items-center gap-4">
+        <main className="flex-1 p-4 md:p-6 lg:p-8 pt-20 md:pt-5 overflow-y-auto w-full custom-scrollbar">
+          <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-2xl px-4 py-3.5 md:px-6 md:py-4 shadow-sm shadow-slate-900/[0.03] flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8 transition-all duration-300">
+            <div className="flex items-center gap-3.5">
               <div className={cn(
-                "w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center shadow-sm transition-all duration-500",
+                "w-11 h-11 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shadow-xs border border-brand/15 transition-all duration-300 shrink-0",
                 menuItems.find(i => i.id === adminTab)?.color
               )}>
                 {(() => {
                   const Icon = menuItems.find(i => i.id === adminTab)?.icon;
-                  return Icon ? <Icon size={24} className="md:w-7 md:h-7" /> : null;
+                  return Icon ? <Icon size={22} className="md:w-6 md:h-6" /> : null;
                 })()}
               </div>
               <div>
-                <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight lowercase first-letter:uppercase">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight lowercase first-letter:uppercase">
                   {adminTab === 'history' ? 'Aktivitas' : adminTab === 'student_management' ? 'Siswa & Kelas' : 
                    adminTab === 'materials' ? 'Kelola Materi' : adminTab === 'questions' ? 'Kelola Soal' : adminTab === 'assessments' ? 'Hasil Asesmen' :
                    adminTab === 'games' ? 'Kelola Permainan / Game Edukasi' :
                    adminTab === 'announcements' ? 'Pengumuman' : adminTab === 'settings' ? 'Pengaturan' : adminTab}
                 </h1>
-                <p className="text-slate-400 font-bold text-sm tracking-tight capitalize">
+                <p className="text-slate-500 font-semibold text-xs md:text-sm tracking-tight capitalize">
                   Manajer sistem &bull; {adminTab}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 self-end md:self-auto">
               {/* Notification Bell */}
               <div className="relative">
                 <button 
                   onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                  className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 border border-slate-300 rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-all relative group"
+                  className="w-10 h-10 md:w-11 md:h-11 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl flex items-center justify-center text-slate-600 shadow-xs hover:shadow-sm transition-all duration-300 relative group"
                 >
-                  <Bell size={20} className="md:w-5 md:h-5 group-hover:rotate-12 transition-transform text-brand" />
+                  <Bell size={20} className="md:w-5 md:h-5 group-hover:rotate-12 transition-transform duration-300 text-brand" />
                   {notifications.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-slate-100 ring-2 ring-red-500/20 px-1">
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 bg-rose-500 text-white text-[10px] font-extrabold rounded-full flex items-center justify-center border-2 border-white ring-2 ring-rose-500/20 px-1 tabular-nums">
                       {notifications.length}
                     </span>
                   )}
@@ -2064,48 +2064,49 @@ export default function App() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-40 bg-slate-900/20 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none"
+                        className="fixed inset-0 z-40 bg-slate-900/25 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none"
                         onClick={() => setIsNotificationsOpen(false)}
                       />
                       <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        initial={{ opacity: 0, y: 10, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] md:translate-x-0 md:translate-y-0 md:absolute md:inset-auto md:right-0 md:top-full md:mt-3 md:w-96 bg-slate-100 rounded-3xl shadow-2xl border border-slate-300 z-50 overflow-hidden origin-center md:origin-top-right"
+                        exit={{ opacity: 0, y: 10, scale: 0.96 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] md:translate-x-0 md:translate-y-0 md:absolute md:inset-auto md:right-0 md:top-full md:mt-3 md:w-96 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-slate-900/15 border border-slate-200/80 z-50 overflow-hidden origin-center md:origin-top-right"
                       >
-                        <div className="p-5 border-b border-slate-300 flex items-center justify-between bg-slate-200">
-                          <h3 className="font-black text-slate-800 tracking-tight text-sm md:text-base">Notifikasi Baru</h3>
-                          <span className="text-[10px] font-bold bg-brand/10 text-brand px-2 py-1 rounded-lg uppercase tracking-wider">
+                        <div className="px-5 py-4 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/90">
+                          <h3 className="font-extrabold text-slate-900 tracking-tight text-sm md:text-base">Notifikasi Baru</h3>
+                          <span className="text-[10px] font-bold bg-brand/10 text-brand px-2.5 py-1 rounded-lg uppercase tracking-wider tabular-nums">
                             {notifications.length} Pesan
                           </span>
                         </div>
                         <div className="max-h-[70vh] overflow-y-auto custom-scrollbar">
                           {notifications.length > 0 ? (
-                            <div className="divide-y divide-slate-50">
+                            <div className="divide-y divide-slate-100">
                               {[...notifications].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map(notif => (
                                 <div 
                                   key={notif.id}
                                   onClick={() => handleNotificationClick(notif)}
-                                  className="p-4 hover:bg-frame transition-colors cursor-pointer group relative"
+                                  className="p-4 hover:bg-slate-50 transition-colors duration-200 cursor-pointer group relative"
                                 >
-                                  <div className="flex gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                                  <div className="flex gap-3.5">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                                       <TrendingUp size={18} />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center justify-between gap-2 mb-1">
-                                        <p className="font-black text-slate-800 text-sm truncate">{notif.studentName}</p>
-                                        <span className="text-[10px] font-bold text-slate-400 shrink-0">
+                                        <p className="font-bold text-slate-900 text-sm truncate">{notif.studentName}</p>
+                                        <span className="text-[10px] font-semibold text-slate-400 shrink-0 tabular-nums">
                                           {new Date(notif.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                       </div>
-                                      <p className="text-xs text-slate-500 font-bold leading-relaxed line-clamp-2">
-                                        Baru saja menyelesaikan <span className="text-slate-900">{notif.courseTitle}</span> dengan skor <span className="text-emerald-600 underline">{notif.score}</span>
+                                      <p className="text-xs text-slate-600 font-medium leading-relaxed line-clamp-2">
+                                        Baru saja menyelesaikan <span className="text-slate-900 font-semibold">{notif.courseTitle}</span> dengan skor <span className="text-emerald-600 font-bold underline tabular-nums">{notif.score}</span>
                                       </p>
                                     </div>
                                     <button 
                                       onClick={(e) => deleteNotification(notif.id, e)}
-                                      className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-red-500 transition-all shrink-0"
+                                      className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 transition-all duration-200 shrink-0"
                                     >
                                       <Trash2 size={14} />
                                     </button>
@@ -2115,15 +2116,15 @@ export default function App() {
                             </div>
                           ) : (
                             <div className="p-12 text-center">
-                              <div className="w-16 h-16 bg-frame rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-4">
-                                <Bell size={32} />
+                              <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-300 mx-auto mb-3">
+                                <Bell size={28} />
                               </div>
-                              <p className="text-slate-400 font-bold text-sm italic">Belum ada notifikasi baru.</p>
+                              <p className="text-slate-400 font-semibold text-sm italic">Belum ada notifikasi baru.</p>
                             </div>
                           )}
                         </div>
                         {notifications.length > 0 && (
-                          <div className="p-3 bg-frame/50 border-t border-slate-50">
+                          <div className="p-3 bg-slate-50/90 border-t border-slate-100">
                             <button 
                               onClick={async () => {
                                 if (!confirm("Hapus semua notifikasi?")) return;
@@ -2134,7 +2135,7 @@ export default function App() {
                                   handleFirestoreError(error, OperationType.DELETE, 'notifications');
                                 }
                               }}
-                              className="w-full py-2.5 text-xs font-black text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest"
+                              className="w-full py-2 text-xs font-bold text-slate-500 hover:text-rose-600 transition-colors duration-200 uppercase tracking-widest rounded-xl hover:bg-rose-50"
                             >
                               Bersihkan Semua
                             </button>
@@ -2151,14 +2152,14 @@ export default function App() {
                 <div className="flex gap-2">
                 <button 
                   onClick={() => setIsImportModalOpen(true)}
-                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-brand text-white rounded-xl font-bold text-sm shadow-lg shadow-brand/20 active:scale-95 transition-all"
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-brand to-blue-600 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-bold text-sm shadow-md shadow-brand/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-300"
                 >
                   <Plus size={18} /> <span className="hidden sm:inline">Tambah Siswa</span>
                 </button>
                 {selectedStudentIds.length > 0 && (
                   <button 
                     onClick={() => { setDeleteType('student'); setDeleteTarget('selected'); setIsDeleteModalOpen(true); }}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-xl font-bold text-sm hover:bg-red-100 transition-all"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-50 text-rose-600 border border-rose-200/80 rounded-xl font-bold text-sm hover:bg-rose-100 transition-all duration-300"
                   >
                     <Trash2 size={18} /> <span className="hidden sm:inline">Hapus ({selectedStudentIds.length})</span>
                   </button>
@@ -2168,8 +2169,8 @@ export default function App() {
           </header>
           
           <div className={cn(
-            "rounded-2xl transition-all",
-            adminTab === 'dashboard' ? "" : "bg-slate-100 p-6 shadow-sm border border-slate-300"
+            "rounded-3xl transition-all duration-300",
+            adminTab === 'dashboard' ? "" : "bg-white/95 backdrop-blur-sm p-5 md:p-7 shadow-sm shadow-slate-900/[0.03] border border-slate-200/80"
           )}>
             {adminTab === 'dashboard' && (() => {
               const activeSessionList = activeSessions.filter(s => {
@@ -2190,15 +2191,15 @@ export default function App() {
               return (
                 <div className="space-y-6 animate-in fade-in duration-500">
                   {/* Kartu Kelola Game, Kelola Materi & Kelola Soal (Ringkas, Kompak, Warna-Warni & Modern di Bagian Atas) */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Kartu 1: Kelola Game Edukasi */}
-                    <div className="relative overflow-hidden bg-white/95 hover:bg-white rounded-2xl p-3 md:py-2.5 md:px-3.5 border border-indigo-200 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-3 group">
-                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all" />
+                    <div className="relative overflow-hidden bg-white rounded-2xl p-4 border border-indigo-200/80 shadow-xs hover:shadow-md hover:border-indigo-300/90 transition-all duration-300 flex items-center justify-between gap-3 group">
+                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-300" />
                       
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3.5 min-w-0">
                         {/* Ilustrasi Game Berwarna-warni */}
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl shrink-0 border border-indigo-300 shadow-sm relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center">
-                          <MonitorPlay size={32} className="text-white drop-shadow-md group-hover:scale-110 transition-transform duration-300" />
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl shrink-0 border border-indigo-300/80 shadow-sm relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center">
+                          <MonitorPlay size={30} className="text-white drop-shadow-md group-hover:scale-110 transition-transform duration-300" />
                           <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-amber-400 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black shadow-xs">
                             🎮
                           </span>
@@ -2206,17 +2207,17 @@ export default function App() {
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded-full">
                               Game Edukatif
                             </span>
-                            <span className="text-[10px] font-bold text-slate-500 hidden sm:inline">
+                            <span className="text-[10px] font-bold text-slate-500 hidden sm:inline tabular-nums">
                               • 6 Game Aktif
                             </span>
                           </div>
-                          <h3 className="text-sm md:text-base font-black text-slate-900 leading-tight mt-0.5 truncate group-hover:text-indigo-900 transition-colors">
+                          <h3 className="text-sm md:text-base font-extrabold text-slate-900 leading-tight mt-1 truncate group-hover:text-indigo-900 transition-colors duration-300">
                             Kelola Game Edukasi
                           </h3>
-                          <p className="text-[11px] text-slate-600 font-medium line-clamp-1 mt-0.5">
+                          <p className="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5">
                             Petualangan ke Sekolah, kuis per stage, bos battle, & leaderboard.
                           </p>
                         </div>
@@ -2224,7 +2225,7 @@ export default function App() {
 
                       <button
                         onClick={() => setAdminTab('games')}
-                        className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-black rounded-xl shadow-sm hover:shadow-indigo-500/25 active:scale-95 transition-all flex items-center gap-1 shrink-0"
+                        className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-extrabold rounded-xl shadow-sm hover:shadow-md hover:shadow-indigo-500/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 flex items-center gap-1 shrink-0"
                       >
                         <Gamepad2 size={14} className="text-amber-300" />
                         <span>Kelola</span>
@@ -2233,16 +2234,16 @@ export default function App() {
                     </div>
 
                     {/* Kartu 2: Kelola Materi Pembelajaran */}
-                    <div className="relative overflow-hidden bg-white/95 hover:bg-white rounded-2xl p-3 md:py-2.5 md:px-3.5 border border-emerald-200 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-3 group">
-                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-emerald-500/20 transition-all" />
+                    <div className="relative overflow-hidden bg-white rounded-2xl p-4 border border-emerald-200/80 shadow-xs hover:shadow-md hover:border-emerald-300/90 transition-all duration-300 flex items-center justify-between gap-3 group">
+                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-300" />
                       
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3.5 min-w-0">
                         {/* Ilustrasi Materi Berwarna-warni */}
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl overflow-hidden shrink-0 border border-emerald-300 shadow-sm relative bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-500 flex items-center justify-center p-0.5">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl overflow-hidden shrink-0 border border-emerald-300/80 shadow-sm relative bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-500 flex items-center justify-center p-0.5">
                           <img 
                             src="/images/dekomposisi_perangkat_pc_1794222967274.jpg" 
                             alt="Materi Pembelajaran Informatika" 
-                            className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
+                            className="w-full h-full object-cover rounded-xl group-hover:scale-110 transition-transform duration-300"
                           />
                           <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-400 border border-white rounded-full flex items-center justify-center text-[8px] font-black shadow-xs">
                             📚
@@ -2251,17 +2252,17 @@ export default function App() {
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
                               Modul Pembelajaran
                             </span>
-                            <span className="text-[10px] font-bold text-slate-500 hidden sm:inline">
+                            <span className="text-[10px] font-bold text-slate-500 hidden sm:inline tabular-nums">
                               • {activeCourseCount} Modul Siap
                             </span>
                           </div>
-                          <h3 className="text-sm md:text-base font-black text-slate-900 leading-tight mt-0.5 truncate group-hover:text-emerald-950 transition-colors">
+                          <h3 className="text-sm md:text-base font-extrabold text-slate-900 leading-tight mt-1 truncate group-hover:text-emerald-950 transition-colors duration-300">
                             Kelola Materi Belajar
                           </h3>
-                          <p className="text-[11px] text-slate-600 font-medium line-clamp-1 mt-0.5">
+                          <p className="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5">
                             Modul informatika, kuis interaktif, materi visual, & panduan siswa.
                           </p>
                         </div>
@@ -2269,7 +2270,7 @@ export default function App() {
 
                       <button
                         onClick={() => setAdminTab('materials')}
-                        className="px-3 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black rounded-xl shadow-sm hover:shadow-emerald-500/25 active:scale-95 transition-all flex items-center gap-1 shrink-0"
+                        className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-extrabold rounded-xl shadow-sm hover:shadow-md hover:shadow-emerald-500/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 flex items-center gap-1 shrink-0"
                       >
                         <BookOpen size={14} className="text-yellow-200" />
                         <span>Kelola</span>
@@ -2278,12 +2279,12 @@ export default function App() {
                     </div>
 
                     {/* Kartu 3: Kelola Soal (PG 4 Opsi + Gambar + Timer) */}
-                    <div className="relative overflow-hidden bg-white/95 hover:bg-white rounded-2xl p-3 md:py-2.5 md:px-3.5 border border-amber-200 shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-3 group">
-                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-amber-500/20 transition-all" />
+                    <div className="relative overflow-hidden bg-white rounded-2xl p-4 border border-amber-200/80 shadow-xs hover:shadow-md hover:border-amber-300/90 transition-all duration-300 flex items-center justify-between gap-3 group">
+                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-amber-500/20 transition-all duration-300" />
 
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl shrink-0 border border-amber-300 shadow-sm relative bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 flex items-center justify-center">
-                          <ClipboardList size={30} className="text-white drop-shadow-md group-hover:scale-110 transition-transform duration-300" />
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl shrink-0 border border-amber-300/80 shadow-sm relative bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 flex items-center justify-center">
+                          <ClipboardList size={28} className="text-white drop-shadow-md group-hover:scale-110 transition-transform duration-300" />
                           <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-400 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black shadow-xs">
                             📝
                           </span>
@@ -2291,17 +2292,17 @@ export default function App() {
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full">
                               Bank Soal PG 4 Opsi
                             </span>
-                            <span className="text-[10px] font-bold text-slate-500 hidden sm:inline">
+                            <span className="text-[10px] font-bold text-slate-500 hidden sm:inline tabular-nums">
                               • {soalSets.filter(s => s.isActive).length} Kartu Aktif
                             </span>
                           </div>
-                          <h3 className="text-sm md:text-base font-black text-slate-900 leading-tight mt-0.5 truncate group-hover:text-amber-950 transition-colors">
+                          <h3 className="text-sm md:text-base font-extrabold text-slate-900 leading-tight mt-1 truncate group-hover:text-amber-950 transition-colors duration-300">
                             Kelola Soal & Ujian
                           </h3>
-                          <p className="text-[11px] text-slate-600 font-medium line-clamp-1 mt-0.5">
+                          <p className="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5">
                             Input manual/bulk, gambar soal & opsi, timer per soal/judul.
                           </p>
                         </div>
@@ -2309,7 +2310,7 @@ export default function App() {
 
                       <button
                         onClick={() => setAdminTab('questions')}
-                        className="px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-black rounded-xl shadow-sm hover:shadow-amber-500/25 active:scale-95 transition-all flex items-center gap-1 shrink-0"
+                        className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-extrabold rounded-xl shadow-sm hover:shadow-md hover:shadow-amber-500/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 flex items-center gap-1 shrink-0"
                       >
                         <ClipboardList size={14} className="text-yellow-100" />
                         <span>Kelola</span>
@@ -2320,50 +2321,50 @@ export default function App() {
 
                   {/* Top Modern KPI Highlights Bar */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-                    <div className="relative overflow-hidden bg-slate-100 rounded-3xl p-6 border border-slate-300 shadow-sm hover:shadow-md transition-all group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
+                    <div className="relative overflow-hidden bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-slate-300/90 transition-all duration-300 group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform duration-300 group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/20">
-                          <Radio size={22} className="text-yellow-400 animate-pulse" />
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-blue-600 text-white flex items-center justify-center shadow-md shadow-brand/20">
+                          <Radio size={22} className="text-yellow-300 animate-pulse" />
                         </div>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-100 text-blue-800 border border-blue-200">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase bg-blue-50 text-blue-700 border border-blue-200/80">
                           <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping" />
                           Live Real-time
                         </span>
                       </div>
-                      <h4 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">{activeSessionList.length}</h4>
+                      <h4 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight tabular-nums">{activeSessionList.length}</h4>
                       <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Total Siswa Aktif</p>
-                      <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-xs font-medium text-slate-600">
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
                         <span>Terhubung ke sistem</span>
-                        <span className="font-bold text-brand">{activeSessionList.length > 0 ? `${activeSessionList.length} Online` : 'Standby'}</span>
+                        <span className="font-bold text-brand tabular-nums">{activeSessionList.length > 0 ? `${activeSessionList.length} Online` : 'Standby'}</span>
                       </div>
                     </div>
 
-                    <div className="relative overflow-hidden bg-slate-100 rounded-3xl p-6 border border-slate-300 shadow-sm hover:shadow-md transition-all group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
+                    <div className="relative overflow-hidden bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-slate-300/90 transition-all duration-300 group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform duration-300 group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/20">
-                          <Activity size={22} className="text-yellow-400" />
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-blue-600 text-white flex items-center justify-center shadow-md shadow-brand/20">
+                          <Activity size={22} className="text-yellow-300" />
                         </div>
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-100 text-blue-800 border border-blue-200">
-                          <Zap size={12} className="text-yellow-400" />
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase bg-blue-50 text-blue-700 border border-blue-200/80">
+                          <Zap size={12} className="text-amber-500" />
                           Progres
                         </span>
                       </div>
-                      <h4 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">{workingStudentsCount}</h4>
+                      <h4 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight tabular-nums">{workingStudentsCount}</h4>
                       <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Sedang Mengerjakan</p>
-                      <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-xs font-medium text-slate-600">
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
                         <span>Aktif di materi/kuis</span>
-                        <span className="font-bold text-brand">{workingStudentsCount} Siswa</span>
+                        <span className="font-bold text-brand tabular-nums">{workingStudentsCount} Siswa</span>
                       </div>
                     </div>
 
                     {/* Card 3: Monitoring Kecurangan */}
-                    <div className="relative overflow-hidden bg-slate-100 rounded-3xl p-6 border border-slate-300 shadow-sm hover:shadow-md transition-all group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-rose-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
+                    <div className="relative overflow-hidden bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-slate-300/90 transition-all duration-300 group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-rose-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform duration-300 group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
                         <div className={cn(
-                          "w-12 h-12 rounded-2xl text-white flex items-center justify-center shadow-lg transition-all",
+                          "w-12 h-12 rounded-2xl text-white flex items-center justify-center shadow-md transition-all duration-300",
                           cheatingSessionsList.length > 0 
                             ? "bg-gradient-to-tr from-rose-600 to-red-500 shadow-rose-500/20" 
                             : "bg-gradient-to-tr from-emerald-600 to-teal-500 shadow-emerald-500/20"
@@ -2371,42 +2372,42 @@ export default function App() {
                           {cheatingSessionsList.length > 0 ? <ShieldAlert size={22} className="animate-bounce" /> : <ShieldCheck size={22} />}
                         </div>
                         <span className={cn(
-                          "inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase border",
+                          "inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase border",
                           cheatingSessionsList.length > 0
-                            ? "bg-rose-100 text-rose-800 border-rose-200"
-                            : "bg-emerald-100 text-emerald-800 border-emerald-200"
+                            ? "bg-rose-50 text-rose-700 border-rose-200/80"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200/80"
                         )}>
                           {cheatingSessionsList.length > 0 ? '⚠️ Peringatan' : '🛡️ Aman'}
                         </span>
                       </div>
-                      <h4 className={cn("text-3xl md:text-4xl font-black tracking-tight", cheatingSessionsList.length > 0 ? "text-rose-600" : "text-slate-900")}>
+                      <h4 className={cn("text-3xl md:text-4xl font-extrabold tracking-tight tabular-nums", cheatingSessionsList.length > 0 ? "text-rose-600" : "text-slate-900")}>
                         {cheatingSessionsList.length}
                       </h4>
                       <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Monitoring Kecurangan</p>
-                      <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-xs font-medium text-slate-600">
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
                         <span>Keluar fullscreen / tab</span>
-                        <span className={cn("font-bold", cheatingSessionsList.length > 0 ? "text-rose-600" : "text-emerald-700")}>
+                        <span className={cn("font-bold tabular-nums", cheatingSessionsList.length > 0 ? "text-rose-600" : "text-emerald-700")}>
                           {cheatingSessionsList.length > 0 ? `${cheatingSessionsList.length} Terdeteksi` : 'Tertib'}
                         </span>
                       </div>
                     </div>
 
-                    <div className="relative overflow-hidden bg-slate-100 rounded-3xl p-6 border border-slate-300 shadow-sm hover:shadow-md transition-all group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
+                    <div className="relative overflow-hidden bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-slate-300/90 transition-all duration-300 group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform duration-300 group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-brand text-white flex items-center justify-center shadow-lg shadow-brand/20">
-                          <Layers size={22} className="text-yellow-400" />
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-blue-600 text-white flex items-center justify-center shadow-md shadow-brand/20">
+                          <Layers size={22} className="text-yellow-300" />
                         </div>
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-blue-100 text-blue-800 border border-blue-200">
-                          <Sparkles size={12} className="text-yellow-400" />
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase bg-blue-50 text-blue-700 border border-blue-200/80">
+                          <Sparkles size={12} className="text-amber-500" />
                           Materi
                         </span>
                       </div>
-                      <h4 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">{activeCourseCount} <span className="text-lg text-slate-500 font-bold">/ {COURSES.length}</span></h4>
+                      <h4 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight tabular-nums">{activeCourseCount} <span className="text-lg text-slate-400 font-bold">/ {COURSES.length}</span></h4>
                       <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Status Materi Aktif</p>
-                      <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-xs font-medium text-slate-600">
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
                         <span>Modul terbuka</span>
-                        <span className="font-bold text-brand">{activeCourseCount} Siap Diakses</span>
+                        <span className="font-bold text-brand tabular-nums">{activeCourseCount} Siap Diakses</span>
                       </div>
                     </div>
                   </div>
@@ -2417,26 +2418,26 @@ export default function App() {
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
                     
                     {/* LEFT COLUMN: KARTU PARTICIPANT */}
-                    <div className="xl:col-span-7 bg-slate-100 rounded-[2.2rem] border border-slate-300 shadow-sm overflow-hidden flex flex-col transition-all">
+                    <div className="xl:col-span-7 bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col transition-all duration-300">
                       {/* Vibrant Gradient Header */}
-                      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 p-6 md:p-7 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3.5">
-                          <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-inner">
+                          <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shadow-inner">
                             <Users size={24} />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="text-xl md:text-2xl font-black tracking-tight text-white">Kartu Participant</h3>
+                              <h3 className="text-xl md:text-2xl font-extrabold tracking-tight text-white">Kartu Participant</h3>
                               <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping" />
                             </div>
-                            <p className="text-white/80 text-xs font-semibold mt-0.5">Pemantauan aktivitas siswa & kelas secara langsung</p>
+                            <p className="text-white/85 text-xs font-medium mt-0.5">Pemantauan aktivitas siswa & kelas secara langsung</p>
                           </div>
                         </div>
 
                         {/* Total Aktif Badge */}
-                        <div className="flex items-center gap-2 self-start sm:self-auto bg-white/15 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/25 shadow-sm">
+                        <div className="flex items-center gap-2 self-start sm:self-auto bg-white/15 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/25 shadow-xs">
                           <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-lg shadow-yellow-400/50" />
-                          <span className="text-sm font-black text-white tracking-wide">
+                          <span className="text-sm font-extrabold text-white tracking-wide tabular-nums">
                             Total Aktif: <span className="text-yellow-300 font-black">{activeSessionList.length}</span>
                           </span>
                         </div>
@@ -2444,15 +2445,15 @@ export default function App() {
 
                       {/* Class Quick Filter Tabs */}
                       {distinctClasses.length > 0 && (
-                        <div className="px-6 py-3 bg-slate-200/90 border-b border-slate-300 flex items-center gap-2 overflow-x-auto custom-scrollbar">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 shrink-0 mr-1">Filter Kelas:</span>
+                        <div className="px-6 py-3.5 bg-slate-50/90 border-b border-slate-200/80 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 shrink-0 mr-1">Filter Kelas:</span>
                           <button
                             onClick={() => setDashboardClassFilter('all')}
                             className={cn(
-                              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0",
+                              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 shrink-0 tabular-nums",
                               dashboardClassFilter === 'all' 
                                 ? "bg-brand text-white shadow-sm shadow-brand/30" 
-                                : "bg-slate-200 text-slate-700 border border-slate-300 hover:bg-slate-300"
+                                : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 hover:border-slate-300"
                             )}
                           >
                             Semua ({activeSessionList.length})
@@ -2464,16 +2465,16 @@ export default function App() {
                                 key={c}
                                 onClick={() => setDashboardClassFilter(c)}
                                 className={cn(
-                                  "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5",
+                                  "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 shrink-0 flex items-center gap-1.5 tabular-nums",
                                   dashboardClassFilter === c 
                                     ? "bg-brand text-white shadow-sm shadow-indigo-600/30" 
-                                    : "bg-slate-200 text-slate-700 border border-slate-300 hover:bg-slate-300"
+                                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 hover:border-slate-300"
                                 )}
                               >
                                 Kelas {c}
                                 <span className={cn(
                                   "px-1.5 py-0.2 rounded-md text-[10px] font-black",
-                                  dashboardClassFilter === c ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                                  dashboardClassFilter === c ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
                                 )}>
                                   {countInClass}
                                 </span>
@@ -2492,23 +2493,23 @@ export default function App() {
                               .sort((a, b) => a.studentName.localeCompare(b.studentName));
 
                             const classThemes = [
-                              { bg: "bg-blue-50/60", border: "border-blue-100", header: "text-blue-900", badge: "bg-blue-500 text-white", icon: "text-brand" },
-                              { bg: "bg-indigo-50/60", border: "border-indigo-100", header: "text-indigo-900", badge: "bg-indigo-500 text-white", icon: "text-brand" },
-                              { bg: "bg-sky-50/60", border: "border-sky-100", header: "text-sky-900", badge: "bg-sky-500 text-white", icon: "text-sky-600" },
-                              { bg: "bg-emerald-50/60", border: "border-emerald-100", header: "text-emerald-900", badge: "bg-emerald-500 text-white", icon: "text-emerald-600" },
-                              { bg: "bg-amber-50/60", border: "border-amber-100", header: "text-amber-900", badge: "bg-amber-500 text-white", icon: "text-amber-600" },
-                              { bg: "bg-rose-50/60", border: "border-rose-100", header: "text-rose-900", badge: "bg-rose-500 text-white", icon: "text-rose-600" },
+                              { bg: "bg-blue-50/50", border: "border-blue-200/70", header: "text-blue-900", badge: "bg-blue-600 text-white", icon: "text-brand" },
+                              { bg: "bg-indigo-50/50", border: "border-indigo-200/70", header: "text-indigo-900", badge: "bg-indigo-600 text-white", icon: "text-brand" },
+                              { bg: "bg-sky-50/50", border: "border-sky-200/70", header: "text-sky-900", badge: "bg-sky-600 text-white", icon: "text-sky-600" },
+                              { bg: "bg-emerald-50/50", border: "border-emerald-200/70", header: "text-emerald-900", badge: "bg-emerald-600 text-white", icon: "text-emerald-600" },
+                              { bg: "bg-amber-50/50", border: "border-amber-200/70", header: "text-amber-900", badge: "bg-amber-500 text-white", icon: "text-amber-600" },
+                              { bg: "bg-rose-50/50", border: "border-rose-200/70", header: "text-rose-900", badge: "bg-rose-600 text-white", icon: "text-rose-600" },
                             ];
                             const theme = classThemes[idx % classThemes.length];
 
                             return (
-                              <div key={className} className={cn("rounded-2xl border p-4 transition-all shadow-xs", theme.bg, theme.border)}>
-                                <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-black/5">
+                              <div key={className} className={cn("rounded-2xl border p-4 transition-all duration-300 shadow-xs", theme.bg, theme.border)}>
+                                <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-200/60">
                                   <div className="flex items-center gap-2">
-                                    <span className={cn("px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider", theme.badge)}>
+                                    <span className={cn("px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider shadow-xs", theme.badge)}>
                                       Kelas {className}
                                     </span>
-                                    <span className="text-xs font-bold text-slate-500">
+                                    <span className="text-xs font-bold text-slate-600 tabular-nums">
                                       {workingInClass.length} Siswa Sedang Aktif
                                     </span>
                                   </div>
@@ -2526,39 +2527,39 @@ export default function App() {
                                     return (
                                       <div 
                                         key={s.id} 
-                                        className="bg-slate-200/70 border border-slate-300 hover:border-brand/40 p-3.5 rounded-xl shadow-xs hover:shadow-md transition-all flex flex-col gap-2.5 group"
+                                        className="bg-white border border-slate-200/90 hover:border-brand/40 p-3.5 rounded-xl shadow-xs hover:shadow-md transition-all duration-300 flex flex-col gap-2.5 group"
                                       >
                                         <div className="flex items-start justify-between gap-2">
                                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-sm shadow-brand/20">
+                                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand to-indigo-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-xs shadow-brand/20">
                                               {initials}
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                              <p className="font-black text-slate-800 text-xs truncate group-hover:text-brand transition-colors" title={s.studentName}>
+                                              <p className="font-extrabold text-slate-900 text-xs truncate group-hover:text-brand transition-colors" title={s.studentName}>
                                                 {s.studentName}
                                               </p>
-                                              <p className="text-[10px] font-bold text-slate-500">
+                                              <p className="text-[10px] font-semibold text-slate-500">
                                                 Kelas {s.kelas}
                                               </p>
                                             </div>
                                           </div>
                                           
                                           {/* Score Tag */}
-                                          <span className="px-2.5 py-1 rounded-lg font-black text-xs text-emerald-800 bg-emerald-100 border border-emerald-200 shrink-0 shadow-xs">
+                                          <span className="px-2.5 py-1 rounded-lg font-extrabold text-xs text-emerald-800 bg-emerald-50 border border-emerald-200/80 shrink-0 tabular-nums">
                                             Skor: {s.currentScore ?? 100}
                                           </span>
                                         </div>
 
                                         {/* Course and Activity Tag */}
-                                        <div className="pt-2 border-t border-slate-300/80 flex items-center justify-between gap-2 text-xs">
-                                          <div className="flex items-center gap-1.5 min-w-0 flex-1 text-slate-700 bg-slate-300/80 px-2 py-1 rounded-lg border border-slate-300">
+                                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                                          <div className="flex items-center gap-1.5 min-w-0 flex-1 text-slate-700 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/70">
                                             <BookOpen size={13} className="text-brand shrink-0" />
                                             <span className="truncate font-semibold text-[11px]" title={s.courseTitle || 'Di Halaman Siswa'}>
                                               {s.courseTitle || 'Di Halaman Siswa'}
                                             </span>
                                           </div>
 
-                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700 shrink-0">
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80 shrink-0">
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                             Aktif
                                           </span>
@@ -2572,12 +2573,12 @@ export default function App() {
                           })
                         ) : (
                           <div className="py-16 text-center flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-brand mb-4 border border-blue-200 shadow-inner relative">
-                              <Users size={36} />
+                            <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-brand mb-4 border border-blue-100 shadow-inner relative">
+                              <Users size={34} />
                               <span className="absolute inset-0 rounded-full border-2 border-blue-400/30 animate-ping pointer-events-none" />
                             </div>
-                            <h4 className="text-base font-black text-slate-800">Belum Ada Siswa yang Aktif</h4>
-                            <p className="text-xs font-semibold text-slate-500 max-w-sm mt-1">
+                            <h4 className="text-base font-extrabold text-slate-900">Belum Ada Siswa yang Aktif</h4>
+                            <p className="text-xs font-medium text-slate-500 max-w-sm mt-1">
                               Ketika siswa login dan membuka materi pembelajaran, kartu aktivitas siswa akan otomatis tampil di sini secara real-time.
                             </p>
                           </div>
@@ -2586,18 +2587,18 @@ export default function App() {
                     </div>
 
                     {/* RIGHT COLUMN: MONITORING KECURANGAN */}
-                    <div className="xl:col-span-5 bg-slate-100 rounded-[2.2rem] border border-slate-300 shadow-sm overflow-hidden flex flex-col transition-all">
+                    <div className="xl:col-span-5 bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col transition-all duration-300">
                       {/* Vibrant Red Gradient Header */}
-                      <div className="bg-gradient-to-r from-rose-600 via-red-600 to-orange-500 p-6 md:p-7 text-white flex items-center justify-between gap-3">
+                      <div className="bg-gradient-to-r from-rose-600 via-red-600 to-orange-500 p-6 text-white flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3.5">
-                          <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-inner">
+                          <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shadow-inner">
                             <ShieldAlert size={24} />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="text-xl md:text-2xl font-black tracking-tight text-white">Monitoring Kecurangan</h3>
+                              <h3 className="text-xl md:text-2xl font-extrabold tracking-tight text-white">Monitoring Kecurangan</h3>
                             </div>
-                            <p className="text-white/80 text-xs font-semibold mt-0.5">Deteksi keluar layar penuh & tab ujian</p>
+                            <p className="text-white/85 text-xs font-medium mt-0.5">Deteksi keluar layar penuh & tab ujian</p>
                           </div>
                         </div>
 
@@ -2614,7 +2615,7 @@ export default function App() {
                                 } catch (err) {}
                               }
                             }}
-                            className="px-3.5 py-2 bg-white/20 hover:bg-slate-100 text-white hover:text-red-600 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 backdrop-blur-md border border-white/30 shadow-xs active:scale-95"
+                            className="px-3.5 py-2 bg-white/20 hover:bg-white text-white hover:text-rose-600 rounded-xl font-extrabold text-xs transition-all duration-300 flex items-center gap-1.5 backdrop-blur-md border border-white/30 shadow-xs active:scale-95"
                           >
                             <Trash2 size={13} />
                             <span>Bersihkan Semua</span>
@@ -2628,23 +2629,23 @@ export default function App() {
                           cheatingSessionsList.map(session => (
                             <div 
                               key={session.id} 
-                              className="p-4 bg-rose-50/70 border border-rose-200/80 rounded-2xl flex flex-col gap-3 shadow-xs hover:shadow-md transition-all"
+                              className="p-4 bg-rose-50/70 border border-rose-200/80 rounded-2xl flex flex-col gap-3 shadow-xs hover:shadow-md transition-all duration-300"
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <span className="font-black text-rose-950 text-sm">{session.studentName}</span>
-                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-200 text-rose-800">
+                                    <span className="font-extrabold text-rose-950 text-sm">{session.studentName}</span>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200/80">
                                       Kelas {session.kelas}
                                     </span>
                                   </div>
-                                  <p className="text-xs font-bold text-rose-700 mt-0.5 flex items-center gap-1">
+                                  <p className="text-xs font-semibold text-rose-700 mt-0.5 flex items-center gap-1">
                                     <BookOpen size={12} className="text-rose-500" />
                                     {session.courseTitle || 'Materi'}
                                   </p>
                                 </div>
 
-                                <div className="px-3 py-1 bg-rose-600 text-white rounded-xl text-xs font-black flex items-center gap-1 shrink-0 shadow-sm shadow-rose-500/20">
+                                <div className="px-3 py-1 bg-rose-600 text-white rounded-xl text-xs font-extrabold flex items-center gap-1 shrink-0 shadow-xs shadow-rose-500/20 tabular-nums">
                                   <AlertTriangle size={12} />
                                   {session.cheatingAttempts}x Pelanggaran
                                 </div>
@@ -2652,8 +2653,8 @@ export default function App() {
 
                               {/* Details breakdown */}
                               {session.cheatingDetails && session.cheatingDetails.length > 0 && (
-                                <div className="bg-slate-200/90 border border-rose-200 rounded-xl p-2.5 space-y-1 text-xs">
-                                  <p className="text-[10px] font-black uppercase tracking-wider text-rose-500 mb-1">Rincian Log Waktu:</p>
+                                <div className="bg-white/90 border border-rose-200/80 rounded-xl p-3 space-y-1 text-xs">
+                                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-rose-600 mb-1">Rincian Log Waktu:</p>
                                   <ul className="text-xs text-rose-900 font-medium space-y-1">
                                     {session.cheatingDetails.map((detail: string, idx: number) => (
                                       <li key={idx} className="flex items-start gap-1.5">
@@ -2677,7 +2678,7 @@ export default function App() {
                                       handleFirestoreError(err, OperationType.UPDATE, 'active_sessions');
                                     }
                                   }}
-                                  className="text-xs flex items-center gap-1 px-3 py-1.5 text-rose-600 bg-slate-200 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all font-bold active:scale-95 shadow-xs"
+                                  className="text-xs flex items-center gap-1.5 px-3 py-1.5 text-rose-600 bg-white hover:bg-rose-600 hover:text-white border border-rose-200 rounded-xl transition-all duration-300 font-bold active:scale-95 shadow-xs"
                                 >
                                   <Trash2 size={13} />
                                   Hapus Log Siswa
@@ -2687,11 +2688,11 @@ export default function App() {
                           ))
                         ) : (
                           <div className="py-16 text-center flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-4 border border-emerald-200 shadow-inner">
-                              <ShieldCheck size={36} />
+                            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 mb-4 border border-emerald-200/80 shadow-inner">
+                              <ShieldCheck size={34} />
                             </div>
-                            <h4 className="text-base font-black text-slate-800">Ruang Ujian Aman & Tertib</h4>
-                            <p className="text-xs font-semibold text-slate-500 max-w-xs mt-1">
+                            <h4 className="text-base font-extrabold text-slate-900">Ruang Ujian Aman & Tertib</h4>
+                            <p className="text-xs font-medium text-slate-500 max-w-xs mt-1">
                               Tidak ada aktivitas mencurigakan atau upaya keluar dari layar penuh yang terdeteksi pada siswa saat ini.
                             </p>
                           </div>
@@ -2701,20 +2702,20 @@ export default function App() {
                   </div>
 
                   {/* BOTTOM SECTION: STATUS AKTIVASI MATERI (MODERN COLORFUL SWITCHBOARD) */}
-                  <div className="bg-slate-100 p-6 md:p-8 rounded-[2.2rem] border border-slate-300 shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7 pb-5 border-b border-slate-200">
+                  <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7 pb-5 border-b border-slate-100">
                       <div className="flex items-center gap-3.5">
-                        <div className="w-12 h-12 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                        <div className="w-12 h-12 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-2xl flex items-center justify-center text-white shadow-md shadow-blue-500/20">
                           <ShieldCheck size={24} />
                         </div>
                         <div>
-                          <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Status Aktivasi & Keamanan Materi</h3>
-                          <p className="text-slate-500 font-semibold text-xs mt-0.5">Buka akses materi dan aktifkan proteksi mode layar penuh untuk ujian</p>
+                          <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">Status Aktivasi & Keamanan Materi</h3>
+                          <p className="text-slate-500 font-medium text-xs mt-0.5">Buka akses materi dan aktifkan proteksi mode layar penuh untuk ujian</p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="px-4 py-2 rounded-2xl text-xs font-black tracking-widest uppercase bg-slate-200 text-slate-700 border border-slate-300">
+                        <span className="px-4 py-2 rounded-xl text-xs font-extrabold tracking-widest uppercase bg-slate-100 text-slate-700 border border-slate-200/80 tabular-nums">
                           {activeCourseCount} Dari {COURSES.length} Materi Terbuka
                         </span>
                       </div>
@@ -2727,14 +2728,14 @@ export default function App() {
                         const isScoreVisible = materialConfigs[course.id]?.isScoreVisible ?? true;
 
                         const courseColors = [
-                          { bg: "hover:border-blue-400", banner: "from-blue-600 to-indigo-600", tag: "bg-blue-100 text-blue-800 border-blue-200", icon: "text-brand bg-blue-100" },
-                          { bg: "hover:border-emerald-400", banner: "from-emerald-600 to-teal-600", tag: "bg-emerald-100 text-emerald-800 border-emerald-200", icon: "text-emerald-600 bg-emerald-100" },
-                          { bg: "hover:border-purple-400", banner: "from-purple-600 to-violet-600", tag: "bg-purple-100 text-purple-800 border-purple-200", icon: "text-purple-600 bg-purple-100" },
-                          { bg: "hover:border-rose-400", banner: "from-rose-600 to-pink-600", tag: "bg-rose-100 text-rose-800 border-rose-200", icon: "text-rose-600 bg-rose-100" },
-                          { bg: "hover:border-amber-400", banner: "from-amber-500 to-yellow-600", tag: "bg-amber-100 text-amber-800 border-amber-200", icon: "text-amber-600 bg-amber-100" },
-                          { bg: "hover:border-indigo-400", banner: "from-indigo-600 to-blue-700", tag: "bg-indigo-100 text-indigo-800 border-indigo-200", icon: "text-brand bg-indigo-100" },
-                          { bg: "hover:border-cyan-400", banner: "from-cyan-600 to-blue-600", tag: "bg-cyan-100 text-cyan-800 border-cyan-200", icon: "text-cyan-600 bg-cyan-100" },
-                          { bg: "hover:border-orange-400", banner: "from-orange-600 to-red-600", tag: "bg-orange-100 text-orange-800 border-orange-200", icon: "text-orange-600 bg-orange-100" }
+                          { bg: "hover:border-blue-300", banner: "from-blue-600 to-indigo-600", tag: "bg-blue-50 text-blue-700 border-blue-200/80", icon: "text-brand bg-blue-50 border border-blue-100" },
+                          { bg: "hover:border-emerald-300", banner: "from-emerald-600 to-teal-600", tag: "bg-emerald-50 text-emerald-700 border-emerald-200/80", icon: "text-emerald-600 bg-emerald-50 border border-emerald-100" },
+                          { bg: "hover:border-purple-300", banner: "from-purple-600 to-violet-600", tag: "bg-purple-50 text-purple-700 border-purple-200/80", icon: "text-purple-600 bg-purple-50 border border-purple-100" },
+                          { bg: "hover:border-rose-300", banner: "from-rose-600 to-pink-600", tag: "bg-rose-50 text-rose-700 border-rose-200/80", icon: "text-rose-600 bg-rose-50 border border-rose-100" },
+                          { bg: "hover:border-amber-300", banner: "from-amber-500 to-yellow-600", tag: "bg-amber-50 text-amber-800 border-amber-200/80", icon: "text-amber-600 bg-amber-50 border border-amber-100" },
+                          { bg: "hover:border-indigo-300", banner: "from-indigo-600 to-blue-700", tag: "bg-indigo-50 text-indigo-700 border-indigo-200/80", icon: "text-brand bg-indigo-50 border border-indigo-100" },
+                          { bg: "hover:border-cyan-300", banner: "from-cyan-600 to-blue-600", tag: "bg-cyan-50 text-cyan-700 border-cyan-200/80", icon: "text-cyan-600 bg-cyan-50 border border-cyan-100" },
+                          { bg: "hover:border-orange-300", banner: "from-orange-600 to-red-600", tag: "bg-orange-50 text-orange-700 border-orange-200/80", icon: "text-orange-600 bg-orange-50 border border-orange-100" }
                         ];
                         const theme = courseColors[index % courseColors.length];
 
@@ -2742,7 +2743,7 @@ export default function App() {
                           <div 
                             key={course.id} 
                             className={cn(
-                              "bg-slate-200/80 border border-slate-300 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all hover:bg-slate-200 hover:shadow-md",
+                              "bg-slate-50/70 border border-slate-200/80 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-300 hover:bg-white hover:shadow-md",
                               theme.bg
                             )}
                           >
@@ -2751,24 +2752,24 @@ export default function App() {
                                 <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-xs", theme.icon)}>
                                   <BookOpen size={20} />
                                 </div>
-                                <span className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border", theme.tag)}>
+                                <span className={cn("px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider border", theme.tag)}>
                                   {course.level}
                                 </span>
                               </div>
 
-                              <h4 className="font-black text-slate-800 text-sm leading-snug line-clamp-2" title={course.title}>
+                              <h4 className="font-extrabold text-slate-900 text-sm leading-snug line-clamp-2" title={course.title}>
                                 {course.title}
                               </h4>
-                              <p className="text-[11px] font-bold text-slate-500 mt-1">
+                              <p className="text-[11px] font-semibold text-slate-500 mt-1 tabular-nums">
                                 {course.topics.length} Topik Pembelajaran
                               </p>
                             </div>
 
-                            <div className="space-y-3 pt-3 border-t border-slate-300">
+                            <div className="space-y-2.5 pt-3 border-t border-slate-200/70">
                               {/* Toggle 1: Akses Materi */}
-                              <div className="flex items-center justify-between bg-slate-100 p-2.5 rounded-xl border border-slate-300 shadow-xs">
+                              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-xs">
                                 <div>
-                                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-500 block">Akses Siswa</span>
+                                  <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 block">Akses Siswa</span>
                                   <span className={cn("text-xs font-bold", isActive ? "text-emerald-700" : "text-slate-400")}>
                                     {isActive ? "✓ Terbuka" : "✕ Terkunci"}
                                   </span>
@@ -2782,7 +2783,7 @@ export default function App() {
                                 >
                                   <span 
                                     className={cn(
-                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-slate-100 shadow-md ring-0 transition duration-200 ease-in-out",
+                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out",
                                       isActive ? "translate-x-5" : "translate-x-0"
                                     )}
                                   />
@@ -2790,9 +2791,9 @@ export default function App() {
                               </div>
 
                               {/* Toggle 2: Wajib Fullscreen */}
-                              <div className="flex items-center justify-between bg-slate-100 p-2.5 rounded-xl border border-slate-300 shadow-xs">
+                              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-xs">
                                 <div>
-                                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-500 block">Mode Ujian</span>
+                                  <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 block">Mode Ujian</span>
                                   <span className={cn("text-xs font-bold", isFullScreen ? "text-brand" : "text-slate-400")}>
                                     {isFullScreen ? "🔒 Fullscreen" : "🔓 Bebas"}
                                   </span>
@@ -2806,7 +2807,7 @@ export default function App() {
                                 >
                                   <span 
                                     className={cn(
-                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-slate-100 shadow-md ring-0 transition duration-200 ease-in-out",
+                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out",
                                       isFullScreen ? "translate-x-5" : "translate-x-0"
                                     )}
                                   />
@@ -2814,9 +2815,9 @@ export default function App() {
                               </div>
 
                               {/* Toggle 3: Poin Nilai */}
-                              <div className="flex items-center justify-between bg-slate-100 p-2.5 rounded-xl border border-slate-300 shadow-xs">
+                              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-xs">
                                 <div>
-                                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-500 block">Poin Nilai</span>
+                                  <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 block">Poin Nilai</span>
                                   <span className={cn("text-xs font-bold", isScoreVisible ? "text-emerald-700" : "text-slate-400")}>
                                     {isScoreVisible ? "👁️ Terlihat" : "👁️‍🗨️ Tersembunyi"}
                                   </span>
@@ -2831,7 +2832,7 @@ export default function App() {
                                 >
                                   <span 
                                     className={cn(
-                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-slate-100 shadow-md ring-0 transition duration-200 ease-in-out",
+                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out",
                                       isScoreVisible ? "translate-x-5" : "translate-x-0"
                                     )}
                                   />
@@ -2848,12 +2849,12 @@ export default function App() {
             })()}
             {adminTab === 'student_management' && (
               <div className="space-y-6">
-                <div className="flex bg-slate-200 p-1 rounded-xl border border-slate-300 shadow-sm w-fit">
+                <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80 shadow-xs w-fit">
                   <button
                     onClick={() => setStudentSubTab('classes')}
                     className={cn(
-                      "px-5 py-2.5 rounded-lg font-bold transition-all flex items-center gap-2",
-                      studentSubTab === 'classes' ? "bg-brand text-white shadow-md" : "text-slate-600 hover:bg-frame"
+                      "px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 flex items-center gap-2",
+                      studentSubTab === 'classes' ? "bg-gradient-to-r from-brand to-blue-600 text-white shadow-md shadow-brand/20" : "text-slate-600 hover:bg-white hover:text-slate-900"
                     )}
                   >
                     <LayoutGrid size={18} />
@@ -2862,8 +2863,8 @@ export default function App() {
                   <button
                     onClick={() => setStudentSubTab('students')}
                     className={cn(
-                      "px-5 py-2.5 rounded-lg font-bold transition-all flex items-center gap-2",
-                      studentSubTab === 'students' ? "bg-brand text-white shadow-md" : "text-slate-600 hover:bg-frame"
+                      "px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 flex items-center gap-2",
+                      studentSubTab === 'students' ? "bg-gradient-to-r from-brand to-blue-600 text-white shadow-md shadow-brand/20" : "text-slate-600 hover:bg-white hover:text-slate-900"
                     )}
                   >
                     <Users size={18} />
@@ -2872,15 +2873,15 @@ export default function App() {
                 </div>
 
                 {studentSubTab === 'classes' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {Object.entries(groupedClasses).sort((a, b) => a[0].localeCompare(b[0])).map(([className, studentCount], idx) => {
                       const colors = [
-                        { bg: "bg-blue-50", border: "border-blue-100", text: "text-blue-700", icon: "bg-blue-100", hover: "hover:border-blue-300" },
-                        { bg: "bg-purple-50", border: "border-purple-100", text: "text-purple-700", icon: "bg-purple-100", hover: "hover:border-purple-300" },
-                        { bg: "bg-emerald-50", border: "border-emerald-100", text: "text-emerald-700", icon: "bg-emerald-100", hover: "hover:border-emerald-300" },
-                        { bg: "bg-amber-50", border: "border-amber-100", text: "text-amber-700", icon: "bg-amber-100", hover: "hover:border-amber-300" },
-                        { bg: "bg-rose-50", border: "border-rose-100", text: "text-rose-700", icon: "bg-rose-100", hover: "hover:border-rose-300" },
-                        { bg: "bg-indigo-50", border: "border-indigo-100", text: "text-indigo-700", icon: "bg-indigo-100", hover: "hover:border-indigo-300" },
+                        { bg: "bg-blue-50/70", border: "border-blue-200/70", text: "text-blue-700", icon: "bg-blue-100/90", hover: "hover:border-blue-300" },
+                        { bg: "bg-purple-50/70", border: "border-purple-200/70", text: "text-purple-700", icon: "bg-purple-100/90", hover: "hover:border-purple-300" },
+                        { bg: "bg-emerald-50/70", border: "border-emerald-200/70", text: "text-emerald-700", icon: "bg-emerald-100/90", hover: "hover:border-emerald-300" },
+                        { bg: "bg-amber-50/70", border: "border-amber-200/70", text: "text-amber-700", icon: "bg-amber-100/90", hover: "hover:border-amber-300" },
+                        { bg: "bg-rose-50/70", border: "border-rose-200/70", text: "text-rose-700", icon: "bg-rose-100/90", hover: "hover:border-rose-300" },
+                        { bg: "bg-indigo-50/70", border: "border-indigo-200/70", text: "text-indigo-700", icon: "bg-indigo-100/90", hover: "hover:border-indigo-300" },
                       ];
                       const color = colors[idx % colors.length];
 
@@ -2889,7 +2890,7 @@ export default function App() {
                           whileHover={{ y: -4 }}
                           key={className}
                           className={cn(
-                            "p-6 rounded-3xl border-2 transition-all text-left flex flex-col gap-4 group relative overflow-hidden shadow-sm",
+                            "p-6 rounded-2xl border transition-all duration-300 text-left flex flex-col gap-4 group relative overflow-hidden shadow-xs hover:shadow-md",
                             color.bg, color.border, color.hover
                           )}
                           onClick={() => {
@@ -2897,18 +2898,18 @@ export default function App() {
                             setStudentSearchQuery(className);
                           }}
                         >
-                          <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", color.icon, color.text)}>
+                          <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-xs", color.icon, color.text)}>
                             <Users size={28} />
                           </div>
                           <div>
-                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Kelas {className}</h3>
+                            <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">Kelas {className}</h3>
                             <div className="flex items-center gap-2 mt-1">
                               <span className={cn("w-2 h-2 rounded-full animate-pulse", color.text.replace('text', 'bg'))}></span>
-                              <p className={cn("font-bold text-sm", color.text)}>{studentCount} Siswa Terdaftar</p>
+                              <p className={cn("font-bold text-sm tabular-nums", color.text)}>{studentCount} Siswa Terdaftar</p>
                             </div>
                           </div>
                           
-                          <div className="mt-4 flex items-center text-xs font-bold uppercase tracking-widest text-slate-400 group-hover:text-brand transition-colors">
+                          <div className="mt-4 flex items-center text-xs font-extrabold uppercase tracking-widest text-slate-500 group-hover:text-brand transition-colors duration-300">
                             Lihat Detail <ArrowRight size={14} className="ml-2 group-hover:translate-x-1 transition-transform" />
                           </div>
                           
@@ -2925,26 +2926,26 @@ export default function App() {
                   <div className="space-y-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input 
                           type="text" 
                           placeholder="Cari NISN, Nama, atau Kelas..." 
                           value={studentSearchQuery}
                           onChange={(e) => setStudentSearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 bg-frame border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all"
+                          className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-300 text-sm shadow-xs"
                         />
                       </div>
                       <div className="flex items-center gap-2">
                         {selectedStudentIds.length > 0 && (
                           <button 
                             onClick={deleteSelectedStudents}
-                            className="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-xl transition-colors font-medium border border-red-100"
+                            className="flex items-center gap-2 bg-rose-50 text-rose-600 hover:bg-rose-100 px-4 py-2.5 rounded-xl transition-all duration-300 font-bold text-sm border border-rose-200/80 shadow-xs"
                           >
                             <Trash2 size={18} />
                             Hapus ({selectedStudentIds.length})
                           </button>
                         )}
-                        <label className="flex items-center gap-2 cursor-pointer bg-brand hover:bg-brand/90 text-white px-4 py-2 rounded-xl transition-colors font-medium">
+                        <label className="flex items-center gap-2 cursor-pointer bg-gradient-to-r from-brand to-blue-600 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2.5 rounded-xl transition-all duration-300 font-bold text-sm shadow-md shadow-brand/20 hover:-translate-y-0.5">
                           <Plus size={18} />
                           Impor dari Excel
                           <input 
@@ -2957,11 +2958,11 @@ export default function App() {
                       </div>
                     </div>
                     
-                    <div className="overflow-x-auto rounded-3xl border border-slate-300 bg-slate-100 shadow-md mb-4">
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs mb-4">
                       <div className="min-w-full">
                         <table className="w-full text-left border-collapse min-w-[800px]">
                           <thead>
-                            <tr className="bg-slate-200 border-b border-slate-300 text-slate-600 text-[10px] uppercase tracking-widest font-bold">
+                            <tr className="bg-slate-50/90 border-b border-slate-200/80 text-slate-500 text-[10px] uppercase tracking-widest font-extrabold">
                             <th className="px-6 py-4 w-10">
                               <input 
                                 type="checkbox" 
@@ -2978,11 +2979,11 @@ export default function App() {
                             <th className="px-6 py-4 text-right">Manajemen</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50">
+                        <tbody className="divide-y divide-slate-100">
                           {sortedFilteredStudents.length > 0 ? sortedFilteredStudents.map((s, index) => (
                             <tr key={s.id} className={cn(
-                              "hover:bg-frame/80 transition-all group",
-                              selectedStudentIds.includes(s.id) && "bg-brand/[0.02]"
+                              "hover:bg-blue-50/40 transition-colors duration-200 group",
+                              selectedStudentIds.includes(s.id) && "bg-brand/[0.03]"
                             )}>
                               <td className="px-6 py-4">
                                 <input 
@@ -2992,32 +2993,32 @@ export default function App() {
                                   className="rounded border-slate-300 text-brand focus:ring-brand cursor-pointer w-4 h-4"
                                 />
                               </td>
-                              <td className="px-6 py-4 text-slate-300 font-mono text-xs">{index + 1}</td>
+                              <td className="px-6 py-4 text-slate-400 font-mono text-xs tabular-nums">{index + 1}</td>
                               {editingStudentId === s.id ? (
                                 <>
-                                  <td className="p-2"><input value={editFormData.nis} onChange={e => setEditFormData({...editFormData, nis: e.target.value})} className="bg-frame border-slate-200 p-2 rounded-lg w-full outline-brand text-sm font-mono" /></td>
-                                  <td className="p-2"><input value={editFormData.nama} onChange={e => setEditFormData({...editFormData, nama: e.target.value})} className="bg-frame border-slate-200 p-2 rounded-lg w-full outline-brand text-sm font-bold" /></td>
+                                  <td className="p-2"><input value={editFormData.nis} onChange={e => setEditFormData({...editFormData, nis: e.target.value})} className="bg-white border border-slate-200 p-2 rounded-lg w-full outline-brand text-sm font-mono" /></td>
+                                  <td className="p-2"><input value={editFormData.nama} onChange={e => setEditFormData({...editFormData, nama: e.target.value})} className="bg-white border border-slate-200 p-2 rounded-lg w-full outline-brand text-sm font-bold" /></td>
                                   <td className="p-2">
-                                    <select value={editFormData.jenisKelamin} onChange={e => setEditFormData({...editFormData, jenisKelamin: e.target.value})} className="bg-frame border-slate-200 p-2 rounded-lg w-full outline-brand text-sm">
+                                    <select value={editFormData.jenisKelamin} onChange={e => setEditFormData({...editFormData, jenisKelamin: e.target.value})} className="bg-white border border-slate-200 p-2 rounded-lg w-full outline-brand text-sm">
                                       <option value="L">Laki-laki (L)</option>
                                       <option value="P">Perempuan (P)</option>
                                     </select>
                                   </td>
-                                  <td className="p-2"><input value={editFormData.kelas} onChange={e => setEditFormData({...editFormData, kelas: e.target.value})} className="bg-frame border-slate-200 p-2 rounded-lg w-full outline-brand text-sm uppercase" /></td>
+                                  <td className="p-2"><input value={editFormData.kelas} onChange={e => setEditFormData({...editFormData, kelas: e.target.value})} className="bg-white border border-slate-200 p-2 rounded-lg w-full outline-brand text-sm uppercase" /></td>
                                   <td className="p-2 text-right whitespace-nowrap">
-                                    <button onClick={saveEditStudent} className="text-white bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all">Simpan</button>
-                                    <button onClick={() => setEditingStudentId(null)} className="text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition-all ml-2">Batal</button>
+                                    <button onClick={saveEditStudent} className="text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-all">Simpan</button>
+                                    <button onClick={() => setEditingStudentId(null)} className="text-slate-600 hover:bg-slate-100 px-4 py-2 rounded-xl text-xs font-bold transition-all ml-2">Batal</button>
                                   </td>
                                 </>
                               ) : (
                                 <>
-                                  <td className="px-6 py-4 text-slate-500 font-mono text-sm tracking-tight">{s.nis}</td>
+                                  <td className="px-6 py-4 text-slate-500 font-mono text-sm tracking-tight tabular-nums">{s.nis}</td>
                                   <td className="px-6 py-4">
                                     <button 
                                       onClick={() => setStudentDetail({ student: s, score: getStudentScore(s.id) })}
                                       className="text-left group/name"
                                     >
-                                      <div className={cn("font-extrabold text-sm transition-colors", s.jenisKelamin === 'P' ? 'text-rose-600 group-hover/name:text-rose-700' : 'text-slate-800 group-hover/name:text-brand')}>
+                                      <div className={cn("font-extrabold text-sm transition-colors", s.jenisKelamin === 'P' ? 'text-rose-600 group-hover/name:text-rose-700' : 'text-slate-900 group-hover/name:text-brand')}>
                                         {s.nama}
                                       </div>
                                       <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1 mt-0.5">
@@ -3028,32 +3029,32 @@ export default function App() {
                                   </td>
                                   <td className="px-6 py-4">
                                     <span className={cn(
-                                      "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider", 
-                                      s.jenisKelamin === 'L' ? 'bg-blue-50 text-brand' : 'bg-rose-50 text-rose-600'
+                                      "px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider", 
+                                      s.jenisKelamin === 'L' ? 'bg-blue-50 text-brand border border-blue-100' : 'bg-rose-50 text-rose-600 border border-rose-100'
                                     )}>
                                       {s.jenisKelamin}
                                     </span>
                                   </td>
                                   <td className="px-6 py-4">
                                     <div className="flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-lg bg-frame flex items-center justify-center text-slate-400 text-[10px] font-bold border border-slate-100">
+                                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 text-[10px] font-bold border border-slate-200/80">
                                         {s.kelas.substring(0, 2)}
                                       </div>
-                                      <span className="text-slate-700 font-bold text-sm tracking-tight">{s.kelas}</span>
+                                      <span className="text-slate-800 font-bold text-sm tracking-tight">{s.kelas}</span>
                                     </div>
                                   </td>
                                   <td className="px-6 py-4 text-right">
-                                    <div className="flex items-center justify-end gap-1 md:opacity-0 group-hover:opacity-100 transition-all duration-300 transform md:translate-x-4 group-hover:translate-x-0">
+                                    <div className="flex items-center justify-end gap-1 md:opacity-0 group-hover:opacity-100 transition-all duration-300 transform md:translate-x-2 group-hover:translate-x-0">
                                       <button 
                                         onClick={() => startEditStudent(s)} 
-                                        className="p-2 text-slate-400 hover:text-brand hover:bg-brand/5 rounded-xl transition-all"
+                                        className="p-2 text-slate-400 hover:text-brand hover:bg-brand/10 rounded-xl transition-all"
                                         title="Edit Siswa"
                                       >
                                         <Edit2 size={16} />
                                       </button>
                                       <button 
                                         onClick={() => deleteStudent(s.id)} 
-                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
                                         title="Hapus Siswa"
                                       >
                                         <Trash2 size={16} />
@@ -3074,12 +3075,12 @@ export default function App() {
                             <tr>
                               <td colSpan={7} className="px-6 py-20 text-center">
                                 <div className="flex flex-col items-center justify-center gap-4">
-                                  <div className="w-20 h-20 bg-frame rounded-full flex items-center justify-center text-slate-200">
+                                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
                                     <Users size={40} />
                                   </div>
                                   <div>
-                                    <p className="text-slate-400 font-bold">Tidak ada siswa yang ditemukan</p>
-                                    <p className="text-slate-300 text-sm">Coba kata kunci pencarian lain atau impor data baru.</p>
+                                    <p className="text-slate-500 font-bold">Tidak ada siswa yang ditemukan</p>
+                                    <p className="text-slate-400 text-sm">Coba kata kunci pencarian lain atau impor data baru.</p>
                                   </div>
                                 </div>
                               </td>
@@ -3110,19 +3111,19 @@ export default function App() {
                     onClick={() => setStudentDetail(null)}
                   />
                   <motion.div 
-                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    initial={{ opacity: 0, scale: 0.94, y: 16 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className="bg-slate-100 rounded-[2.5rem] overflow-hidden max-w-md w-full shadow-2xl relative z-10 border border-slate-300"
+                    exit={{ opacity: 0, scale: 0.94, y: 16 }}
+                    className="bg-white rounded-3xl overflow-hidden max-w-md w-full shadow-2xl relative z-10 border border-slate-200/80"
                     onClick={e => e.stopPropagation()}
                   >
                     <div className={cn(
                       "h-32 relative",
-                      studentDetail.student.jenisKelamin === 'P' ? "bg-gradient-to-br from-rose-400 to-pink-600" : "bg-gradient-to-br from-blue-500 to-indigo-700"
+                      studentDetail.student.jenisKelamin === 'P' ? "bg-gradient-to-br from-rose-500 to-pink-600" : "bg-gradient-to-br from-blue-600 to-indigo-700"
                     )}>
-                      <div className="absolute -bottom-12 left-8 p-1 bg-slate-100 rounded-3xl shadow-xl">
+                      <div className="absolute -bottom-12 left-8 p-1.5 bg-white rounded-3xl shadow-lg">
                         <div className={cn(
-                          "w-24 h-24 rounded-[1.25rem] flex items-center justify-center text-white font-black text-4xl",
+                          "w-24 h-24 rounded-2xl flex items-center justify-center text-white font-black text-4xl",
                           studentDetail.student.jenisKelamin === 'P' ? "bg-rose-500" : "bg-blue-600"
                         )}>
                           {studentDetail.student.nama.charAt(0)}
@@ -3130,7 +3131,7 @@ export default function App() {
                       </div>
                       <button 
                         onClick={() => setStudentDetail(null)}
-                        className="absolute top-4 right-4 p-2 bg-black/10 hover:bg-black/20 rounded-full text-white transition-colors"
+                        className="absolute top-4 right-4 p-2 bg-black/15 hover:bg-black/25 rounded-full text-white transition-colors"
                       >
                         <X size={20} />
                       </button>
@@ -3139,33 +3140,33 @@ export default function App() {
                     <div className="px-8 pt-16 pb-8">
                       <div className="flex justify-between items-start mb-6">
                         <div>
-                          <h2 className="text-2xl font-black text-slate-900 leading-tight">{studentDetail.student.nama}</h2>
-                          <p className="text-slate-500 font-bold text-sm tracking-tight">{studentDetail.student.nis} • Kelas {studentDetail.student.student_management?.kelas || studentDetail.student.kelas}</p>
+                          <h2 className="text-2xl font-extrabold text-slate-900 leading-tight">{studentDetail.student.nama}</h2>
+                          <p className="text-slate-500 font-semibold text-sm tracking-tight tabular-nums">{studentDetail.student.nis} • Kelas {studentDetail.student.student_management?.kelas || studentDetail.student.kelas}</p>
                         </div>
                         <div className="bg-brand/10 border border-brand/20 px-4 py-2 rounded-2xl text-center">
-                          <p className="text-[10px] font-black text-brand uppercase tracking-widest leading-none mb-1">Total Nilai</p>
-                          <p className="text-2xl font-black text-brand leading-none">{studentDetail.score}</p>
+                          <p className="text-[10px] font-extrabold text-brand uppercase tracking-widest leading-none mb-1">Total Nilai</p>
+                          <p className="text-2xl font-black text-brand leading-none tabular-nums">{studentDetail.score}</p>
                         </div>
                       </div>
                       
                       <div className="mb-4">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Materi & Skor</p>
-                        <div className="space-y-2 bg-slate-200 p-3 rounded-2xl max-h-48 overflow-y-auto">
+                        <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3">Materi & Skor</p>
+                        <div className="space-y-2 bg-slate-50 border border-slate-200/80 p-3 rounded-2xl max-h-48 overflow-y-auto custom-scrollbar">
                           {assessments.filter(a => a.studentId === studentDetail.student.id).length > 0 ? (
                             assessments.filter(a => a.studentId === studentDetail.student.id).map((a, idx) => (
-                              <div key={idx} className="flex justify-between items-center p-2.5 bg-slate-100 rounded-xl border border-slate-300 shadow-sm">
+                              <div key={idx} className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-xs">
                                 <div className="min-w-0 flex-1 mr-3">
-                                  <span className="text-xs font-bold text-slate-700 block truncate">{a.courseTitle}</span>
+                                  <span className="text-xs font-bold text-slate-800 block truncate">{a.courseTitle}</span>
                                   {a.completedAt && (
-                                    <span className="text-[10px] text-slate-400 font-medium">
+                                    <span className="text-[10px] text-slate-400 font-medium tabular-nums">
                                       {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} • {new Date(a.completedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                   )}
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className={cn(
-                                    "text-xs font-black px-2 py-1 rounded-lg",
-                                    a.score >= 80 ? "bg-emerald-100 text-emerald-700" : a.score >= 60 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
+                                    "text-xs font-extrabold px-2.5 py-1 rounded-lg tabular-nums",
+                                    a.score >= 80 ? "bg-emerald-50 text-emerald-700 border border-emerald-200/70" : a.score >= 60 ? "bg-amber-50 text-amber-700 border border-amber-200/70" : "bg-rose-50 text-rose-700 border border-rose-200/70"
                                   )}>{a.score}</span>
                                   <button
                                     onClick={() => deleteAssessment({
@@ -3190,26 +3191,26 @@ export default function App() {
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4 mb-8">
-                        <div className="bg-frame p-4 rounded-2xl">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Jenis Kelamin</p>
-                          <p className="font-bold text-slate-700">{studentDetail.student.jenisKelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</p>
+                        <div className="bg-slate-50 border border-slate-200/70 p-4 rounded-2xl">
+                          <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Jenis Kelamin</p>
+                          <p className="font-bold text-slate-800">{studentDetail.student.jenisKelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</p>
                         </div>
-                        <div className="bg-frame p-4 rounded-2xl">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status Akun</p>
+                        <div className="bg-slate-50 border border-slate-200/70 p-4 rounded-2xl">
+                          <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Status Akun</p>
                           <div className="flex items-center gap-1.5">
                             <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                            <p className="font-bold text-slate-700">Aktif</p>
+                            <p className="font-bold text-slate-800">Aktif</p>
                           </div>
                         </div>
                       </div>
                       
                       <div className="space-y-3">
-                        <button className="w-full bg-brand text-white py-4 rounded-2xl font-black text-sm shadow-lg shadow-brand/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                        <button className="w-full bg-gradient-to-r from-brand to-blue-600 text-white py-3.5 rounded-2xl font-extrabold text-sm shadow-md shadow-brand/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                           <History size={18} /> Lihat Log Aktivitas
                         </button>
                         <button 
                           onClick={() => setStudentDetail(null)} 
-                          className="w-full bg-frame hover:bg-slate-100 text-slate-500 py-3 rounded-2xl font-bold text-sm transition-all"
+                          className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-2xl font-bold text-sm transition-all"
                         >
                           Tutup
                         </button>
@@ -3223,16 +3224,16 @@ export default function App() {
             {adminTab === 'materials' && (
               <>
                 <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-slate-900">Ruang Informatika</h2>
-                  <p className="text-slate-600">Terbitkan materi agar dapat diakses oleh siswa di dashboard mereka.</p>
+                  <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Ruang Informatika</h2>
+                  <p className="text-slate-500 font-medium mt-1">Terbitkan materi agar dapat diakses oleh siswa di dashboard mereka.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {COURSES.map((course, index) => {
                     const isActive = materialConfigs[course.id]?.isActive ?? true;
                     const colorVariants = [
-                      { bg: "bg-blue-100 border-blue-200 shadow-blue-500/10", text: "text-blue-900", badge: "bg-blue-200 text-blue-900" },
-                      { bg: "bg-emerald-100 border-emerald-200 shadow-emerald-500/10", text: "text-emerald-900", badge: "bg-emerald-200 text-emerald-900" },
-                      { bg: "bg-purple-100 border-purple-200 shadow-purple-500/10", text: "text-purple-900", badge: "bg-purple-200 text-purple-900" },
+                      { bg: "bg-blue-50/70 border-blue-200/80 hover:border-blue-300", text: "text-blue-950", badge: "bg-blue-100 text-blue-900" },
+                      { bg: "bg-emerald-50/70 border-emerald-200/80 hover:border-emerald-300", text: "text-emerald-950", badge: "bg-emerald-100 text-emerald-900" },
+                      { bg: "bg-purple-50/70 border-purple-200/80 hover:border-purple-300", text: "text-purple-950", badge: "bg-purple-100 text-purple-900" },
                     ];
                     const variant = colorVariants[index % colorVariants.length];
                         const courseConfig = materialConfigs[course.id];
@@ -3247,45 +3248,45 @@ export default function App() {
                              return (
                       <div 
                         key={course.id} 
-                        className={cn("p-6 border-2 rounded-2xl shadow-sm transition-all flex flex-col", variant.bg)}
+                        className={cn("p-6 border rounded-2xl shadow-xs hover:shadow-md transition-all duration-300 flex flex-col", variant.bg)}
                       >
                         <div className="flex items-start justify-between mb-4 gap-4">
-                          <h3 className={cn("font-bold text-xl leading-tight", variant.text)}>{course.title}</h3>
-                          <div className={cn("p-2 rounded-xl shrink-0 shadow-sm", isActive ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500")}>
+                          <h3 className={cn("font-extrabold text-xl leading-tight", variant.text)}>{course.title}</h3>
+                          <div className={cn("p-2 rounded-xl shrink-0 shadow-xs", isActive ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500")}>
                             {isActive ? <CheckCircle size={20} /> : <X size={20} />}
                           </div>
                       </div>
-                        <p className="text-sm text-slate-600 line-clamp-2 mb-2 flex-1">{course.description}</p>
-                        <div className="flex gap-4 text-xs font-bold text-slate-600 mb-6 bg-slate-200/80 border border-slate-300 p-2 rounded-lg">
+                        <p className="text-sm text-slate-600 line-clamp-2 mb-3 flex-1">{course.description}</p>
+                        <div className="flex flex-wrap gap-3 text-xs font-bold text-slate-600 mb-6 bg-white/80 border border-slate-200/80 p-2.5 rounded-xl tabular-nums">
                           <span>{tM}m {tS}s materi</span>
                           <span>{qM}m {qS}s kuis</span>
                           <span>{availSeconds}s kuis ready</span>
                           {totalLimit > 0 && <span>{totalLimit}s total</span>}
                         </div>
-                        <div className="flex items-center gap-2 pt-4 border-t border-slate-200/50 mt-auto flex-wrap">
-                          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest", isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500")}>
+                        <div className="flex items-center gap-2 pt-4 border-t border-slate-200/70 mt-auto flex-wrap">
+                          <span className={cn("text-[10px] font-extrabold px-2.5 py-1 rounded-lg uppercase tracking-widest", isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600")}>
                             {isActive ? 'Terbit' : 'Draft'}
                           </span>
                           <div className="flex-1"></div>
                           <button 
                             onClick={() => toggleMaterialActive(course.id)}
                             className={cn(
-                              "px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95",
-                              isActive ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-emerald-600 text-white hover:bg-emerald-700"
+                              "px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 shadow-xs active:scale-95",
+                              isActive ? "bg-rose-50 text-rose-600 border border-rose-200/70 hover:bg-rose-100" : "bg-emerald-600 text-white hover:bg-emerald-700"
                             )}
                           >
                             {isActive ? 'Nonaktifkan' : 'Aktifkan'}
                           </button>
                           <button 
                             onClick={() => setEditingMaterialConfigId(course.id)}
-                            className="px-3 py-1.5 bg-slate-100 text-slate-600 hover:text-slate-900 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all shadow-sm active:scale-95 flex items-center gap-2"
+                            className="px-3 py-1.5 bg-white text-slate-700 hover:text-slate-900 border border-slate-200/80 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all duration-300 shadow-xs active:scale-95 flex items-center gap-2"
                           >
                             <Settings size={14} />
                             Setelan
                           </button>
                           <button 
                             onClick={() => { setActiveCourseId(course.id); setCurrentPage('course'); }}
-                            className="px-3 py-1.5 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700 transition-all shadow-sm active:scale-95 flex items-center gap-2"
+                            className="px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all duration-300 shadow-xs active:scale-95 flex items-center gap-2"
                           >
                             <Eye size={14} />
                             Pratinjau
@@ -3304,7 +3305,7 @@ export default function App() {
                   <button 
                     onClick={() => setAssessmentNav({ course: null, kelas: null })}
                     className={cn(
-                      "p-2 rounded-lg transition-colors",
+                      "p-2 rounded-xl transition-colors",
                       assessmentNav.course ? "text-slate-500 hover:bg-slate-100 hover:text-slate-700" : "text-slate-300 pointer-events-none"
                     )}
                   >
@@ -3340,35 +3341,35 @@ export default function App() {
                         <button 
                           key={courseData.title}
                           onClick={() => setAssessmentNav({ course: courseData.title, kelas: null })}
-                          className="bg-slate-100 p-6 rounded-[2rem] border border-slate-300 text-left hover:border-brand/40 group hover:shadow-xl hover:shadow-brand/10 transition-all duration-500 flex flex-col relative overflow-hidden"
+                          className="bg-white p-6 rounded-3xl border border-slate-200/80 text-left hover:border-brand/40 group hover:shadow-lg hover:shadow-brand/10 transition-all duration-300 flex flex-col relative overflow-hidden shadow-xs"
                         >
                           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                             <BookOpen size={64} />
                           </div>
-                          <div className="w-14 h-14 bg-brand/10 text-brand rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-brand group-hover:text-white transition-all duration-500 shadow-sm">
+                          <div className="w-14 h-14 bg-brand/10 text-brand rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-brand group-hover:text-white transition-all duration-300 shadow-xs">
                             <BookOpen size={28} />
                           </div>
-                          <h4 className="text-xl font-black text-slate-900 mb-2 leading-tight group-hover:text-brand transition-colors">{courseData.title}</h4>
+                          <h4 className="text-xl font-extrabold text-slate-900 mb-2 leading-tight group-hover:text-brand transition-colors">{courseData.title}</h4>
                           
                           <div className="mt-auto space-y-4">
-                            <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                              <span className="flex items-center gap-1.5 bg-slate-200 px-2 py-1 rounded-lg">
+                            <div className="flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 tabular-nums">
+                              <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg">
                                 <Users size={12} className="text-brand" /> {Object.keys(courseData.classes).length} Kelas
                               </span>
-                              <span className="flex items-center gap-1.5 bg-slate-200 px-2 py-1 rounded-lg">
+                              <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg">
                                 <CheckCircle size={12} className="text-emerald-500" /> {totalSubmissions} Done
                               </span>
                             </div>
 
-                            <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
+                            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                               <div className="flex flex-col">
                                 <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Rerata Skor</span>
                                 <span className={cn(
-                                  "text-lg font-black",
+                                  "text-lg font-black tabular-nums",
                                   avgScore >= 80 ? "text-emerald-600" : avgScore >= 60 ? "text-amber-600" : "text-rose-600"
                                 )}>{avgScore}</span>
                               </div>
-                              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors">
+                              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300">
                                 <ChevronRight size={20} />
                               </div>
                             </div>
@@ -3376,12 +3377,12 @@ export default function App() {
                         </button>
                       );
                     }) : (
-                      <div className="col-span-full py-20 bg-slate-200/50 rounded-[2.5rem] border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400">
-                        <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mb-6">
-                          <TrendingUp size={40} className="opacity-20" />
+                      <div className="col-span-full py-20 bg-slate-50/80 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
+                        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                          <TrendingUp size={40} className="opacity-30" />
                         </div>
-                        <p className="font-black text-lg tracking-tight mb-1">Belum Ada Data Asesmen</p>
-                        <p className="text-sm font-bold opacity-60">Data akan muncul setelah siswa menyelesaikan kursus.</p>
+                        <p className="font-extrabold text-lg tracking-tight mb-1 text-slate-700">Belum Ada Data Asesmen</p>
+                        <p className="text-sm font-medium text-slate-500">Data akan muncul setelah siswa menyelesaikan kursus.</p>
                       </div>
                     )}
                   </div>
@@ -3396,35 +3397,35 @@ export default function App() {
                         <button 
                           key={classData.name}
                           onClick={() => setAssessmentNav({ ...assessmentNav, kelas: classData.name })}
-                          className="bg-slate-100 p-6 rounded-[2rem] border border-slate-300 text-left hover:border-brand/40 group hover:shadow-xl hover:shadow-brand/5 transition-all duration-500 flex flex-col relative"
+                          className="bg-white p-6 rounded-3xl border border-slate-200/80 text-left hover:border-brand/40 group hover:shadow-lg hover:shadow-brand/5 transition-all duration-300 flex flex-col relative shadow-xs"
                         >
-                          <div className="w-12 h-12 bg-slate-200 text-slate-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500">
+                          <div className="w-12 h-12 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-brand group-hover:text-white transition-all duration-300">
                             <Users size={24} />
                           </div>
-                          <h4 className="text-2xl font-black text-slate-900 mb-1">Kelas {classData.name}</h4>
-                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6">
+                          <h4 className="text-2xl font-extrabold text-slate-900 mb-1">Kelas {classData.name}</h4>
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6 tabular-nums">
                             <CheckCircle size={10} className="text-emerald-500" />
                             {submissions} Siswa Selesai
                           </div>
                           
-                          <div className="mt-auto pt-4 border-t border-slate-200 flex items-center justify-between">
+                          <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
                             <div className="flex flex-col">
                               <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Nilai Rata-rata</span>
                               <span className={cn(
-                                "text-lg font-black",
+                                "text-lg font-black tabular-nums",
                                 avgScore >= 80 ? "text-emerald-600" : avgScore >= 60 ? "text-amber-600" : "text-rose-600"
                               )}>{avgScore}</span>
                             </div>
                             <div className="flex -space-x-2">
                               {[1, 2, 3].map(i => (
-                                <div key={i} className="w-6 h-6 rounded-full border-2 border-slate-300 bg-slate-200 flex items-center justify-center text-[8px] font-black text-slate-600 uppercase">
+                                <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-600 uppercase">
                                   {classData.name[0]}
                                 </div>
                               ))}
                             </div>
                           </div>
                           
-                          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all">
+                          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
                             <ChevronRight size={16} className="text-brand" />
                           </div>
                         </button>
@@ -3445,31 +3446,31 @@ export default function App() {
 
                         return (
                           <>
-                            <div className="bg-slate-100 p-4 rounded-2xl border border-slate-300 flex items-center gap-4">
-                              <div className="w-10 h-10 bg-blue-100 text-brand rounded-xl flex items-center justify-center">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
+                              <div className="w-10 h-10 bg-blue-50 text-brand rounded-xl flex items-center justify-center">
                                 <Users size={20} />
                               </div>
                               <div>
                                 <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Partisipasi</p>
-                                <p className="text-sm font-black text-slate-900">{completed} / {studentsInClass} Siswa</p>
+                                <p className="text-sm font-extrabold text-slate-900 tabular-nums">{completed} / {studentsInClass} Siswa</p>
                               </div>
                             </div>
-                            <div className="bg-slate-100 p-4 rounded-2xl border border-slate-300 flex items-center gap-4">
-                              <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
+                              <div className="w-10 h-10 bg-emerald-50 text-emerald-700 rounded-xl flex items-center justify-center">
                                 <TrendingUp size={20} />
                               </div>
                               <div>
                                 <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Rata-rata Kelas</p>
-                                <p className="text-sm font-black text-slate-900">{avgScore} Poin</p>
+                                <p className="text-sm font-extrabold text-slate-900 tabular-nums">{avgScore} Poin</p>
                               </div>
                             </div>
-                            <div className="bg-slate-100 p-4 rounded-2xl border border-slate-300 flex items-center gap-4">
-                              <div className="w-10 h-10 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-4">
+                              <div className="w-10 h-10 bg-amber-50 text-amber-700 rounded-xl flex items-center justify-center">
                                 <CheckCircle size={20} />
                               </div>
                               <div>
                                 <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Status Materi</p>
-                                <p className="text-sm font-black text-slate-900">{completed === studentsInClass ? 'Selesai Semua' : 'Dalam Proses'}</p>
+                                <p className="text-sm font-extrabold text-slate-900">{completed === studentsInClass ? 'Selesai Semua' : 'Dalam Proses'}</p>
                               </div>
                             </div>
                           </>
@@ -3477,24 +3478,24 @@ export default function App() {
                       })()}
                     </div>
 
-                    <div className="bg-slate-100 rounded-3xl border border-slate-300 overflow-hidden shadow-sm">
-                      <div className="p-6 border-b border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between bg-slate-200/60 gap-4">
+                    <div className="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs">
+                      <div className="p-6 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50/90 gap-4">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-black text-slate-900">Daftar Nilai Siswa</h4>
-                            <span className="bg-brand/10 text-brand text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Kelas {assessmentNav.kelas}</span>
+                            <h4 className="font-extrabold text-slate-900">Daftar Nilai Siswa</h4>
+                            <span className="bg-brand/10 text-brand text-[10px] px-2.5 py-0.5 rounded-full font-extrabold uppercase tracking-wider">Kelas {assessmentNav.kelas}</span>
                           </div>
                           <p className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
                             <BookOpen size={12} /> {assessmentNav.course}
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
-                          <div className="flex bg-slate-200 p-1 rounded-xl border border-slate-300 shadow-sm">
+                          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 shadow-xs">
                             <button 
                               onClick={() => setAssessmentSort('time')}
                               className={cn(
-                                "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
-                                assessmentSort === 'time' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-600 hover:bg-slate-300"
+                                "px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 flex items-center gap-1.5",
+                                assessmentSort === 'time' ? "bg-brand text-white shadow-sm shadow-brand/20" : "text-slate-600 hover:bg-white"
                               )}
                             >
                               <Clock size={14} /> Teranyar
@@ -3502,8 +3503,8 @@ export default function App() {
                             <button 
                               onClick={() => setAssessmentSort('name')}
                               className={cn(
-                                "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
-                                assessmentSort === 'name' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-600 hover:bg-slate-300"
+                                "px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 flex items-center gap-1.5",
+                                assessmentSort === 'name' ? "bg-brand text-white shadow-sm shadow-brand/20" : "text-slate-600 hover:bg-white"
                               )}
                             >
                               <Type size={14} /> Abjad
@@ -3517,7 +3518,7 @@ export default function App() {
                                 kelas: assessmentNav.kelas || undefined,
                                 courseTitle: assessmentNav.course || undefined
                               })}
-                              className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95"
+                              className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-1.5 active:scale-95"
                               title="Hapus semua nilai asesmen siswa di kelas ini"
                             >
                               <Trash2 size={14} />
@@ -3527,7 +3528,7 @@ export default function App() {
 
                           <button 
                             onClick={() => setAssessmentNav(prev => ({ ...prev, kelas: null }))}
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+                            className="bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/80 px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-xs"
                           >
                             Kembali
                           </button>
@@ -3570,7 +3571,7 @@ export default function App() {
                             <div className="hidden md:block overflow-x-auto">
                               <table className="w-full text-left border-collapse border-spacing-0">
                                 <thead>
-                                  <tr className="bg-frame text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b-2 border-slate-200">
+                                  <tr className="bg-slate-50/90 text-slate-500 text-[10px] uppercase font-extrabold tracking-wider border-b border-slate-200/80">
                                     <th className="p-4 pl-6 border-r border-slate-100">
                                       <div className="flex items-center gap-2">
                                         <Users size={14} className="text-slate-400" />
@@ -3604,17 +3605,17 @@ export default function App() {
                                     <th className="p-4 text-right pr-6">Aksi</th>
                                   </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-200">
+                                <tbody className="divide-y divide-slate-100">
                                   {sortedList.map((res) => (
                                     <tr key={res.id} className={cn(
-                                      "hover:bg-blue-50/30 transition-all group", 
-                                      res.isMissing ? "bg-slate-200/50 font-medium" : "bg-slate-100"
+                                      "hover:bg-blue-50/40 transition-colors duration-200 group", 
+                                      res.isMissing ? "bg-slate-50/60 font-medium" : "bg-white"
                                     )}>
-                                      <td className="p-4 pl-6 border-r border-slate-100/50">
+                                      <td className="p-4 pl-6 border-r border-slate-100/70">
                                         <div className="flex items-center gap-3">
                                           <div className={cn(
-                                            "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase text-white shadow-sm",
-                                            res.isMissing ? "bg-slate-200" : "bg-gradient-to-br from-brand to-brand-dark"
+                                            "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase text-white shadow-xs",
+                                            res.isMissing ? "bg-slate-300" : "bg-gradient-to-br from-brand to-indigo-600"
                                           )}>
                                             {res.studentName.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
                                           </div>
@@ -3624,49 +3625,49 @@ export default function App() {
                                             </span>
                                             {res.isMissing && (
                                               <div className="flex items-center gap-1 mt-0.5">
-                                                <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-1 rounded border border-rose-100">Belum Selesai</span>
+                                                <span className="text-[9px] font-extrabold text-rose-500 uppercase tracking-widest bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">Belum Selesai</span>
                                               </div>
                                             )}
                                           </div>
                                         </div>
                                       </td>
-                                      <td className="p-4 text-center border-r border-slate-100/50">
+                                      <td className="p-4 text-center border-r border-slate-100/70">
                                         {res.isMissing ? (
-                                          <div className="w-8 h-8 bg-slate-100/50 rounded-lg mx-auto flex items-center justify-center">
-                                            <span className="text-slate-300 text-xs font-bold">-</span>
+                                          <div className="w-8 h-8 bg-slate-100 rounded-lg mx-auto flex items-center justify-center">
+                                            <span className="text-slate-400 text-xs font-bold">-</span>
                                           </div>
                                         ) : (
                                           <div className={cn(
-                                            "px-3 py-1.5 rounded-xl text-xs font-black inline-flex items-center gap-1.5 shadow-sm",
-                                            res.score >= 80 ? "bg-emerald-500 text-white" : res.score >= 60 ? "bg-amber-400 text-amber-900" : "bg-rose-500 text-white"
+                                            "px-3 py-1 rounded-xl text-xs font-extrabold inline-flex items-center gap-1.5 shadow-xs tabular-nums",
+                                            res.score >= 80 ? "bg-emerald-500 text-white" : res.score >= 60 ? "bg-amber-400 text-amber-950" : "bg-rose-500 text-white"
                                           )}>
                                             {res.score}
                                           </div>
                                         )}
                                       </td>
-                                      <td className="p-4 text-center border-r border-slate-100/50">
+                                      <td className="p-4 text-center border-r border-slate-100/70">
                                         {res.isMissing ? (
-                                          <span className="text-slate-200">-</span>
+                                          <span className="text-slate-300">-</span>
                                         ) : res.cheatingAttempts > 0 ? (
                                           <div 
                                             title={res.cheatingDetails ? "Detail kecurangan:\n" + res.cheatingDetails.map((t: string) => parseCheatingDetail(t)).join('\n') : undefined} 
-                                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-200 cursor-help shadow-sm"
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-rose-50 text-rose-600 border border-rose-200 cursor-help shadow-xs tabular-nums"
                                           >
                                             <Megaphone size={10} />
                                             {res.cheatingAttempts}x Deteksi
                                           </div>
                                         ) : (
-                                          <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-emerald-500 bg-emerald-50 border border-emerald-100">
+                                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/70">
                                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                             Aman
                                           </div>
                                         )}
                                       </td>
-                                      <td className="p-4 text-center border-r border-slate-100/50">
+                                      <td className="p-4 text-center border-r border-slate-100/70">
                                         {res.isMissing ? (
-                                          <span className="text-slate-200">-</span>
+                                          <span className="text-slate-300">-</span>
                                         ) : (
-                                          <span className="text-xs font-black text-slate-700">
+                                          <span className="text-xs font-bold text-slate-700 tabular-nums">
                                             {(() => {
                                               const totalSec = res.durationSeconds || 0;
                                               if (totalSec === 0) return "-";
@@ -3677,10 +3678,10 @@ export default function App() {
                                           </span>
                                         )}
                                       </td>
-                                      <td className="p-4 text-center border-r border-slate-100/50">
+                                      <td className="p-4 text-center border-r border-slate-100/70">
                                         {!res.isMissing && res.completedAt ? (
-                                          <div className="flex flex-col items-center">
-                                            <span className="text-xs font-bold text-slate-700">
+                                          <div className="flex flex-col items-center tabular-nums">
+                                            <span className="text-xs font-bold text-slate-800">
                                               {new Date(res.completedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                             <span className="text-[10px] text-slate-400 font-bold whitespace-nowrap uppercase tracking-tighter">
@@ -3688,7 +3689,7 @@ export default function App() {
                                             </span>
                                           </div>
                                         ) : (
-                                          <span className="text-slate-200">-</span>
+                                          <span className="text-slate-300">-</span>
                                         )}
                                       </td>
                                       <td className="p-4 text-right pr-6">
@@ -3701,7 +3702,7 @@ export default function App() {
                                               score: res.score,
                                               kelas: assessmentNav.kelas || undefined
                                             })}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200/80 rounded-xl transition-all shadow-sm active:scale-95 text-xs font-bold ml-auto"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200/80 rounded-xl transition-all duration-300 shadow-xs active:scale-95 text-xs font-bold ml-auto"
                                             title="Hapus Nilai Asesmen"
                                           >
                                             <Trash2 size={14} />
@@ -3716,14 +3717,14 @@ export default function App() {
                             </div>
 
                             {/* Mobile View: Cards */}
-                            <div className="block md:hidden divide-y divide-slate-200">
+                            <div className="block md:hidden divide-y divide-slate-100">
                               {sortedList.map((res) => (
-                                <div key={res.id} className="p-4 bg-slate-100 space-y-3">
+                                <div key={res.id} className="p-4 bg-white space-y-3">
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-3">
                                       <div className={cn(
-                                        "w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black uppercase text-white shadow-sm shrink-0",
-                                        res.isMissing ? "bg-slate-200" : "bg-gradient-to-br from-brand to-brand-dark"
+                                        "w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black uppercase text-white shadow-xs shrink-0",
+                                        res.isMissing ? "bg-slate-300" : "bg-gradient-to-br from-brand to-indigo-600"
                                       )}>
                                         {res.studentName.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
                                       </div>
@@ -3732,11 +3733,11 @@ export default function App() {
                                           {res.studentName}
                                         </h5>
                                         {res.isMissing ? (
-                                          <span className="inline-block mt-0.5 text-[9px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
+                                          <span className="inline-block mt-0.5 text-[9px] font-extrabold text-rose-500 uppercase tracking-widest bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
                                             Belum Selesai
                                           </span>
                                         ) : (
-                                          <span className="text-[11px] text-slate-400 font-medium">
+                                          <span className="text-[11px] text-slate-400 font-medium tabular-nums">
                                             {res.completedAt ? new Date(res.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ' • ' + new Date(res.completedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
                                           </span>
                                         )}
@@ -3744,8 +3745,8 @@ export default function App() {
                                     </div>
                                     {!res.isMissing && (
                                       <div className={cn(
-                                        "px-3 py-1 rounded-xl text-xs font-black shrink-0",
-                                        res.score >= 80 ? "bg-emerald-500 text-white" : res.score >= 60 ? "bg-amber-400 text-amber-900" : "bg-rose-500 text-white"
+                                        "px-3 py-1 rounded-xl text-xs font-extrabold shrink-0 tabular-nums",
+                                        res.score >= 80 ? "bg-emerald-500 text-white" : res.score >= 60 ? "bg-amber-400 text-amber-950" : "bg-rose-500 text-white"
                                       )}>
                                         {res.score}
                                       </div>
@@ -3756,7 +3757,7 @@ export default function App() {
                                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
                                       <div className="flex items-center gap-2">
                                         {res.cheatingAttempts > 0 ? (
-                                          <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                          <span className="text-[10px] font-extrabold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 tabular-nums">
                                             {res.cheatingAttempts}x Curang
                                           </span>
                                         ) : (
@@ -3765,7 +3766,7 @@ export default function App() {
                                           </span>
                                         )}
                                         {res.durationSeconds ? (
-                                          <span className="text-[10px] font-bold text-slate-400">
+                                          <span className="text-[10px] font-bold text-slate-400 tabular-nums">
                                             ⏱ {Math.floor(res.durationSeconds / 60)}m {res.durationSeconds % 60}s
                                           </span>
                                         ) : null}
@@ -3778,7 +3779,7 @@ export default function App() {
                                           score: res.score,
                                           kelas: assessmentNav.kelas || undefined
                                         })}
-                                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95"
+                                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-1.5 active:scale-95"
                                       >
                                         <Trash2 size={13} />
                                         <span>Hapus Nilai</span>
@@ -3798,28 +3799,28 @@ export default function App() {
             )}
             {adminTab === 'history' && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-800">Riwayat Akses Siswa</h3>
-                    <p className="text-sm text-slate-500">Memantau aktivitas login dan perangkat siswa secara real-time.</p>
+                    <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Riwayat Akses Siswa</h3>
+                    <p className="text-sm text-slate-500 font-medium">Memantau aktivitas login dan perangkat siswa secara real-time.</p>
                   </div>
-                  <div className="bg-brand/10 px-4 py-2 rounded-xl border border-brand/20">
-                    <p className="text-xs font-bold text-brand uppercase tracking-widest">Total {accessLogs.length} Aktivitas</p>
+                  <div className="bg-brand/10 px-4 py-2 rounded-xl border border-brand/20 w-fit">
+                    <p className="text-xs font-extrabold text-brand uppercase tracking-widest tabular-nums">Total {accessLogs.length} Aktivitas</p>
                   </div>
                 </div>
 
-                <div className="bg-slate-100 rounded-3xl border border-slate-300 overflow-hidden shadow-sm">
+                <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-200 border-b border-slate-300">
-                          <th className="p-4 pl-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Siswa</th>
-                          <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Waktu Akses</th>
-                          <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Alamat IP</th>
-                          <th className="p-4 pr-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Perangkat & Browser</th>
+                        <tr className="bg-slate-50/90 border-b border-slate-200/80">
+                          <th className="p-4 pl-8 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Siswa</th>
+                          <th className="p-4 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Waktu Akses</th>
+                          <th className="p-4 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Alamat IP</th>
+                          <th className="p-4 pr-8 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Perangkat & Browser</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-200">
+                      <tbody className="divide-y divide-slate-100">
                         {accessLogs.length > 0 ? (
                           [...accessLogs]
                             .sort((a, b) => {
@@ -3829,18 +3830,18 @@ export default function App() {
                             })
                             .slice(0, 100)
                             .map((log) => (
-                              <tr key={log.id} className="hover:bg-slate-200/50 transition-colors">
+                              <tr key={log.id} className="hover:bg-blue-50/40 transition-colors duration-200">
                                 <td className="p-4 pl-8">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-500">
                                       <User size={14} />
                                     </div>
                                     <p className="font-bold text-slate-900">{log.studentName}</p>
                                   </div>
                                 </td>
-                                <td className="p-4">
+                                <td className="p-4 tabular-nums">
                                   <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-slate-700">
+                                    <span className="text-sm font-bold text-slate-800">
                                       {log.timestamp?.toDate() ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(log.timestamp.toDate()) : '-'}
                                     </span>
                                     <span className="text-xs text-slate-400">
@@ -3848,7 +3849,7 @@ export default function App() {
                                     </span>
                                   </div>
                                 </td>
-                                <td className="p-4 text-sm font-mono text-slate-600">
+                                <td className="p-4 text-sm font-mono text-slate-600 tabular-nums">
                                   <div className="flex items-center gap-2">
                                     <Globe size={14} className="text-slate-400" />
                                     {log.ip}
@@ -3876,10 +3877,10 @@ export default function App() {
             )}
             {adminTab === 'announcements' && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-800">Manajemen Pengumuman</h3>
-                    <p className="text-sm text-slate-500">Kelola dan kirim pengumuman untuk siswa.</p>
+                    <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Manajemen Pengumuman</h3>
+                    <p className="text-sm text-slate-500 font-medium">Kelola dan kirim pengumuman untuk siswa.</p>
                   </div>
                   <button 
                     onClick={() => {
@@ -3890,24 +3891,24 @@ export default function App() {
                         setAnnouncementLink('');
                         setIsAnnouncementModalOpen(true);
                     }}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-brand text-white rounded-xl font-bold text-sm shadow-lg shadow-brand/20 active:scale-95 transition-all"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-brand to-blue-600 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-bold text-sm shadow-md shadow-brand/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 w-fit"
                   >
                     <Plus size={18} /> <span className="hidden sm:inline">Buat Pengumuman</span>
                   </button>
                 </div>
 
-                <div className="bg-slate-100 rounded-3xl border border-slate-300 overflow-hidden shadow-sm">
+                <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[700px]">
                       <thead>
-                        <tr className="bg-slate-200 border-b border-slate-300">
-                          <th className="p-4 pl-8 text-[10px] font-black text-slate-500 uppercase tracking-widest">Waktu</th>
-                          <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Target</th>
-                          <th className="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Isi Pengumuman</th>
-                          <th className="p-4 pr-8 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Aksi</th>
+                        <tr className="bg-slate-50/90 border-b border-slate-200/80">
+                          <th className="p-4 pl-8 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Waktu</th>
+                          <th className="p-4 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Target</th>
+                          <th className="p-4 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Isi Pengumuman</th>
+                          <th className="p-4 pr-8 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest text-right">Aksi</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-200">
+                      <tbody className="divide-y divide-slate-100">
                         {announcements.length > 0 ? (
                           [...announcements]
                             .sort((a, b) => {
@@ -3916,10 +3917,10 @@ export default function App() {
                               return dateB - dateA;
                             })
                             .map((ann) => (
-                              <tr key={ann.id} className="hover:bg-slate-200/50 transition-colors">
-                                <td className="p-4 pl-8">
+                              <tr key={ann.id} className="hover:bg-blue-50/40 transition-colors duration-200">
+                                <td className="p-4 pl-8 tabular-nums">
                                   <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-slate-700">
+                                    <span className="text-sm font-bold text-slate-800">
                                       {ann.timestamp?.toDate() ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(ann.timestamp.toDate()) : '-'}
                                     </span>
                                     <span className="text-xs text-slate-400">
@@ -3928,7 +3929,7 @@ export default function App() {
                                   </div>
                                 </td>
                                 <td className="p-4">
-                                    <span className="inline-flex items-center px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs font-bold uppercase tracking-widest">
+                                    <span className="inline-flex items-center px-2.5 py-1 bg-slate-100 border border-slate-200/80 text-slate-700 rounded-lg text-xs font-bold uppercase tracking-widest">
                                         {ann.targetType === 'all' ? 'Semua Siswa' : ann.targetType === 'class' ? `Kelas ${ann.targetValue}` : 'Siswa Spesifik'}
                                     </span>
                                 </td>
@@ -3942,7 +3943,7 @@ export default function App() {
                                     <button
                                       onClick={() => toggleAnnouncementVisibility(ann.id, ann.isVisible !== false)}
                                       className={cn(
-                                        "p-2 rounded-lg transition-colors flex items-center gap-1",
+                                        "p-2 rounded-xl transition-colors duration-200 flex items-center gap-1",
                                         ann.isVisible !== false ? "text-emerald-600 hover:bg-emerald-50" : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                                       )}
                                       title={ann.isVisible !== false ? "Sembunyikan dari siswa" : "Tampilkan ke siswa"}
@@ -3951,14 +3952,14 @@ export default function App() {
                                     </button>
                                     <button
                                       onClick={() => startEditAnnouncement(ann)}
-                                      className="p-2 text-slate-400 hover:text-brand hover:bg-brand/10 rounded-lg transition-colors"
+                                      className="p-2 text-slate-400 hover:text-brand hover:bg-brand/10 rounded-xl transition-colors duration-200"
                                       title="Edit Pengumuman"
                                     >
                                       <Edit2 size={16} />
                                     </button>
                                     <button
                                       onClick={() => deleteAnnouncementAdmin(ann.id)}
-                                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors duration-200"
                                       title="Hapus Pengumuman"
                                     >
                                       <Trash2 size={16} />
@@ -3985,18 +3986,18 @@ export default function App() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-800">Pengaturan Website</h3>
-                    <p className="text-sm text-slate-500">Konfigurasi tampilan visual seperti logo dan nama instansi.</p>
+                    <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Pengaturan Website</h3>
+                    <p className="text-sm text-slate-500 font-medium">Konfigurasi tampilan visual seperti logo dan nama instansi.</p>
                   </div>
                 </div>
 
-                <div className="bg-slate-100 rounded-3xl border border-slate-300 overflow-hidden shadow-sm p-6">
+                <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs p-6 md:p-8">
                   <div className="max-w-md space-y-4">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">Upload Logo Sekolah</label>
-                      <p className="text-xs text-slate-500 mb-4 shadow-sm">Disarankan menggunakan gambar berformat persegi, atau rasio aspek 1:1 transparan dengan format PNG/SVG. Maks 1MB.</p>
+                      <label className="block text-sm font-extrabold text-slate-800 mb-1">Upload Logo Sekolah</label>
+                      <p className="text-xs text-slate-500 mb-4 leading-relaxed">Disarankan menggunakan gambar berformat persegi, atau rasio aspek 1:1 transparan dengan format PNG/SVG. Maks 1MB.</p>
                       <div className="flex items-start gap-4">
-                        <div className="w-20 h-20 bg-slate-200 rounded-xl flex items-center justify-center border border-slate-300 overflow-hidden relative shrink-0">
+                        <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-200/80 shadow-xs overflow-hidden relative shrink-0">
                           {settingsConfig.logoUrl ? (
                             <img src={settingsConfig.logoUrl} alt="Preview Logo" className="w-full h-full object-cover" />
                           ) : (
@@ -4070,7 +4071,7 @@ export default function App() {
                           />
                           <label 
                             htmlFor="logo-upload"
-                            className="inline-flex cursor-pointer items-center justify-center px-4 py-2 bg-slate-200 border border-slate-300 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-300 hover:text-brand transition-colors text-slate-700"
+                            className="inline-flex cursor-pointer items-center justify-center px-4 py-2.5 bg-slate-100 border border-slate-200/80 rounded-xl font-bold text-sm shadow-xs hover:bg-brand hover:text-white hover:border-brand transition-all duration-300 text-slate-700"
                           >
                             Pilih File Gambar
                           </label>
@@ -4087,7 +4088,7 @@ export default function App() {
                                   }
                                 }
                               }}
-                              className="block mt-2 text-xs font-bold text-red-500 hover:text-red-700"
+                              className="block mt-2.5 text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors"
                             >
                               Hapus Logo
                             </button>
@@ -4134,35 +4135,35 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto"
+                className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto"
               >
                 <motion.div 
-                  initial={{ scale: 0.9, y: 20 }}
+                  initial={{ scale: 0.95, y: 16 }}
                   animate={{ scale: 1, y: 0 }}
-                  className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-2xl overflow-hidden shadow-2xl my-8"
+                  className="bg-white rounded-3xl border border-slate-200/90 w-full max-w-2xl overflow-hidden shadow-2xl shadow-slate-900/20 my-8"
                 >
-                  <div className="bg-slate-900 p-8 text-white flex justify-between items-center relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-brand/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                  <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 md:p-7 text-white flex justify-between items-center relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-brand/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
                     <div className="relative z-10">
-                      <h3 className="text-2xl font-black tracking-tight mb-1">Konfigurasi Materi</h3>
-                      <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">
+                      <h3 className="text-xl md:text-2xl font-extrabold tracking-tight mb-1">Konfigurasi Materi</h3>
+                      <p className="text-slate-300 font-bold text-xs uppercase tracking-widest">
                         {COURSES.find(c => c.id === editingMaterialConfigId)?.title}
                       </p>
                     </div>
                     <button 
                       onClick={() => setEditingMaterialConfigId(null)}
-                      className="p-3 hover:bg-white/10 rounded-2xl transition-colors relative z-10"
+                      className="p-2.5 hover:bg-white/10 rounded-xl transition-all duration-300 relative z-10"
                     >
-                      <X size={24} />
+                      <X size={22} />
                     </button>
                   </div>
 
-                  <div className="p-8 md:p-10 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                    <div className="space-y-8">
-                      <div className="flex items-start justify-between p-6 bg-frame rounded-2xl border border-slate-200">
+                  <div className="p-6 md:p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                    <div className="space-y-6">
+                      <div className="flex items-start justify-between gap-4 p-5 bg-slate-50/90 rounded-2xl border border-slate-200/80">
                         <div>
                           <h4 className="font-bold text-slate-900 mb-1 flex items-center gap-2">
-                            <Lock size={18} className={localMaterialConfig.isGatekeepingEnabled ? "text-indigo-500" : "text-slate-400"} />
+                            <Lock size={18} className={localMaterialConfig.isGatekeepingEnabled ? "text-indigo-600" : "text-slate-400"} />
                             Gatekeeping Bab
                           </h4>
                           <p className="text-sm text-slate-500 text-balance">
@@ -4186,20 +4187,20 @@ export default function App() {
                           Pengaturan Waktu (Detik)
                         </h4>
                         <div className="space-y-4">
-                          <div className="p-6 bg-emerald-50 rounded-2xl border border-emerald-100 mb-8">
+                          <div className="p-5 bg-emerald-50/80 rounded-2xl border border-emerald-200/80 mb-6">
                             <h4 className="text-sm font-bold text-emerald-900 mb-4 flex items-center gap-2">
-                              <Timer size={18} className="text-emerald-500" />
+                              <Timer size={18} className="text-emerald-600" />
                               Global Course Settings (Defaults)
                             </h4>
-                            <div className="flex items-center justify-between mb-6 pb-4 border-b border-emerald-100">
+                            <div className="flex items-center justify-between mb-5 pb-4 border-b border-emerald-200/70">
                               <div className="flex flex-col">
                                 <span className="text-xs font-bold text-emerald-900">Gunakan Waktu Global</span>
-                                <span className="text-[10px] text-emerald-600">Jika aktif, sistem akan menggunakan timer global untuk bab yang tidak disetting manual.</span>
+                                <span className="text-[11px] text-emerald-700">Jika aktif, sistem akan menggunakan timer global untuk bab yang tidak disetting manual.</span>
                               </div>
                               <button 
                                 onClick={() => setLocalMaterialConfig({ ...localMaterialConfig, useGlobalTimers: !localMaterialConfig.useGlobalTimers })}
                                 className={cn(
-                                  "w-12 h-6 rounded-full transition-colors relative",
+                                  "w-12 h-6 rounded-full transition-colors relative shrink-0",
                                   localMaterialConfig.useGlobalTimers ? "bg-emerald-500" : "bg-slate-300"
                                 )}
                               >
@@ -4210,13 +4211,13 @@ export default function App() {
                               </button>
                             </div>
 
-                            <div className={cn("grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 transition-opacity", !localMaterialConfig.useGlobalTimers && "opacity-50 pointer-events-none")}>
+                            <div className={cn("grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 transition-opacity", !localMaterialConfig.useGlobalTimers && "opacity-50 pointer-events-none")}>
                               <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Waktu Tunggu Materi (Detik)</label>
+                                <label className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Waktu Tunggu Materi (Detik)</label>
                                 <input 
                                   type="number" 
                                   min="0"
-                                  className="w-full p-2.5 bg-slate-200 border border-emerald-300 rounded-xl text-sm font-bold text-emerald-950 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                  className="w-full p-2.5 bg-white border border-emerald-200 rounded-xl text-sm font-bold text-emerald-950 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 focus:outline-none tabular-nums"
                                   value={localMaterialConfig.defaultTopicTimer ?? 70}
                                   onChange={(e) => {
                                     const val = parseInt(e.target.value) || 0;
@@ -4225,11 +4226,11 @@ export default function App() {
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Waktu Keluar Kuis (Detik)</label>
+                                <label className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Waktu Keluar Kuis (Detik)</label>
                                 <input 
                                   type="number" 
                                   min="0"
-                                  className="w-full p-2.5 bg-slate-200 border border-emerald-300 rounded-xl text-sm font-bold text-emerald-950 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                  className="w-full p-2.5 bg-white border border-emerald-200 rounded-xl text-sm font-bold text-emerald-950 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 focus:outline-none tabular-nums"
                                   value={localMaterialConfig.defaultQuizAvailableAt ?? 40}
                                   onChange={(e) => {
                                     const val = parseInt(e.target.value) || 0;
@@ -4238,11 +4239,11 @@ export default function App() {
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Timer Kuis (Detik)</label>
+                                <label className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Timer Kuis (Detik)</label>
                                 <input 
                                   type="number" 
                                   min="0"
-                                  className="w-full p-2.5 bg-slate-200 border border-emerald-300 rounded-xl text-sm font-bold text-emerald-950 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                  className="w-full p-2.5 bg-white border border-emerald-200 rounded-xl text-sm font-bold text-emerald-950 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 focus:outline-none tabular-nums"
                                   value={localMaterialConfig.defaultQuizTimer ?? 60}
                                   onChange={(e) => {
                                     const val = parseInt(e.target.value) || 0;
@@ -4251,15 +4252,15 @@ export default function App() {
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block flex items-center gap-1.5">
+                                <label className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block flex items-center gap-1.5">
                                   Waktu Minimal
-                                  <span className="px-1.5 py-0.5 bg-emerald-200 text-emerald-800 rounded font-black text-[8px] uppercase">Auto</span>
+                                  <span className="px-1.5 py-0.5 bg-emerald-200/80 text-emerald-900 rounded font-black text-[8px] uppercase">Auto</span>
                                 </label>
                                 <div className="relative">
                                   <input 
                                     type="text" 
                                     readOnly
-                                    className="w-full p-2.5 bg-emerald-100/50 border border-emerald-200 rounded-xl text-sm font-black text-emerald-900 cursor-not-allowed"
+                                    className="w-full p-2.5 bg-emerald-100/70 border border-emerald-200 rounded-xl text-sm font-extrabold text-emerald-900 cursor-not-allowed tabular-nums"
                                     value={(() => {
                                       const totalSec = localMaterialConfig.minCourseTimer ?? 0;
                                       const m = Math.floor(totalSec / 60);
@@ -4270,15 +4271,15 @@ export default function App() {
                                 </div>
                               </div>
                               <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block flex items-center gap-1.5">
+                                <label className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block flex items-center gap-1.5">
                                   Waktu Maksimal
-                                  <span className="px-1.5 py-0.5 bg-emerald-200 text-emerald-800 rounded font-black text-[8px] uppercase">Auto</span>
+                                  <span className="px-1.5 py-0.5 bg-emerald-200/80 text-emerald-900 rounded font-black text-[8px] uppercase">Auto</span>
                                 </label>
                                 <div className="relative">
                                   <input 
                                     type="text" 
                                     readOnly
-                                    className="w-full p-2.5 bg-emerald-100/50 border border-emerald-200 rounded-xl text-sm font-black text-emerald-900 cursor-not-allowed"
+                                    className="w-full p-2.5 bg-emerald-100/70 border border-emerald-200 rounded-xl text-sm font-extrabold text-emerald-900 cursor-not-allowed tabular-nums"
                                     value={(() => {
                                       const totalSec = localMaterialConfig.maxCourseTimer ?? 0;
                                       const m = Math.floor(totalSec / 60);
@@ -4289,15 +4290,15 @@ export default function App() {
                                 </div>
                               </div>
                               <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block flex items-center gap-1.5">
+                                <label className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block flex items-center gap-1.5">
                                   Waktu Total Course
-                                  <span className="px-1.5 py-0.5 bg-emerald-200 text-emerald-800 rounded font-black text-[8px] uppercase">Auto</span>
+                                  <span className="px-1.5 py-0.5 bg-emerald-200/80 text-emerald-900 rounded font-black text-[8px] uppercase">Auto</span>
                                 </label>
                                 <div className="relative">
                                   <input 
                                     type="text" 
                                     readOnly
-                                    className="w-full p-2.5 bg-emerald-100/50 border border-emerald-200 rounded-xl text-sm font-black text-emerald-900 cursor-not-allowed"
+                                    className="w-full p-2.5 bg-emerald-100/70 border border-emerald-200 rounded-xl text-sm font-extrabold text-emerald-900 cursor-not-allowed tabular-nums"
                                     value={(() => {
                                       const totalSec = localMaterialConfig.totalCourseTimer ?? 0;
                                       const m = Math.floor(totalSec / 60);
@@ -4306,25 +4307,25 @@ export default function App() {
                                     })()}
                                   />
                                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                    <Clock size={14} className="text-emerald-500" />
+                                    <Clock size={14} className="text-emerald-600" />
                                   </div>
                                 </div>
                               </div>
                             </div>
-                            <p className="text-[10px] text-emerald-600 mt-4 font-medium italic">* Nilai global akan digunakan jika pengaturan per-bab tidak diisi atau 0.</p>
+                            <p className="text-[11px] text-emerald-700 mt-4 font-medium italic">* Nilai global akan digunakan jika pengaturan per-bab tidak diisi atau 0.</p>
                           </div>
 
                           {COURSES.find(c => c.id === editingMaterialConfigId)?.topics.map(topic => (
-                            <div key={topic.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 bg-slate-200/70 border border-slate-300 rounded-2xl hover:border-brand/40 transition-colors shadow-sm">
-                              <div className="col-span-full mb-2 pb-2 border-b border-slate-50">
-                                <span className="font-bold text-slate-800 text-sm">{topic.title}</span>
+                            <div key={topic.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 bg-slate-50/90 border border-slate-200/80 rounded-2xl hover:border-brand/40 transition-all duration-300 shadow-xs">
+                              <div className="col-span-full mb-1 pb-2 border-b border-slate-200/70">
+                                <span className="font-bold text-slate-900 text-sm">{topic.title}</span>
                               </div>
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between gap-2">
                                 <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Waktu Tunggu:</span>
                                 <input 
                                   type="number" 
                                   min="0"
-                                  className="w-20 p-2 bg-frame border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand focus:outline-none"
+                                  className="w-20 p-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-brand/30 focus:border-brand focus:outline-none tabular-nums"
                                   placeholder={String(localMaterialConfig.defaultTopicTimer || 70)}
                                   value={localMaterialConfig.topicTimers?.[topic.id] ?? 0}
                                   onChange={(e) => {
@@ -4336,12 +4337,12 @@ export default function App() {
                                   }}
                                 />
                               </div>
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between gap-2">
                                 <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Timer Kuis:</span>
                                 <input 
                                   type="number" 
                                   min="0"
-                                  className="w-20 p-2 bg-frame border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand focus:outline-none"
+                                  className="w-20 p-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-brand/30 focus:border-brand focus:outline-none tabular-nums"
                                   placeholder={String(localMaterialConfig.defaultQuizTimer || 60)}
                                   value={localMaterialConfig.quizTimers?.[topic.id] ?? 0}
                                   onChange={(e) => {
@@ -4353,12 +4354,12 @@ export default function App() {
                                   }}
                                 />
                               </div>
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between gap-2">
                                 <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Waktu Keluar Kuis (Detik):</span>
                                 <input 
                                   type="number" 
                                   min="0"
-                                  className="w-20 p-2 bg-frame border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand focus:outline-none"
+                                  className="w-20 p-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-brand/30 focus:border-brand focus:outline-none tabular-nums"
                                   placeholder={String(localMaterialConfig.defaultQuizAvailableAt || 40)}
                                   value={localMaterialConfig.quizAvailableAt?.[topic.id] ?? 0}
                                   onChange={(e) => {
@@ -4377,17 +4378,17 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-8 bg-frame flex items-center justify-end gap-4 border-t border-slate-100">
+                  <div className="px-6 py-5 bg-slate-50/90 flex items-center justify-end gap-3 border-t border-slate-200/80">
                     <button 
                       onClick={() => setEditingMaterialConfigId(null)}
-                      className="px-6 py-3 font-bold text-slate-500 hover:text-slate-700 transition-colors"
+                      className="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 transition-all duration-300"
                     >
                       Batal
                     </button>
                     <button 
                       onClick={saveMaterialConfig}
                       disabled={isSavingConfig}
-                      className="bg-brand text-white px-8 py-3 rounded-2xl font-bold shadow-xl shadow-brand/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 disabled:opacity-50 disabled:grayscale"
+                      className="bg-gradient-to-r from-brand to-blue-600 hover:from-blue-700 hover:to-blue-800 text-white px-7 py-2.5 rounded-xl font-bold shadow-md shadow-brand/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:grayscale"
                     >
                       {isSavingConfig ? (
                         <>
@@ -4396,7 +4397,7 @@ export default function App() {
                         </>
                       ) : (
                         <>
-                          <CheckCircle size={20} />
+                          <CheckCircle size={18} />
                           Simpan Konfigurasi
                         </>
                       )}
@@ -4413,29 +4414,29 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+                className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[100] flex items-center justify-center p-4"
               >
                 <motion.div 
-                  initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                  initial={{ scale: 0.95, opacity: 0, y: 16 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                  className="bg-slate-100 rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-300"
+                  exit={{ scale: 0.95, opacity: 0, y: 16 }}
+                  className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl shadow-slate-900/20 border border-slate-200/90"
                 >
                   <div className={cn(
-                    "p-8 flex flex-col items-center text-center border-b",
-                    materialToggleTarget.nextStatus ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
+                    "p-7 flex flex-col items-center text-center border-b",
+                    materialToggleTarget.nextStatus ? "bg-emerald-50/80 border-emerald-200/80" : "bg-amber-50/80 border-amber-200/80"
                   )}>
                     <div className={cn(
-                      "w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-inner ring-4 ring-slate-200",
+                      "w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-sm ring-4 ring-white",
                       materialToggleTarget.nextStatus ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"
                     )}>
-                      {materialToggleTarget.nextStatus ? <Globe size={32} /> : <Lock size={32} />}
+                      {materialToggleTarget.nextStatus ? <Globe size={30} /> : <Lock size={30} />}
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                    <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight mb-2">
                       {materialToggleTarget.nextStatus ? 'Aktifkan Materi' : 'Nonaktifkan Materi'}
                     </h2>
                     <p className="text-slate-600 leading-relaxed text-sm">
-                      Apakah Anda yakin ingin {materialToggleTarget.nextStatus ? 'menerbitkan' : 'menarik'} materi <span className="font-bold">"{materialToggleTarget.title}"</span>?
+                      Apakah Anda yakin ingin {materialToggleTarget.nextStatus ? 'menerbitkan' : 'menarik'} materi <span className="font-bold text-slate-900">"{materialToggleTarget.title}"</span>?
                       <br />
                       <span className="font-medium text-slate-500">
                         {materialToggleTarget.nextStatus 
@@ -4445,12 +4446,12 @@ export default function App() {
                     </p>
                   </div>
                   
-                  <div className="p-6 flex flex-col gap-3">
+                  <div className="p-6 flex flex-col gap-2.5 bg-white">
                     <button 
                       onClick={confirmToggleMaterial}
                       className={cn(
-                        "w-full py-4 rounded-2xl font-bold transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 text-white",
-                        materialToggleTarget.nextStatus ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200" : "bg-amber-600 hover:bg-amber-700 shadow-amber-200"
+                        "w-full py-3.5 rounded-2xl font-bold transition-all duration-300 shadow-md hover:-translate-y-0.5 active:scale-[0.98] flex items-center justify-center gap-2 text-white",
+                        materialToggleTarget.nextStatus ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-500/25" : "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 shadow-amber-500/25"
                       )}
                     >
                       {materialToggleTarget.nextStatus ? <CheckCircle size={20} /> : <Lock size={20} />}
@@ -4459,7 +4460,7 @@ export default function App() {
                     
                     <button 
                       onClick={() => { setIsMaterialConfirmOpen(false); setMaterialToggleTarget(null); }}
-                      className="w-full py-4 bg-slate-200 hover:bg-slate-300 text-slate-700 border border-slate-300 rounded-2xl font-bold transition-all active:scale-[0.98]"
+                      className="w-full py-3.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200 rounded-2xl font-bold transition-all duration-300 active:scale-[0.98]"
                     >
                       Batal
                     </button>
@@ -4473,19 +4474,19 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+                className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[100] flex items-center justify-center p-4"
               >
                 <motion.div 
-                  initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                  initial={{ scale: 0.95, opacity: 0, y: 16 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                  className="bg-slate-100 rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-300"
+                  exit={{ scale: 0.95, opacity: 0, y: 16 }}
+                  className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl shadow-slate-900/20 border border-slate-200/90"
                 >
-                  <div className="bg-red-50 p-8 flex flex-col items-center text-center border-b border-red-200">
-                    <div className="w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mb-4 shadow-inner ring-4 ring-slate-200">
-                      <Trash2 size={32} />
+                  <div className="bg-rose-50/80 p-7 flex flex-col items-center text-center border-b border-rose-200/80">
+                    <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mb-4 shadow-sm ring-4 ring-white">
+                      <Trash2 size={30} />
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Konfirmasi Hapus</h2>
+                    <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight mb-2">Konfirmasi Hapus</h2>
                     <div className="text-slate-600 leading-relaxed text-sm">
                       {deleteType === 'student' ? (
                         deleteTarget === 'selected' 
@@ -4500,15 +4501,15 @@ export default function App() {
                       ) : (
                         <p>Apakah Anda yakin ingin menghapus data nilai asesmen ini?</p>
                       )}
-                      <p className="mt-2 font-semibold text-red-600">Tindakan ini tidak dapat dibatalkan.</p>
+                      <p className="mt-2 font-semibold text-rose-600">Tindakan ini tidak dapat dibatalkan.</p>
                     </div>
                   </div>
                   
-                  <div className="p-6 flex flex-col gap-3">
+                  <div className="p-6 flex flex-col gap-2.5 bg-white">
                     <button 
                       onClick={confirmDelete}
                       disabled={isDeleting}
-                      className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-red-200 active:scale-[0.98] disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
+                      className="w-full py-3.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-md shadow-rose-500/25 hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
                     >
                       {isDeleting ? (
                         <RotateCcw className="animate-spin" size={20} />
@@ -4521,7 +4522,7 @@ export default function App() {
                     <button 
                       onClick={() => { setIsDeleteModalOpen(false); setDeleteTarget(null); setDeleteType(null); }}
                       disabled={isDeleting}
-                      className="w-full py-4 bg-slate-200 hover:bg-slate-300 text-slate-700 border border-slate-300 rounded-2xl font-bold transition-all active:scale-[0.98] disabled:opacity-50"
+                      className="w-full py-3.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200 rounded-2xl font-bold transition-all duration-300 active:scale-[0.98] disabled:opacity-50"
                     >
                       Batal
                     </button>
@@ -4532,21 +4533,21 @@ export default function App() {
           </AnimatePresence>
           <AnimatePresence>
             {isAnnouncementModalOpen && (
-              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+              <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[110] flex items-center justify-center p-4">
                 <motion.div 
-                  initial={{ scale: 0.9, y: 20, opacity: 0 }}
+                  initial={{ scale: 0.95, y: 16, opacity: 0 }}
                   animate={{ scale: 1, y: 0, opacity: 1 }}
-                  exit={{ scale: 0.9, y: 20, opacity: 0 }}
-                  className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-md overflow-hidden shadow-2xl relative"
+                  exit={{ scale: 0.95, y: 16, opacity: 0 }}
+                  className="bg-white rounded-3xl border border-slate-200/90 w-full max-w-md overflow-hidden shadow-2xl shadow-slate-900/20 relative"
                 >
-                  <div className="p-8 pb-4">
+                  <div className="p-6 md:p-7 pb-4">
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
                         <div className="p-3 bg-brand/10 border border-brand/20 rounded-2xl text-brand">
-                          <Megaphone size={24} />
+                          <Megaphone size={22} />
                         </div>
                         <div>
-                          <h3 className="text-xl font-black text-slate-800">
+                          <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
                             {editingAnnouncementId ? 'Edit Pengumuman' : 'Buat Pengumuman'}
                           </h3>
                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Bagikan info ke siswa</p>
@@ -4554,23 +4555,23 @@ export default function App() {
                       </div>
                       <button 
                         onClick={() => setIsAnnouncementModalOpen(false)}
-                        className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-all border border-slate-300"
+                        className="w-9 h-9 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200/80 flex items-center justify-center transition-all duration-300 border border-slate-200"
                       >
-                        <X size={20} />
+                        <X size={18} />
                       </button>
                     </div>
 
                     <div className="space-y-4">
                       <div>
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Target Pengumuman</label>
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-2 block">Target Pengumuman</label>
                         <div className="grid grid-cols-3 gap-2">
                           <button 
                             onClick={() => setAnnouncementTargetType('all')}
                             className={cn(
-                              "py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                              "py-2.5 rounded-xl text-[10px] font-extrabold uppercase tracking-widest border transition-all duration-300",
                               announcementTargetType === 'all' 
-                                ? "bg-brand text-white border-brand shadow-lg shadow-brand/20" 
-                                : "bg-slate-200 text-slate-600 border-slate-300 hover:border-brand/40"
+                                ? "bg-gradient-to-r from-brand to-blue-600 text-white border-transparent shadow-md shadow-brand/20" 
+                                : "bg-slate-50 text-slate-600 border-slate-200 hover:border-brand/40 hover:bg-slate-100"
                             )}
                           >
                             Semua
@@ -4578,10 +4579,10 @@ export default function App() {
                           <button 
                             onClick={() => setAnnouncementTargetType('class')}
                             className={cn(
-                              "py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                              "py-2.5 rounded-xl text-[10px] font-extrabold uppercase tracking-widest border transition-all duration-300",
                               announcementTargetType === 'class' 
-                                ? "bg-brand text-white border-brand shadow-lg shadow-brand/20" 
-                                : "bg-slate-200 text-slate-600 border-slate-300 hover:border-brand/40"
+                                ? "bg-gradient-to-r from-brand to-blue-600 text-white border-transparent shadow-md shadow-brand/20" 
+                                : "bg-slate-50 text-slate-600 border-slate-200 hover:border-brand/40 hover:bg-slate-100"
                             )}
                           >
                             Per Kelas
@@ -4589,10 +4590,10 @@ export default function App() {
                           <button 
                             onClick={() => setAnnouncementTargetType('student')}
                             className={cn(
-                              "py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                              "py-2.5 rounded-xl text-[10px] font-extrabold uppercase tracking-widest border transition-all duration-300",
                               announcementTargetType === 'student' 
-                                ? "bg-brand text-white border-brand shadow-lg shadow-brand/20" 
-                                : "bg-slate-200 text-slate-600 border-slate-300 hover:border-brand/40"
+                                ? "bg-gradient-to-r from-brand to-blue-600 text-white border-transparent shadow-md shadow-brand/20" 
+                                : "bg-slate-50 text-slate-600 border-slate-200 hover:border-brand/40 hover:bg-slate-100"
                             )}
                           >
                             Per Siswa
@@ -4602,11 +4603,11 @@ export default function App() {
 
                       {announcementTargetType === 'class' && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Pilih Kelas</label>
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 block">Pilih Kelas</label>
                           <select 
                             value={announcementTargetValue}
                             onChange={(e) => setAnnouncementTargetValue(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-200 border border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 appearance-none font-bold text-sm text-slate-800"
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand appearance-none font-bold text-sm text-slate-800"
                           >
                             <option value="">Pilih...</option>
                             {Array.from(new Set(students.map(s => s.kelas))).sort().map(k => (
@@ -4618,11 +4619,11 @@ export default function App() {
 
                       {announcementTargetType === 'student' && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Pilih Siswa</label>
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 block">Pilih Siswa</label>
                           <select 
                             value={announcementTargetValue}
                             onChange={(e) => setAnnouncementTargetValue(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-200 border border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 appearance-none font-bold text-sm text-slate-800"
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand appearance-none font-bold text-sm text-slate-800"
                           >
                             <option value="">Pilih...</option>
                             {students.sort((a,b) => a.nama.localeCompare(b.nama)).map(s => (
@@ -4633,47 +4634,47 @@ export default function App() {
                       )}
 
                       <div>
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Isi Pengumuman</label>
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 block">Isi Pengumuman</label>
                         <textarea 
                           value={announcementContent}
                           onChange={(e) => setAnnouncementContent(e.target.value)}
                           placeholder="Masukkan isi pengumuman..."
-                          className="w-full p-4 bg-slate-200 border border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all font-medium text-slate-800 min-h-[100px] resize-none"
+                          className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all font-medium text-slate-800 min-h-[100px] resize-none"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Tautan/Link (Opsional)</label>
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5 block">Tautan/Link (Opsional)</label>
                         <div className="relative">
-                          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                           <input 
                             type="url"
                             value={announcementLink}
                             onChange={(e) => setAnnouncementLink(e.target.value)}
                             placeholder="https://example.com"
-                            className="w-full pl-12 pr-4 py-3.5 bg-slate-200 border border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand transition-all font-medium text-slate-800"
+                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all font-medium text-slate-800"
                           />
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-8 pt-4 flex gap-3">
+                  <div className="px-6 md:px-7 py-5 bg-slate-50/80 border-t border-slate-200/70 flex gap-3">
                     <button 
                       onClick={() => setIsAnnouncementModalOpen(false)}
-                      className="flex-1 py-4 bg-slate-200 text-slate-700 border border-slate-300 rounded-2xl font-bold hover:bg-slate-300 transition-all active:scale-[0.98]"
+                      className="flex-1 py-3 bg-white text-slate-700 border border-slate-200 rounded-xl font-bold hover:bg-slate-100 transition-all duration-300 active:scale-[0.98]"
                     >
                       Batal
                     </button>
                     <button 
                       disabled={!announcementContent || (announcementTargetType !== 'all' && !announcementTargetValue) || isSendingAnnouncement}
                       onClick={handleSendAnnouncement}
-                      className="flex-[2] py-4 bg-brand text-white rounded-2xl font-black shadow-xl shadow-brand/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
+                      className="flex-[2] py-3 bg-gradient-to-r from-brand to-blue-600 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-bold shadow-md shadow-brand/20 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
                     >
                       {isSendingAnnouncement ? (
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
                         <>
-                          <Send size={18} /> {editingAnnouncementId ? 'Simpan Perubahan' : 'Kirim Pengumuman'}
+                          <Send size={17} /> {editingAnnouncementId ? 'Simpan Perubahan' : 'Kirim Pengumuman'}
                         </>
                       )}
                     </button>
@@ -4683,38 +4684,38 @@ export default function App() {
             )}
 
             {isImportModalOpen && (
-              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+              <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[110] flex items-center justify-center p-4">
                 <motion.div 
-                  initial={{ scale: 0.9, y: 20, opacity: 0 }}
+                  initial={{ scale: 0.95, y: 16, opacity: 0 }}
                   animate={{ scale: 1, y: 0, opacity: 1 }}
-                  exit={{ scale: 0.9, y: 20, opacity: 0 }}
-                  className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-lg overflow-hidden shadow-2xl"
+                  exit={{ scale: 0.95, y: 16, opacity: 0 }}
+                  className="bg-white rounded-3xl border border-slate-200/90 w-full max-w-lg overflow-hidden shadow-2xl shadow-slate-900/20"
                 >
-                  <div className="p-8 pb-0">
-                    <div className="flex items-center justify-between mb-8">
+                  <div className="p-6 md:p-7 pb-0">
+                    <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
                         <div className="p-3 bg-brand/10 border border-brand/20 rounded-2xl text-brand">
-                          <Users size={24} />
+                          <Users size={22} />
                         </div>
                         <div>
-                          <h3 className="text-2xl font-black text-slate-800 tracking-tight">Tambah Siswa</h3>
+                          <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">Tambah Siswa</h3>
                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Kelola data peserta didik</p>
                         </div>
                       </div>
                       <button 
                         onClick={() => setIsImportModalOpen(false)}
-                        className="w-10 h-10 rounded-xl bg-slate-200 text-slate-500 hover:text-slate-800 border border-slate-300 flex items-center justify-center transition-all"
+                        className="w-9 h-9 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200/80 border border-slate-200 flex items-center justify-center transition-all duration-300"
                       >
-                        <X size={20} />
+                        <X size={18} />
                       </button>
                     </div>
 
-                    <div className="flex bg-slate-200 p-1 rounded-2xl mb-8 border border-slate-300">
+                    <div className="flex bg-slate-100 p-1 rounded-2xl mb-6 border border-slate-200/80">
                       <button 
                         onClick={() => setImportModalTab('manual')}
                         className={cn(
-                          "flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300",
-                          importModalTab === 'manual' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-600 hover:text-slate-900"
+                          "flex-1 py-2.5 text-xs font-extrabold uppercase tracking-widest rounded-xl transition-all duration-300",
+                          importModalTab === 'manual' ? "bg-gradient-to-r from-brand to-blue-600 text-white shadow-sm shadow-brand/20" : "text-slate-600 hover:text-slate-900"
                         )}
                       >
                         Input Manual
@@ -4722,8 +4723,8 @@ export default function App() {
                       <button 
                         onClick={() => setImportModalTab('excel')}
                         className={cn(
-                          "flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300",
-                          importModalTab === 'excel' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-600 hover:text-slate-900"
+                          "flex-1 py-2.5 text-xs font-extrabold uppercase tracking-widest rounded-xl transition-all duration-300",
+                          importModalTab === 'excel' ? "bg-gradient-to-r from-brand to-blue-600 text-white shadow-sm shadow-brand/20" : "text-slate-600 hover:text-slate-900"
                         )}
                       >
                         Impor Excel
@@ -4731,57 +4732,57 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-8 pt-0">
+                  <div className="p-6 md:p-7 pt-0">
                     {importModalTab === 'manual' ? (
                       <form onSubmit={handleAddStudentManual} className="space-y-4 animate-in slide-in-from-left-4 duration-300">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">NISN (Nomor Induk Nasional)</label>
+                            <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest px-1">NISN (Nomor Induk Nasional)</label>
                             <input 
                               type="text" 
                               value={manualStudentNis}
                               onChange={(e) => setManualStudentNis(e.target.value)}
                               placeholder="Contoh: 2021001" 
-                              className="w-full px-4 py-3 bg-slate-200 border border-slate-300 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all font-semibold"
                               required
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Kelas</label>
+                            <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest px-1">Kelas</label>
                             <input 
                               type="text" 
                               value={manualStudentKelas}
                               onChange={(e) => setManualStudentKelas(e.target.value)}
                               placeholder="Contoh: 7A, 8B" 
-                              className="w-full px-4 py-3 bg-slate-200 border border-slate-300 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all font-semibold"
                               required
                             />
                           </div>
                         </div>
 
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Nama Lengkap Siswa</label>
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest px-1">Nama Lengkap Siswa</label>
                           <input 
                             type="text" 
                             value={manualStudentNama}
                             onChange={(e) => setManualStudentNama(e.target.value)}
                             placeholder="Masukkan Nama Lengkap" 
-                            className="w-full px-4 py-3 bg-slate-200 border border-slate-300 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-semibold"
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all font-semibold"
                             required
                           />
                         </div>
 
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Jenis Kelamin</label>
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest px-1">Jenis Kelamin</label>
                           <div className="grid grid-cols-2 gap-3">
                             <button 
                               type="button"
                               onClick={() => setManualStudentJenisKelamin('L')}
                               className={cn(
-                                "py-3 rounded-2xl border font-bold text-sm transition-all",
+                                "py-3 rounded-xl border font-bold text-sm transition-all duration-300",
                                 manualStudentJenisKelamin === 'L' 
-                                  ? "bg-blue-50 border-blue-200 text-brand shadow-sm" 
-                                  : "bg-slate-200 border-slate-300 text-slate-600 hover:border-slate-400"
+                                  ? "bg-blue-50 border-blue-200 text-brand shadow-xs" 
+                                  : "bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100"
                               )}
                             >
                               Laki-laki
@@ -4790,10 +4791,10 @@ export default function App() {
                               type="button"
                               onClick={() => setManualStudentJenisKelamin('P')}
                               className={cn(
-                                "py-3 rounded-2xl border font-bold text-sm transition-all",
+                                "py-3 rounded-xl border font-bold text-sm transition-all duration-300",
                                 manualStudentJenisKelamin === 'P' 
-                                  ? "bg-pink-50 border-pink-200 text-pink-600 shadow-sm" 
-                                  : "bg-slate-200 border-slate-300 text-slate-600 hover:border-slate-400"
+                                  ? "bg-pink-50 border-pink-200 text-pink-600 shadow-xs" 
+                                  : "bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100"
                               )}
                             >
                               Perempuan
@@ -4804,27 +4805,27 @@ export default function App() {
                         <button 
                           type="submit" 
                           disabled={isAddingStudent}
-                          className="w-full py-4 bg-brand text-white rounded-[1.5rem] font-black text-lg shadow-xl shadow-brand/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
+                          className="w-full py-3.5 bg-gradient-to-r from-brand to-blue-600 hover:from-blue-700 hover:to-blue-800 text-white rounded-2xl font-bold text-base shadow-lg shadow-brand/20 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
                         >
                           {isAddingStudent ? (
-                            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                           ) : (
                             <>
-                              <Plus size={20} /> Tambahkan Siswa
+                              <Plus size={19} /> Tambahkan Siswa
                             </>
                           )}
                         </button>
                       </form>
                     ) : (
-                      <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                        <div className="p-8 bg-slate-200/60 border border-dashed border-slate-300 rounded-[2rem] flex flex-col items-center text-center">
-                          <div className="w-16 h-16 bg-slate-100 border border-slate-300 rounded-2xl flex items-center justify-center text-brand mb-4 shadow-sm">
-                            <Database size={32} />
+                      <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
+                        <div className="p-7 bg-slate-50/90 border border-dashed border-slate-300 rounded-2xl flex flex-col items-center text-center">
+                          <div className="w-14 h-14 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-brand mb-4 shadow-xs">
+                            <Database size={28} />
                           </div>
-                          <h4 className="text-lg font-black text-slate-800 mb-2">Impor Data Excel</h4>
-                          <p className="text-xs font-bold text-slate-500 leading-relaxed max-w-xs mb-6">
+                          <h4 className="text-lg font-extrabold text-slate-900 mb-2">Impor Data Excel</h4>
+                          <p className="text-xs font-semibold text-slate-500 leading-relaxed max-w-xs mb-5">
                             Gunakan format kolom: <br/> 
-                            <span className="text-brand font-black">NISN | Nama | L/P | Kelas</span>
+                            <span className="text-brand font-extrabold">NISN | Nama | L/P | Kelas</span>
                           </p>
                           
                           <label className="w-full cursor-pointer">
@@ -4834,17 +4835,17 @@ export default function App() {
                               onChange={handleExcelUpload} 
                               className="hidden" 
                             />
-                            <div className="w-full py-4 bg-slate-100 border border-slate-300 text-brand rounded-2xl font-black text-sm hover:bg-brand hover:text-white hover:border-brand transition-all flex items-center justify-center gap-2 shadow-sm">
+                            <div className="w-full py-3.5 bg-white border border-slate-200 text-brand rounded-xl font-bold text-sm hover:bg-brand hover:text-white hover:border-brand transition-all duration-300 flex items-center justify-center gap-2 shadow-xs">
                               <Plus size={18} /> Pilih File Excel
                             </div>
                           </label>
                         </div>
                         
-                        <div className="bg-slate-200 p-4 rounded-2xl border border-slate-300 flex items-start gap-3">
+                        <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 flex items-start gap-3">
                           <div className="w-5 h-5 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 shrink-0 mt-0.5">
                             <Info size={12} />
                           </div>
-                          <p className="text-[10px] font-bold text-slate-500 leading-relaxed">
+                          <p className="text-[11px] font-semibold text-amber-900/80 leading-relaxed">
                             Pastikan file excel Anda memiliki baris judul (header) dan data dimulai dari baris kedua.
                           </p>
                         </div>
