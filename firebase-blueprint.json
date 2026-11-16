@@ -145,6 +145,30 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["setId", "isActive", "options", "correctAnswer"]
+    },
+    "KombatMatch": {
+      "title": "Kombat Match",
+      "description": "Real-time multiplayer matchmaking room and combat sync state for Informatika Kombat.",
+      "type": "object",
+      "properties": {
+        "roomCode": { "type": "string", "maxLength": 12 },
+        "isPublic": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["waiting", "active", "finished", "abandoned"] },
+        "stage": { "type": "number" },
+        "round": { "type": "number" },
+        "p1Uid": { "type": "string", "maxLength": 128 },
+        "p1Name": { "type": "string", "maxLength": 80 },
+        "p1Fighter": { "type": "string", "maxLength": 32 },
+        "p1Wins": { "type": "number" },
+        "p2Uid": { "type": "string", "maxLength": 128 },
+        "p2Name": { "type": "string", "maxLength": 80 },
+        "p2Fighter": { "type": "string", "maxLength": 32 },
+        "p2Wins": { "type": "number" },
+        "winnerSide": { "type": "string", "enum": ["p1", "p2", "draw"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["roomCode", "isPublic", "status", "p1Uid", "p1Name", "p1Fighter"]
     }
   },
   "firestore": {
@@ -187,6 +211,10 @@
     "/soal_questions/{questionId}": {
       "schema": "SoalQuestion",
       "description": "Multiple-choice 4-option questions belonging to a SoalSet."
+    },
+    "/kombat_matches/{matchId}": {
+      "schema": "KombatMatch",
+      "description": "Multiplayer matchmaking rooms and live duel state for Informatika Kombat."
     }
   }
 }
