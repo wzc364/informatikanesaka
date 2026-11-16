@@ -24,6 +24,7 @@ import {
   Copy,
   Check,
   Wifi,
+  Gamepad2,
 } from 'lucide-react';
 import { cn } from '../utils';
 import { db } from '../firebase';
@@ -48,27 +49,96 @@ import scorpioKickUrl from '../assets/images/scorpio_kick_1794839499547.jpg';
 import scorpioSpecialUrl from '../assets/images/scorpio_special_1794839499934.jpg';
 import scorpioBlockUrl from '../assets/images/scorpio_block_1794841146232.jpg';
 import scorpioVictoryUrl from '../assets/images/scorpio_victory_1794841146961.jpg';
+import scorpioUppercutUrl from '../assets/images/scorpio_uppercut_1794843721746.jpg';
+import scorpioCrouchUrl from '../assets/images/scorpio_crouch_1794843721917.jpg';
+import scorpioHitUrl from '../assets/images/scorpio_hit_1794843722062.jpg';
+import scorpioFallUrl from '../assets/images/scorpio_fall_1794845220217.jpg';
 import kamenIdleUrl from '../assets/images/kamen_idle_1794839936814.jpg';
 import kamenPunchUrl from '../assets/images/kamen_punch_1794839937754.jpg';
 import kamenKickUrl from '../assets/images/kamen_kick_1794839938900.jpg';
 import kamenSpecialUrl from '../assets/images/kamen_special_1794839939450.jpg';
 import kamenBlockUrl from '../assets/images/kamen_block_1794841262965.jpg';
 import kamenVictoryUrl from '../assets/images/kamen_victory_1794841147205.jpg';
+import kamenUppercutUrl from '../assets/images/kamen_uppercut_1794843722826.jpg';
+import kamenCrouchUrl from '../assets/images/kamen_crouch_1794843723530.jpg';
+import kamenHitUrl from '../assets/images/kamen_hit_1794843722819.jpg';
+import kamenFallUrl from '../assets/images/kamen_fall_1794845220599.jpg';
+import kamenActWindupUrl from '../assets/images/kamen_act_windup_1794846137692.jpg';
+import kamenPunchMidUrl from '../assets/images/kamen_punch_mid_1794846138957.jpg';
+import kamenPunchFollowUrl from '../assets/images/kamen_punch_follow_1794846138932.jpg';
+import kamenActRecoverUrl from '../assets/images/kamen_act_recover_1794846139326.jpg';
+import kamenKickChamberUrl from '../assets/images/kamen_kick_chamber_1794846140814.jpg';
+import kamenKickSnapUrl from '../assets/images/kamen_kick_snap_1794846141173.jpg';
+import kamenKickRetractUrl from '../assets/images/kamen_kick_retract_1794846142026.jpg';
+import kamenUpperCoilUrl from '../assets/images/kamen_upper_coil_1794846143043.jpg';
+import kamenUpperRiseUrl from '../assets/images/kamen_upper_rise_1794846142772.jpg';
+import kamenUpperPeakUrl from '../assets/images/kamen_upper_peak_1794846142998.jpg';
+import kamenSpecialChargeUrl from '../assets/images/kamen_special_charge_1794846144451.jpg';
+import kamenSpecialLaunchUrl from '../assets/images/kamen_special_launch_1794846146526.jpg';
 import knightIdleUrl from '../assets/images/knight_idle_1794840562402.jpg';
 import knightAttackUrl from '../assets/images/knight_attack_1794840563554.jpg';
 import knightKickUrl from '../assets/images/knight_kick_1794841141597.jpg';
 import knightSpecialUrl from '../assets/images/knight_special_1794841141458.jpg';
+import knightUppercutUrl from '../assets/images/knight_uppercut_1794843725641.jpg';
+import knightCrouchUrl from '../assets/images/knight_crouch_1794843725644.jpg';
+import knightHitUrl from '../assets/images/knight_hit_1794843726810.jpg';
+import knightBlockUrl from '../assets/images/knight_block_1794845223062.jpg';
+import knightFallUrl from '../assets/images/knight_fall_1794845220461.jpg';
+import knightVictoryUrl from '../assets/images/knight_victory_1794843725583.jpg';
 import bisopIdleUrl from '../assets/images/bisop_idle_1794840565585.jpg';
 import bisopAttackUrl from '../assets/images/bisop_attack_1794840566355.jpg';
 import bisopPunchUrl from '../assets/images/bisop_punch_1794841143042.jpg';
 import bisopSpecialUrl from '../assets/images/bisop_special_1794841143469.jpg';
+import bisopUppercutUrl from '../assets/images/bisop_uppercut_1794843727060.jpg';
+import bisopCrouchUrl from '../assets/images/bisop_crouch_1794843737841.jpg';
+import bisopHitUrl from '../assets/images/bisop_hit_1794843728271.jpg';
+import bisopBlockUrl from '../assets/images/bisop_block_1794845222814.jpg';
+import bisopFallUrl from '../assets/images/bisop_fall_1794845222325.jpg';
+import bisopVictoryUrl from '../assets/images/bisop_victory_1794843727245.jpg';
 import queenIdleUrl from '../assets/images/queen_idle_1794840565562.jpg';
 import queenAttackUrl from '../assets/images/queen_attack_1794840568272.jpg';
 import queenPunchUrl from '../assets/images/queen_punch_1794841144254.jpg';
 import queenSpecialUrl from '../assets/images/queen_special_1794841144544.jpg';
+import queenUppercutUrl from '../assets/images/queen_uppercut_1794843729505.jpg';
+import queenHitUrl from '../assets/images/queen_hit_1794843730592.jpg';
+import queenBlockUrl from '../assets/images/queen_block_1794845223244.jpg';
+import queenFallUrl from '../assets/images/queen_fall_1794845222194.jpg';
+import queenVictoryUrl from '../assets/images/queen_victory_1794843738985.jpg';
+import virusIdleUrl from '../assets/images/virus_idle_1794843717127.jpg';
+import virusPunchUrl from '../assets/images/virus_punch_1794843718281.jpg';
+import virusCrouchUrl from '../assets/images/virus_crouch_1794843718241.jpg';
+import virusBlockUrl from '../assets/images/virus_block_1794845225204.jpg';
+import virusFallUrl from '../assets/images/virus_fall_1794845222338.jpg';
+import virusVictoryUrl from '../assets/images/virus_victory_1794843719481.jpg';
+import menuBannerUrl from '../assets/images/menu_banner_kombat_1794843714129.jpg';
 import arenaCourtyardUrl from '../assets/images/arena_courtyard_1794842649485.jpg';
 import arenaPitUrl from '../assets/images/arena_pit_1794842650148.jpg';
 import arenaThroneUrl from '../assets/images/arena_throne_1794842650958.jpg';
+import arenaCyberLabUrl from '../assets/images/arena_cyber_lab_1794843714639.jpg';
+import arenaVolcanoUrl from '../assets/images/arena_volcano_1794843715878.jpg';
+import arenaIceTempleUrl from '../assets/images/arena_ice_temple_1794843716320.jpg';
+import arenaAcidJungleUrl from '../assets/images/arena_acid_jungle_1794843716457.jpg';
+import arenaThunderPeakUrl from '../assets/images/arena_thunder_peak_1794843717458.jpg';
+import arenaQuantumVoidUrl from '../assets/images/arena_quantum_void_1794843717830.jpg';
+import fatalityScorpioVid from '../assets/videos/fatality_scorpio.mp4';
+import fatalitySubbyteVid from '../assets/videos/fatality_subbyte.mp4';
+import fatalityShaolinVid from '../assets/videos/fatality_shaolin.mp4';
+import fatalityRaidenVid from '../assets/videos/fatality_raiden.mp4';
+import fatalityCrimsonVid from '../assets/videos/fatality_crimson.mp4';
+import fatalityReptileVid from '../assets/videos/fatality_reptile.mp4';
+import fatalityRedRangerVid from '../assets/videos/fatality_red_ranger.mp4';
+import fatalityKamenVid from '../assets/videos/fatality_kamen_rider.mp4';
+import fatalityKnightVid from '../assets/videos/fatality_knight.mp4';
+import fatalityBisopVid from '../assets/videos/fatality_bisop.mp4';
+import fatalityQueenVid from '../assets/videos/fatality_queen.mp4';
+import fatalityVirusVid from '../assets/videos/fatality_virus_rex.mp4';
+import fatalityShaoVid from '../assets/videos/fatality_shao.mp4';
+import fatalityExtraLaserVid from '../assets/videos/fatality_extra_laser.mp4';
+import fatalityExtraCycloneVid from '../assets/videos/fatality_extra_cyclone.mp4';
+import fatalityExtraInfernoVid from '../assets/videos/fatality_extra_inferno.mp4';
+import fatalityExtraCryoVid from '../assets/videos/fatality_extra_cryo.mp4';
+import fatalityExtraThunderVid from '../assets/videos/fatality_extra_thunder.mp4';
+import fatalityExtraDimensionVid from '../assets/videos/fatality_extra_dimension.mp4';
 
 enum OperationType {
   CREATE = 'create',
@@ -108,7 +178,10 @@ type FighterId =
   | 'kamen_rider'
   | 'knight'
   | 'bisop'
-  | 'queen';
+  | 'queen'
+  | 'virus_rex';
+
+type StageId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 type PoseState =
   | 'idle'
   | 'walk'
@@ -464,7 +537,45 @@ const FIGHTERS: Record<FighterId, FighterProfile> = {
     power: 1.12,
     maxHp: 110,
   },
+  virus_rex: {
+    id: 'virus_rex',
+    name: 'TROJAN REX',
+    codename: 'Monster Virus Komputer',
+    style: 'Cyber Claw & Glitch Overdrive',
+    specialName: 'Malware Beam',
+    specialDesc: 'Menembakkan gelombang virus korup biner berkecepatan tinggi!',
+    fatalityName: 'SYSTEM32 CORRUPTION',
+    skin: '#334155',
+    skinHighlight: '#64748b',
+    skinShadow: '#0f172a',
+    primary: '#16a34a',
+    primaryLight: '#4ade80',
+    secondary: '#991b1b',
+    suitDark: '#09090b',
+    pants: '#18181b',
+    hairOrHat: 'shao_helm',
+    scale: 1.07,
+    eyeGlow: '#ef4444',
+    projectileType: 'acid',
+    projectileColor: '#22c55e',
+    projectileCore: '#ef4444',
+    speed: 4.55,
+    power: 1.18,
+    maxHp: 125,
+  },
 };
+
+const ARENAS: { id: StageId; name: string; theme: string; url: string }[] = [
+  { id: 1, name: 'Kuil Malam', theme: 'Bulan Purnama', url: arenaCourtyardUrl },
+  { id: 2, name: 'Jembatan Jurang', theme: 'Kabut Zamrud', url: arenaPitUrl },
+  { id: 3, name: 'Takhta Kaisar', theme: 'Aula Naga Merah', url: arenaThroneUrl },
+  { id: 4, name: 'Lab Server Siber', theme: 'Mainframe Digital', url: arenaCyberLabUrl },
+  { id: 5, name: 'Kawah Lava', theme: 'Jembatan Magma', url: arenaVolcanoUrl },
+  { id: 6, name: 'Kuil Salju', theme: 'Gletser Beku', url: arenaIceTempleUrl },
+  { id: 7, name: 'Rawa Beracun', theme: 'Asam Zaterra', url: arenaAcidJungleUrl },
+  { id: 8, name: 'Puncak Halilintar', theme: 'Badai Petir', url: arenaThunderPeakUrl },
+  { id: 9, name: 'Gerbang Kuantum', theme: 'Portal Kosmik', url: arenaQuantumVoidUrl },
+];
 
 const PLAYABLE_IDS: FighterId[] = [
   'scorpio',
@@ -476,11 +587,12 @@ const PLAYABLE_IDS: FighterId[] = [
   'knight',
   'bisop',
   'queen',
+  'virus_rex',
 ];
-const ARCADE_ENEMIES: { fighter: FighterId; stage: 1 | 2 | 3; stageName: string }[] = [
-  { fighter: 'crimson', stage: 1, stageName: 'KUIL MALAM (THE COURTYARD)' },
-  { fighter: 'reptile', stage: 2, stageName: 'JEMBATAN JURANG (THE PIT)' },
-  { fighter: 'shao', stage: 3, stageName: 'TAKHTA KAISAR TROJAN' },
+const ARCADE_ENEMIES: { fighter: FighterId; stage: StageId; stageName: string }[] = [
+  { fighter: 'crimson', stage: 1, stageName: 'KUIL MALAM' },
+  { fighter: 'virus_rex', stage: 4, stageName: 'LAB SERVER SIBER' },
+  { fighter: 'shao', stage: 3, stageName: 'TAKHTA KAISAR' },
 ];
 
 // 16-bit SNES WebAudio Synthesizer
@@ -752,7 +864,7 @@ interface OnlineMatchDoc {
   roomCode: string;
   isPublic: boolean;
   status: 'waiting' | 'active' | 'finished' | 'abandoned';
-  stage: 1 | 2 | 3;
+  stage: StageId;
   round: number;
   p1Uid: string;
   p1Name: string;
@@ -778,6 +890,8 @@ interface OnlineMatchDoc {
     p1Wins: number;
     p2Wins: number;
     fatalityAttacker?: 'player' | 'enemy' | null;
+    fatalityVariantId?: string | null;
+    fatalityVariantName?: string | null;
     projectiles: {
       owner: 'player' | 'enemy';
       originX: number;
@@ -883,12 +997,96 @@ function drawTaperedMuscle(
   ctx.restore();
 }
 
-type SpritePoseKey = 'idle' | 'punch' | 'kick' | 'special' | 'block' | 'victory';
+type SpritePoseKey =
+  | 'idle'
+  | 'punch'
+  | 'kick'
+  | 'uppercut'
+  | 'crouch'
+  | 'hit'
+  | 'special'
+  | 'block'
+  | 'fall'
+  | 'victory';
+type ActionSequenceKey = 'punch' | 'kick' | 'uppercut' | 'special' | 'sweep';
 type ChromaMode = 'green' | 'magenta';
 
 interface SpriteFighterConfig {
   chroma: ChromaMode;
   urls: Record<SpritePoseKey, string>;
+  actionFrames?: Partial<Record<ActionSequenceKey, string[]>>;
+}
+
+interface FatalityVariant {
+  id: string;
+  name: string;
+  url: string;
+}
+
+const FATALITY_VIDEO_URLS: Record<FighterId, string> = {
+  scorpio: fatalityScorpioVid,
+  subbyte: fatalitySubbyteVid,
+  shaolin: fatalityShaolinVid,
+  raiden: fatalityRaidenVid,
+  crimson: fatalityCrimsonVid,
+  reptile: fatalityReptileVid,
+  red_ranger: fatalityRedRangerVid,
+  kamen_rider: fatalityKamenVid,
+  knight: fatalityKnightVid,
+  bisop: fatalityBisopVid,
+  queen: fatalityQueenVid,
+  virus_rex: fatalityVirusVid,
+  shao: fatalityShaoVid,
+};
+
+const EXTRA_FATALITY_VARIANTS: FatalityVariant[] = [
+  { id: 'extra_laser', name: 'ORBITAL CYBER LASER', url: fatalityExtraLaserVid },
+  { id: 'extra_cyclone', name: 'DOUBLE CYCLONE CRASH', url: fatalityExtraCycloneVid },
+  { id: 'extra_inferno', name: 'SOLAR CORE SUPERNOVA', url: fatalityExtraInfernoVid },
+  { id: 'extra_cryo', name: 'ABSOLUTE ZERO SHATTER', url: fatalityExtraCryoVid },
+  { id: 'extra_thunder', name: 'HIGH-VOLTAGE OVERLOAD', url: fatalityExtraThunderVid },
+  { id: 'extra_dimension', name: 'NEON DIMENSION X-SLASH', url: fatalityExtraDimensionVid },
+];
+
+const FATALITY_DECK_QUEUE: Partial<Record<FighterId, FatalityVariant[]>> = {};
+const LAST_FATALITY_BY_FIGHTER: Partial<Record<FighterId, string>> = {};
+
+function getFatalityPool(fighterId: FighterId): FatalityVariant[] {
+  const sig: FatalityVariant = {
+    id: `sig_${fighterId}`,
+    name: FIGHTERS[fighterId].fatalityName,
+    url: FATALITY_VIDEO_URLS[fighterId],
+  };
+  return [sig, ...EXTRA_FATALITY_VARIANTS];
+}
+
+function getFatalityVideoByVariant(fighterId: FighterId, variantId?: string | null): string {
+  if (variantId) {
+    const extra = EXTRA_FATALITY_VARIANTS.find((v) => v.id === variantId);
+    if (extra) return extra.url;
+  }
+  return FATALITY_VIDEO_URLS[fighterId];
+}
+
+function pickRandomFatalityVariant(fighterId: FighterId): FatalityVariant {
+  let deck = FATALITY_DECK_QUEUE[fighterId];
+  if (!deck || deck.length === 0) {
+    const pool = [...getFatalityPool(fighterId)];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const lastId = LAST_FATALITY_BY_FIGHTER[fighterId];
+    if (lastId && pool.length > 1 && pool[0].id === lastId) {
+      const swapIdx = 1 + Math.floor(Math.random() * (pool.length - 1));
+      [pool[0], pool[swapIdx]] = [pool[swapIdx], pool[0]];
+    }
+    deck = pool;
+    FATALITY_DECK_QUEUE[fighterId] = deck;
+  }
+  const picked = deck.shift()!;
+  LAST_FATALITY_BY_FIGHTER[fighterId] = picked.id;
+  return picked;
 }
 
 const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
@@ -898,8 +1096,12 @@ const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
       idle: scorpioIdleUrl,
       punch: scorpioPunchUrl,
       kick: scorpioKickUrl,
+      uppercut: scorpioUppercutUrl,
+      crouch: scorpioCrouchUrl,
+      hit: scorpioHitUrl,
       special: scorpioSpecialUrl,
       block: scorpioBlockUrl,
+      fall: scorpioFallUrl,
       victory: scorpioVictoryUrl,
     },
   },
@@ -908,10 +1110,56 @@ const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
     urls: {
       idle: kamenIdleUrl,
       punch: kamenPunchUrl,
-      kick: kamenKickUrl,
+      kick: kamenKickSnapUrl,
+      uppercut: kamenUppercutUrl,
+      crouch: kamenCrouchUrl,
+      hit: kamenHitUrl,
       special: kamenSpecialUrl,
       block: kamenBlockUrl,
+      fall: kamenFallUrl,
       victory: kamenVictoryUrl,
+    },
+    actionFrames: {
+      punch: [
+        kamenIdleUrl,
+        kamenActWindupUrl,
+        kamenPunchMidUrl,
+        kamenPunchUrl,
+        kamenPunchFollowUrl,
+        kamenActRecoverUrl,
+      ],
+      kick: [
+        kamenIdleUrl,
+        kamenKickChamberUrl,
+        kamenKickSnapUrl,
+        kamenKickUrl,
+        kamenKickRetractUrl,
+        kamenActRecoverUrl,
+      ],
+      uppercut: [
+        kamenCrouchUrl,
+        kamenUpperCoilUrl,
+        kamenUpperRiseUrl,
+        kamenUppercutUrl,
+        kamenUpperPeakUrl,
+        kamenActRecoverUrl,
+      ],
+      special: [
+        kamenActWindupUrl,
+        kamenSpecialChargeUrl,
+        kamenSpecialLaunchUrl,
+        kamenSpecialUrl,
+        kamenKickUrl,
+        kamenActRecoverUrl,
+      ],
+      sweep: [
+        kamenCrouchUrl,
+        kamenUpperCoilUrl,
+        kamenKickSnapUrl,
+        kamenKickRetractUrl,
+        kamenCrouchUrl,
+        kamenActRecoverUrl,
+      ],
     },
   },
   knight: {
@@ -920,9 +1168,13 @@ const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
       idle: knightIdleUrl,
       punch: knightAttackUrl,
       kick: knightKickUrl,
+      uppercut: knightUppercutUrl,
+      crouch: knightCrouchUrl,
+      hit: knightHitUrl,
       special: knightSpecialUrl,
-      block: knightIdleUrl,
-      victory: knightSpecialUrl,
+      block: knightBlockUrl,
+      fall: knightFallUrl,
+      victory: knightVictoryUrl,
     },
   },
   bisop: {
@@ -931,9 +1183,13 @@ const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
       idle: bisopIdleUrl,
       punch: bisopPunchUrl,
       kick: bisopAttackUrl,
+      uppercut: bisopUppercutUrl,
+      crouch: bisopCrouchUrl,
+      hit: bisopHitUrl,
       special: bisopSpecialUrl,
-      block: bisopIdleUrl,
-      victory: bisopSpecialUrl,
+      block: bisopBlockUrl,
+      fall: bisopFallUrl,
+      victory: bisopVictoryUrl,
     },
   },
   queen: {
@@ -942,85 +1198,141 @@ const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
       idle: queenIdleUrl,
       punch: queenPunchUrl,
       kick: queenAttackUrl,
+      uppercut: queenUppercutUrl,
+      crouch: queenIdleUrl,
+      hit: queenHitUrl,
       special: queenSpecialUrl,
-      block: queenIdleUrl,
-      victory: queenSpecialUrl,
+      block: queenBlockUrl,
+      fall: queenFallUrl,
+      victory: queenVictoryUrl,
+    },
+  },
+  virus_rex: {
+    chroma: 'magenta',
+    urls: {
+      idle: virusIdleUrl,
+      punch: virusPunchUrl,
+      kick: virusPunchUrl,
+      uppercut: virusPunchUrl,
+      crouch: virusCrouchUrl,
+      hit: virusCrouchUrl,
+      special: virusVictoryUrl,
+      block: virusBlockUrl,
+      fall: virusFallUrl,
+      victory: virusVictoryUrl,
     },
   },
 };
 
 const FIGHTER_SPRITE_CACHE: Partial<Record<FighterId, Record<SpritePoseKey, HTMLCanvasElement | null>>> = {};
+const FIGHTER_ACTION_FRAMES_CACHE: Partial<
+  Record<FighterId, Partial<Record<ActionSequenceKey, (HTMLCanvasElement | null)[]>>>
+> = {};
 const KEYED_URL_CACHE = new Map<string, HTMLCanvasElement>();
 const INFLIGHT_URL_LOADS = new Map<string, Promise<HTMLCanvasElement | null>>();
 
-const ARENA_BG_URLS: Record<1 | 2 | 3, string> = {
-  1: arenaCourtyardUrl,
-  2: arenaPitUrl,
-  3: arenaThroneUrl,
-};
-const ARENA_BG_CACHE: Partial<Record<1 | 2 | 3, HTMLCanvasElement>> = {};
+const PREWARMED_VIDEOS = new Set<string>();
+function prewarmVideoUrl(url: string) {
+  if (!url || PREWARMED_VIDEOS.has(url)) return;
+  PREWARMED_VIDEOS.add(url);
+  const link = document.createElement('link');
+  link.rel = 'prefetch';
+  link.as = 'video';
+  link.href = url;
+  document.head.appendChild(link);
+}
+function prewarmFatalityVideo(fid: FighterId) {
+  if (typeof window === 'undefined') return;
+  prewarmVideoUrl(FATALITY_VIDEO_URLS[fid]);
+  EXTRA_FATALITY_VARIANTS.forEach((v) => prewarmVideoUrl(v.url));
+}
+
+const ARENA_BG_CACHE: Partial<Record<StageId, HTMLCanvasElement>> = {};
+const INFLIGHT_ARENA_LOADS = new Map<StageId, Promise<void>>();
 let arenaBgInitialized = false;
+
+function prioritizeArenaBackground(stageNum: StageId): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (ARENA_BG_CACHE[stageNum]) return Promise.resolve();
+  const existing = INFLIGHT_ARENA_LOADS.get(stageNum);
+  if (existing) return existing;
+
+  const arena = ARENAS.find((a) => a.id === stageNum);
+  if (!arena) return Promise.resolve();
+
+  const prom = new Promise<void>((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.decoding = 'async';
+    if ('fetchPriority' in img) {
+      (img as any).fetchPriority = 'high';
+    }
+    img.src = arena.url;
+
+    const bake = () => {
+      if (!img.naturalWidth || !img.naturalHeight) {
+        resolve();
+        return;
+      }
+      const off = document.createElement('canvas');
+      off.width = STAGE_W;
+      off.height = STAGE_H;
+      const octx = off.getContext('2d');
+      if (octx) {
+        const scale = Math.max(STAGE_W / img.naturalWidth, STAGE_H / img.naturalHeight);
+        const dw = img.naturalWidth * scale;
+        const dh = img.naturalHeight * scale;
+        const dx = (STAGE_W - dw) * 0.5;
+        const dy = (STAGE_H - dh) * 0.5;
+        octx.imageSmoothingEnabled = true;
+        octx.imageSmoothingQuality = 'high';
+        octx.drawImage(img, dx, dy, dw, dh);
+
+        const scrim = octx.createLinearGradient(0, 0, 0, STAGE_H);
+        scrim.addColorStop(0, 'rgba(0,0,0,0.20)');
+        scrim.addColorStop(0.55, 'rgba(0,0,0,0.05)');
+        scrim.addColorStop(0.84, 'rgba(0,0,0,0.22)');
+        scrim.addColorStop(1, 'rgba(0,0,0,0.36)');
+        octx.fillStyle = scrim;
+        octx.fillRect(0, 0, STAGE_W, STAGE_H);
+
+        ARENA_BG_CACHE[stageNum] = off;
+      }
+      resolve();
+    };
+
+    if (typeof img.decode === 'function') {
+      img.decode().then(bake).catch(() => {
+        if (img.complete && img.naturalWidth > 0) bake();
+        else resolve();
+      });
+    } else {
+      img.onload = bake;
+      img.onerror = () => resolve();
+    }
+  });
+
+  INFLIGHT_ARENA_LOADS.set(stageNum, prom);
+  return prom;
+}
 
 function ensureArenaBackgroundsLoaded() {
   if (arenaBgInitialized || typeof window === 'undefined') return;
   arenaBgInitialized = true;
 
-  ([1, 2, 3] as const).forEach((stageNum) => {
-    const url = ARENA_BG_URLS[stageNum];
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.decoding = 'async';
-    if ('fetchPriority' in img) {
-      (img as any).fetchPriority = stageNum === 1 ? 'high' : 'auto';
-    }
-    img.src = url;
-
-    const bakeToOffscreen = () => {
-      if (!img.naturalWidth || !img.naturalHeight) return;
-      const off = document.createElement('canvas');
-      off.width = STAGE_W;
-      off.height = STAGE_H;
-      const octx = off.getContext('2d');
-      if (!octx) return;
-
-      // Draw crisp cover fit into exact 800x450 canvas once for zero per-frame rescaling cost
-      const scale = Math.max(STAGE_W / img.naturalWidth, STAGE_H / img.naturalHeight);
-      const dw = img.naturalWidth * scale;
-      const dh = img.naturalHeight * scale;
-      const dx = (STAGE_W - dw) * 0.5;
-      const dy = (STAGE_H - dh) * 0.5;
-      octx.imageSmoothingEnabled = true;
-      octx.imageSmoothingQuality = 'high';
-      octx.drawImage(img, dx, dy, dw, dh);
-
-      // Subtle dark contrast scrim + floor anchor horizon line so fighters stand out clearly
-      const scrim = octx.createLinearGradient(0, 0, 0, STAGE_H);
-      scrim.addColorStop(0, 'rgba(0,0,0,0.22)');
-      scrim.addColorStop(0.55, 'rgba(0,0,0,0.06)');
-      scrim.addColorStop(0.84, 'rgba(0,0,0,0.24)');
-      scrim.addColorStop(1, 'rgba(0,0,0,0.38)');
-      octx.fillStyle = scrim;
-      octx.fillRect(0, 0, STAGE_W, STAGE_H);
-
-      ARENA_BG_CACHE[stageNum] = off;
-    };
-
-    if (typeof img.decode === 'function') {
-      img
-        .decode()
-        .then(bakeToOffscreen)
-        .catch(() => {
-          if (img.complete && img.naturalWidth > 0) bakeToOffscreen();
-        });
-    } else {
-      img.onload = bakeToOffscreen;
-    }
+  // Load stage 1 first, then stream remaining arenas concurrently in background
+  prioritizeArenaBackground(1).then(() => {
+    ARENAS.forEach((a) => {
+      if (a.id !== 1) prioritizeArenaBackground(a.id);
+    });
   });
 }
+
 let fighterSpritesInitialized = false;
 let spriteLoadedCount = 0;
 let spriteTotalCount = 0;
 const spriteProgressListeners = new Set<(loaded: number, total: number) => void>();
+const countedSpriteDone = new Set<string>();
 
 function notifySpriteProgress() {
   spriteProgressListeners.forEach((cb) => cb(spriteLoadedCount, spriteTotalCount));
@@ -1038,14 +1350,13 @@ function subscribeSpriteLoadProgress(cb: (loaded: number, total: number) => void
   };
 }
 
-const MAX_SPRITE_DIM = 240;
+const MAX_SPRITE_DIM = 220;
 
 function keyAndCropChromaSprite(img: HTMLImageElement, chroma: ChromaMode): HTMLCanvasElement | null {
   const rawW = img.naturalWidth;
   const rawH = img.naturalHeight;
   if (!rawW || !rawH) return null;
 
-  // Downscale to crisp 2x display resolution BEFORE getImageData to speed up processing >18x
   const scale = Math.min(1, MAX_SPRITE_DIM / Math.max(rawW, rawH));
   const w = Math.max(1, Math.round(rawW * scale));
   const h = Math.max(1, Math.round(rawH * scale));
@@ -1080,10 +1391,10 @@ function keyAndCropChromaSprite(img: HTMLImageElement, chroma: ChromaMode): HTML
         const maxRB = r > b ? r : b;
         const greenExcess = g - maxRB;
 
-        if (greenExcess >= 34 && g > r * 1.18 && g > b * 1.18) {
+        if (greenExcess >= 32 && g > r * 1.16 && g > b * 1.16) {
           d[idx + 3] = 0;
-        } else if (greenExcess >= 14 && g > r * 1.06 && g > b * 1.06) {
-          const alphaRatio = 1 - (greenExcess - 14) / 20;
+        } else if (greenExcess >= 12 && g > r * 1.05 && g > b * 1.05) {
+          const alphaRatio = 1 - (greenExcess - 12) / 20;
           d[idx + 3] = Math.max(0, Math.min(255, (255 * alphaRatio + 0.5) | 0));
           d[idx + 1] = g < maxRB ? g : maxRB;
         }
@@ -1091,10 +1402,10 @@ function keyAndCropChromaSprite(img: HTMLImageElement, chroma: ChromaMode): HTML
         const minRB = r < b ? r : b;
         const magentaExcess = minRB - g;
 
-        if (magentaExcess >= 36 && r > g * 1.2 && b > g * 1.2) {
+        if (magentaExcess >= 34 && r > g * 1.18 && b > g * 1.18) {
           d[idx + 3] = 0;
-        } else if (magentaExcess >= 14 && r > g * 1.08 && b > g * 1.08) {
-          const alphaRatio = 1 - (magentaExcess - 14) / 22;
+        } else if (magentaExcess >= 12 && r > g * 1.07 && b > g * 1.07) {
+          const alphaRatio = 1 - (magentaExcess - 12) / 22;
           d[idx + 3] = Math.max(0, Math.min(255, (255 * alphaRatio + 0.5) | 0));
           const cap = g + 10;
           if (r > cap) d[idx] = cap;
@@ -1125,7 +1436,7 @@ function keyAndCropChromaSprite(img: HTMLImageElement, chroma: ChromaMode): HTML
   return out;
 }
 
-function loadAndKeySpriteUrl(url: string, chroma: ChromaMode): Promise<HTMLCanvasElement | null> {
+function loadAndKeySpriteUrl(url: string, chroma: ChromaMode, highPriority = false): Promise<HTMLCanvasElement | null> {
   const cacheKey = `${chroma}:${url}`;
   const cached = KEYED_URL_CACHE.get(cacheKey);
   if (cached) return Promise.resolve(cached);
@@ -1137,6 +1448,9 @@ function loadAndKeySpriteUrl(url: string, chroma: ChromaMode): Promise<HTMLCanva
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.decoding = 'async';
+    if (highPriority && 'fetchPriority' in img) {
+      (img as any).fetchPriority = 'high';
+    }
     img.src = url;
 
     const finalize = () => {
@@ -1163,64 +1477,675 @@ function loadAndKeySpriteUrl(url: string, chroma: ChromaMode): Promise<HTMLCanva
   return p;
 }
 
+function emptySpritePoseRecord(): Record<SpritePoseKey, HTMLCanvasElement | null> {
+  return {
+    idle: null,
+    punch: null,
+    kick: null,
+    uppercut: null,
+    crouch: null,
+    hit: null,
+    special: null,
+    block: null,
+    fall: null,
+    victory: null,
+  };
+}
+
+function markSpriteDone(chroma: ChromaMode, url: string) {
+  const k = `${chroma}:${url}`;
+  if (!countedSpriteDone.has(k)) {
+    countedSpriteDone.add(k);
+    spriteLoadedCount = countedSpriteDone.size;
+    notifySpriteProgress();
+  }
+}
+
+function prioritizeFighterSprites(fid: FighterId) {
+  if (typeof window === 'undefined') return;
+  const cfg = FIGHTER_SPRITE_CONFIG[fid];
+  if (!cfg) return;
+  if (!FIGHTER_SPRITE_CACHE[fid]) FIGHTER_SPRITE_CACHE[fid] = emptySpritePoseRecord();
+
+  (Object.keys(cfg.urls) as SpritePoseKey[]).forEach((poseKey) => {
+    const url = cfg.urls[poseKey];
+    loadAndKeySpriteUrl(url, cfg.chroma, true).then((canvas) => {
+      const cache = FIGHTER_SPRITE_CACHE[fid];
+      if (cache && canvas) cache[poseKey] = canvas;
+      markSpriteDone(cfg.chroma, url);
+    });
+  });
+
+  if (cfg.actionFrames) {
+    if (!FIGHTER_ACTION_FRAMES_CACHE[fid]) FIGHTER_ACTION_FRAMES_CACHE[fid] = {};
+    const seqCache = FIGHTER_ACTION_FRAMES_CACHE[fid]!;
+    (Object.keys(cfg.actionFrames) as ActionSequenceKey[]).forEach((seqKey) => {
+      const urls = cfg.actionFrames![seqKey];
+      if (!urls) return;
+      if (!seqCache[seqKey]) seqCache[seqKey] = new Array(urls.length).fill(null);
+      urls.forEach((url, frameIdx) => {
+        loadAndKeySpriteUrl(url, cfg.chroma, true).then((canvas) => {
+          if (canvas) seqCache[seqKey]![frameIdx] = canvas;
+          markSpriteDone(cfg.chroma, url);
+        });
+      });
+    });
+  }
+}
+
 function ensureFighterSpritesLoaded() {
   if (fighterSpritesInitialized || typeof window === 'undefined') return;
   fighterSpritesInitialized = true;
 
   const fighterIds = Object.keys(FIGHTER_SPRITE_CONFIG) as FighterId[];
-  const uniqueIdleTasks: { fid: FighterId; url: string; chroma: ChromaMode }[] = [];
-  const uniqueActionTasks: { fid: FighterId; poseKey: SpritePoseKey; url: string; chroma: ChromaMode }[] = [];
+  const wave1PortraitTasks: { fid: FighterId; poseKey: 'idle' | 'victory'; url: string; chroma: ChromaMode }[] = [];
+  const wave2CombatTasks: {
+    fid: FighterId;
+    poseKey?: SpritePoseKey;
+    seqKey?: ActionSequenceKey;
+    frameIdx?: number;
+    url: string;
+    chroma: ChromaMode;
+  }[] = [];
   const seenKeys = new Set<string>();
 
   fighterIds.forEach((fid) => {
     const cfg = FIGHTER_SPRITE_CONFIG[fid];
     if (!cfg) return;
-    FIGHTER_SPRITE_CACHE[fid] = { idle: null, punch: null, kick: null, special: null, block: null, victory: null };
+    if (!FIGHTER_SPRITE_CACHE[fid]) FIGHTER_SPRITE_CACHE[fid] = emptySpritePoseRecord();
 
     (Object.keys(cfg.urls) as SpritePoseKey[]).forEach((poseKey) => {
       const url = cfg.urls[poseKey];
       const uniqKey = `${cfg.chroma}:${url}`;
       seenKeys.add(uniqKey);
-      if (poseKey === 'idle') {
-        uniqueIdleTasks.push({ fid, url, chroma: cfg.chroma });
+      if (poseKey === 'idle' || poseKey === 'victory') {
+        wave1PortraitTasks.push({ fid, poseKey, url, chroma: cfg.chroma });
       } else {
-        uniqueActionTasks.push({ fid, poseKey, url, chroma: cfg.chroma });
+        wave2CombatTasks.push({ fid, poseKey, url, chroma: cfg.chroma });
       }
     });
+
+    if (cfg.actionFrames) {
+      if (!FIGHTER_ACTION_FRAMES_CACHE[fid]) FIGHTER_ACTION_FRAMES_CACHE[fid] = {};
+      const seqCache = FIGHTER_ACTION_FRAMES_CACHE[fid]!;
+      (Object.keys(cfg.actionFrames) as ActionSequenceKey[]).forEach((seqKey) => {
+        const urls = cfg.actionFrames![seqKey];
+        if (!urls) return;
+        if (!seqCache[seqKey]) seqCache[seqKey] = new Array(urls.length).fill(null);
+        urls.forEach((url, frameIdx) => {
+          const uniqKey = `${cfg.chroma}:${url}`;
+          seenKeys.add(uniqKey);
+          wave2CombatTasks.push({ fid, seqKey, frameIdx, url, chroma: cfg.chroma });
+        });
+      });
+    }
   });
 
   spriteTotalCount = seenKeys.size;
-  spriteLoadedCount = 0;
+  spriteLoadedCount = countedSpriteDone.size;
   notifySpriteProgress();
 
-  const countedDone = new Set<string>();
-  const markDone = (chroma: ChromaMode, url: string) => {
-    const k = `${chroma}:${url}`;
-    if (!countedDone.has(k)) {
-      countedDone.add(k);
-      spriteLoadedCount = countedDone.size;
-      notifySpriteProgress();
-    }
-  };
-
-  // Stage 1: Prioritize idle portraits first so Title & Select screens render immediately
+  // Wave 1: Load compressed idle & front victory portraits concurrently for Character Select
   Promise.all(
-    uniqueIdleTasks.map(async ({ fid, url, chroma }) => {
-      const canvas = await loadAndKeySpriteUrl(url, chroma);
+    wave1PortraitTasks.map(async ({ fid, poseKey, url, chroma }) => {
+      const canvas = await loadAndKeySpriteUrl(url, chroma, true);
       const cache = FIGHTER_SPRITE_CACHE[fid];
-      if (cache && canvas) cache.idle = canvas;
-      markDone(chroma, url);
+      if (cache && canvas) cache[poseKey] = canvas;
+      markSpriteDone(chroma, url);
     })
   ).then(() => {
-    // Stage 2: Load deduplicated attack/special poses concurrently right after idle sprites finish
-    uniqueActionTasks.forEach(({ fid, poseKey, url, chroma }) => {
-      loadAndKeySpriteUrl(url, chroma).then((canvas) => {
-        const cache = FIGHTER_SPRITE_CACHE[fid];
-        if (cache && canvas) cache[poseKey] = canvas;
-        markDone(chroma, url);
+    // Wave 2: Load combat & 6-frame action sprites in staggered micro-batches so UI stays crisp at 60fps
+    let idx = 0;
+    const batchSize = 4;
+    const pump = () => {
+      const slice = wave2CombatTasks.slice(idx, idx + batchSize);
+      idx += batchSize;
+      Promise.all(
+        slice.map(({ fid, poseKey, seqKey, frameIdx, url, chroma }) =>
+          loadAndKeySpriteUrl(url, chroma, false).then((canvas) => {
+            if (poseKey) {
+              const cache = FIGHTER_SPRITE_CACHE[fid];
+              if (cache && canvas) cache[poseKey] = canvas;
+            }
+            if (seqKey && frameIdx !== undefined) {
+              const seqCache = FIGHTER_ACTION_FRAMES_CACHE[fid]?.[seqKey];
+              if (seqCache && canvas) seqCache[frameIdx] = canvas;
+            }
+            markSpriteDone(chroma, url);
+          })
+        )
+      ).then(() => {
+        if (idx < wave2CombatTasks.length) {
+          setTimeout(pump, 16);
+        }
       });
-    });
+    };
+    pump();
   });
+}
+
+// Unique Character-Themed Victory Aura & Effects (Shared by AI Sprite & Vector Fighters)
+function drawVictoryAura(ctx: CanvasRenderingContext2D, fid: FighterId, time: number, isPortrait = false) {
+  ctx.save();
+  const s = isPortrait ? 0.85 : 1;
+  ctx.scale(s, s);
+
+  if (fid === 'scorpio') {
+    // Rising Hellfire flames & floating embers
+    for (let i = -2; i <= 2; i++) {
+      const flick = Math.sin(time * 0.02 + i * 1.4) * 7;
+      const gx = i * 15;
+      const g = ctx.createLinearGradient(gx, 0, gx, -125);
+      g.addColorStop(0, 'rgba(245, 158, 11, 0.55)');
+      g.addColorStop(0.5, 'rgba(239, 68, 68, 0.35)');
+      g.addColorStop(1, 'rgba(239, 68, 68, 0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(gx - 8, 2);
+      ctx.quadraticCurveTo(gx + flick, -65, gx - flick * 0.6, -120);
+      ctx.quadraticCurveTo(gx + 8, -50, gx + 8, 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else if (fid === 'subbyte') {
+    // Orbiting faceted ice crystals + cryo ring
+    ctx.strokeStyle = 'rgba(125, 211, 252, 0.65)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, -10, 44, 12, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    for (let i = 0; i < 4; i++) {
+      const a = time * 0.004 + (i * Math.PI) / 2;
+      const cx = Math.cos(a) * 38;
+      const cy = -65 + Math.sin(a * 2) * 14;
+      ctx.fillStyle = '#e0f2fe';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 8);
+      ctx.lineTo(cx + 5, cy);
+      ctx.lineTo(cx, cy + 8);
+      ctx.lineTo(cx - 5, cy);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else if (fid === 'shaolin') {
+    // Twin spiraling dragon flame ribbons
+    for (let k = 0; k < 2; k++) {
+      ctx.strokeStyle = k === 0 ? 'rgba(239, 68, 68, 0.75)' : 'rgba(253, 224, 71, 0.75)';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      for (let h = 0; h <= 110; h += 10) {
+        const ang = time * 0.01 + h * 0.08 + k * Math.PI;
+        const px = Math.cos(ang) * (28 - h * 0.12);
+        const py = -h;
+        if (h === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+  } else if (fid === 'raiden') {
+    // Thunder Halo & crackling cyan lightning bolts
+    ctx.strokeStyle = '#93c5fd';
+    ctx.lineWidth = 2.2;
+    for (let i = 0; i < 3; i++) {
+      const phase = time * 0.018 + i * 2.1;
+      const rx = Math.sin(phase) * 34;
+      ctx.beginPath();
+      ctx.moveTo(rx, -140);
+      ctx.lineTo(rx * 0.5 + 8, -95);
+      ctx.lineTo(rx * 0.7 - 8, -50);
+      ctx.lineTo(rx * 0.3, -4);
+      ctx.stroke();
+    }
+  } else if (fid === 'red_ranger') {
+    // Morphin Grid Red-Gold Starburst Crest behind hero
+    const pulse = 0.8 + Math.sin(time * 0.01) * 0.2;
+    ctx.strokeStyle = `rgba(251, 191, 36, ${0.55 * pulse})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, -135);
+    ctx.lineTo(38, -70);
+    ctx.lineTo(0, -10);
+    ctx.lineTo(-38, -70);
+    ctx.closePath();
+    ctx.stroke();
+  } else if (fid === 'kamen_rider') {
+    // Typhoon Cyclone Wind Rings swirling upward
+    for (let i = 0; i < 3; i++) {
+      const h = ((time * 0.12 + i * 42) % 120);
+      const alpha = 1 - h / 120;
+      ctx.strokeStyle = `rgba(56, 189, 248, ${alpha * 0.7})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(0, -h, 24 + h * 0.22, 8, 0.12, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  } else if (fid === 'knight') {
+    // Unfurling Spectral Dark-Blue Wings + Blue Lance Aura
+    const flap = Math.sin(time * 0.008) * 6;
+    ctx.fillStyle = 'rgba(37, 99, 235, 0.28)';
+    ctx.strokeStyle = 'rgba(96, 165, 250, 0.75)';
+    ctx.lineWidth = 2;
+    [-1, 1].forEach((side) => {
+      ctx.beginPath();
+      ctx.moveTo(side * 10, -76);
+      ctx.quadraticCurveTo(side * 58, -124 + flap, side * 66, -80 + flap);
+      ctx.lineTo(side * 42, -56);
+      ctx.lineTo(side * 54, -40 + flap * 0.5);
+      ctx.lineTo(side * 14, -46);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    });
+  } else if (fid === 'bisop') {
+    // Sacred Cathedral Golden-Crimson Pillar & Rotating Sigil
+    const pillar = ctx.createLinearGradient(-26, 0, 26, 0);
+    pillar.addColorStop(0, 'rgba(245, 158, 11, 0)');
+    pillar.addColorStop(0.5, 'rgba(245, 158, 11, 0.34)');
+    pillar.addColorStop(1, 'rgba(245, 158, 11, 0)');
+    ctx.fillStyle = pillar;
+    ctx.fillRect(-30, -145, 60, 150);
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.75)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -135);
+    ctx.lineTo(0, -15);
+    ctx.moveTo(-24, -108);
+    ctx.lineTo(24, -108);
+    ctx.stroke();
+  } else if (fid === 'queen') {
+    // Floating Golden Crown Halo + Sapphire Petals
+    const hover = Math.sin(time * 0.01) * 4;
+    ctx.strokeStyle = '#fde047';
+    ctx.fillStyle = 'rgba(253, 224, 71, 0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-16, -126 + hover);
+    ctx.lineTo(-20, -140 + hover);
+    ctx.lineTo(-8, -132 + hover);
+    ctx.lineTo(0, -144 + hover);
+    ctx.lineTo(8, -132 + hover);
+    ctx.lineTo(20, -140 + hover);
+    ctx.lineTo(16, -126 + hover);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    for (let i = 0; i < 6; i++) {
+      const a = time * 0.004 + (i * Math.PI) / 3;
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(Math.cos(a) * 40, -68 + Math.sin(a * 2) * 18, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (fid === 'virus_rex') {
+    // Corrupted Digital Glitch Grid & Binary Bits
+    ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-42, -132, 84, 128);
+    ctx.font = '900 10px monospace';
+    for (let i = 0; i < 4; i++) {
+      const yOff = -((time * 0.08 + i * 32) % 120);
+      ctx.fillStyle = i % 2 === 0 ? '#4ade80' : '#ef4444';
+      ctx.fillText(i % 2 === 0 ? '0101' : 'ERR!', (i % 2 === 0 ? -1 : 1) * 38, yOff);
+    }
+  } else if (fid === 'crimson') {
+    // Telekinetic Crimson Soul Orbs
+    for (let i = 0; i < 3; i++) {
+      const a = time * 0.005 + (i * Math.PI * 2) / 3;
+      const sx = Math.cos(a) * 34;
+      const sy = -76 + Math.sin(a) * 12;
+      ctx.fillStyle = '#f43f5e';
+      ctx.beginPath();
+      ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (fid === 'reptile') {
+    // Bubbling Toxic Green Acid Mist
+    for (let i = 0; i < 5; i++) {
+      const r = ((time * 0.05 + i * 24) % 90);
+      ctx.fillStyle = `rgba(74, 222, 128, ${1 - r / 90})`;
+      ctx.beginPath();
+      ctx.arc((i - 2) * 15, -r, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (fid === 'shao') {
+    // Outworld Imperial Lightning Aura
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.65)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, -68, 50 + Math.sin(time * 0.015) * 4, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Front-Facing Vector Fighter Renderer for KTP Portrait & Spotlight Front Pose
+function drawFrontVectorFighter(
+  ctx: CanvasRenderingContext2D,
+  p: FighterProfile,
+  time: number,
+  mode: 'bust' | 'front'
+) {
+  const bob = Math.sin(time * 0.006) * 2;
+  ctx.save();
+
+  if (mode === 'bust') {
+    // KTP-style close-up headshot & shoulders framed neatly inside 140x140 canvas
+    ctx.translate(70, 232 + bob);
+    ctx.scale(2.05, 2.05);
+  } else {
+    // Full-body front heroic stance inside 170x190 Spotlight canvas
+    ctx.translate(85, 174 + bob * 0.6);
+    const sc = p.scale ? p.scale * 1.12 : 1.18;
+    ctx.scale(sc, sc);
+    drawVictoryAura(ctx, p.id, time, true);
+  }
+
+  // Dynamic Shadow for full-body mode
+  if (mode === 'front') {
+    ctx.fillStyle = 'rgba(0,0,0,0.48)';
+    ctx.beginPath();
+    ctx.ellipse(0, 4, 34, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Cape behind shoulders (Shao)
+  if (p.hasCape) {
+    const wave = Math.sin(time * 0.008) * 4;
+    ctx.fillStyle = '#7f1d1d';
+    ctx.strokeStyle = '#09090b';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(-19, -98);
+    ctx.lineTo(19, -98);
+    ctx.lineTo(29 + wave, -8);
+    ctx.lineTo(-29 - wave, -8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // Symmetric Legs & Boots (drawn in front view)
+  [-12, 12].forEach((lx) => {
+    const side = lx < 0 ? -1 : 1;
+    drawTaperedMuscle(ctx, lx, -56, lx + side * 4, -28, 9, 6.8, p.pants, '#27272a', '#09090b');
+    drawTaperedMuscle(ctx, lx + side * 4, -28, lx + side * 6, -4, 6.8, 5.2, p.pants, '#27272a', '#09090b');
+    ctx.fillStyle = p.id === 'shaolin' ? '#f8fafc' : p.suitDark;
+    ctx.strokeStyle = '#09090b';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.ellipse(lx + side * 7, -2, 8.5, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  });
+
+  // Arms in symmetrical front heroic stance
+  const armBase = p.bareChest || p.hairOrHat === 'ninja_hood' ? p.skin : p.suitDark;
+  const armHi = p.bareChest || p.hairOrHat === 'ninja_hood' ? p.skinHighlight : '#ffffff';
+  const armSh = p.bareChest || p.hairOrHat === 'ninja_hood' ? p.skinShadow : '#94a3b8';
+
+  [-1, 1].forEach((side) => {
+    const shX = side * 19;
+    const shY = -92;
+    const elX = side * 26;
+    const elY = -72;
+    const haX = side * (p.id === 'raiden' && side === 1 ? 24 : 21);
+    const haY = p.id === 'raiden' && side === 1 ? -114 : -56;
+    drawTaperedMuscle(ctx, shX, shY, elX, elY, 7.2, 5.5, armBase, armHi, armSh);
+    drawTaperedMuscle(ctx, elX, elY, haX, haY, 5.5, 4.5, armBase, armHi, armSh);
+    ctx.fillStyle = p.id === 'shaolin' ? '#18181b' : p.primary;
+    ctx.strokeStyle = '#09090b';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(haX, haY, 5.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  });
+
+  // Torso Front V-Taper
+  const tGrad = ctx.createLinearGradient(-20, -96, 20, -56);
+  if (p.bareChest) {
+    tGrad.addColorStop(0, p.skinShadow);
+    tGrad.addColorStop(0.5, p.skinHighlight);
+    tGrad.addColorStop(1, p.skin);
+  } else {
+    tGrad.addColorStop(0, '#09090b');
+    tGrad.addColorStop(0.5, p.suitDark);
+    tGrad.addColorStop(1, '#18181b');
+  }
+  ctx.fillStyle = tGrad;
+  ctx.strokeStyle = '#09090b';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-20, -96);
+  ctx.quadraticCurveTo(-22, -78, -14, -56);
+  ctx.lineTo(14, -56);
+  ctx.quadraticCurveTo(22, -78, 20, -96);
+  ctx.quadraticCurveTo(0, -100, -20, -96);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  if (!p.bareChest) {
+    // Symmetric MK V-Vest or Ranger Diamond
+    const vGrad = ctx.createLinearGradient(-18, -96, 18, -58);
+    vGrad.addColorStop(0, p.primaryLight);
+    vGrad.addColorStop(0.5, p.primary);
+    vGrad.addColorStop(1, p.secondary);
+    ctx.fillStyle = vGrad;
+    ctx.beginPath();
+    ctx.moveTo(-21, -96);
+    ctx.lineTo(-6, -95);
+    ctx.lineTo(0, -70);
+    ctx.lineTo(6, -95);
+    ctx.lineTo(21, -96);
+    ctx.lineTo(15, -58);
+    ctx.lineTo(-15, -58);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    if (p.hairOrHat === 'ranger_helmet') {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(0, -88);
+      ctx.lineTo(10, -76);
+      ctx.lineTo(0, -64);
+      ctx.lineTo(-10, -76);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+  } else {
+    ctx.strokeStyle = p.skinShadow;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-13, -84);
+    ctx.quadraticCurveTo(-5, -80, 0, -83);
+    ctx.quadraticCurveTo(5, -80, 13, -84);
+    ctx.moveTo(0, -83);
+    ctx.lineTo(0, -63);
+    ctx.stroke();
+
+    if (p.id === 'shao') {
+      [-18, 18].forEach((sx) => {
+        ctx.fillStyle = '#78350f';
+        ctx.beginPath();
+        ctx.arc(sx, -94, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+    }
+  }
+
+  // Waist Sash & Tabard
+  ctx.fillStyle = p.id === 'shaolin' ? '#dc2626' : p.secondary;
+  ctx.fillRect(-15, -58, 30, 6);
+  ctx.strokeRect(-15, -58, 30, 6);
+  ctx.fillStyle = p.primary;
+  ctx.fillRect(-7, -52, 14, 17);
+  ctx.strokeRect(-7, -52, 14, 17);
+
+  // Head & Front-Facing Facial Details
+  ctx.save();
+  ctx.translate(0, -112);
+
+  // Neck
+  ctx.fillStyle = p.skinShadow;
+  ctx.fillRect(-5, 6, 10, 10);
+
+  // Symmetric Head
+  const hGrad = ctx.createRadialGradient(0, -4, 2, 0, -2, 15);
+  hGrad.addColorStop(0, p.skinHighlight);
+  hGrad.addColorStop(0.7, p.skin);
+  hGrad.addColorStop(1, p.skinShadow);
+  ctx.fillStyle = hGrad;
+  ctx.strokeStyle = '#09090b';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(-10, -14);
+  ctx.quadraticCurveTo(0, -22, 10, -14);
+  ctx.quadraticCurveTo(13, -2, 9, 8);
+  ctx.quadraticCurveTo(0, 14, 0, 14);
+  ctx.quadraticCurveTo(0, 14, -9, 8);
+  ctx.quadraticCurveTo(-13, -2, -10, -14);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  if (p.hairOrHat === 'ninja_hood') {
+    // Hood Top
+    ctx.fillStyle = '#111827';
+    ctx.beginPath();
+    ctx.moveTo(-12, -2);
+    ctx.quadraticCurveTo(-12, -21, 0, -21);
+    ctx.quadraticCurveTo(12, -21, 12, -2);
+    ctx.lineTo(8, -7);
+    ctx.lineTo(-8, -7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Symmetric V-shaped Mask
+    ctx.fillStyle = p.primary;
+    ctx.beginPath();
+    ctx.moveTo(-11, -1);
+    ctx.lineTo(11, -1);
+    ctx.lineTo(9, 10);
+    ctx.lineTo(0, 14);
+    ctx.lineTo(-9, 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Two fierce eyes facing forward
+    ctx.fillStyle = p.eyeGlow || '#ffffff';
+    ctx.fillRect(-7, -5, 4.5, 2.6);
+    ctx.fillRect(2.5, -5, 4.5, 2.6);
+    if (p.hasScar) {
+      ctx.strokeStyle = '#991b1b';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(4.5, -9);
+      ctx.lineTo(6.5, -1);
+      ctx.stroke();
+    }
+  } else if (p.hairOrHat === 'shaolin_hair') {
+    ctx.fillStyle = '#09090b';
+    ctx.beginPath();
+    ctx.moveTo(-12, -4);
+    ctx.quadraticCurveTo(0, -23, 12, -4);
+    ctx.lineTo(10, -10);
+    ctx.lineTo(-10, -10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(-12, -11, 24, 4.5);
+    ctx.strokeRect(-12, -11, 24, 4.5);
+    // Twin forward eyes + mouth
+    ctx.fillStyle = '#09090b';
+    ctx.fillRect(-7, -5, 4.5, 2.2);
+    ctx.fillRect(2.5, -5, 4.5, 2.2);
+    ctx.fillRect(-3.5, 5, 7, 1.8);
+  } else if (p.hairOrHat === 'raiden_hat') {
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(-10, -12, 20, 22);
+    ctx.fillStyle = p.skin;
+    ctx.fillRect(-7, -2, 14, 12);
+    ctx.fillStyle = '#60a5fa';
+    ctx.shadowColor = '#3b82f6';
+    ctx.shadowBlur = 7;
+    ctx.fillRect(-7, -5, 5, 2.8);
+    ctx.fillRect(2, -5, 5, 2.8);
+    ctx.shadowBlur = 0;
+
+    // Wide Straw Hat front view
+    const hatG = ctx.createLinearGradient(0, -29, 0, -7);
+    hatG.addColorStop(0, '#fde68a');
+    hatG.addColorStop(1, '#b45309');
+    ctx.fillStyle = hatG;
+    ctx.beginPath();
+    ctx.moveTo(-30, -8);
+    ctx.lineTo(0, -29);
+    ctx.lineTo(30, -8);
+    ctx.quadraticCurveTo(0, -4, -30, -8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  } else if (p.hairOrHat === 'shao_helm') {
+    ctx.fillStyle = '#d97706';
+    ctx.beginPath();
+    ctx.moveTo(-11, -13);
+    ctx.lineTo(11, -13);
+    ctx.lineTo(10, 6);
+    ctx.lineTo(0, 10);
+    ctx.lineTo(-10, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#f3f4f6';
+    [-1, 1].forEach((side) => {
+      ctx.beginPath();
+      ctx.moveTo(side * 9, -12);
+      ctx.quadraticCurveTo(side * 22, -19, side * 19, -31);
+      ctx.quadraticCurveTo(side * 12, -20, side * 5, -14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    });
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(-7, -6, 5, 3);
+    ctx.fillRect(2, -6, 5, 3);
+  } else if (p.hairOrHat === 'ranger_helmet') {
+    const rGrad = ctx.createLinearGradient(-12, -20, 12, 12);
+    rGrad.addColorStop(0, '#f87171');
+    rGrad.addColorStop(0.5, '#dc2626');
+    rGrad.addColorStop(1, '#991b1b');
+    ctx.fillStyle = rGrad;
+    ctx.beginPath();
+    ctx.moveTo(-11, 2);
+    ctx.quadraticCurveTo(-13, -20, 0, -20);
+    ctx.quadraticCurveTo(13, -20, 11, 2);
+    ctx.lineTo(6, 11);
+    ctx.lineTo(-6, 11);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#09090b';
+    ctx.fillRect(-8, -6, 16, 5);
+    ctx.fillStyle = '#f1f5f9';
+    ctx.fillRect(-6, 2, 12, 5);
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath();
+    ctx.moveTo(-5, -18);
+    ctx.lineTo(0, -25);
+    ctx.lineTo(5, -18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  ctx.restore();
+  ctx.restore();
 }
 
 // High-Detail Iconic SNES Mortal Kombat Fighter Renderer
@@ -1250,35 +2175,105 @@ function drawHumanFighter(
     ctx.fill();
   }
 
-  ctx.scale(f.facing * sc, sc);
+  const vectorUppercutScale = !FIGHTER_SPRITE_CONFIG[p.id] && f.pose === 'uppercut' ? 1.09 : 1;
+  ctx.scale(f.facing * sc * vectorUppercutScale, sc * vectorUppercutScale);
 
-  // Ambient aura effects (Sub-Zero frost, Raiden electricity, Cryo chilled)
+  // Ambient aura effects (Sub-Zero frost, Victory character theme aura)
   if (f.chillTimer > 0) {
     ctx.shadowColor = '#38bdf8';
     ctx.shadowBlur = 16;
   }
+  if (f.pose === 'victory') {
+    drawVictoryAura(ctx, p.id, time, isPortrait);
+  }
 
-  // Digitized Mortal Kombat SNES Sprite Renderer with Multi-Frame Phase Motion for Sprite-Backed Fighters
+  // Digitized Mortal Kombat SNES Sprite Renderer with Dedicated Poses
+  const spriteCfg = FIGHTER_SPRITE_CONFIG[p.id];
   const spriteCache = FIGHTER_SPRITE_CACHE[p.id];
-  if (spriteCache) {
+  if (spriteCache && spriteCfg) {
     let poseKey: SpritePoseKey = 'idle';
     if (f.pose === 'block') poseKey = 'block';
     else if (f.pose === 'victory') poseKey = 'victory';
-    else if (f.pose === 'punch' || f.pose === 'uppercut') poseKey = 'punch';
+    else if (f.pose === 'uppercut') poseKey = 'uppercut';
+    else if (f.pose === 'crouch') poseKey = 'crouch';
+    else if (f.pose === 'knockdown' || f.pose === 'ko') poseKey = 'fall';
+    else if (f.pose === 'hit' || f.pose === 'dizzy') poseKey = 'hit';
+    else if (f.pose === 'punch') poseKey = 'punch';
     else if (f.pose === 'kick' || f.pose === 'jump_kick' || f.pose === 'sweep') poseKey = 'kick';
     else if (f.pose === 'special') poseKey = 'special';
 
-    const sprite = spriteCache[poseKey] || spriteCache.idle;
-    if (sprite) {
-      if (f.pose === 'ko' || f.pose === 'knockdown') {
-        ctx.translate(0, -16);
-        ctx.rotate(-Math.PI / 2);
-        ctx.translate(0, 44);
-      }
+    const hasDedicatedCrouch = spriteCfg.urls.crouch !== spriteCfg.urls.idle && Boolean(spriteCache.crouch);
+    const hasDedicatedHit = spriteCfg.urls.hit !== spriteCfg.urls.idle && Boolean(spriteCache.hit);
+    const hasDedicatedFall = spriteCfg.urls.fall !== spriteCfg.urls.idle && Boolean(spriteCache.fall);
+    const hasDedicatedBlock = spriteCfg.urls.block !== spriteCfg.urls.idle && Boolean(spriteCache.block);
+    const hasDedicatedUppercut =
+      spriteCfg.urls.uppercut !== spriteCfg.urls.punch &&
+      spriteCfg.urls.uppercut !== spriteCfg.urls.idle &&
+      Boolean(spriteCache.uppercut);
+    const prog = f.poseDuration > 0 ? Math.min(1, Math.max(0, 1 - f.poseTimer / f.poseDuration)) : 0;
 
-      const targetH = isPortrait ? 116 : 124;
-      const targetW = targetH * (sprite.width / sprite.height);
-      const prog = f.poseDuration > 0 ? Math.min(1, Math.max(0, 1 - f.poseTimer / f.poseDuration)) : 0;
+    let actionSeqKey: ActionSequenceKey | null = null;
+    if (f.pose === 'punch') actionSeqKey = 'punch';
+    else if (f.pose === 'kick' || f.pose === 'jump_kick') actionSeqKey = 'kick';
+    else if (f.pose === 'uppercut') actionSeqKey = 'uppercut';
+    else if (f.pose === 'special') actionSeqKey = 'special';
+    else if (f.pose === 'sweep') actionSeqKey = 'sweep';
+
+    const actionSeq = actionSeqKey ? FIGHTER_ACTION_FRAMES_CACHE[p.id]?.[actionSeqKey] : undefined;
+    const actionFrameIdx =
+      actionSeq && actionSeq.length > 0 ? Math.min(actionSeq.length - 1, Math.floor(prog * actionSeq.length)) : -1;
+    const activeActionSprite = actionFrameIdx >= 0 && actionSeq ? actionSeq[actionFrameIdx] : null;
+    const usingActionFrames = Boolean(activeActionSprite);
+
+    const sprite =
+      activeActionSprite ||
+      spriteCache[poseKey] ||
+      (poseKey === 'fall' ? spriteCache.hit : null) ||
+      spriteCache.idle;
+    if (sprite) {
+      const baseH = isPortrait ? 116 : 124;
+      let targetH = baseH;
+      const spriteAspect = sprite.width / Math.max(1, sprite.height);
+      let targetW = targetH * spriteAspect;
+
+      if (f.pose === 'ko' || f.pose === 'knockdown') {
+        if (hasDedicatedFall && poseKey === 'fall') {
+          // Dedicated horizontal knocked-out AI sprite anchored flat on the stage floor
+          targetW = isPortrait ? 132 : 148;
+          targetH = Math.min(82, Math.max(46, targetW * (sprite.height / sprite.width)));
+        } else {
+          // Fallback rotation only if fallen AI sprite hasn't finished decoding
+          ctx.translate(0, -16);
+          ctx.rotate(-Math.PI / 2);
+          ctx.translate(0, 44);
+        }
+      } else if (poseKey === 'uppercut') {
+        if (p.id === 'kamen_rider') {
+          // Calibrated frame-by-frame vertical proportion for Kamen Rider so helmet & torso match idle size
+          if (actionFrameIdx === 0 || actionFrameIdx === 1) {
+            targetH = Math.round(baseH * 0.94);
+          } else if (actionFrameIdx === 2) {
+            targetH = Math.round(baseH * 1.06);
+          } else if (actionFrameIdx === 5) {
+            targetH = baseH;
+          } else {
+            targetH = Math.round(baseH * 1.13);
+          }
+        } else {
+          targetH = Math.round(baseH * (hasDedicatedUppercut ? 1.32 : 1.12));
+        }
+        targetW = targetH * spriteAspect;
+      } else if (poseKey === 'crouch' && hasDedicatedCrouch) {
+        targetH = Math.round(baseH * 0.94);
+        targetW = targetH * spriteAspect;
+      } else if ((poseKey === 'kick' || poseKey === 'special') && spriteAspect > 1.08) {
+        // Normalize horizontal flying kick / wide lunging sprites so head & torso never balloon larger than idle
+        const maxWideW = isPortrait ? 128 : 138;
+        if (targetW > maxWideW) {
+          targetW = maxWideW;
+          targetH = Math.round(targetW / spriteAspect);
+        }
+      }
 
       let offsetX = 0;
       let offsetY = 0;
@@ -1302,35 +2297,57 @@ function drawHumanFighter(
         sx = 0.94;
         rot = 0.08;
       } else if (f.pose === 'crouch') {
-        sx = 1.08;
-        sy = 0.68;
+        if (hasDedicatedCrouch) {
+          sx = 1.05;
+          sy = 0.96;
+          offsetY = 3;
+        } else {
+          sx = 1.08;
+          sy = 0.74;
+          offsetY = 2;
+        }
       } else if (f.pose === 'block') {
-        sx = 0.97;
-        sy = 0.96;
-        offsetX = -3;
+        sx = 1.02;
+        sy = 0.99;
+        offsetX = -2;
       } else if (f.pose === 'sweep') {
         const slide = Math.sin(prog * Math.PI);
-        sx = 1.14;
-        sy = 0.68;
-        offsetX = 18 * slide;
-        rot = 0.18 * slide;
-        drawAfterimage = slide > 0.45;
-      } else if (f.pose === 'uppercut') {
-        if (prog < 0.22) {
-          sy = 0.84;
-          sx = 1.06;
-          offsetY = 4;
-          rot = 0.08;
+        if (usingActionFrames) {
+          offsetX = 14 * slide;
+          drawAfterimage = slide > 0.4;
         } else {
-          const rise = Math.sin(((prog - 0.22) / 0.78) * Math.PI);
-          offsetX = 12 * rise;
-          offsetY = -20 * rise;
-          rot = -0.22 * rise;
-          sy = 1 + 0.08 * rise;
+          sx = 1.14;
+          sy = 0.74;
+          offsetX = 18 * slide;
+          rot = 0.16 * slide;
+          drawAfterimage = slide > 0.45;
+        }
+      } else if (f.pose === 'uppercut') {
+        if (usingActionFrames) {
+          const rise = Math.sin(prog * Math.PI);
+          offsetX = 7 * rise;
+          offsetY = actionFrameIdx >= 2 && actionFrameIdx <= 4 ? -6 * rise : 0;
+          drawAfterimage = actionFrameIdx === 2 || actionFrameIdx === 3;
+        } else if (prog < 0.2) {
+          sy = 0.98;
+          sx = 1.04;
+          offsetY = 1;
+          rot = 0.04;
+        } else {
+          const rise = Math.sin(((prog - 0.2) / 0.8) * Math.PI);
+          offsetX = 10 * rise;
+          offsetY = -12 * rise;
+          rot = -0.1 * rise;
+          sy = 1 + 0.03 * rise;
+          sx = 1 + 0.02 * rise;
           drawAfterimage = rise > 0.35;
         }
       } else if (f.pose === 'punch') {
-        if (prog < 0.22) {
+        if (usingActionFrames) {
+          const snap = Math.sin(prog * Math.PI);
+          offsetX = actionFrameIdx >= 2 && actionFrameIdx <= 4 ? 10 * snap : 0;
+          drawAfterimage = actionFrameIdx === 3 || actionFrameIdx === 4;
+        } else if (prog < 0.22) {
           offsetX = -6;
           rot = -0.06;
         } else {
@@ -1341,34 +2358,48 @@ function drawHumanFighter(
         }
       } else if (f.pose === 'special') {
         const burst = Math.sin(prog * Math.PI);
-        offsetX = 14 * burst;
-        sx = 1 + 0.05 * burst;
+        offsetX = usingActionFrames ? 12 * burst : 14 * burst;
+        sx = usingActionFrames ? 1 : 1 + 0.05 * burst;
         drawAfterimage = burst > 0.3;
       } else if (f.pose === 'kick' || f.pose === 'jump_kick') {
-        if (prog < 0.18) {
+        if (usingActionFrames) {
+          const snap = Math.sin(prog * Math.PI);
+          offsetX = actionFrameIdx >= 2 && actionFrameIdx <= 3 ? 11 * snap : 0;
+          offsetY = actionFrameIdx === 3 ? -12 * snap : 0;
+          drawAfterimage = actionFrameIdx === 3;
+        } else if (prog < 0.18) {
           offsetX = -4;
           sy = 0.95;
         } else {
           const snap = Math.sin(((prog - 0.18) / 0.82) * Math.PI);
           offsetX = 16 * snap;
-          offsetY = (p.id === 'kamen_rider' || p.id === 'bisop' || p.id === 'queen' ? -14 : -5) * snap;
+          offsetY = (p.id === 'kamen_rider' || p.id === 'bisop' || p.id === 'queen' ? -12 : -5) * snap;
           rot = -0.06 * snap;
           drawAfterimage = snap > 0.35;
         }
       } else if (f.pose === 'hit') {
-        rot = -0.24;
-        offsetX = -8;
+        rot = hasDedicatedHit ? -0.08 : -0.24;
+        offsetX = -10;
+        sy = 0.98;
         ctx.shadowColor = '#ef4444';
-        ctx.shadowBlur = 16;
+        ctx.shadowBlur = 18;
+      } else if (f.pose === 'knockdown' || f.pose === 'ko') {
+        if (hasDedicatedFall && f.y < GROUND_Y - 10) {
+          // Slight tumble angle while launched in mid-air before hitting the stage floor
+          rot = -0.18 * Math.min(1, (GROUND_Y - f.y) / 90);
+        }
+        offsetY = 3;
       } else if (f.pose === 'dizzy') {
-        rot = Math.sin(time * 0.016) * 0.16;
+        rot = Math.sin(time * 0.016) * 0.14;
         offsetX = Math.sin(time * 0.012) * 5;
       } else if (f.pose === 'victory') {
         const pulse = Math.sin(time * 0.01) * 0.025;
-        sy = 1.02 + pulse;
+        sy = 1.03 + pulse;
         ctx.shadowColor = p.primaryLight;
-        ctx.shadowBlur = 16;
+        ctx.shadowBlur = 18;
       }
+
+      const drawAnchorX = f.pose === 'ko' || f.pose === 'knockdown' ? -targetW * 0.5 : -targetW * 0.45;
 
       // Motion ghost afterimage for high-speed sprite strikes
       if (drawAfterimage && !isPortrait) {
@@ -1378,7 +2409,7 @@ function drawHumanFighter(
         ctx.rotate(rot * 0.7);
         ctx.scale(sx, sy);
         ctx.imageSmoothingEnabled = true;
-        ctx.drawImage(sprite, -targetW * 0.45, -targetH, targetW, targetH);
+        ctx.drawImage(sprite, drawAnchorX, -targetH, targetW, targetH);
         ctx.restore();
       }
 
@@ -1387,7 +2418,7 @@ function drawHumanFighter(
       ctx.rotate(rot);
       ctx.scale(sx, sy);
       ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(sprite, -targetW * 0.45, -targetH, targetW, targetH);
+      ctx.drawImage(sprite, drawAnchorX, -targetH, targetW, targetH);
       ctx.restore();
 
       // Dynamic combat VFX overlays matched to each pose
@@ -1395,7 +2426,13 @@ function drawHumanFighter(
         ctx.strokeStyle = '#fde047';
         ctx.lineWidth = 4.5;
         ctx.beginPath();
-        ctx.arc(32, -88, 30, -Math.PI * 0.75, Math.PI * 0.15);
+        ctx.arc(36, -112, 34, -Math.PI * 0.78, Math.PI * 0.14);
+        ctx.stroke();
+      } else if (f.pose === 'hit' && !isPortrait) {
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(4, -74, 22, 0, Math.PI * 2);
         ctx.stroke();
       } else if (f.pose === 'punch' || f.pose === 'kick' || f.pose === 'jump_kick') {
         ctx.strokeStyle = 'rgba(255,255,255,0.72)';
@@ -1413,10 +2450,10 @@ function drawHumanFighter(
         ctx.arc(28, -14, 34, -0.35, 0.55);
         ctx.stroke();
       } else if (f.pose === 'block') {
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.9)';
-        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = hasDedicatedBlock ? 'rgba(56, 189, 248, 0.42)' : 'rgba(56, 189, 248, 0.9)';
+        ctx.lineWidth = hasDedicatedBlock ? 2.2 : 3.5;
         ctx.beginPath();
-        ctx.arc(24, -68, 36, -0.95, 0.95);
+        ctx.arc(30, -68, 38, -0.8, 0.8);
         ctx.stroke();
       } else if (f.pose === 'dizzy' && !isPortrait) {
         for (let i = 0; i < 3; i++) {
@@ -1436,7 +2473,8 @@ function drawHumanFighter(
         ctx.fillStyle = '#fbbf24';
         ctx.font = '900 10px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('▼ KAMU', 0, -134);
+        const tagY = f.pose === 'ko' || f.pose === 'knockdown' ? -targetH - 12 : poseKey === 'uppercut' ? -targetH - 8 : -134;
+        ctx.fillText('▼ KAMU', 0, tagY);
         ctx.restore();
       }
 
@@ -1445,7 +2483,7 @@ function drawHumanFighter(
     }
   }
 
-  // KO / Knockdown horizontal rotation
+  // KO / Knockdown horizontal rotation (vector fallback fighters)
   if (f.pose === 'ko' || f.pose === 'knockdown') {
     ctx.translate(0, -16);
     ctx.rotate(-Math.PI / 2);
@@ -2176,10 +3214,42 @@ function drawHumanFighter(
     fHandX = sway + 46;
     fHandY = torsoY + 4;
   } else if (f.pose === 'victory') {
-    fElbowX = sway + 16;
-    fElbowY = torsoY - 12;
-    fHandX = sway + 18;
-    fHandY = torsoY - 44;
+    if (p.id === 'subbyte') {
+      fElbowX = sway + 14;
+      fElbowY = torsoY + 6;
+      fHandX = sway + 22;
+      fHandY = torsoY - 26;
+    } else if (p.id === 'shaolin') {
+      fElbowX = sway + 16;
+      fElbowY = torsoY + 4;
+      fHandX = sway + 8;
+      fHandY = torsoY - 12;
+    } else if (p.id === 'raiden') {
+      fElbowX = sway + 18;
+      fElbowY = torsoY - 18;
+      fHandX = sway + 10;
+      fHandY = torsoY - 48;
+    } else if (p.id === 'red_ranger') {
+      fElbowX = sway + 18;
+      fElbowY = torsoY + 8;
+      fHandX = sway + 34;
+      fHandY = torsoY - 16;
+    } else if (p.id === 'crimson') {
+      fElbowX = sway + 18;
+      fElbowY = torsoY + 4;
+      fHandX = sway + 28;
+      fHandY = torsoY - 22;
+    } else if (p.id === 'reptile') {
+      fElbowX = sway + 20;
+      fElbowY = torsoY + 12;
+      fHandX = sway + 32;
+      fHandY = torsoY - 8;
+    } else {
+      fElbowX = sway + 16;
+      fElbowY = torsoY - 12;
+      fHandX = sway + 18;
+      fHandY = torsoY - 44;
+    }
   } else if (f.pose === 'hit') {
     fElbowX = sway - 12;
     fElbowY = torsoY + 20;
@@ -2190,6 +3260,29 @@ function drawHumanFighter(
   drawTaperedMuscle(ctx, sway + 5, torsoY + 7, fElbowX, fElbowY, 7.5, 5.8, armBase, armHi, armSh);
   drawTaperedMuscle(ctx, fElbowX, fElbowY, fHandX, fHandY, 5.8, 4.8, armBase, armHi, armSh);
   drawFist(fHandX, fHandY);
+
+  // Per-character vector victory emblem props
+  if (f.pose === 'victory' && p.id === 'subbyte') {
+    ctx.fillStyle = '#7dd3fc';
+    ctx.shadowColor = '#38bdf8';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.moveTo(fHandX, fHandY - 16);
+    ctx.lineTo(fHandX + 7, fHandY - 6);
+    ctx.lineTo(fHandX, fHandY + 4);
+    ctx.lineTo(fHandX - 7, fHandY - 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  } else if (f.pose === 'victory' && p.id === 'raiden') {
+    ctx.fillStyle = '#e0f2fe';
+    ctx.shadowColor = '#3b82f6';
+    ctx.shadowBlur = 18;
+    ctx.beginPath();
+    ctx.arc(fHandX, fHandY - 12, 9 + Math.sin(time * 0.02) * 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
 
   // === SHAO TROJAN WRATH HAMMER IN VICTORY / HEAVY SWING ===
   if (p.id === 'shao' && (f.pose === 'uppercut' || f.pose === 'victory')) {
@@ -2244,8 +3337,8 @@ function drawHumanFighter(
   ctx.restore();
 }
 
-// Draw authentic SNES Mortal Kombat Arena Background (Pre-baked AI Image + Vector Fallback)
-function drawArenaBackground(ctx: CanvasRenderingContext2D, stage: 1 | 2 | 3, time: number, fatalityDarkness: number) {
+// Draw authentic SNES Mortal Kombat Arena Background (9 AI-Generated Arenas + Vector Fallback)
+function drawArenaBackground(ctx: CanvasRenderingContext2D, stage: StageId, time: number, fatalityDarkness: number) {
   ensureArenaBackgroundsLoaded();
   const cachedBg = ARENA_BG_CACHE[stage];
 
@@ -2253,7 +3346,7 @@ function drawArenaBackground(ctx: CanvasRenderingContext2D, stage: 1 | 2 | 3, ti
     // 1:1 hardware canvas blit (<0.2ms/frame)
     ctx.drawImage(cachedBg, 0, 0);
 
-    // Subtle live ambient torch / brazier glow pulse so the AI stage feels alive
+    // Subtle live ambient glow pulse matched to each of the 9 arena themes
     ctx.save();
     const pulse = 0.08 + Math.sin(time * 0.012) * 0.04;
     if (stage === 1) {
@@ -2276,7 +3369,7 @@ function drawArenaBackground(ctx: CanvasRenderingContext2D, stage: 1 | 2 | 3, ti
         ctx.arc(tx, 215, 64, 0, Math.PI * 2);
         ctx.fill();
       });
-    } else {
+    } else if (stage === 3) {
       [62, 738].forEach((tx) => {
         const glow = ctx.createRadialGradient(tx, 210, 4, tx, 210, 72);
         glow.addColorStop(0, `rgba(245, 158, 11, ${pulse * 2.0})`);
@@ -2286,6 +3379,48 @@ function drawArenaBackground(ctx: CanvasRenderingContext2D, stage: 1 | 2 | 3, ti
         ctx.arc(tx, 210, 72, 0, Math.PI * 2);
         ctx.fill();
       });
+    } else if (stage === 4) {
+      // Lab Server Siber: Subtle pulsing cyan data columns
+      const scanY = (time * 0.06) % STAGE_H;
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
+      ctx.fillRect(0, scanY, STAGE_W, 4);
+    } else if (stage === 5) {
+      // Kawah Lava: Magma glow rising from below
+      const magma = ctx.createLinearGradient(0, GROUND_Y - 40, 0, STAGE_H);
+      magma.addColorStop(0, 'rgba(239, 68, 68, 0)');
+      magma.addColorStop(1, `rgba(249, 115, 22, ${pulse * 2.2})`);
+      ctx.fillStyle = magma;
+      ctx.fillRect(0, GROUND_Y - 40, STAGE_W, STAGE_H - GROUND_Y + 40);
+    } else if (stage === 6) {
+      // Kuil Salju: Gentle drifting snowflakes
+      ctx.fillStyle = 'rgba(224, 242, 254, 0.55)';
+      for (let i = 0; i < 14; i++) {
+        const sx = (i * 63 + time * 0.025) % STAGE_W;
+        const sy = (i * 41 + time * 0.04) % GROUND_Y;
+        ctx.fillRect(sx, sy, 2.5, 2.5);
+      }
+    } else if (stage === 7) {
+      // Rawa Beracun: Rising green acid mist glow
+      const acid = ctx.createLinearGradient(0, GROUND_Y - 30, 0, STAGE_H);
+      acid.addColorStop(0, 'rgba(34, 197, 94, 0)');
+      acid.addColorStop(1, `rgba(34, 197, 94, ${pulse * 1.9})`);
+      ctx.fillStyle = acid;
+      ctx.fillRect(0, GROUND_Y - 30, STAGE_W, STAGE_H - GROUND_Y + 30);
+    } else if (stage === 8) {
+      // Puncak Halilintar: Occasional distant sky lightning flash
+      if (Math.sin(time * 0.009) > 0.93) {
+        ctx.fillStyle = 'rgba(147, 197, 253, 0.16)';
+        ctx.fillRect(0, 0, STAGE_W, GROUND_Y);
+      }
+    } else if (stage === 9) {
+      // Gerbang Kuantum: Central cosmic portal pulse
+      const qGlow = ctx.createRadialGradient(400, 200, 12, 400, 200, 130);
+      qGlow.addColorStop(0, `rgba(192, 132, 252, ${pulse * 2.1})`);
+      qGlow.addColorStop(1, 'rgba(192, 132, 252, 0)');
+      ctx.fillStyle = qGlow;
+      ctx.beginPath();
+      ctx.arc(400, 200, 130, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     // Subtle horizon floor anchor line at GROUND_Y
@@ -2297,172 +3432,42 @@ function drawArenaBackground(ctx: CanvasRenderingContext2D, stage: 1 | 2 | 3, ti
     ctx.stroke();
     ctx.restore();
   } else {
-    if (stage === 1) {
-      const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-      sky.addColorStop(0, '#070b1e');
-      sky.addColorStop(0.55, '#171c3a');
-      sky.addColorStop(1, '#2d1e38');
-      ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, STAGE_W, GROUND_Y);
-
-      ctx.fillStyle = '#fef3c7';
-      ctx.shadowColor = '#fde68a';
-      ctx.shadowBlur = 24;
-      ctx.beginPath();
-      ctx.arc(620, 92, 42, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      ctx.fillStyle = '#0f1224';
-      ctx.beginPath();
-      ctx.moveTo(60, 260);
-      ctx.lineTo(220, 260);
-      ctx.lineTo(140, 200);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillRect(90, 260, 100, 122);
-
-      ctx.beginPath();
-      ctx.moveTo(560, 250);
-      ctx.lineTo(740, 250);
-      ctx.lineTo(650, 185);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillRect(590, 250, 120, 132);
-
-      ctx.fillStyle = '#1e1b2e';
-      ctx.fillRect(0, 315, STAGE_W, 67);
-      [85, 290, 510, 715].forEach((px) => {
-        ctx.fillStyle = '#2e2942';
-        ctx.fillRect(px - 18, 120, 36, 262);
-        ctx.fillStyle = '#474063';
-        ctx.fillRect(px - 22, 112, 44, 14);
-        ctx.fillRect(px - 22, 368, 44, 14);
-      });
-
-      [160, 220, 360, 440, 590, 640].forEach((mx, idx) => {
-        const cheer = Math.abs(Math.sin(time * 0.006 + idx)) * 6;
-        ctx.fillStyle = '#090b14';
-        ctx.beginPath();
-        ctx.arc(mx, 336 - cheer, 9, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillRect(mx - 10, 345 - cheer, 20, 36);
-      });
-
-      [195, 605].forEach((bx) => {
-        ctx.fillStyle = '#44403c';
-        ctx.fillRect(bx - 14, 345, 28, 37);
-        const flick = Math.sin(time * 0.03 + bx) * 5;
-        ctx.fillStyle = '#f97316';
-        ctx.beginPath();
-        ctx.moveTo(bx - 12, 345);
-        ctx.lineTo(bx + flick, 310 - Math.abs(flick));
-        ctx.lineTo(bx + 12, 345);
-        ctx.fill();
-        ctx.fillStyle = '#fef08a';
-        ctx.beginPath();
-        ctx.moveTo(bx - 6, 345);
-        ctx.lineTo(bx + flick * 0.5, 323);
-        ctx.lineTo(bx + 6, 345);
-        ctx.fill();
-      });
-    } else if (stage === 2) {
-      const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-      sky.addColorStop(0, '#041219');
-      sky.addColorStop(0.6, '#0b2936');
-      sky.addColorStop(1, '#123d33');
-      ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, STAGE_W, GROUND_Y);
-
-      ctx.fillStyle = '#d1fae5';
-      ctx.shadowColor = '#34d399';
-      ctx.shadowBlur = 30;
-      ctx.beginPath();
-      ctx.arc(400, 120, 68, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      ctx.fillStyle = '#071d24';
-      ctx.beginPath();
-      ctx.moveTo(0, 382);
-      ctx.lineTo(140, 210);
-      ctx.lineTo(290, 310);
-      ctx.lineTo(430, 230);
-      ctx.lineTo(590, 320);
-      ctx.lineTo(740, 195);
-      ctx.lineTo(800, 270);
-      ctx.lineTo(800, 382);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = '#1f2937';
-      ctx.fillRect(0, 345, STAGE_W, 37);
-      for (let x = 40; x < STAGE_W; x += 120) {
-        ctx.fillStyle = '#374151';
-        ctx.fillRect(x - 10, 310, 20, 72);
-        const f = Math.sin(time * 0.025 + x) * 4;
-        ctx.fillStyle = '#10b981';
-        ctx.beginPath();
-        ctx.moveTo(x - 8, 310);
-        ctx.lineTo(x + f, 282);
-        ctx.lineTo(x + 8, 310);
-        ctx.fill();
-      }
-    } else {
-      const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-      sky.addColorStop(0, '#1a0408');
-      sky.addColorStop(0.55, '#3b0912');
-      sky.addColorStop(1, '#581217');
-      ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, STAGE_W, GROUND_Y);
-
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.arc(400, 185, 92, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.14)';
-      ctx.beginPath();
-      ctx.arc(400, 185, 76, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#22060b';
-      ctx.fillRect(350, 210, 100, 172);
-      ctx.fillStyle = '#991b1b';
-      ctx.fillRect(365, 225, 70, 140);
-
-      [90, 710].forEach((px) => {
-        ctx.fillStyle = '#291518';
-        ctx.fillRect(px - 22, 60, 44, 322);
-        ctx.fillStyle = '#f59e0b';
-        const fl = Math.sin(time * 0.035 + px) * 5;
-        ctx.beginPath();
-        ctx.moveTo(px - 14, 245);
-        ctx.lineTo(px + fl, 200);
-        ctx.lineTo(px + 14, 245);
-        ctx.fill();
-      });
-    }
+    // Crisp atmospheric vector fallback while AI stage decodes
+    const stagePalettes: Record<StageId, [string, string, string]> = {
+      1: ['#070b1e', '#171c3a', '#2d1e38'],
+      2: ['#041219', '#0b2936', '#123d33'],
+      3: ['#1a0408', '#3b0912', '#581217'],
+      4: ['#020617', '#082f49', '#0f172a'],
+      5: ['#1c0402', '#450a0a', '#7c2d12'],
+      6: ['#082f49', '#0c4a6e', '#164e63'],
+      7: ['#052e16', '#14532d', '#1a2e05'],
+      8: ['#0f172a', '#1e1b4b', '#312e81'],
+      9: ['#090418', '#3b0764', '#581c87'],
+    };
+    const pal = stagePalettes[stage] || stagePalettes[1];
+    const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+    sky.addColorStop(0, pal[0]);
+    sky.addColorStop(0.55, pal[1]);
+    sky.addColorStop(1, pal[2]);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, STAGE_W, GROUND_Y);
 
     const floorGrad = ctx.createLinearGradient(0, GROUND_Y, 0, STAGE_H);
-    floorGrad.addColorStop(0, stage === 3 ? '#3b1518' : '#2c2938');
+    floorGrad.addColorStop(0, pal[2]);
     floorGrad.addColorStop(1, '#09090b');
     ctx.fillStyle = floorGrad;
     ctx.fillRect(0, GROUND_Y, STAGE_W, STAGE_H - GROUND_Y);
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y);
     ctx.lineTo(STAGE_W, GROUND_Y);
     ctx.stroke();
-
     for (let i = -6; i <= 6; i++) {
-      const topX = STAGE_W / 2 + i * 70;
-      const botX = STAGE_W / 2 + i * 115;
       ctx.beginPath();
-      ctx.moveTo(topX, GROUND_Y);
-      ctx.lineTo(botX, STAGE_H);
+      ctx.moveTo(STAGE_W / 2 + i * 70, GROUND_Y);
+      ctx.lineTo(STAGE_W / 2 + i * 115, STAGE_H);
       ctx.stroke();
     }
   }
@@ -2579,11 +3584,23 @@ function drawProjectile(ctx: CanvasRenderingContext2D, proj: Projectile, time: n
   ctx.restore();
 }
 
-// Portrait Preview Component for Character Select
-function FighterPortrait({ id, active }: { id: FighterId; active: boolean }) {
+// Portrait Preview Component: 'bust' = KTP-style close-up portrait, 'front' = Full-body Front Pose
+function FighterPortrait({
+  id,
+  active,
+  variant = 'bust',
+}: {
+  id: FighterId;
+  active: boolean;
+  variant?: 'bust' | 'front';
+}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const w = variant === 'front' ? 170 : 140;
+  const h = variant === 'front' ? 190 : 140;
 
   useEffect(() => {
+    ensureFighterSpritesLoaded();
+    if (active) prioritizeFighterSprites(id);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -2591,52 +3608,95 @@ function FighterPortrait({ id, active }: { id: FighterId; active: boolean }) {
 
     let animId = 0;
     const render = (t: number) => {
-      ctx.clearRect(0, 0, 140, 140);
-      // Dramatic radial rim spotlight behind fighter
-      const bg = ctx.createRadialGradient(70, 65, 8, 70, 70, 66);
-      bg.addColorStop(0, active ? 'rgba(245, 158, 11, 0.35)' : 'rgba(51, 65, 85, 0.3)');
-      bg.addColorStop(1, 'rgba(2, 6, 23, 0)');
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, 140, 140);
+      ctx.clearRect(0, 0, w, h);
+      const prof = FIGHTERS[id];
 
-      const dummy: FighterRuntime = {
-        profile: FIGHTERS[id],
-        x: 70,
-        y: 126,
-        vx: 0,
-        vy: 0,
-        facing: 1,
-        hp: 100,
-        trailHp: 100,
-        energy: 0,
-        pose: active ? 'victory' : 'idle',
-        poseTimer: 0,
-        poseDuration: 0,
-        hasHitCurrentAttack: false,
-        isBlocking: false,
-        isCrouching: false,
-        chillTimer: 0,
-        comboCount: 0,
-        comboResetTimer: 0,
-        walkPhase: 0,
-      };
-      drawHumanFighter(ctx, dummy, t, true);
+      // KTP / MK Select Screen backdrop tint matched to character theme
+      const bg = ctx.createRadialGradient(w * 0.5, h * 0.45, 8, w * 0.5, h * 0.5, w * 0.6);
+      bg.addColorStop(0, active ? `${prof.primary}66` : 'rgba(30, 41, 59, 0.55)');
+      bg.addColorStop(1, 'rgba(2, 6, 23, 0.15)');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+
+      const spriteCache = FIGHTER_SPRITE_CACHE[id];
+      const frontSprite = spriteCache ? spriteCache.victory || spriteCache.idle : null;
+
+      if (frontSprite) {
+        ctx.save();
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        if (variant === 'bust') {
+          // KTP-style close-up headshot & upper chest framing
+          const cropH = Math.max(1, frontSprite.height * 0.46);
+          const cropW = Math.min(frontSprite.width, cropH * (w / h));
+          const sxPos = Math.max(0, (frontSprite.width - cropW) * 0.5);
+          ctx.drawImage(frontSprite, sxPos, 0, cropW, cropH, 6, 4, w - 12, h - 4);
+        } else {
+          // Full-body front heroic spotlight pose with character victory aura
+          ctx.save();
+          ctx.translate(w * 0.5, h - 14);
+          drawVictoryAura(ctx, id, t, true);
+          ctx.restore();
+
+          const pulse = 1 + Math.sin(t * 0.008) * 0.02;
+          const targetH = 158 * pulse;
+          const targetW = targetH * (frontSprite.width / frontSprite.height);
+          ctx.shadowColor = prof.primaryLight;
+          ctx.shadowBlur = 14;
+          ctx.drawImage(frontSprite, (w - targetW) * 0.5, h - 10 - targetH, targetW, targetH);
+        }
+        ctx.restore();
+      } else {
+        drawFrontVectorFighter(ctx, prof, t, variant);
+      }
+
+      if (variant === 'bust') {
+        // Subtle KTP inner photo frame border
+        ctx.strokeStyle = active ? 'rgba(251, 191, 36, 0.55)' : 'rgba(148, 163, 184, 0.25)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(2, 2, w - 4, h - 4);
+      }
+
       animId = requestAnimationFrame(render);
     };
     animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
-  }, [id, active]);
+  }, [id, active, variant, w, h]);
 
-  return <canvas ref={canvasRef} width={140} height={140} className="w-28 h-28 mx-auto" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      width={w}
+      height={h}
+      className={cn('mx-auto block', variant === 'front' ? 'w-36 h-40' : 'w-24 h-24 rounded-lg bg-slate-950/90')}
+    />
+  );
 }
 
 export default function FightingGame({ currentStudent, isAdmin, onExit, onFirestoreError }: FightingGameProps) {
   const [screen, setScreen] = useState<'title' | 'select' | 'arena' | 'victory' | 'gameover'>('title');
   const [playMode, setPlayMode] = useState<'arcade' | 'online'>('arcade');
   const [selectedChar, setSelectedChar] = useState<FighterId>('scorpio');
+  const [selectedStage, setSelectedStage] = useState<StageId>(1);
   const [arcadeStageIdx, setArcadeStageIdx] = useState(0);
   const [muted, setMuted] = useState(false);
+  const [bannerReady, setBannerReady] = useState(false);
   const [spriteProgress, setSpriteProgress] = useState(() => getSpriteLoadStatus());
+  const [showTouchPad, setShowTouchPad] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0 ||
+      window.matchMedia('(pointer: coarse)').matches
+    );
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onFirstTouch = () => setShowTouchPad(true);
+    window.addEventListener('touchstart', onFirstTouch, { once: true, passive: true });
+    return () => window.removeEventListener('touchstart', onFirstTouch);
+  }, []);
 
   const [playerName, setPlayerName] = useState<string>(() => {
     if (currentStudent?.nama) {
@@ -2671,6 +3731,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   const activeMatchIdRef = useRef<string | null>(null);
   const mySideRef = useRef<'p1' | 'p2'>('p1');
   const playModeRef = useRef<'arcade' | 'online'>('arcade');
+  const selectedStageRef = useRef<StageId>(1);
 
   useEffect(() => {
     activeMatchIdRef.current = activeMatchId;
@@ -2685,8 +3746,33 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   }, [playMode]);
 
   useEffect(() => {
-    ensureArenaBackgroundsLoaded();
-    ensureFighterSpritesLoaded();
+    selectedStageRef.current = selectedStage;
+    if (screen !== 'title') {
+      prioritizeArenaBackground(selectedStage);
+    }
+  }, [selectedStage, screen]);
+
+  useEffect(() => {
+    if (screen !== 'title') {
+      prioritizeFighterSprites(selectedChar);
+    }
+  }, [selectedChar, screen]);
+
+  // Prioritize Title Banner painting BEFORE preloading & chroma-keying 45+ combat sprites!
+  useEffect(() => {
+    const startBackgroundAssets = () => {
+      ensureArenaBackgroundsLoaded();
+      ensureFighterSpritesLoaded();
+    };
+    if (screen !== 'title' || bannerReady) {
+      const t = setTimeout(startBackgroundAssets, screen === 'title' ? 140 : 0);
+      return () => clearTimeout(t);
+    }
+    const fallbackTimer = setTimeout(startBackgroundAssets, 650);
+    return () => clearTimeout(fallbackTimer);
+  }, [screen, bannerReady]);
+
+  useEffect(() => {
     const unsubProgress = subscribeSpriteLoadProgress((loaded, total) => {
       setSpriteProgress({ loaded, total });
     });
@@ -2707,7 +3793,24 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   const [roundNum, setRoundNum] = useState(1);
   const [playerWins, setPlayerWins] = useState(0);
   const [enemyWins, setEnemyWins] = useState(0);
-  const [hudState, setHudState] = useState({
+  const [hudState, setHudState] = useState<{
+    pHp: number;
+    pMax: number;
+    pEnergy: number;
+    eHp: number;
+    eMax: number;
+    timer: number;
+    finishHim: boolean;
+    combo: number;
+    fatalityActive: boolean;
+    fatalityVideo: {
+      fighterId: FighterId;
+      attackerName: string;
+      fatalityName: string;
+      videoUrl: string;
+      key: number;
+    } | null;
+  }>({
     pHp: 100,
     pMax: 100,
     pEnergy: 0,
@@ -2717,6 +3820,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
     finishHim: false,
     combo: 0,
     fatalityActive: false,
+    fatalityVideo: null,
   });
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -2793,6 +3897,9 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       total: number;
       attackerSide: 'player' | 'enemy';
       fighterId: FighterId;
+      variantId: string;
+      fatalityName: string;
+      videoUrl: string;
       attackerX: number;
       targetX: number;
       targetY: number;
@@ -2801,6 +3908,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
     eWins: number;
     round: number;
     stageIdx: number;
+    stageId: StageId;
     aiCooldown: number;
     mode: 'arcade' | 'online';
     mySide: 'p1' | 'p2';
@@ -2846,13 +3954,30 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         p2FighterId: FighterId;
         p1Label: string;
         p2Label: string;
+        stageId?: StageId;
       }
     ) => {
       const stageCfg = ARCADE_ENEMIES[stageIndex] || ARCADE_ENEMIES[0];
       const isOnline = options?.mode === 'online';
       const side = options?.mySide || 'p1';
+      const chosenStageId: StageId =
+        options?.stageId ?? (stageIndex === 0 ? selectedStageRef.current : stageCfg.stage);
+      const arenaInfo = ARENAS.find((a) => a.id === chosenStageId) || ARENAS[0];
       const pProf = FIGHTERS[playerId];
       const eProf = FIGHTERS[isOnline && options ? options.p2FighterId : stageCfg.fighter];
+
+      prioritizeArenaBackground(chosenStageId);
+      prioritizeFighterSprites(pProf.id);
+      prioritizeFighterSprites(eProf.id);
+      prewarmFatalityVideo(pProf.id);
+      prewarmFatalityVideo(eProf.id);
+
+      setHudState((prev) => ({
+        ...prev,
+        fatalityActive: false,
+        fatalityVideo: null,
+        finishHim: false,
+      }));
 
       engineRef.current = {
         player: makeFighterRuntime(pProf, 200, 1, !isOnline || side === 'p1'),
@@ -2862,7 +3987,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         banners: [
           {
             text: `ROUND ${roundN}`,
-            subtext: isOnline ? `${options?.p1Label} VS ${options?.p2Label}` : stageCfg.stageName,
+            subtext: isOnline ? `${options?.p1Label} VS ${options?.p2Label}` : arenaInfo.name.toUpperCase(),
             color: '#fbbf24',
             x: STAGE_W / 2,
             y: 195,
@@ -2882,6 +4007,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         eWins: eW,
         round: roundN,
         stageIdx: stageIndex,
+        stageId: chosenStageId,
         aiCooldown: 25,
         mode: isOnline ? 'online' : 'arcade',
         mySide: side,
@@ -2963,7 +4089,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       scoreRef.current = 0;
       setScore(0);
       setOnlineOutcomeMsg(null);
-      setArcadeStageIdx((m.stage - 1) % 3);
+      setArcadeStageIdx(0);
       lastRemoteP2AttackNonceRef.current = 0;
       lastAppliedHostSeqRef.current = -1;
       lastAppliedBannerIdRef.current = 0;
@@ -2971,12 +4097,13 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       pendingLocalAttackRef.current = undefined;
       lastSentSnapHashRef.current = '';
 
-      initRound(m.p1Fighter, (m.stage - 1) % 3, 1, 0, 0, {
+      initRound(m.p1Fighter, 0, 1, 0, 0, {
         mode: 'online',
         mySide: side,
         p2FighterId: m.p2Fighter,
         p1Label: m.p1Name,
         p2Label: m.p2Name,
+        stageId: m.stage || 1,
       });
       setScreen('arena');
       synthRef.current?.startBgm();
@@ -3049,15 +4176,19 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                 const act = p2s.attackAction;
                 if (st.phase === 'finish_him' && (act === 'fatality' || act === 'special' || act === 'uppercut')) {
                   // Remote P2 triggers fatality on P1!
+                  const chosen = pickRandomFatalityVariant(e.profile.id);
                   st.phase = 'fatality_cinematic';
                   st.phaseTimer = 180;
-                  st.fatalityDark = 0.88;
+                  st.fatalityDark = 0.92;
                   st.shake = 24;
                   st.fatalityCine = {
                     frame: 0,
                     total: 180,
                     attackerSide: 'enemy',
                     fighterId: e.profile.id,
+                    variantId: chosen.id,
+                    fatalityName: chosen.name,
+                    videoUrl: chosen.url,
                     attackerX: e.x,
                     targetX: st.player.x,
                     targetY: st.player.y,
@@ -3066,16 +4197,28 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   e.poseTimer = 70;
                   e.poseDuration = 70;
                   st.player.pose = 'dizzy';
+                  setHudState((prev) => ({
+                    ...prev,
+                    fatalityActive: true,
+                    fatalityVideo: {
+                      fighterId: e.profile.id,
+                      attackerName: e.profile.name,
+                      fatalityName: chosen.name,
+                      videoUrl: chosen.url,
+                      key: Date.now(),
+                    },
+                  }));
                   synthRef.current?.playSfx('fatality');
                 } else if (act && st.phase === 'fight') {
+                  const hasSeq = Boolean(FIGHTER_SPRITE_CONFIG[e.profile.id]?.actionFrames);
                   if (act === 'jump' && e.y >= GROUND_Y - 1) {
                     e.vy = -15.5;
                     e.pose = 'jump';
                   } else if (act === 'special' && e.energy >= 30) {
                     e.energy -= 30;
                     e.pose = 'special';
-                    e.poseTimer = 24;
-                    e.poseDuration = 24;
+                    e.poseTimer = hasSeq ? 28 : 24;
+                    e.poseDuration = e.poseTimer;
                     e.hasHitCurrentAttack = true;
                     synthRef.current?.playSfx('fireball');
                     st.projectiles.push({
@@ -3095,18 +4238,22 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   } else if (act === 'fatality' && e.energy >= 100) {
                     e.energy = 0;
                     if (st.player.hp <= 45) {
+                      const chosen = pickRandomFatalityVariant(e.profile.id);
                       st.player.hp = 0;
                       st.eWins = Math.min(2, st.eWins + 1);
                       setEnemyWins(st.eWins);
                       st.phase = 'fatality_cinematic';
                       st.phaseTimer = 180;
-                      st.fatalityDark = 0.88;
+                      st.fatalityDark = 0.92;
                       st.shake = 24;
                       st.fatalityCine = {
                         frame: 0,
                         total: 180,
                         attackerSide: 'enemy',
                         fighterId: e.profile.id,
+                        variantId: chosen.id,
+                        fatalityName: chosen.name,
+                        videoUrl: chosen.url,
                         attackerX: e.x,
                         targetX: st.player.x,
                         targetY: st.player.y,
@@ -3114,6 +4261,17 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                       e.pose = 'special';
                       e.poseTimer = 70;
                       e.poseDuration = 70;
+                      setHudState((prev) => ({
+                        ...prev,
+                        fatalityActive: true,
+                        fatalityVideo: {
+                          fighterId: e.profile.id,
+                          attackerName: e.profile.name,
+                          fatalityName: chosen.name,
+                          videoUrl: chosen.url,
+                          key: Date.now(),
+                        },
+                      }));
                       synthRef.current?.playSfx('fatality');
                     } else {
                       e.pose = 'uppercut';
@@ -3137,7 +4295,14 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                     }
                   } else if (['punch', 'kick', 'uppercut', 'sweep'].includes(act)) {
                     e.pose = e.y < GROUND_Y - 5 ? 'jump_kick' : (act as PoseState);
-                    e.poseTimer = act === 'uppercut' ? 24 : act === 'sweep' ? 22 : act === 'kick' ? 20 : 14;
+                    e.poseTimer =
+                      act === 'uppercut'
+                        ? hasSeq ? 26 : 24
+                        : act === 'sweep'
+                        ? hasSeq ? 24 : 22
+                        : act === 'kick'
+                        ? hasSeq ? 24 : 20
+                        : hasSeq ? 20 : 14;
                     e.poseDuration = e.poseTimer;
                     e.hasHitCurrentAttack = false;
                     synthRef.current?.playSfx(act === 'uppercut' ? 'heavy' : act === 'punch' ? 'punch' : 'kick');
@@ -3155,12 +4320,13 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
               // Check round change from host
               if (hs.round !== st.round) {
-                initRound(data.p1Fighter, (data.stage - 1) % 3, hs.round, hs.p1Wins, hs.p2Wins, {
+                initRound(data.p1Fighter, 0, hs.round, hs.p1Wins, hs.p2Wins, {
                   mode: 'online',
                   mySide: 'p2',
                   p2FighterId: data.p2Fighter!,
                   p1Label: data.p1Name,
                   p2Label: data.p2Name!,
+                  stageId: data.stage || 1,
                 });
                 return;
               }
@@ -3203,18 +4369,37 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                 const attackerSide = hs.fatalityAttacker || 'player';
                 const att = attackerSide === 'player' ? st.player : st.enemy;
                 const def = attackerSide === 'player' ? st.enemy : st.player;
-                st.fatalityDark = 0.88;
+                const variantId = hs.fatalityVariantId || `sig_${att.profile.id}`;
+                const fatName = hs.fatalityVariantName || att.profile.fatalityName;
+                const fatUrl = getFatalityVideoByVariant(att.profile.id, variantId);
+                st.fatalityDark = 0.92;
                 st.shake = 24;
                 st.fatalityCine = {
                   frame: 0,
                   total: 180,
                   attackerSide,
                   fighterId: att.profile.id,
+                  variantId,
+                  fatalityName: fatName,
+                  videoUrl: fatUrl,
                   attackerX: att.x,
                   targetX: def.x,
                   targetY: def.y,
                 };
+                setHudState((prev) => ({
+                  ...prev,
+                  fatalityActive: true,
+                  fatalityVideo: {
+                    fighterId: att.profile.id,
+                    attackerName: att.profile.name,
+                    fatalityName: fatName,
+                    videoUrl: fatUrl,
+                    key: Date.now(),
+                  },
+                }));
                 synthRef.current?.playSfx('fatality');
+              } else if (hs.phase !== 'fatality_cinematic' && st.phase === 'fatality_cinematic') {
+                setHudState((prev) => ({ ...prev, fatalityActive: false, fatalityVideo: null }));
               }
               st.phase = hs.phase;
               st.phaseTimer = hs.phaseTimer;
@@ -3329,7 +4514,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           roomCode: code,
           isPublic: true,
           status: 'waiting',
-          stage: (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3,
+          stage: selectedStageRef.current,
           round: 1,
           p1Uid: myUid,
           p1Name: myName,
@@ -3373,7 +4558,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           roomCode: code,
           isPublic: false,
           status: 'waiting',
-          stage: 1,
+          stage: selectedStageRef.current,
           round: 1,
           p1Uid: myUid,
           p1Name: myName,
@@ -3478,16 +4663,20 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
     (st: NonNullable<typeof engineRef.current>, attackerSide: 'player' | 'enemy') => {
       const attacker = attackerSide === 'player' ? st.player : st.enemy;
       const victim = attackerSide === 'player' ? st.enemy : st.player;
+      const chosen = pickRandomFatalityVariant(attacker.profile.id);
 
       st.phase = 'fatality_cinematic';
       st.phaseTimer = 180;
-      st.fatalityDark = 0.88;
+      st.fatalityDark = 0.92;
       st.shake = 26;
       st.fatalityCine = {
         frame: 0,
         total: 180,
         attackerSide,
         fighterId: attacker.profile.id,
+        variantId: chosen.id,
+        fatalityName: chosen.name,
+        videoUrl: chosen.url,
         attackerX: attacker.x,
         targetX: victim.x,
         targetY: victim.y,
@@ -3497,6 +4686,18 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       attacker.poseDuration = 85;
       victim.pose = 'dizzy';
       victim.vx = 0;
+
+      setHudState((prev) => ({
+        ...prev,
+        fatalityActive: true,
+        fatalityVideo: {
+          fighterId: attacker.profile.id,
+          attackerName: attacker.profile.name,
+          fatalityName: chosen.name,
+          videoUrl: chosen.url,
+          key: Date.now(),
+        },
+      }));
 
       synthRef.current?.playSfx('fatality');
       for (let i = 0; i < 95; i++) {
@@ -3524,7 +4725,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       st.lastBannerSent = {
         id: bId,
         text: 'FATALITY!',
-        subtext: `${attacker.profile.fatalityName} · +1500 BONUS`,
+        subtext: `${chosen.name} · +1500 BONUS`,
         color: '#ef4444',
         x: STAGE_W / 2,
         y: 185,
@@ -3576,10 +4777,12 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
       if (['punch', 'kick', 'uppercut', 'sweep', 'special', 'jump_kick'].includes(p.pose)) return;
 
+      const hasSeq = Boolean(FIGHTER_SPRITE_CONFIG[p.profile.id]?.actionFrames);
+
       if (p.y < GROUND_Y - 5) {
         p.pose = 'jump_kick';
-        p.poseTimer = 22;
-        p.poseDuration = 22;
+        p.poseTimer = hasSeq ? 24 : 22;
+        p.poseDuration = p.poseTimer;
         p.hasHitCurrentAttack = false;
         synthRef.current?.playSfx('kick');
         return;
@@ -3589,8 +4792,8 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         if (p.energy < 30) return;
         p.energy -= 30;
         p.pose = 'special';
-        p.poseTimer = 24;
-        p.poseDuration = 24;
+        p.poseTimer = hasSeq ? 28 : 24;
+        p.poseDuration = p.poseTimer;
         p.hasHitCurrentAttack = true;
         synthRef.current?.playSfx('fireball');
         if (p.profile.id === 'scorpio') {
@@ -3673,26 +4876,26 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
       if (action === 'uppercut') {
         p.pose = 'uppercut';
-        p.poseTimer = 24;
-        p.poseDuration = 24;
+        p.poseTimer = hasSeq ? 26 : 24;
+        p.poseDuration = p.poseTimer;
         p.hasHitCurrentAttack = false;
         synthRef.current?.playSfx('heavy');
       } else if (action === 'sweep') {
         p.pose = 'sweep';
-        p.poseTimer = 22;
-        p.poseDuration = 22;
+        p.poseTimer = hasSeq ? 24 : 22;
+        p.poseDuration = p.poseTimer;
         p.hasHitCurrentAttack = false;
         synthRef.current?.playSfx('kick');
       } else if (action === 'kick') {
         p.pose = 'kick';
-        p.poseTimer = 20;
-        p.poseDuration = 20;
+        p.poseTimer = hasSeq ? 24 : 20;
+        p.poseDuration = p.poseTimer;
         p.hasHitCurrentAttack = false;
         synthRef.current?.playSfx('kick');
       } else {
         p.pose = 'punch';
-        p.poseTimer = 14;
-        p.poseDuration = 14;
+        p.poseTimer = hasSeq ? 20 : 14;
+        p.poseDuration = p.poseTimer;
         p.hasHitCurrentAttack = false;
         synthRef.current?.playSfx('punch');
       }
@@ -3921,7 +5124,6 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
     const drawFatalityOverlay = (st: NonNullable<typeof engineRef.current>, time: number) => {
       if (st.phase === 'finish_him') {
-        // Pulsing crimson frame vignette + target callout right above dizzy enemy
         const pulse = 0.25 + Math.abs(Math.sin(time * 0.01)) * 0.28;
         ctx.save();
         ctx.strokeStyle = `rgba(239, 68, 68, ${pulse})`;
@@ -3945,108 +5147,10 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
       if (st.phase !== 'fatality_cinematic' || !st.fatalityCine) return;
 
-      const cine = st.fatalityCine;
-      const prog = cine.frame / cine.total; // 0 -> 1 over ~3s
-      const attacker = cine.attackerSide === 'player' ? st.player : st.enemy;
-      const victim = cine.attackerSide === 'player' ? st.enemy : st.player;
-      const attColor = attacker.profile.projectileColor || '#ef4444';
-
+      // Clean dark backdrop behind the AI Fatality MP4 video overlay (no crude vector effects!)
       ctx.save();
-
-      // 1. Theatrical Radial Spotlights on Attacker & Victim over Dark Stage
-      const drawSpotlight = (sx: number, sy: number, radius: number, tint: string) => {
-        const g = ctx.createRadialGradient(sx, sy - 60, 12, sx, sy - 60, radius);
-        g.addColorStop(0, tint);
-        g.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(sx, sy - 60, radius, 0, Math.PI * 2);
-        ctx.fill();
-      };
-      drawSpotlight(attacker.x, attacker.y, 140, 'rgba(251, 191, 36, 0.25)');
-      drawSpotlight(victim.x, victim.y, 155, 'rgba(239, 68, 68, 0.34)');
-
-      // 2. Massive Sky-to-Ground Finisher Pillar + Shockwave Rings (frames 18% -> 72%)
-      if (prog >= 0.14 && prog <= 0.78) {
-        const beamPhase = Math.sin(((prog - 0.14) / 0.64) * Math.PI);
-        const beamW = 24 + beamPhase * 64;
-
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        const beamGrad = ctx.createLinearGradient(victim.x - beamW, 0, victim.x + beamW, 0);
-        beamGrad.addColorStop(0, 'rgba(0,0,0,0)');
-        beamGrad.addColorStop(0.25, attColor);
-        beamGrad.addColorStop(0.5, '#ffffff');
-        beamGrad.addColorStop(0.75, '#ef4444');
-        beamGrad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = beamGrad;
-        ctx.fillRect(victim.x - beamW, 0, beamW * 2, GROUND_Y + 25);
-
-        // Expanding Shockwave Rings at Victim Ground
-        for (let rIdx = 0; rIdx < 3; rIdx++) {
-          const rProg = ((prog - 0.14) * 3 + rIdx * 0.3) % 1;
-          const rad = 20 + rProg * 190;
-          ctx.strokeStyle = rIdx % 2 === 0 ? '#fde047' : '#ef4444';
-          ctx.globalAlpha = Math.max(0, 1 - rProg);
-          ctx.lineWidth = 4;
-          ctx.beginPath();
-          ctx.ellipse(victim.x, GROUND_Y, rad, rad * 0.26, 0, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-        ctx.restore();
-
-        // Diagonal Slash Streaks across Arena
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 3.5;
-        ctx.beginPath();
-        ctx.moveTo(victim.x - 160, victim.y - 170);
-        ctx.lineTo(victim.x + 160, victim.y + 10);
-        ctx.moveTo(victim.x + 150, victim.y - 165);
-        ctx.lineTo(victim.x - 150, victim.y + 15);
-        ctx.stroke();
-      }
-
-      // 3. Unmistakable Giant "FATALITY!!" Arcade Reveal (frames 32% -> 100%)
-      if (prog >= 0.28) {
-        const revealProg = Math.min(1, (prog - 0.28) / 0.16);
-        const slamScale = 1.9 - revealProg * 0.85;
-
-        // Crimson Light Bar Behind Text
-        ctx.fillStyle = 'rgba(153, 27, 27, 0.78)';
-        ctx.fillRect(0, 148, STAGE_W, 86);
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillRect(0, 148, STAGE_W, 3);
-        ctx.fillRect(0, 231, STAGE_W, 3);
-
-        ctx.save();
-        ctx.translate(STAGE_W / 2, 198);
-        ctx.scale(slamScale, slamScale);
-        ctx.textAlign = 'center';
-        ctx.font = '900 58px Impact, sans-serif';
-        ctx.shadowColor = '#dc2626';
-        ctx.shadowBlur = 24;
-        ctx.lineWidth = 8;
-        ctx.strokeStyle = '#000000';
-        ctx.strokeText('FATALITY!!', 0, 0);
-
-        const textGrad = ctx.createLinearGradient(0, -45, 0, 8);
-        textGrad.addColorStop(0, '#fef08a');
-        textGrad.addColorStop(0.45, '#ef4444');
-        textGrad.addColorStop(1, '#7f1d1d');
-        ctx.fillStyle = textGrad;
-        ctx.fillText('FATALITY!!', 0, 0);
-        ctx.restore();
-
-        ctx.textAlign = 'center';
-        ctx.font = '900 14px monospace';
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#000000';
-        const sub = `${attacker.profile.name} WINS · ${attacker.profile.fatalityName} · +1500 BONUS`;
-        ctx.strokeText(sub, STAGE_W / 2, 223);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(sub, STAGE_W / 2, 223);
-      }
-
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.88)';
+      ctx.fillRect(0, 0, STAGE_W, STAGE_H);
       ctx.restore();
     };
 
@@ -4237,6 +5341,10 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               if (att.hasHitCurrentAttack) return;
               if (!['punch', 'kick', 'uppercut', 'sweep', 'jump_kick'].includes(att.pose)) return;
 
+              const hasSeq = Boolean(FIGHTER_SPRITE_CONFIG[att.profile.id]?.actionFrames);
+              const attProg = att.poseDuration > 0 ? 1 - att.poseTimer / att.poseDuration : 1;
+              if (hasSeq && attProg < 0.22) return;
+
               const reach = att.pose === 'kick' || att.pose === 'sweep' || att.pose === 'jump_kick' ? 88 : 76;
               const dx = (def.x - att.x) * att.facing;
               const dy = Math.abs(def.y - att.y);
@@ -4401,6 +5509,11 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               st.fatalityCine = null;
               st.phase = 'round_end';
               st.phaseTimer = 25;
+              setHudState((prev) => ({
+                ...prev,
+                fatalityActive: false,
+                fatalityVideo: null,
+              }));
             }
           } else if (st.phase === 'round_end') {
             st.phaseTimer--;
@@ -4426,6 +5539,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                     p2FighterId: e.profile.id,
                     p1Label: st.p1Label,
                     p2Label: st.p2Label,
+                    stageId: st.stageId,
                   });
                 }
               } else {
@@ -4601,6 +5715,8 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   p1Wins: st.pWins,
                   p2Wins: st.eWins,
                   fatalityAttacker: st.fatalityCine?.attackerSide || null,
+                  fatalityVariantId: st.fatalityCine?.variantId || null,
+                  fatalityVariantName: st.fatalityCine?.fatalityName || null,
                   projectiles: st.projectiles.slice(0, 6).map((pr) => ({
                     owner: pr.owner,
                     originX: Math.round(pr.originX),
@@ -4648,13 +5764,12 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       }
 
       // RENDER ARENA & HUD
-      const stageCfg = ARCADE_ENEMIES[st.stageIdx] || ARCADE_ENEMIES[0];
       ctx.save();
       if (st.shake > 0) {
         ctx.translate((Math.random() - 0.5) * st.shake * 2, (Math.random() - 0.5) * st.shake * 2);
       }
 
-      drawArenaBackground(ctx, stageCfg.stage, time, st.fatalityDark);
+      drawArenaBackground(ctx, st.stageId, time, st.fatalityDark);
       drawHumanFighter(ctx, st.enemy, time);
       drawHumanFighter(ctx, st.player, time);
 
@@ -4791,7 +5906,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
       hudSyncCounter++;
       if (hudSyncCounter % 6 === 0) {
-        setHudState({
+        setHudState((prev) => ({
           pHp: localFighter.hp,
           pMax: localFighter.profile.maxHp,
           pEnergy: localFighter.energy,
@@ -4801,7 +5916,8 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           finishHim: st.phase === 'finish_him',
           combo: localFighter.comboCount,
           fatalityActive: st.phase === 'fatality_cinematic',
-        });
+          fatalityVideo: st.phase === 'fatality_cinematic' ? prev.fatalityVideo : null,
+        }));
       }
 
       animId = requestAnimationFrame(tick);
@@ -4828,111 +5944,157 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   };
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-white select-none overflow-hidden rounded-2xl border border-red-900/40 relative">
-      <div className="w-full flex items-center justify-between px-4 py-2 bg-slate-900/95 border-b border-red-900/50 shrink-0">
-        <div className="flex items-center gap-3">
+    <div
+      className={cn(
+        'w-full h-full flex-1 min-h-0 flex flex-col items-center justify-center bg-slate-950 text-white select-none overflow-hidden relative',
+        screen === 'arena' ? '' : 'rounded-2xl border border-red-900/40'
+      )}
+    >
+      <div
+        className={cn(
+          'w-full flex items-center justify-between bg-slate-900/95 border-b border-red-900/50 shrink-0',
+          screen === 'arena' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2'
+        )}
+      >
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={() => {
               synthRef.current?.stopBgm();
               leaveOnlineMatch(true);
               onExit();
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-extrabold transition-all"
+            className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-extrabold transition-all shrink-0"
           >
-            <ArrowLeft size={14} /> Kembali
+            <ArrowLeft size={14} /> <span className="hidden xs:inline">Kembali</span>
           </button>
-          <span className="text-xs font-black uppercase tracking-widest text-amber-400 hidden sm:inline">
-            Informatika Kombat · 16-Bit SNES
+          <span className="text-xs font-black uppercase tracking-widest text-amber-400 hidden sm:inline truncate">
+            {screen === 'arena'
+              ? playMode === 'online'
+                ? `ONLINE · ROOM ${activeMatchDoc?.roomCode || ''} · ROUND ${roundNum}`
+                : `STAGE ${arcadeStageIdx + 1}/3 · ${(arcadeStageIdx === 0 ? ARENAS.find((a) => a.id === selectedStage)?.name : ARCADE_ENEMIES[arcadeStageIdx]?.stageName) || ''} · R${roundNum}`
+              : 'Informatika Kombat · 16-Bit SNES'}
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          {playMode === 'online' && screen === 'arena' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-black">
-              <Wifi size={12} /> ONLINE LIVE
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {screen === 'arena' && (
+            <span className="text-[11px] font-black text-amber-300 sm:hidden">
+              R{roundNum} · {playerWins}-{enemyWins}
             </span>
           )}
-          <div className="flex items-center gap-1.5 text-xs font-black text-amber-400 tabular-nums">
-            <Trophy size={14} /> {score} Poin
+          {playMode === 'online' && screen === 'arena' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-black">
+              <Wifi size={12} /> <span className="hidden sm:inline">LIVE</span>
+            </span>
+          )}
+          <div className="flex items-center gap-1 text-xs font-black text-amber-400 tabular-nums">
+            <Trophy size={13} /> {score}
           </div>
+          {screen === 'arena' && (
+            <button
+              onClick={() => setShowTouchPad((v) => !v)}
+              className={cn(
+                'p-1.5 rounded-lg transition-colors border',
+                showTouchPad
+                  ? 'bg-amber-500/25 border-amber-400/50 text-amber-300'
+                  : 'bg-slate-800 border-transparent hover:bg-slate-700 text-slate-300'
+              )}
+              title={showTouchPad ? 'Sembunyikan Tombol Sentuh di Layar' : 'Tampilkan Tombol Sentuh di Layar'}
+            >
+              <Gamepad2 size={15} />
+            </button>
+          )}
           <button
             onClick={toggleMute}
             className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
             title={muted ? 'Nyalakan Suara' : 'Matikan Suara'}
           >
-            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
           </button>
         </div>
       </div>
 
-      <div className="flex-1 w-full flex flex-col items-center justify-center p-2 md:p-4 overflow-y-auto custom-scrollbar">
+      <div
+        className={cn(
+          'flex-1 w-full min-h-0 flex flex-col items-center',
+          screen === 'arena'
+            ? 'justify-center p-0 overflow-hidden bg-black'
+            : 'justify-center p-2 md:p-4 overflow-y-auto custom-scrollbar'
+        )}
+      >
         {screen === 'title' && (
-          <div className="max-w-3xl w-full text-center space-y-5 py-6 px-4 bg-gradient-to-b from-slate-900 to-black rounded-3xl border-2 border-amber-500/40 shadow-2xl">
-            <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-red-400">
-              <Flame size={16} /> 16-BIT REAL-TIME ARCADE &amp; MULTIPLAYER
-            </div>
-            <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-amber-300 via-orange-500 to-red-600 drop-shadow">
-              INFORMATIKA KOMBAT
-            </h1>
-            <p className="text-sm text-slate-300 max-w-xl mx-auto font-medium">
-              Pertarungan real-time ala Mortal Kombat SNES! Mainkan Solo Arcade atau duel <b>Multiplayer Matchmaking Online</b> via Firebase dengan jurus ikonik &amp; <b>FATALITY!</b>
-            </p>
+          <div className="max-w-4xl w-full relative overflow-hidden rounded-3xl border-2 border-amber-500/50 shadow-2xl bg-[radial-gradient(ellipse_at_center,_#450a0a_0%,_#180614_50%,_#020617_100%)]">
+            <div className="relative w-full aspect-[16/9] min-h-[340px] flex flex-col items-center justify-end p-5 md:p-8 text-center">
+              <img
+                src={menuBannerUrl}
+                alt="Informatika Kombat"
+                referrerPolicy="no-referrer"
+                loading="eager"
+                decoding="sync"
+                fetchPriority="high"
+                onLoad={() => setBannerReady(true)}
+                onError={() => setBannerReady(true)}
+                className={cn(
+                  'absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-200',
+                  bannerReady ? 'opacity-100' : 'opacity-0'
+                )}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-slate-950/65 to-black/35" />
 
-            {spriteProgress.total > 0 && spriteProgress.loaded < spriteProgress.total && (
-              <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-full px-3 py-1">
-                <span>Memuat sprite petarung... ({spriteProgress.loaded}/{spriteProgress.total})</span>
-              </div>
-            )}
-
-            <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-2 px-1 custom-scrollbar">
-              {PLAYABLE_IDS.map((fid) => (
-                <div
-                  key={fid}
-                  className="w-24 shrink-0 bg-slate-900/90 border border-slate-700/80 rounded-xl p-1.5 flex flex-col items-center"
-                >
-                  <FighterPortrait id={fid} active={false} />
-                  <span className="text-[10px] font-black text-amber-300 mt-1 truncate w-full">{FIGHTERS[fid].name}</span>
+              <div className="relative z-10 max-w-2xl space-y-3.5">
+                <div className="inline-flex items-center gap-2 text-[11px] md:text-xs font-black uppercase tracking-[0.25em] text-amber-300 bg-black/60 border border-amber-500/40 px-3.5 py-1 rounded-full">
+                  <Flame size={15} className="text-red-500" /> 16-BIT ARCADE &amp; ONLINE MULTIPLAYER
                 </div>
-              ))}
-            </div>
+                <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-orange-500 to-red-600 drop-shadow-[0_4px_18px_rgba(0,0,0,0.95)]">
+                  INFORMATIKA KOMBAT
+                </h1>
+                <p className="text-xs md:text-sm text-slate-200 font-medium drop-shadow">
+                  9 Arena Bertarung Ikonik · Jurus Elemen &amp; <b>FATALITY Video AI</b> Tiap Petarung · Duel <b>Online Real-Time</b> Firebase!
+                </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <button
-                onClick={() => {
-                  setPlayMode('arcade');
-                  synthRef.current?.playSfx('gong');
-                  setScreen('select');
-                }}
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-black text-base rounded-2xl shadow-xl shadow-red-600/30 hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-2"
-              >
-                <Swords size={20} /> SOLO ARCADE
-              </button>
-              <button
-                onClick={() => {
-                  setPlayMode('online');
-                  setMatchStatus('idle');
-                  setMatchError(null);
-                  synthRef.current?.playSfx('gong');
-                  setScreen('select');
-                }}
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black text-base rounded-2xl shadow-xl shadow-emerald-600/25 hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-2"
-              >
-                <Globe size={20} /> MULTIPLAYER ONLINE
-              </button>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+                  <button
+                    onClick={() => {
+                      ensureArenaBackgroundsLoaded();
+                      ensureFighterSpritesLoaded();
+                      setPlayMode('arcade');
+                      synthRef.current?.playSfx('gong');
+                      setScreen('select');
+                    }}
+                    className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-black text-base rounded-2xl shadow-xl shadow-red-600/35 hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-2"
+                  >
+                    <Swords size={20} /> SOLO ARCADE
+                  </button>
+                  <button
+                    onClick={() => {
+                      ensureArenaBackgroundsLoaded();
+                      ensureFighterSpritesLoaded();
+                      setPlayMode('online');
+                      setMatchStatus('idle');
+                      setMatchError(null);
+                      synthRef.current?.playSfx('gong');
+                      setScreen('select');
+                    }}
+                    className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black text-base rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-2"
+                  >
+                    <Globe size={20} /> MULTIPLAYER ONLINE
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {screen === 'select' && (
-          <div className="max-w-5xl w-full space-y-4">
+          <div className="max-w-5xl w-full space-y-3">
             {/* Mode Switch Header */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
               <div>
                 <h2 className="text-xl md:text-2xl font-black text-amber-400 uppercase tracking-tight">
-                  Pilih Pejuang Kamu
+                  Pilih Pejuang &amp; Arena
                 </h2>
                 <p className="text-xs text-slate-400 font-semibold">
-                  Gunakan tombol <b className="text-amber-300">[←] [→]</b> untuk menggeser karakter &amp; <b className="text-amber-300">[ENTER]</b> untuk memilih!
+                  Gunakan <b className="text-amber-300">[←] [→]</b> untuk memilih karakter, pilih salah satu dari 9 arena, lalu tekan <b className="text-amber-300">[ENTER]</b>!
                 </p>
               </div>
               <div className="inline-flex bg-slate-900 border border-slate-700 rounded-xl p-1 gap-1 shrink-0">
@@ -4969,7 +6131,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               </p>
             )}
 
-            {/* Single Horizontal Side-by-Side Fighter Strip */}
+            {/* Single Horizontal Side-by-Side KTP-Portrait Strip */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => stepSelectChar(-1)}
@@ -4979,7 +6141,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                 <ChevronLeft size={24} />
               </button>
 
-              <div className="flex-1 flex flex-nowrap items-stretch gap-3 overflow-x-auto py-2 px-1 custom-scrollbar scroll-smooth">
+              <div className="flex-1 flex flex-nowrap items-stretch gap-2.5 overflow-x-auto py-1.5 px-1 custom-scrollbar scroll-smooth">
                 {PLAYABLE_IDS.map((fid) => {
                   const f = FIGHTERS[fid];
                   const isSel = selectedChar === fid;
@@ -4994,18 +6156,15 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                         synthRef.current?.playSfx('select');
                       }}
                       className={cn(
-                        'w-32 shrink-0 cursor-pointer rounded-2xl p-3 border-2 transition-all flex flex-col items-center text-center bg-slate-900/95',
+                        'w-28 shrink-0 cursor-pointer rounded-2xl p-2 border-2 transition-all flex flex-col items-center text-center bg-slate-900/95',
                         isSel
                           ? 'border-amber-400 shadow-lg shadow-amber-500/30 scale-[1.04] bg-gradient-to-b from-slate-800 to-slate-900'
                           : 'border-slate-800 hover:border-slate-600 opacity-85 hover:opacity-100'
                       )}
                     >
-                      <FighterPortrait id={fid} active={isSel} />
-                      <h3 className="text-xs font-black text-white mt-1.5 truncate w-full">{f.name}</h3>
-                      <span className="text-[10px] font-bold text-amber-400 truncate w-full">{f.specialName}</span>
-                      <span className="mt-1.5 text-[9px] font-black px-2 py-0.5 rounded bg-slate-950 border border-slate-700 text-slate-300">
-                        HP {f.maxHp}
-                      </span>
+                      <FighterPortrait id={fid} active={isSel} variant="bust" />
+                      <h3 className="text-[11px] font-black text-white mt-1.5 truncate w-full">{f.name}</h3>
+                      <span className="text-[9px] font-bold text-amber-400 truncate w-full">{f.specialName}</span>
                     </div>
                   );
                 })}
@@ -5020,10 +6179,10 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               </button>
             </div>
 
-            {/* Selected Fighter Spotlight Panel */}
-            <div className="bg-slate-900/95 border border-amber-500/35 rounded-2xl p-4 flex flex-col md:flex-row items-center gap-4">
-              <div className="shrink-0 bg-slate-950/90 border border-slate-800 rounded-2xl p-2">
-                <FighterPortrait id={selectedChar} active={true} />
+            {/* Highlighted Fighter Full-Body Front Spotlight Panel */}
+            <div className="bg-slate-900/95 border border-amber-500/35 rounded-2xl p-3.5 flex flex-col md:flex-row items-center gap-4">
+              <div className="shrink-0 bg-slate-950/90 border border-amber-500/30 rounded-2xl p-2">
+                <FighterPortrait id={selectedChar} active={true} variant="front" />
               </div>
               <div className="flex-1 text-center md:text-left space-y-1.5">
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
@@ -5048,6 +6207,50 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   MULAI BERTARUNG! [ENTER]
                 </button>
               )}
+            </div>
+
+            {/* 9-Arena Background Picker */}
+            <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-3 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-black uppercase tracking-wider text-amber-400">
+                  Pilih Arena Pertarungan ({selectedStage}/9 · {ARENAS.find((a) => a.id === selectedStage)?.name})
+                </span>
+                <span className="text-[11px] text-slate-400 font-semibold">
+                  {ARENAS.find((a) => a.id === selectedStage)?.theme}
+                </span>
+              </div>
+              <div className="flex flex-nowrap items-stretch gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                {ARENAS.map((arena) => {
+                  const isArenaSel = selectedStage === arena.id;
+                  return (
+                    <button
+                      key={arena.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedStage(arena.id);
+                        synthRef.current?.playSfx('select');
+                      }}
+                      className={cn(
+                        'w-28 shrink-0 rounded-xl overflow-hidden border-2 text-left transition-all bg-slate-950',
+                        isArenaSel
+                          ? 'border-amber-400 shadow-md shadow-amber-500/30 scale-[1.03]'
+                          : 'border-slate-800 hover:border-slate-600 opacity-80 hover:opacity-100'
+                      )}
+                    >
+                      <img
+                        src={arena.url}
+                        alt={arena.name}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-14 object-cover block"
+                      />
+                      <div className="px-1.5 py-1">
+                        <p className="text-[10px] font-black text-white truncate">{arena.name}</p>
+                        <p className="text-[9px] font-semibold text-amber-300/90 truncate">{arena.theme}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Online Multiplayer Firebase Matchmaking Panel */}
@@ -5168,129 +6371,163 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         )}
 
         {screen === 'arena' && (
-          <div className="w-full max-w-4xl flex flex-col items-center gap-2">
-            <div className="w-full flex items-center justify-between text-xs font-extrabold text-slate-400 px-1">
-              <span>
-                {playMode === 'online'
-                  ? `ONLINE DUEL · ROOM ${activeMatchDoc?.roomCode || ''}`
-                  : `STAGE ${arcadeStageIdx + 1}/3 · ${ARCADE_ENEMIES[arcadeStageIdx]?.stageName}`}
-              </span>
-              <span className="text-amber-300">
-                ROUND {roundNum} · {playerWins} - {enemyWins}
-              </span>
-            </div>
+          <div className="relative w-full h-full flex-1 min-h-0 flex items-center justify-center bg-black overflow-hidden">
+            {/* Subtle blurred ambient stage backdrop for non-16:9 aspect screens */}
+            <img
+              src={
+                ARENAS.find(
+                  (a) => a.id === (engineRef.current?.stageId || activeMatchDoc?.stage || selectedStage)
+                )?.url || ARENAS[0].url
+              }
+              alt=""
+              aria-hidden="true"
+              referrerPolicy="no-referrer"
+              className="absolute inset-0 w-full h-full object-cover opacity-20 blur-md scale-105 pointer-events-none"
+            />
 
-            <div className="w-full relative rounded-2xl overflow-hidden border-2 border-amber-500/50 shadow-2xl bg-black">
-              <canvas
-                ref={canvasRef}
-                width={STAGE_W}
-                height={STAGE_H}
-                className="w-full h-auto block"
-                style={{ imageRendering: 'pixelated' }}
-              />
-            </div>
+            {/* Full-Viewport Responsive Arena Canvas */}
+            <canvas
+              ref={canvasRef}
+              width={STAGE_W}
+              height={STAGE_H}
+              className="relative z-10 w-full h-full object-contain block select-none"
+              style={{ imageRendering: 'pixelated' }}
+            />
 
-            <div className="w-full bg-slate-900/95 border border-slate-800 rounded-2xl p-2.5 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5">
-                <button
-                  onMouseDown={() => holdKey('arrowleft', true)}
-                  onMouseUp={() => holdKey('arrowleft', false)}
-                  onMouseLeave={() => holdKey('arrowleft', false)}
-                  onTouchStart={(e) => { e.preventDefault(); holdKey('arrowleft', true); }}
-                  onTouchEnd={() => holdKey('arrowleft', false)}
-                  className="w-11 h-11 rounded-xl bg-slate-800 active:bg-amber-600 border border-slate-700 flex items-center justify-center font-black"
-                  title="Mundur / Kiri (←)"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <div className="flex flex-col gap-1">
+            {/* AI Video Fatality Overlay (Zero Vector Graphics) */}
+            {hudState.fatalityVideo && (
+              <div className="absolute inset-0 z-20 bg-black/95 flex items-center justify-center pointer-events-none">
+                <video
+                  key={hudState.fatalityVideo.key}
+                  src={hudState.fatalityVideo.videoUrl}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+                <div className="absolute inset-x-0 bottom-[8%] flex flex-col items-center justify-center px-4 text-center bg-gradient-to-t from-black/85 via-black/45 to-transparent py-3">
+                  <div className="text-4xl sm:text-6xl font-black italic tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-red-500 to-rose-900 drop-shadow-[0_4px_18px_rgba(220,38,38,0.95)]">
+                    FATALITY!!
+                  </div>
+                  <div className="text-xs sm:text-sm font-black uppercase tracking-widest text-amber-200 drop-shadow mt-1">
+                    {hudState.fatalityVideo.attackerName} WINS · {hudState.fatalityVideo.fatalityName} · +1500 BONUS
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* In-Arena Floating Translucent Touch Controls (Rendered ONLY on touchscreens or when toggled on) */}
+            {showTouchPad && !hudState.fatalityActive && (
+              <div className="absolute inset-x-0 bottom-0 z-30 p-2 sm:p-4 flex items-end justify-between gap-2 pointer-events-none">
+                {/* Bottom-Left: Virtual D-Pad INSIDE Arena */}
+                <div className="pointer-events-auto touch-none flex items-center gap-1.5 bg-slate-950/45 backdrop-blur-sm border border-white/15 rounded-2xl p-1.5 shadow-xl">
                   <button
-                    onClick={() => triggerAction('jump')}
-                    className="w-11 h-8 rounded-lg bg-slate-800 active:bg-amber-600 border border-slate-700 flex items-center justify-center font-black"
-                    title="Lompat (↑)"
+                    onPointerDown={(e) => { e.preventDefault(); holdKey('arrowleft', true); }}
+                    onPointerUp={() => holdKey('arrowleft', false)}
+                    onPointerLeave={() => holdKey('arrowleft', false)}
+                    onPointerCancel={() => holdKey('arrowleft', false)}
+                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-slate-900/70 active:bg-amber-500/85 border border-white/20 flex items-center justify-center font-black text-white shadow"
+                    title="Mundur / Kiri"
                   >
-                    <ChevronUp size={16} />
+                    <ChevronLeft size={22} />
                   </button>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      onPointerDown={(e) => { e.preventDefault(); triggerAction('jump'); }}
+                      className="w-11 h-8 sm:w-12 sm:h-9 rounded-lg bg-slate-900/70 active:bg-amber-500/85 border border-white/20 flex items-center justify-center font-black text-white shadow"
+                      title="Lompat"
+                    >
+                      <ChevronUp size={17} />
+                    </button>
+                    <button
+                      onPointerDown={(e) => { e.preventDefault(); holdKey('arrowdown', true); }}
+                      onPointerUp={() => holdKey('arrowdown', false)}
+                      onPointerLeave={() => holdKey('arrowdown', false)}
+                      onPointerCancel={() => holdKey('arrowdown', false)}
+                      className="w-11 h-8 sm:w-12 sm:h-9 rounded-lg bg-slate-900/70 active:bg-amber-500/85 border border-white/20 flex items-center justify-center font-black text-white shadow"
+                      title="Jongkok"
+                    >
+                      <ChevronDown size={17} />
+                    </button>
+                  </div>
                   <button
-                    onMouseDown={() => holdKey('arrowdown', true)}
-                    onMouseUp={() => holdKey('arrowdown', false)}
-                    onMouseLeave={() => holdKey('arrowdown', false)}
-                    onTouchStart={(e) => { e.preventDefault(); holdKey('arrowdown', true); }}
-                    onTouchEnd={() => holdKey('arrowdown', false)}
-                    className="w-11 h-8 rounded-lg bg-slate-800 active:bg-amber-600 border border-slate-700 flex items-center justify-center font-black"
-                    title="Jongkok (↓)"
+                    onPointerDown={(e) => { e.preventDefault(); holdKey('arrowright', true); }}
+                    onPointerUp={() => holdKey('arrowright', false)}
+                    onPointerLeave={() => holdKey('arrowright', false)}
+                    onPointerCancel={() => holdKey('arrowright', false)}
+                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-slate-900/70 active:bg-amber-500/85 border border-white/20 flex items-center justify-center font-black text-white shadow"
+                    title="Maju / Kanan"
                   >
-                    <ChevronDown size={16} />
+                    <ChevronRight size={22} />
                   </button>
                 </div>
-                <button
-                  onMouseDown={() => holdKey('arrowright', true)}
-                  onMouseUp={() => holdKey('arrowright', false)}
-                  onMouseLeave={() => holdKey('arrowright', false)}
-                  onTouchStart={(e) => { e.preventDefault(); holdKey('arrowright', true); }}
-                  onTouchEnd={() => holdKey('arrowright', false)}
-                  className="w-11 h-11 rounded-xl bg-slate-800 active:bg-amber-600 border border-slate-700 flex items-center justify-center font-black"
-                  title="Maju / Kanan (→)"
-                >
-                  <ChevronRight size={20} />
-                </button>
-              </div>
 
-              <div className="flex flex-wrap items-center gap-1.5 justify-end flex-1">
-                <button
-                  onMouseDown={() => holdKey(' ', true)}
-                  onMouseUp={() => holdKey(' ', false)}
-                  onMouseLeave={() => holdKey(' ', false)}
-                  onTouchStart={(e) => { e.preventDefault(); holdKey(' ', true); }}
-                  onTouchEnd={() => holdKey(' ', false)}
-                  className="px-3 py-2.5 rounded-xl bg-sky-700 hover:bg-sky-600 active:scale-95 text-xs font-black flex items-center gap-1"
-                >
-                  <Shield size={14} /> BLOCK [Spasi]
-                </button>
-                <button
-                  onClick={() => triggerAction('punch')}
-                  className="px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-xs font-black"
-                >
-                  PUKUL [A]
-                </button>
-                <button
-                  onClick={() => triggerAction('kick')}
-                  className="px-3.5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 active:scale-95 text-xs font-black"
-                >
-                  TENDANG [S]
-                </button>
-                <button
-                  onClick={() => triggerAction('uppercut')}
-                  className="px-3.5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 active:scale-95 text-xs font-black"
-                >
-                  UPPERCUT [W / ↓+A]
-                </button>
-                <button
-                  onClick={() => triggerAction('special')}
-                  disabled={hudState.pEnergy < 30}
-                  className={cn(
-                    'px-3.5 py-2.5 rounded-xl text-xs font-black flex items-center gap-1 transition-all',
-                    hudState.pEnergy >= 30
-                      ? 'bg-purple-600 hover:bg-purple-500 text-white active:scale-95'
-                      : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  )}
-                >
-                  <Zap size={14} /> JURUS [D]
-                </button>
-                <button
-                  onClick={() => triggerAction('fatality')}
-                  disabled={!hudState.finishHim && hudState.pEnergy < 100}
-                  className={cn(
-                    'px-3.5 py-2.5 rounded-xl text-xs font-black flex items-center gap-1 transition-all',
-                    hudState.finishHim || hudState.pEnergy >= 100
-                      ? 'bg-gradient-to-r from-red-600 to-rose-500 text-white animate-pulse ring-2 ring-amber-300'
-                      : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  )}
-                >
-                  <Flame size={14} /> FATALITY [F]
-                </button>
+                {/* Bottom-Right: Virtual Action Cluster INSIDE Arena */}
+                <div className="pointer-events-auto touch-none flex flex-col items-end gap-1.5 bg-slate-950/45 backdrop-blur-sm border border-white/15 rounded-2xl p-1.5 shadow-xl">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onPointerDown={(e) => { e.preventDefault(); triggerAction('uppercut'); }}
+                      className="px-2.5 py-2 rounded-xl bg-orange-600/75 active:bg-orange-500 border border-white/20 text-[11px] font-black text-white shadow"
+                    >
+                      UPPER
+                    </button>
+                    <button
+                      onPointerDown={(e) => { e.preventDefault(); triggerAction('special'); }}
+                      disabled={hudState.pEnergy < 30}
+                      className={cn(
+                        'px-2.5 py-2 rounded-xl border text-[11px] font-black flex items-center gap-1 shadow transition-all',
+                        hudState.pEnergy >= 30
+                          ? 'bg-purple-600/80 active:bg-purple-500 border-purple-300/40 text-white'
+                          : 'bg-slate-900/50 border-white/10 text-slate-400 opacity-60'
+                      )}
+                    >
+                      <Zap size={13} /> JURUS
+                    </button>
+                    <button
+                      onPointerDown={(e) => { e.preventDefault(); triggerAction('fatality'); }}
+                      disabled={!hudState.finishHim && hudState.pEnergy < 100}
+                      className={cn(
+                        'px-2.5 py-2 rounded-xl border text-[11px] font-black flex items-center gap-1 shadow transition-all',
+                        hudState.finishHim || hudState.pEnergy >= 100
+                          ? 'bg-gradient-to-r from-red-600 to-rose-500 border-amber-300 text-white animate-pulse ring-2 ring-amber-300'
+                          : 'bg-slate-900/50 border-white/10 text-slate-400 opacity-60'
+                      )}
+                    >
+                      <Flame size={13} /> FATAL
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onPointerDown={(e) => { e.preventDefault(); holdKey(' ', true); }}
+                      onPointerUp={() => holdKey(' ', false)}
+                      onPointerLeave={() => holdKey(' ', false)}
+                      onPointerCancel={() => holdKey(' ', false)}
+                      className="px-2.5 py-2 rounded-xl bg-sky-600/75 active:bg-sky-500 border border-white/20 text-[11px] font-black text-white flex items-center gap-1 shadow"
+                    >
+                      <Shield size={13} /> BLOCK
+                    </button>
+                    <button
+                      onPointerDown={(e) => { e.preventDefault(); triggerAction('sweep'); }}
+                      className="px-2.5 py-2 rounded-xl bg-emerald-600/75 active:bg-emerald-500 border border-white/20 text-[11px] font-black text-white shadow"
+                    >
+                      SAPU
+                    </button>
+                    <button
+                      onPointerDown={(e) => { e.preventDefault(); triggerAction('punch'); }}
+                      className="px-3 py-2 rounded-xl bg-blue-600/80 active:bg-blue-500 border border-white/20 text-[11px] font-black text-white shadow"
+                    >
+                      PUKUL
+                    </button>
+                    <button
+                      onPointerDown={(e) => { e.preventDefault(); triggerAction('kick'); }}
+                      className="px-3 py-2 rounded-xl bg-amber-600/80 active:bg-amber-500 border border-white/20 text-[11px] font-black text-white shadow"
+                    >
+                      TENDANG
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 

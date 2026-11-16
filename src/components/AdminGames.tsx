@@ -1328,19 +1328,24 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHig
   return (
     <div 
       ref={modalContainerRef}
-      className="fixed inset-0 bg-slate-950 z-[9999] flex flex-col w-screen h-screen overflow-hidden select-none"
+      className="fixed inset-0 bg-slate-950 z-[9999] flex flex-col w-screen h-[100dvh] overflow-hidden select-none"
     >
       {/* Modal Fullscreen Header */}
-      <div className="bg-slate-900/90 backdrop-blur-md text-white px-6 py-3 flex items-center justify-between border-b border-slate-800 shrink-0 shadow-lg">
+      <div
+        className={cn(
+          "bg-slate-900/90 backdrop-blur-md text-white flex items-center justify-between border-b border-slate-800 shrink-0 shadow-lg",
+          gameId === 'infokombat' ? "px-3 md:px-5 py-1.5" : "px-6 py-3"
+        )}
+      >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white font-bold shadow-md shadow-brand/20">
-            <Gamepad2 size={20} />
+          <div className="w-8 h-8 rounded-xl bg-brand flex items-center justify-center text-white font-bold shadow-md shadow-brand/20">
+            <Gamepad2 size={18} />
           </div>
           <div>
             <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest block">
               {isAdmin ? "Mode Pratinjau Fullscreen" : "Game Edukasi Layar Penuh"}
             </span>
-            <h3 className="text-base font-black text-white leading-tight">
+            <h3 className="text-sm md:text-base font-black text-white leading-tight">
               {currentGame.title}
             </h3>
           </div>
@@ -1349,11 +1354,11 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHig
         <div className="flex items-center gap-2">
           <button
             onClick={toggleBrowserFullscreen}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-colors shadow-xs"
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-colors shadow-xs"
             title={isFullscreen ? "Keluar Layar Penuh" : "Masuk Layar Penuh"}
           >
             {isFullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
-            <span>{isFullscreen ? "Kecilkan" : "Layar Penuh"}</span>
+            <span className="hidden sm:inline">{isFullscreen ? "Kecilkan" : "Layar Penuh"}</span>
           </button>
           
           <button
@@ -1363,17 +1368,24 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHig
               }
               onClose();
             }}
-            className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black flex items-center gap-1.5 transition-colors shadow-sm"
+            className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black flex items-center gap-1.5 transition-colors shadow-sm"
           >
             <X size={15} />
-            <span>Tutup Game</span>
+            <span className="hidden sm:inline">Tutup Game</span>
           </button>
         </div>
       </div>
 
       {/* Modal Body: Full Viewport Game Area */}
-      <div className="flex-1 w-full h-full p-2 md:p-6 overflow-y-auto bg-slate-950 flex flex-col justify-center items-center custom-scrollbar">
-        <div className="w-full h-full flex flex-col justify-center my-auto">
+      <div
+        className={cn(
+          "flex-1 w-full min-h-0 bg-slate-950 flex flex-col",
+          gameId === 'infokombat'
+            ? "p-0 overflow-hidden"
+            : "p-2 md:p-6 overflow-y-auto justify-center items-center custom-scrollbar"
+        )}
+      >
+        <div className={cn("w-full h-full min-h-0 flex flex-col", gameId === 'infokombat' ? "" : "justify-center my-auto")}>
           {gameId === 'pattern-master' && (
             <PatternMasterGame isAdmin={isAdmin} currentStudent={currentStudent} onClose={onClose} />
           )}
