@@ -41,6 +41,7 @@ import { cn } from '../utils';
 import { doc, setDoc, collection, onSnapshot, deleteDoc, arrayUnion, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { COURSES } from '../constants';
+import ContraSnesGame from './ContraSnesGame';
 
 export interface GameItem {
   id: string;
@@ -53,6 +54,35 @@ export interface GameItem {
 }
 
 function GameCardBanner({ gameId }: { gameId: string }) {
+  if (gameId === 'contra-snes') {
+    return (
+      <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-red-800 via-rose-800 to-slate-950 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-red-400/40">
+        <div className="space-y-1 z-10 max-w-[78%]">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[9px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full border border-amber-300 shadow-xs">
+              🕹️ 16-BIT SNES ACTION
+            </span>
+            <span className="text-[9px] font-bold text-red-100 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
+              3 Stage • Kuis Peluru
+            </span>
+          </div>
+          <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
+            Informatika War
+          </h4>
+          <div className="flex items-center gap-1 text-[9px] font-mono font-black">
+            <span className="bg-red-600 px-1.5 py-0.5 rounded border border-red-300/60">[S] Spread</span>
+            <span className="bg-sky-600 px-1.5 py-0.5 rounded border border-sky-300/60">[L] Laser</span>
+            <span className="bg-orange-600 px-1.5 py-0.5 rounded border border-orange-300/60">[F] Flame</span>
+            <span className="text-amber-300 ml-1">🔐 Kuis Informatika</span>
+          </div>
+        </div>
+        <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-red-300/30 flex items-center justify-center text-2xl shadow-md shrink-0">
+          🔫
+        </div>
+      </div>
+    );
+  }
+
   if (gameId === 'petualangan-smp') {
     return (
       <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-900 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-indigo-400/30">
@@ -195,6 +225,15 @@ function GameCardBanner({ gameId }: { gameId: string }) {
 }
 
 export const GAMES_LIST: GameItem[] = [
+  {
+    id: 'contra-snes',
+    title: 'Informatika War',
+    category: 'SNES Run & Gun • Kuis Informatika',
+    description: 'Game aksi klasik bergaya CONTRA SNES! Tembak kapsul terbang untuk menjatuhkan peluru spesial (S/L/F/M), dan jawab pertanyaan Informatika untuk membukanya!',
+    iconName: 'Gamepad2',
+    difficulty: 'Tantangan',
+    defaultTimerSec: 120
+  },
   {
     id: 'petualangan-smp',
     title: 'Petualangan Ke Sekolah',
@@ -387,7 +426,7 @@ interface AdminGamesProps {
 export default function AdminGames({ isAdmin, currentStudent, studentsList = [] }: AdminGamesProps) {
   const [activeTab, setActiveTab] = useState<'manage' | 'leaderboard' | 'play'>('manage');
   const [selectedGameId, setSelectedGameId] = useState<string>(GAMES_LIST[0].id);
-  const [gameConfigs, setGameConfigs] = useState<Record<string, { isActive: boolean; timerSec?: number; stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string }>>({});
+  const [gameConfigs, setGameConfigs] = useState<Record<string, { isActive: boolean; timerSec?: number; materiId?: string; stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string }>>({});
   const [gameScores, setGameScores] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterKelas, setFilterKelas] = useState('all');
@@ -531,6 +570,17 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
     }
   };
 
+  const updateContraMateri = async (materiId: string) => {
+    try {
+      await setDoc(doc(db, 'game_configs', 'contra-snes'), {
+        materiId,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (e) {
+      console.error("Failed updating contra materi config", e);
+    }
+  };
+
   const toggleGameStatus = async (gameId: string) => {
     const currentActive = gameConfigs[gameId]?.isActive ?? true;
     try {
@@ -585,9 +635,9 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
     const matchKelas = filterKelas === 'all' || score.studentKelas === filterKelas;
     const matchGame = filterGame === 'all' || score.gameId === filterGame;
 
-    // Stage Filter for Petualangan SMP
+    // Stage Filter for Petualangan SMP & Cyber Contra SNES
     let matchStage = true;
-    if (filterGame === 'petualangan-smp' && filterStage !== 'all') {
+    if ((filterGame === 'petualangan-smp' || filterGame === 'contra-snes') && filterStage !== 'all') {
       matchStage = new RegExp(`Stage\\s*${filterStage}\\b`, 'i').test(score.gameTitle || '');
     }
 
@@ -600,6 +650,24 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
     if (!currentStudent) return map;
     bestScoresAll.forEach(s => {
       if (s.gameId !== 'petualangan-smp') return;
+      const isMe = (s.studentId && s.studentId === currentStudent.id) ||
+                   (!s.studentId && s.studentName === currentStudent.nama);
+      if (!isMe) return;
+      const m = typeof s.gameTitle === 'string' ? s.gameTitle.match(/Stage\s*(\d+)/i) : null;
+      if (m) {
+        const st = Number(m[1]);
+        map[st] = Math.max(map[st] || 0, s.score || 0);
+      }
+    });
+    return map;
+  })();
+
+  // Highest score per stage (1-3) for current student on Cyber Contra SNES
+  const currentStudentContraHighScores: Record<number, number> = (() => {
+    const map: Record<number, number> = {};
+    if (!currentStudent) return map;
+    bestScoresAll.forEach(s => {
+      if (s.gameId !== 'contra-snes') return;
       const isMe = (s.studentId && s.studentId === currentStudent.id) ||
                    (!s.studentId && s.studentName === currentStudent.nama);
       if (!isMe) return;
@@ -628,7 +696,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
               <span className="text-[10px] font-black uppercase tracking-widest text-brand bg-brand/10 border border-brand/20 px-2.5 py-0.5 rounded-full">
                 Permainan Edukatif
               </span>
-              <span className="text-xs text-slate-500 font-bold">• 5 Game Interaktif</span>
+              <span className="text-xs text-slate-500 font-bold">• {GAMES_LIST.length} Game Interaktif</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight">
               {isAdmin ? "Kelola Permainan & Game Edukasi" : "Game Edukasi Informatika"}
@@ -734,6 +802,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                           )}
                           <div className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white shadow-xs shrink-0",
+                            game.id === 'contra-snes' ? "bg-gradient-to-br from-red-600 to-orange-600" :
                             game.id === 'petualangan-smp' ? "bg-gradient-to-br from-blue-600 to-indigo-600" :
                             game.id === 'pattern-master' ? "bg-indigo-600" :
                             game.id === 'scratch-blocks' ? "bg-amber-500" :
@@ -796,7 +865,52 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                             <span>⚔️ 4 Stage • 2 Bos Battle</span>
                           </div>
                         )}
+                        {game.id === 'contra-snes' && (
+                          <div className="bg-red-100/80 px-2.5 py-1 rounded-lg border border-red-200 flex items-center gap-1 text-[11px] font-bold text-red-800">
+                            <span>🕹️ 3 Stage SNES • Boss Cyber</span>
+                          </div>
+                        )}
                       </div>
+
+                      {!isAdmin && game.id === 'contra-snes' && Object.keys(currentStudentContraHighScores).length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                          {[1, 2, 3].map(st => {
+                            const stScore = currentStudentContraHighScores[st];
+                            if (!stScore) return null;
+                            return (
+                              <span key={st} className="px-2 py-0.5 bg-red-100/90 border border-red-300 text-red-950 rounded-md text-[10px] font-black">
+                                Stage {st}: {stScore} Poin
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {isAdmin && game.id === 'contra-snes' && (
+                        <details className="group mt-1.5 mb-3 bg-slate-200/80 hover:bg-slate-200 rounded-xl border border-slate-300 transition-all overflow-hidden">
+                          <summary className="cursor-pointer list-none p-2.5 px-3 flex items-center justify-between text-xs font-black text-slate-800 select-none">
+                            <span className="flex items-center gap-1.5">
+                              <span>🔐</span> Atur Sumber Kuis Peluru Spesial
+                            </span>
+                            <ChevronDown size={14} className="text-slate-500 group-open:rotate-180 transition-transform" />
+                          </summary>
+                          <div className="p-2.5 pt-1 border-t border-slate-300 space-y-1.5 text-[11px]">
+                            <span className="text-[10px] text-slate-600 font-bold block">
+                              Materi Informatika untuk membuka Peluru Spesial (S / L / F / M):
+                            </span>
+                            <select
+                              value={gameConfigs['contra-snes']?.materiId ?? 'all'}
+                              onChange={(e) => updateContraMateri(e.target.value)}
+                              className="bg-white border border-slate-300 text-[11px] font-bold rounded-lg p-1.5 text-slate-800 cursor-pointer w-full"
+                            >
+                              <option value="all">Semua Materi Informatika (Campuran)</option>
+                              {COURSES.map(c => (
+                                <option key={c.id} value={c.id}>{c.title}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </details>
+                      )}
 
                       {!isAdmin && game.id === 'petualangan-smp' && Object.keys(currentStudentStageHighScores).length > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 mb-3">
@@ -1012,7 +1126,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
               </select>
 
               {/* Stage Filter (Dynamic) */}
-              {filterGame === 'petualangan-smp' && (
+              {(filterGame === 'petualangan-smp' || filterGame === 'contra-snes') && (
                 <select
                   value={filterStage}
                   onChange={e => setFilterStage(e.target.value)}
@@ -1022,7 +1136,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                   <option value="1">Stage 1</option>
                   <option value="2">Stage 2</option>
                   <option value="3">Stage 3</option>
-                  <option value="4">Stage 4</option>
+                  {filterGame === 'petualangan-smp' && <option value="4">Stage 4</option>}
                 </select>
               )}
             </div>
@@ -1113,6 +1227,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
           isAdmin={isAdmin}
           currentStudent={currentStudent}
           studentStageHighScores={currentStudentStageHighScores}
+          contraStageHighScores={currentStudentContraHighScores}
           onClose={() => setActivePlayGameId(null)}
         />
       )}
@@ -1121,7 +1236,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 }
 
 /* =========================================================================
-   Interactive Play Modal containing the 4 Playable Educational Games
+   Interactive Play Modal containing the Playable Educational Games
    ========================================================================= */
 
 interface InteractiveGameModalProps {
@@ -1129,10 +1244,11 @@ interface InteractiveGameModalProps {
   isAdmin: boolean;
   currentStudent?: { id: string; nama: string; kelas: string; nis: string } | null;
   studentStageHighScores?: Record<number, number>;
+  contraStageHighScores?: Record<number, number>;
   onClose: () => void;
 }
 
-function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHighScores, onClose }: InteractiveGameModalProps) {
+function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHighScores, contraStageHighScores, onClose }: InteractiveGameModalProps) {
   const currentGame = GAMES_LIST.find(g => g.id === gameId) || GAMES_LIST[0];
   const [isFullscreen, setIsFullscreen] = useState(true);
   const modalContainerRef = useRef<HTMLDivElement | null>(null);
@@ -1233,6 +1349,9 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHig
           )}
           {gameId === 'petualangan-smp' && (
             <PetualanganSMPGame isAdmin={isAdmin} currentStudent={currentStudent} studentStageHighScores={studentStageHighScores} onClose={onClose} />
+          )}
+          {gameId === 'contra-snes' && (
+            <ContraSnesGame isAdmin={isAdmin} currentStudent={currentStudent} studentStageHighScores={contraStageHighScores} onClose={onClose} />
           )}
         </div>
       </div>

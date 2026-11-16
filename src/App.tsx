@@ -2210,7 +2210,7 @@ export default function App() {
                               Game Edukatif
                             </span>
                             <span className="text-[10px] font-bold text-slate-500 hidden sm:inline">
-                              • 5 Game Aktif
+                              • 6 Game Aktif
                             </span>
                           </div>
                           <h3 className="text-sm md:text-base font-black text-slate-900 leading-tight mt-0.5 truncate group-hover:text-indigo-900 transition-colors">
