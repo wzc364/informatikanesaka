@@ -29,6 +29,7 @@ import {
   Play,
   Home,
   BookOpen,
+  Film,
 } from 'lucide-react';
 import { cn } from '../utils';
 import { db } from '../firebase';
@@ -259,6 +260,14 @@ import mechaMouseWalkSheetUrl from '../assets/images/mecha_mouse_walk_sheet_1794
 import mechaMouseJumpSheetUrl from '../assets/images/mecha_mouse_jump_sheet_1794909480929.jpg';
 import keyTitanWalkSheetUrl from '../assets/images/key_titan_walk_sheet_1794909485311.jpg';
 import keyTitanJumpSheetUrl from '../assets/images/key_titan_jump_sheet_1794909486365.jpg';
+import storyCyberPhoneUrl from '../assets/images/story_cyber_phone_1794911270312.jpg';
+import storyMechaMouseUrl from '../assets/images/story_mecha_mouse_1794911274004.jpg';
+import storyKeyTitanUrl from '../assets/images/story_key_titan_1794911270626.jpg';
+import storyVirusRexUrl from '../assets/images/story_virus_rex_1794911272810.jpg';
+import storyKnightUrl from '../assets/images/story_knight_1794911272230.jpg';
+import storyKamenGeatsUrl from '../assets/images/story_kamen_geats_1794911273505.jpg';
+import storyKamenBladeUrl from '../assets/images/story_kamen_blade_1794911274488.jpg';
+import storyUltramanZeroUrl from '../assets/images/story_ultraman_zero_1794911275031.jpg';
 
 enum OperationType {
   CREATE = 'create',
@@ -732,12 +741,38 @@ const PLAYABLE_IDS: FighterId[] = [
 const HERO_IDS: FighterId[] = PLAYABLE_IDS.filter((id) => FIGHTERS[id].faction === 'hero');
 const MONSTER_IDS: FighterId[] = PLAYABLE_IDS.filter((id) => FIGHTERS[id].faction === 'monster');
 
+type ArcadeSubMode = 'solo' | 'hero_story' | 'monster_story';
+
+interface SoloStageConfig {
+  fighter: FighterId;
+  stage: StageId;
+  stageName: string;
+  tierLabel: string;
+  hpMult: number;
+  powerMult: number;
+  speedMult: number;
+}
+
+const SOLO_STAGES: SoloStageConfig[] = [
+  { fighter: 'bisop', stage: 1, stageName: 'KUIL MALAM', tierLabel: 'MUDAH', hpMult: 0.9, powerMult: 0.85, speedMult: 0.92 },
+  { fighter: 'queen', stage: 2, stageName: 'ARENA ASAM', tierLabel: 'NORMAL', hpMult: 0.98, powerMult: 0.94, speedMult: 0.98 },
+  { fighter: 'cyber_phone', stage: 4, stageName: 'LAB SERVER SIBER', tierLabel: 'MENENGAH', hpMult: 1.06, powerMult: 1.02, speedMult: 1.04 },
+  { fighter: 'kamen_blade', stage: 6, stageName: 'KUIL SALJU', tierLabel: 'TANTANGAN', hpMult: 1.14, powerMult: 1.1, speedMult: 1.08 },
+  { fighter: 'mecha_mouse', stage: 7, stageName: 'RAWA BERACUN', tierLabel: 'SULIT', hpMult: 1.22, powerMult: 1.16, speedMult: 1.12 },
+  { fighter: 'kamen_geats', stage: 3, stageName: 'TAKHTA KAISAR', tierLabel: 'MASTER', hpMult: 1.3, powerMult: 1.24, speedMult: 1.16 },
+  { fighter: 'key_titan', stage: 8, stageName: 'PUNCAK HALILINTAR', tierLabel: 'ELITE', hpMult: 1.4, powerMult: 1.3, speedMult: 1.2 },
+  { fighter: 'virus_rex', stage: 9, stageName: 'GERBANG KUANTUM', tierLabel: 'FINAL BOSS', hpMult: 1.52, powerMult: 1.38, speedMult: 1.24 },
+];
+
 interface StoryChapter {
   fighter: FighterId;
   stage: StageId;
   stageName: string;
   chapterTitle: string;
   storyText: string;
+  challengerLine: string;
+  cutsceneUrl: string;
+  cutsceneAccent: string;
 }
 
 const STORY_CAMPAIGNS: Record<
@@ -769,6 +804,9 @@ const STORY_CAMPAIGNS: Record<
         chapterTitle: 'CHAPTER 1 · GANGGUAN SINYAL 5G',
         storyText:
           'Sinyal liar bertegangan tinggi mulai mengacaukan Lab Server Siber! PHONEX TITAN menghadang di gerbang utama dengan perisai layar AMOLED-nya.',
+        challengerLine: '"Frekuensi 5G-ku akan membekukan seluruh jaringan pertahananmu!"',
+        cutsceneUrl: storyCyberPhoneUrl,
+        cutsceneAccent: '#06b6d4',
       },
       {
         fighter: 'mecha_mouse',
@@ -777,6 +815,9 @@ const STORY_CAMPAIGNS: Record<
         chapterTitle: 'CHAPTER 2 · BAYANGAN SENSOR OPTIK',
         storyText:
           'Di tengah kabut digital beracun, CLICKER FANG melesat dengan kecepatan DPI ekstrem untuk memutus jalur data. Waspadai sergapan laser optiknya!',
+        challengerLine: '"Target terkunci di 32.000 DPI... satu klik, kau lenyap!"',
+        cutsceneUrl: storyMechaMouseUrl,
+        cutsceneAccent: '#84cc16',
       },
       {
         fighter: 'key_titan',
@@ -785,6 +826,9 @@ const STORY_CAMPAIGNS: Record<
         chapterTitle: 'CHAPTER 3 · BENTENG MEKANIKAL RGB',
         storyText:
           'MECH KEYS GOLEM menjaga gerbang puncak badai petir! Hancurkan pertahanan baja raksasanya sebelum ia melepaskan kombo Ctrl+Alt+Del!',
+        challengerLine: '"Tekan satu langkah lagi, dan kombo Ctrl+Alt+Del akan menghapusmu!"',
+        cutsceneUrl: storyKeyTitanUrl,
+        cutsceneAccent: '#a855f7',
       },
       {
         fighter: 'virus_rex',
@@ -793,6 +837,9 @@ const STORY_CAMPAIGNS: Record<
         chapterTitle: 'FINAL BOSS · INTI KORUPSI TROJAN',
         storyText:
           'Di jantung Gerbang Kuantum, sang dalang kekacauan TROJAN REX bangkit! Kalahkan raja virus ini untuk menyelamatkan seluruh sistem!',
+        challengerLine: '"Seluruh firewall telah runtuh! Akulah penguasa absolut Gerbang Kuantum!"',
+        cutsceneUrl: storyVirusRexUrl,
+        cutsceneAccent: '#ef4444',
       },
     ],
   },
@@ -813,6 +860,9 @@ const STORY_CAMPAIGNS: Record<
         chapterTitle: 'CHAPTER 1 · RUNTUHNYA ZIRAH PENJAGA',
         storyText:
           'KNIGHT menghadang pelarian pasukan monster di Kuil Malam. Patahkan perisai sayap bajanya untuk membuka jalan menuju menara utama!',
+        challengerLine: '"Selama pedang baja ini terhunus, tak satu pun virus boleh lolos!"',
+        cutsceneUrl: storyKnightUrl,
+        cutsceneAccent: '#3b82f6',
       },
       {
         fighter: 'kamen_geats',
@@ -821,6 +871,9 @@ const STORY_CAMPAIGNS: Record<
         chapterTitle: 'CHAPTER 2 · DUEL KOTA TAKHTA',
         storyText:
           'KAMEN GEATS menanti di Aula Naga Merah dengan tembakan meriam Magnum yang presisi. Terobos jarak tembaknya dengan serangan agresif!',
+        challengerLine: '"Bersiaplah... panggung ini hanya menyisakan satu pemenang sejati!"',
+        cutsceneUrl: storyKamenGeatsUrl,
+        cutsceneAccent: '#f97316',
       },
       {
         fighter: 'kamen_blade',
@@ -829,6 +882,9 @@ const STORY_CAMPAIGNS: Record<
         chapterTitle: 'CHAPTER 3 · SEGEL KUMBANG KUANTUM',
         storyText:
           'Ksatria Kumbang KAMEN BLADE menjaga segel terakhir di Kuil Salju yang membeku. Hancurkan pedang kuantumnya sebelum Gerbang Kuantum terbuka!',
+        challengerLine: '"Royal Straight Flush telah aktif! Jangan harap bisa menembus segel ini!"',
+        cutsceneUrl: storyKamenBladeUrl,
+        cutsceneAccent: '#38bdf8',
       },
       {
         fighter: 'ultraman_zero',
@@ -837,10 +893,18 @@ const STORY_CAMPAIGNS: Record<
         chapterTitle: 'FINAL BOSS · CAHAYA TERAKHIR KOSMIK',
         storyText:
           'ULTRAMAN ZERO turun langsung sebagai benteng terakhir para Hero! Kerahkan seluruh kekuatan overdrive untuk merebut takhta Gerbang Kuantum!',
+        challengerLine: '"Kau 20.000 tahun terlalu cepat untuk menantang cahaya kosmikku!"',
+        cutsceneUrl: storyUltramanZeroUrl,
+        cutsceneAccent: '#38bdf8',
       },
     ],
   },
 };
+
+const STORY_CUTSCENE_URLS: string[] = [
+  ...STORY_CAMPAIGNS.hero.stages.map((s) => s.cutsceneUrl),
+  ...STORY_CAMPAIGNS.monster.stages.map((s) => s.cutsceneUrl),
+];
 
 // Cinematic Non-8bit Synthesizer & BGM Engine
 class MkAudioSynth {
@@ -2329,13 +2393,21 @@ function ensureAllGameAssetsLoaded() {
     }
   });
 
-  // 3. All 39 Exclusive Fatality Artworks
+  // 3. All 39 Exclusive Fatality Artworks + 8 Story Route Animated Cutscenes
   PLAYABLE_IDS.forEach((fid) => {
     getFatalityPool(fid).forEach((v) => {
       const uniqKey = `raw:${v.imageUrl}`;
       uniqueKeys.add(uniqKey);
       standardQueue.push(() => preloadRawImage(v.imageUrl, false));
     });
+  });
+
+  STORY_CUTSCENE_URLS.forEach((url) => {
+    const uniqKey = `raw:${url}`;
+    if (!uniqueKeys.has(uniqKey)) {
+      uniqueKeys.add(uniqKey);
+      standardQueue.push(() => preloadRawImage(url, false));
+    }
   });
 
   assetTotalCount = uniqueKeys.size;
@@ -4234,9 +4306,466 @@ function FighterPortrait({
   );
 }
 
+const STORY_VIDEO_DURATION_MS = 6000;
+
+function formatVideoSec(ms: number) {
+  const sec = Math.max(0, Math.min(6, Math.floor(ms / 1000)));
+  return `00:0${sec}`;
+}
+
+function StoryCutsceneVideoPlayer({
+  route,
+  chapter,
+  chapterIdx,
+  totalChapters,
+  arenaInfo,
+  playerProfile,
+  oppProfile,
+  muted,
+  onToggleMute,
+  onTriggerCue,
+  onBackToSelect,
+  onStartFight,
+}: {
+  route: StoryRoute;
+  chapter: StoryChapter;
+  chapterIdx: number;
+  totalChapters: number;
+  arenaInfo: (typeof ARENAS)[number];
+  playerProfile: FighterProfile;
+  oppProfile: FighterProfile;
+  muted: boolean;
+  onToggleMute: () => void;
+  onTriggerCue: (cue: 'select' | 'fireball' | 'gong' | 'heavy') => void;
+  onBackToSelect: () => void;
+  onStartFight: () => void;
+}) {
+  const [playKey, setPlayKey] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const elapsedMsRef = useRef(0);
+  const isPlayingRef = useRef(true);
+  const triggerCueRef = useRef(onTriggerCue);
+  triggerCueRef.current = onTriggerCue;
+  const fxCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cueFiredRef = useRef<{ intro: boolean; reveal: boolean; clash: boolean }>({
+    intro: false,
+    reveal: false,
+    clash: false,
+  });
+
+  const isHero = route === 'hero';
+  const progress = Math.min(1, elapsedMs / STORY_VIDEO_DURATION_MS);
+  const isFinished = elapsedMs >= STORY_VIDEO_DURATION_MS;
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  // Reset timeline cleanly whenever chapter changes
+  useEffect(() => {
+    elapsedMsRef.current = 0;
+    setElapsedMs(0);
+    isPlayingRef.current = true;
+    setIsPlaying(true);
+    setPlayKey((k) => k + 1);
+    cueFiredRef.current = { intro: false, reveal: false, clash: false };
+    preloadRawImage(chapter.cutsceneUrl, true);
+  }, [chapter.fighter, chapter.cutsceneUrl, chapterIdx]);
+
+  const handleReplay = useCallback(() => {
+    cueFiredRef.current = { intro: false, reveal: false, clash: false };
+    elapsedMsRef.current = 0;
+    setElapsedMs(0);
+    isPlayingRef.current = true;
+    setIsPlaying(true);
+    setPlayKey((k) => k + 1);
+  }, []);
+
+  // Keyboard shortcut [R] for Replay while on story cutscene
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        handleReplay();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleReplay]);
+
+  // Synchronized audio cues with cutscene beats
+  useEffect(() => {
+    if (!isPlaying || muted) return;
+    if (elapsedMs >= 100 && !cueFiredRef.current.intro) {
+      cueFiredRef.current.intro = true;
+      triggerCueRef.current('select');
+    }
+    if (elapsedMs >= 1200 && !cueFiredRef.current.reveal) {
+      cueFiredRef.current.reveal = true;
+      triggerCueRef.current('fireball');
+    }
+    if (elapsedMs >= 3600 && !cueFiredRef.current.clash) {
+      cueFiredRef.current.clash = true;
+      triggerCueRef.current('gong');
+    }
+  }, [elapsedMs, isPlaying, muted]);
+
+  // 60FPS playback clock + animated real-time particle/shockwave/lightning video FX canvas
+  useEffect(() => {
+    const canvas = fxCanvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    const particles = Array.from({ length: 44 }, (_, i) => ({
+      x: ((i * 73) % 100) / 100,
+      y: ((i * 41) % 100) / 100,
+      vx: ((i % 7) - 3) * 0.00055,
+      vy: -(0.0013 + (i % 5) * 0.0005),
+      size: 1.5 + (i % 4) * 1.1,
+      alpha: 0.42 + (i % 5) * 0.12,
+    }));
+
+    let lastTs = performance.now();
+    let rafId = 0;
+
+    const tick = (now: number) => {
+      const dt = Math.min(50, now - lastTs);
+      lastTs = now;
+
+      if (isPlayingRef.current && elapsedMsRef.current < STORY_VIDEO_DURATION_MS) {
+        const nextMs = Math.min(STORY_VIDEO_DURATION_MS, elapsedMsRef.current + dt);
+        elapsedMsRef.current = nextMs;
+        setElapsedMs(nextMs);
+      }
+
+      if (canvas && ctx) {
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        // Subtle animated scanlines & film frame aura
+        ctx.fillStyle = 'rgba(2, 6, 23, 0.12)';
+        for (let y = (Math.floor(now * 0.04) % 8); y < h; y += 8) {
+          ctx.fillRect(0, y, w, 1);
+        }
+
+        // Dynamic particles drifting across the video scene
+        particles.forEach((pt, idx) => {
+          if (isPlayingRef.current) {
+            pt.x = (pt.x + pt.vx * (dt / 16) + 1) % 1;
+            pt.y = (pt.y + pt.vy * (dt / 16) + 1) % 1;
+          }
+          const px = pt.x * w;
+          const py = pt.y * h;
+          const flick = 0.65 + 0.35 * Math.sin(now * 0.008 + idx);
+          ctx.save();
+          ctx.globalAlpha = pt.alpha * flick;
+          ctx.fillStyle = idx % 3 === 0 ? '#ffffff' : chapter.cutsceneAccent;
+          ctx.shadowColor = chapter.cutsceneAccent;
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(px, py, pt.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // Dramatic radial shockwaves during Opponent Reveal (1.1s-2.4s) & Climax Clash (3.5s-4.8s)
+        const curSec = elapsedMsRef.current / 1000;
+        const wave1 = curSec >= 1.1 && curSec <= 2.4 ? (curSec - 1.1) / 1.3 : -1;
+        const wave2 = curSec >= 3.5 && curSec <= 4.9 ? (curSec - 3.5) / 1.4 : -1;
+        [wave1, wave2].forEach((wp) => {
+          if (wp < 0) return;
+          const radius = 40 + wp * w * 0.62;
+          ctx.save();
+          ctx.strokeStyle = chapter.cutsceneAccent;
+          ctx.globalAlpha = (1 - wp) * 0.72;
+          ctx.lineWidth = 4 * (1 - wp) + 1;
+          ctx.shadowColor = chapter.cutsceneAccent;
+          ctx.shadowBlur = 18;
+          ctx.beginPath();
+          ctx.arc(w * 0.5, h * 0.45, radius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        });
+
+        // Speed lines around perimeter when action surges
+        if (isPlayingRef.current && curSec < 5.6) {
+          ctx.save();
+          ctx.strokeStyle = chapter.cutsceneAccent;
+          ctx.globalAlpha = 0.22;
+          ctx.lineWidth = 1.5;
+          for (let i = 0; i < 14; i++) {
+            const ang = (i / 14) * Math.PI * 2 + now * 0.0005;
+            const rIn = w * (0.36 + ((i + Math.floor(now / 60)) % 3) * 0.04);
+            const rOut = w * 0.58;
+            ctx.beginPath();
+            ctx.moveTo(w * 0.5 + Math.cos(ang) * rIn, h * 0.46 + Math.sin(ang) * rIn * 0.6);
+            ctx.lineTo(w * 0.5 + Math.cos(ang) * rOut, h * 0.46 + Math.sin(ang) * rOut * 0.6);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [chapter.cutsceneAccent, playKey]);
+
+  // Progressive typewriter movie subtitle synced to video timeline
+  const visibleSubtitleChars = Math.floor(
+    Math.min(1, progress / 0.8) * chapter.storyText.length
+  );
+  const typedStoryText = chapter.storyText.slice(0, visibleSubtitleChars);
+
+  const showOpponentBadge = elapsedMs >= 950;
+  const showVsStrip = elapsedMs >= 2800;
+
+  return (
+    <div className="max-w-5xl w-full bg-slate-950/95 border-2 border-amber-500/45 rounded-3xl overflow-hidden shadow-2xl">
+      {/* 16:9 Cinema Video Viewport */}
+      <div className="relative aspect-video w-full bg-black overflow-hidden select-none">
+        {/* Blurred Arena Backdrop fallback */}
+        <img
+          src={arenaInfo.url}
+          alt={arenaInfo.name}
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 w-full h-full object-cover opacity-25 blur-sm scale-105"
+        />
+
+        {/* Animated Opponent Video Scene */}
+        <img
+          key={`${chapter.fighter}-${playKey}`}
+          src={chapter.cutsceneUrl}
+          alt={oppProfile.name}
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 w-full h-full object-cover animate-story-camera"
+          style={{ animationPlayState: isPlaying ? 'running' : 'paused' }}
+        />
+
+        {/* Dynamic Impact Flash & Diagonal Energy Sweep */}
+        <div
+          key={`flash-${chapter.fighter}-${playKey}`}
+          className="absolute inset-0 animate-story-flash pointer-events-none"
+          style={{
+            animationPlayState: isPlaying ? 'running' : 'paused',
+            background: `radial-gradient(circle, #ffffff 0%, ${chapter.cutsceneAccent}88 45%, transparent 78%)`,
+          }}
+        />
+        <div
+          key={`sweep-${chapter.fighter}-${playKey}`}
+          className="absolute inset-y-0 w-1/3 animate-story-sweep pointer-events-none"
+          style={{
+            animationPlayState: isPlaying ? 'running' : 'paused',
+            background: `linear-gradient(90deg, transparent, ${chapter.cutsceneAccent}bb, #ffffff, ${chapter.cutsceneAccent}bb, transparent)`,
+          }}
+        />
+
+        {/* 60FPS Particle / Shockwave / Speed-Line FX Canvas */}
+        <canvas
+          ref={fxCanvasRef}
+          width={960}
+          height={540}
+          className="absolute inset-0 w-full h-full pointer-events-none"
+        />
+
+        {/* Vignette & Accent Rim Glow */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            boxShadow: `inset 0 0 95px rgba(2,6,23,0.92), inset 0 0 42px ${chapter.cutsceneAccent}55`,
+          }}
+        />
+
+        {/* Top Cinema Letterbox + Chapter HUD */}
+        <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/95 via-black/75 to-transparent px-4 py-3 flex flex-wrap items-center justify-between gap-2 z-10">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-full uppercase border',
+                isHero
+                  ? 'bg-sky-500/25 text-sky-200 border-sky-400/60'
+                  : 'bg-rose-500/25 text-rose-200 border-rose-400/60'
+              )}
+            >
+              <Film size={13} /> {isHero ? 'HERO ROUTE' : 'MONSTER ROUTE'} · CH {chapterIdx + 1}/{totalChapters}
+            </span>
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-200">
+              {chapter.chapterTitle}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-black/80 border border-slate-700 text-slate-200">
+              <span
+                className={cn(
+                  'w-2 h-2 rounded-full',
+                  isFinished ? 'bg-emerald-400' : isPlaying ? 'bg-red-500 animate-pulse' : 'bg-amber-400'
+                )}
+              />
+              {isFinished ? 'SIAP BERTARUNG' : isPlaying ? 'TAYANGAN STORY' : 'JEDA'} · {formatVideoSec(elapsedMs)} / 00:06
+            </span>
+            <button
+              type="button"
+              onClick={onToggleMute}
+              className="p-1.5 rounded-lg bg-black/80 hover:bg-slate-800 border border-slate-700 text-slate-200"
+              title={muted ? 'Nyalakan Audio' : 'Bisukan Audio'}
+            >
+              {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Dynamic Challenger Reveal Card + VS Matchup Strip */}
+        <div className="absolute inset-x-0 bottom-[21%] sm:bottom-[19%] px-4 sm:px-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3 z-10 pointer-events-none">
+          {showOpponentBadge && (
+            <div className="animate-story-hud-in bg-slate-950/85 backdrop-blur-md border border-slate-700/80 rounded-2xl p-2.5 sm:p-3 flex items-center gap-3 max-w-md shadow-2xl">
+              <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-slate-700 bg-slate-900 flex items-center justify-center">
+                <FighterPortrait id={oppProfile.id} active={true} variant="bust" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-400">
+                    LAWAN BERIKUTNYA
+                  </span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-amber-300">
+                    {arenaInfo.name}
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-xl font-black text-white leading-tight truncate">
+                  {oppProfile.name}
+                </h3>
+                <p className="text-[11px] font-bold text-cyan-300 truncate">
+                  {oppProfile.codename} · Jurus: {oppProfile.specialName}
+                </p>
+                <p className="text-[11px] italic text-amber-200 mt-0.5 line-clamp-1">
+                  {chapter.challengerLine}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {showVsStrip && (
+            <div className="animate-story-hud-in hidden sm:flex items-center gap-2.5 bg-slate-950/85 backdrop-blur-md border border-amber-500/40 rounded-2xl px-3.5 py-2 shadow-xl">
+              <div className="text-right">
+                <div className="text-xs font-black text-emerald-300">{playerProfile.name}</div>
+                <div className="text-[10px] font-bold text-slate-400">PEMAIN</div>
+              </div>
+              <span className="text-xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-amber-300 to-red-600">
+                VS
+              </span>
+              <div className="text-left">
+                <div className="text-xs font-black text-rose-400">{oppProfile.name}</div>
+                <div className="text-[10px] font-bold text-slate-400">CHALLENGER</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Cinema Letterbox with Synchronized Typewriter Story Subtitle */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/90 to-transparent px-4 sm:px-8 pt-6 pb-3 text-center z-10">
+          <p className="text-xs sm:text-sm md:text-base font-semibold text-slate-100 leading-snug drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)] max-w-3xl mx-auto min-h-[2.4rem]">
+            {typedStoryText}
+            {!isFinished && isPlaying && (
+              <span className="inline-block w-1.5 h-3.5 ml-1 bg-amber-400 animate-pulse align-middle" />
+            )}
+          </p>
+        </div>
+
+        {/* Paused Overlay Indicator */}
+        {!isPlaying && !isFinished && (
+          <button
+            type="button"
+            onClick={() => setIsPlaying(true)}
+            className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-black/75 border-2 border-amber-400 text-amber-300 flex items-center justify-center shadow-2xl z-20 hover:scale-105 transition-transform"
+            title="Lanjutkan Animasi"
+          >
+            <Play size={28} />
+          </button>
+        )}
+      </div>
+
+      {/* Video Progress Scrubber & Action Controls */}
+      <div className="p-4 sm:p-5 bg-slate-900/95 border-t border-slate-800 space-y-3.5">
+        {/* Interactive Timeline Bar */}
+        <div
+          role="slider"
+          aria-label="Timeline Video Story"
+          aria-valuemin={0}
+          aria-valuemax={STORY_VIDEO_DURATION_MS}
+          aria-valuenow={Math.round(elapsedMs)}
+          tabIndex={0}
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const nextMs = ratio * STORY_VIDEO_DURATION_MS;
+            elapsedMsRef.current = nextMs;
+            setElapsedMs(nextMs);
+          }}
+          className="relative h-2.5 w-full rounded-full bg-slate-800 cursor-pointer overflow-hidden border border-slate-700"
+        >
+          <div
+            className="h-full rounded-full transition-[width] duration-75"
+            style={{
+              width: `${progress * 100}%`,
+              background: `linear-gradient(90deg, ${chapter.cutsceneAccent}, #f59e0b)`,
+            }}
+          />
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => {
+                if (isFinished) handleReplay();
+                else setIsPlaying((p) => !p);
+              }}
+              className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-black text-slate-100 inline-flex items-center gap-1.5"
+            >
+              {isPlaying && !isFinished ? <Pause size={14} /> : <Play size={14} />}
+              {isFinished ? 'Putar Lagi' : isPlaying ? 'Jeda' : 'Lanjut'}
+            </button>
+            <button
+              type="button"
+              onClick={handleReplay}
+              className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-black text-amber-300 inline-flex items-center gap-1.5"
+            >
+              <RotateCcw size={14} /> Putar Ulang [R]
+            </button>
+            <button
+              type="button"
+              onClick={onBackToSelect}
+              className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300 inline-flex items-center gap-1.5"
+            >
+              <ArrowLeft size={14} /> Pilih Karakter [ESC]
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={onStartFight}
+            className={cn(
+              'w-full sm:w-auto px-7 py-3 rounded-2xl font-black text-sm sm:text-base text-white shadow-xl active:scale-95 transition-all inline-flex items-center justify-center gap-2',
+              isHero
+                ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-amber-500 hover:from-sky-500 hover:to-amber-400'
+                : 'bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 hover:from-red-500 hover:to-amber-400',
+              isFinished && 'ring-2 ring-amber-300 animate-pulse'
+            )}
+          >
+            <Swords size={19} /> {isFinished ? 'MULAI PERTARUNGAN! [ENTER]' : 'LEWATI & TARUNG! [ENTER]'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FightingGame({ currentStudent, isAdmin, onExit, onFirestoreError }: FightingGameProps) {
   const [screen, setScreen] = useState<'title' | 'select' | 'story' | 'arena' | 'victory' | 'gameover'>('title');
   const [playMode, setPlayMode] = useState<'arcade' | 'online'>('arcade');
+  const [arcadeSubMode, setArcadeSubMode] = useState<ArcadeSubMode>('solo');
   const [storyRoute, setStoryRoute] = useState<StoryRoute>('hero');
   const [selectedChar, setSelectedChar] = useState<FighterId>('scorpio');
   const [selectedStage, setSelectedStage] = useState<StageId>(1);
@@ -4295,8 +4824,16 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   const activeMatchIdRef = useRef<string | null>(null);
   const mySideRef = useRef<'p1' | 'p2'>('p1');
   const playModeRef = useRef<'arcade' | 'online'>('arcade');
+  const arcadeSubModeRef = useRef<ArcadeSubMode>('solo');
   const storyRouteRef = useRef<StoryRoute>('hero');
   const selectedStageRef = useRef<StageId>(1);
+
+  const availableRoster: FighterId[] =
+    playMode === 'online' || arcadeSubMode === 'solo'
+      ? PLAYABLE_IDS
+      : arcadeSubMode === 'hero_story'
+      ? HERO_IDS
+      : MONSTER_IDS;
 
   useEffect(() => {
     activeMatchIdRef.current = activeMatchId;
@@ -4311,14 +4848,28 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   }, [playMode]);
 
   useEffect(() => {
+    arcadeSubModeRef.current = arcadeSubMode;
+  }, [arcadeSubMode]);
+
+  useEffect(() => {
     storyRouteRef.current = storyRoute;
   }, [storyRoute]);
 
-  const selectStoryRoute = useCallback((route: StoryRoute) => {
-    setStoryRoute(route);
-    storyRouteRef.current = route;
-    const preferred = route === 'hero' ? HERO_IDS : MONSTER_IDS;
-    setSelectedChar((prev) => (preferred.includes(prev) ? prev : preferred[0]));
+  const selectArcadeMode = useCallback((mode: ArcadeSubMode) => {
+    setPlayMode('arcade');
+    playModeRef.current = 'arcade';
+    setArcadeSubMode(mode);
+    arcadeSubModeRef.current = mode;
+
+    if (mode === 'hero_story') {
+      setStoryRoute('hero');
+      storyRouteRef.current = 'hero';
+      setSelectedChar((prev) => (HERO_IDS.includes(prev) ? prev : HERO_IDS[0]));
+    } else if (mode === 'monster_story') {
+      setStoryRoute('monster');
+      storyRouteRef.current = 'monster';
+      setSelectedChar((prev) => (MONSTER_IDS.includes(prev) ? prev : MONSTER_IDS[0]));
+    }
   }, []);
 
   useEffect(() => {
@@ -4484,6 +5035,8 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
     eWins: number;
     round: number;
     stageIdx: number;
+    totalStages: number;
+    diffLevel: number;
     stageId: StageId;
     aiCooldown: number;
     mode: 'arcade' | 'online';
@@ -4535,15 +5088,45 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         stageId?: StageId;
       }
     ) => {
-      const campaign = STORY_CAMPAIGNS[storyRouteRef.current];
-      const stageCfg = campaign.stages[stageIndex] || campaign.stages[0];
       const isOnline = options?.mode === 'online';
+      const isSoloTower = !isOnline && arcadeSubModeRef.current === 'solo';
+      const campaign = STORY_CAMPAIGNS[storyRouteRef.current];
+      const totalStages = isOnline ? 1 : isSoloTower ? SOLO_STAGES.length : campaign.stages.length;
+      const diffLevel = isOnline ? 0.5 : stageIndex / Math.max(1, totalStages - 1);
+
+      const soloCfg = SOLO_STAGES[stageIndex] || SOLO_STAGES[0];
+      const storyCfg = campaign.stages[stageIndex] || campaign.stages[0];
+
+      // Prevent mirror match on regular solo ladder stages; pick alternate boss if player is Trojan Rex
+      let opponentId: FighterId = isOnline && options ? options.p2FighterId : isSoloTower ? soloCfg.fighter : storyCfg.fighter;
+      if (!isOnline && isSoloTower && opponentId === playerId) {
+        if (stageIndex === SOLO_STAGES.length - 1) {
+          opponentId = playerId === 'virus_rex' ? 'ultraman_zero' : 'virus_rex';
+        } else {
+          const altIdx = (PLAYABLE_IDS.indexOf(opponentId) + 2) % PLAYABLE_IDS.length;
+          opponentId = PLAYABLE_IDS[altIdx];
+        }
+      }
+
       const side = options?.mySide || 'p1';
       const chosenStageId: StageId =
-        options?.stageId ?? (stageIndex === 0 ? selectedStageRef.current : stageCfg.stage);
+        options?.stageId ?? (stageIndex === 0 ? selectedStageRef.current : isSoloTower ? soloCfg.stage : storyCfg.stage);
       const arenaInfo = ARENAS.find((a) => a.id === chosenStageId) || ARENAS[0];
       const pProf = FIGHTERS[playerId];
-      const eProf = FIGHTERS[isOnline && options ? options.p2FighterId : stageCfg.fighter];
+      const baseOppProf = FIGHTERS[opponentId];
+
+      // Escalate opponent stats smoothly as stage climbs
+      const hpMult = isOnline ? 1 : isSoloTower ? soloCfg.hpMult : 0.94 + diffLevel * 0.42;
+      const powerMult = isOnline ? 1 : isSoloTower ? soloCfg.powerMult : 0.92 + diffLevel * 0.34;
+      const speedMult = isOnline ? 1 : isSoloTower ? soloCfg.speedMult : 0.96 + diffLevel * 0.22;
+      const eProf: FighterProfile = isOnline
+        ? baseOppProf
+        : {
+            ...baseOppProf,
+            maxHp: Math.round(baseOppProf.maxHp * hpMult),
+            power: Number((baseOppProf.power * powerMult).toFixed(2)),
+            speed: Number((baseOppProf.speed * speedMult).toFixed(2)),
+          };
 
       prioritizeArenaBackground(chosenStageId);
       prioritizeFighterSprites(pProf.id);
@@ -4561,6 +5144,12 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         finishHim: false,
       }));
 
+      const stageBannerSub = isOnline
+        ? `${options?.p1Label} VS ${options?.p2Label}`
+        : isSoloTower
+        ? `STAGE ${stageIndex + 1}/${totalStages} (${soloCfg.tierLabel}) · ${arenaInfo.name}`
+        : `${storyCfg.chapterTitle} · ${arenaInfo.name}`;
+
       engineRef.current = {
         player: makeFighterRuntime(pProf, 200, 1, !isOnline || side === 'p1'),
         enemy: makeFighterRuntime(eProf, 600, -1, isOnline && side === 'p2'),
@@ -4569,9 +5158,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         banners: [
           {
             text: `ROUND ${roundN}`,
-            subtext: isOnline
-              ? `${options?.p1Label} VS ${options?.p2Label}`
-              : `${stageCfg.chapterTitle} · ${arenaInfo.name}`,
+            subtext: stageBannerSub,
             color: '#fbbf24',
             x: STAGE_W / 2,
             y: 195,
@@ -4591,8 +5178,10 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         eWins: eW,
         round: roundN,
         stageIdx: stageIndex,
+        totalStages,
+        diffLevel,
         stageId: chosenStageId,
-        aiCooldown: 25,
+        aiCooldown: Math.round(28 - diffLevel * 12),
         mode: isOnline ? 'online' : 'arcade',
         mySide: side,
         p1Label: options?.p1Label || pProf.name,
@@ -4645,28 +5234,53 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   }, [cleanupMatchSubscription]);
 
   const startArcade = useCallback(
-    (charId: FighterId, routeOverride?: StoryRoute) => {
+    (charId: FighterId, subModeOverride?: ArcadeSubMode) => {
       cleanupMatchSubscription();
-      const activeRoute = routeOverride || storyRouteRef.current;
-      setStoryRoute(activeRoute);
-      storyRouteRef.current = activeRoute;
+      const mode = subModeOverride || arcadeSubModeRef.current;
+      setArcadeSubMode(mode);
+      arcadeSubModeRef.current = mode;
+
+      // Enforce faction lock for Hero Route & Monster Route
+      let chosenChar = charId;
+      if (mode === 'hero_story') {
+        setStoryRoute('hero');
+        storyRouteRef.current = 'hero';
+        if (!HERO_IDS.includes(chosenChar)) chosenChar = HERO_IDS[0];
+      } else if (mode === 'monster_story') {
+        setStoryRoute('monster');
+        storyRouteRef.current = 'monster';
+        if (!MONSTER_IDS.includes(chosenChar)) chosenChar = MONSTER_IDS[0];
+      }
+
       setPlayMode('arcade');
-      setSelectedChar(charId);
+      playModeRef.current = 'arcade';
+      setSelectedChar(chosenChar);
       scoreRef.current = 0;
       setScore(0);
       setOnlineOutcomeMsg(null);
       setArcadeStageIdx(0);
-      synthRef.current?.stopBgm();
-      synthRef.current?.playSfx('select');
-      const firstChapter = STORY_CAMPAIGNS[activeRoute].stages[0];
-      if (firstChapter) {
-        prioritizeFighterSprites(charId);
-        prioritizeFighterSprites(firstChapter.fighter);
-        prioritizeArenaBackground(selectedStageRef.current);
+
+      if (mode === 'solo') {
+        initRound(chosenChar, 0, 1, 0, 0);
+        setScreen('arena');
+        if (!muted) synthRef.current?.startBgm();
+      } else {
+        synthRef.current?.stopBgm();
+        synthRef.current?.playSfx('select');
+        const activeRoute: StoryRoute = mode === 'monster_story' ? 'monster' : 'hero';
+        STORY_CAMPAIGNS[activeRoute].stages.forEach((ch) => {
+          preloadRawImage(ch.cutsceneUrl, true);
+        });
+        const firstChapter = STORY_CAMPAIGNS[activeRoute].stages[0];
+        if (firstChapter) {
+          prioritizeFighterSprites(chosenChar);
+          prioritizeFighterSprites(firstChapter.fighter);
+          prioritizeArenaBackground(selectedStageRef.current);
+        }
+        setScreen('story');
       }
-      setScreen('story');
     },
-    [cleanupMatchSubscription]
+    [cleanupMatchSubscription, initRound, muted]
   );
 
   const launchStoryStage = useCallback(
@@ -5566,8 +6180,9 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         setSelectedChar((prev) => {
-          const idx = PLAYABLE_IDS.indexOf(prev);
-          const next = PLAYABLE_IDS[(idx - 1 + PLAYABLE_IDS.length) % PLAYABLE_IDS.length];
+          const curIdx = availableRoster.indexOf(prev);
+          const safeIdx = curIdx >= 0 ? curIdx : 0;
+          const next = availableRoster[(safeIdx - 1 + availableRoster.length) % availableRoster.length];
           synthRef.current?.playSfx('select');
           requestAnimationFrame(() => scrollActiveCard(next));
           return next;
@@ -5575,8 +6190,9 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         setSelectedChar((prev) => {
-          const idx = PLAYABLE_IDS.indexOf(prev);
-          const next = PLAYABLE_IDS[(idx + 1) % PLAYABLE_IDS.length];
+          const curIdx = availableRoster.indexOf(prev);
+          const safeIdx = curIdx >= 0 ? curIdx : 0;
+          const next = availableRoster[(safeIdx + 1) % availableRoster.length];
           synthRef.current?.playSfx('select');
           requestAnimationFrame(() => scrollActiveCard(next));
           return next;
@@ -5594,7 +6210,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
     window.addEventListener('keydown', onSelectKeyDown);
     return () => window.removeEventListener('keydown', onSelectKeyDown);
-  }, [screen, matchStatus, selectedChar, startArcade, startQuickMatchmaking]);
+  }, [screen, matchStatus, selectedChar, availableRoster, startArcade, startQuickMatchmaking]);
 
   // Story Interlude Keyboard Shortcuts: Enter to Fight, Esc to Return
   useEffect(() => {
@@ -5931,40 +6547,59 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               e.facing = p.x >= e.x ? 1 : -1;
             }
 
-            // Arcade Opponent Control Logic when mode === 'arcade'
+            // Escalating Arcade Opponent Logic when mode === 'arcade'
             if (!isOnline) {
               const dist = Math.abs(p.x - e.x);
+              const dLv = st.diffLevel; // 0.0 (Stage 1) -> 1.0 (Final Boss)
               const aiSpeed = e.chillTimer > 0 ? e.profile.speed * 0.48 : e.profile.speed;
               const canMoveE = ['idle', 'walk', 'jump', 'jump_land', 'crouch', 'block'].includes(e.pose);
               if (e.chillTimer > 0) e.chillTimer--;
               if (st.aiCooldown > 0) st.aiCooldown--;
 
               if (canMoveE) {
-                const aggressiveness = 0.55 + st.stageIdx * 0.16;
+                const blockChance = 0.14 + dLv * 0.5;
+                const specialProb = 0.03 + dLv * 0.09;
+                const incomingPlayerProj = st.projectiles.some(
+                  (pr) => pr.owner === 'player' && Math.abs(pr.x - e.x) < 155 && Math.sign(pr.vx) !== e.facing
+                );
+
                 if (e.isBlocking && !e.jumpPending) {
                   e.pose = 'block';
                   e.vx = 0;
-                  if (Math.random() < 0.05) e.isBlocking = false;
+                  if (Math.random() < 0.065 - dLv * 0.025) e.isBlocking = false;
+                } else if (incomingPlayerProj && Math.random() < 0.12 + dLv * 0.42) {
+                  if (dLv >= 0.4 && e.y >= GROUND_Y - 1 && !e.jumpPending && Math.random() < 0.45) {
+                    e.vx = e.facing * 4.2;
+                    e.pose = 'jump';
+                    e.poseTimer = 6;
+                    e.poseDuration = 6;
+                    e.jumpPending = true;
+                    e.wasAirborne = false;
+                    st.aiCooldown = Math.round(28 - dLv * 12);
+                  } else {
+                    e.isBlocking = true;
+                    e.pose = 'block';
+                  }
                 } else if (dist > 110) {
-                  e.vx = e.facing * aiSpeed * 0.85;
+                  e.vx = e.facing * aiSpeed * (0.82 + dLv * 0.24);
                   if (e.y >= GROUND_Y - 1 && !e.jumpPending && e.pose !== 'jump_land') {
                     e.pose = 'walk';
                     e.walkPhase += 0.24;
                   }
-                  if (dist > 250 && st.aiCooldown <= 0 && e.energy >= 30 && Math.random() < 0.06 * aggressiveness) {
+                  if (dist > 220 && st.aiCooldown <= 0 && e.energy >= 30 && Math.random() < specialProb) {
                     e.energy -= 30;
                     e.pose = 'special';
                     e.poseTimer = 24;
                     e.poseDuration = 24;
                     e.hasHitCurrentAttack = true;
-                    st.aiCooldown = 48;
+                    st.aiCooldown = Math.max(18, Math.round(46 - dLv * 24));
                     synthRef.current?.playSfx('fireball');
                     st.projectiles.push({
                       owner: 'enemy',
                       originX: e.x + e.facing * 24,
                       x: e.x + e.facing * 44,
                       y: e.y - 72,
-                      vx: e.facing * 8.5,
+                      vx: e.facing * (8.2 + dLv * 2.4),
                       type: e.profile.projectileType,
                       color: e.profile.projectileColor,
                       core: e.profile.projectileCore,
@@ -5976,46 +6611,57 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   e.vx *= 0.6;
                   if (e.y >= GROUND_Y - 1 && !e.jumpPending && e.pose !== 'jump_land') e.pose = 'idle';
 
-                  if (['punch', 'kick', 'uppercut', 'sweep'].includes(p.pose) && Math.random() < 0.22 * aggressiveness) {
+                  // Higher stages guard aggressively or anti-air jumping players
+                  if (['punch', 'kick', 'uppercut', 'sweep'].includes(p.pose) && Math.random() < blockChance) {
                     e.isBlocking = true;
                     e.pose = 'block';
+                  } else if (p.y < GROUND_Y - 25 && dLv >= 0.45 && st.aiCooldown <= 0 && Math.random() < 0.35 + dLv * 0.35) {
+                    e.pose = 'uppercut';
+                    e.poseTimer = 24;
+                    e.poseDuration = 24;
+                    e.hasHitCurrentAttack = false;
+                    st.aiCooldown = Math.max(16, Math.round(38 - dLv * 20));
+                    synthRef.current?.playSfx('heavy');
                   } else if (st.aiCooldown <= 0) {
                     const roll = Math.random();
-                    if (roll < 0.36) {
+                    const cdScale = Math.round(dLv * 18);
+                    // Mix in sweep more often at higher difficulty when player blocks
+                    const sweepCutoff = p.isBlocking && dLv > 0.35 ? 0.92 : 0.82;
+                    if (roll < 0.32) {
                       e.pose = 'punch';
                       e.poseTimer = 15;
                       e.poseDuration = 15;
                       e.hasHitCurrentAttack = false;
-                      st.aiCooldown = 36 - st.stageIdx * 5;
+                      st.aiCooldown = Math.max(12, 32 - cdScale);
                       synthRef.current?.playSfx('punch');
-                    } else if (roll < 0.68) {
+                    } else if (roll < 0.62) {
                       e.pose = 'kick';
                       e.poseTimer = 21;
                       e.poseDuration = 21;
                       e.hasHitCurrentAttack = false;
-                      st.aiCooldown = 42 - st.stageIdx * 5;
+                      st.aiCooldown = Math.max(14, 36 - cdScale);
                       synthRef.current?.playSfx('kick');
-                    } else if (roll < 0.84) {
+                    } else if (roll < sweepCutoff) {
                       e.pose = 'sweep';
                       e.poseTimer = 22;
                       e.poseDuration = 22;
                       e.hasHitCurrentAttack = false;
-                      st.aiCooldown = 46 - st.stageIdx * 5;
+                      st.aiCooldown = Math.max(15, 40 - cdScale);
                       synthRef.current?.playSfx('kick');
-                    } else if (roll < 0.94 && e.y >= GROUND_Y - 1 && !e.jumpPending) {
+                    } else if (roll < 0.92 && e.y >= GROUND_Y - 1 && !e.jumpPending) {
                       e.vx = -e.facing * 3.5;
                       e.pose = 'jump';
                       e.poseTimer = 6;
                       e.poseDuration = 6;
                       e.jumpPending = true;
                       e.wasAirborne = false;
-                      st.aiCooldown = 35;
+                      st.aiCooldown = Math.max(16, 34 - Math.round(dLv * 14));
                     } else {
                       e.pose = 'uppercut';
                       e.poseTimer = 24;
                       e.poseDuration = 24;
                       e.hasHitCurrentAttack = false;
-                      st.aiCooldown = 50 - st.stageIdx * 6;
+                      st.aiCooldown = Math.max(18, 42 - cdScale);
                       synthRef.current?.playSfx('heavy');
                     }
                   }
@@ -6246,14 +6892,24 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   });
                 }
               } else {
-                const campaign = STORY_CAMPAIGNS[storyRouteRef.current];
+                const isSoloTower = arcadeSubModeRef.current === 'solo';
+                const totalSt = isSoloTower ? SOLO_STAGES.length : STORY_CAMPAIGNS[storyRouteRef.current].stages.length;
                 if (st.pWins >= 2) {
                   const nextStage = st.stageIdx + 1;
-                  if (nextStage < campaign.stages.length) {
-                    synthRef.current?.stopBgm();
+                  if (nextStage < totalSt) {
                     setArcadeStageIdx(nextStage);
-                    setScreen('story');
-                    return;
+                    if (isSoloTower) {
+                      initRound(selectedChar, nextStage, 1, 0, 0);
+                    } else {
+                      const nextCh = STORY_CAMPAIGNS[storyRouteRef.current].stages[nextStage];
+                      if (nextCh) {
+                        prioritizeFighterSprites(nextCh.fighter);
+                        preloadRawImage(nextCh.cutsceneUrl, true);
+                      }
+                      synthRef.current?.stopBgm();
+                      setScreen('story');
+                      return;
+                    }
                   } else {
                     synthRef.current?.stopBgm();
                     saveScoreToDb(scoreRef.current);
@@ -6696,8 +7352,9 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   const selectedProfile = FIGHTERS[selectedChar];
 
   const stepSelectChar = (dir: -1 | 1) => {
-    const idx = PLAYABLE_IDS.indexOf(selectedChar);
-    const next = PLAYABLE_IDS[(idx + dir + PLAYABLE_IDS.length) % PLAYABLE_IDS.length];
+    const curIdx = availableRoster.indexOf(selectedChar);
+    const safeIdx = curIdx >= 0 ? curIdx : 0;
+    const next = availableRoster[(safeIdx + dir + availableRoster.length) % availableRoster.length];
     setSelectedChar(next);
     synthRef.current?.playSfx('select');
     requestAnimationFrame(() => {
@@ -6733,6 +7390,8 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
             {screen === 'arena'
               ? playMode === 'online'
                 ? `ONLINE · ROOM ${activeMatchDoc?.roomCode || ''} · ROUND ${roundNum}`
+                : arcadeSubMode === 'solo'
+                ? `SOLO STAGE ${arcadeStageIdx + 1}/${SOLO_STAGES.length} (${SOLO_STAGES[arcadeStageIdx]?.tierLabel || ''}) · ${(arcadeStageIdx === 0 ? ARENAS.find((a) => a.id === selectedStage)?.name : SOLO_STAGES[arcadeStageIdx]?.stageName) || ''} · R${roundNum}`
                 : `${STORY_CAMPAIGNS[storyRoute].title} · CH ${arcadeStageIdx + 1}/${STORY_CAMPAIGNS[storyRoute].stages.length} · ${(arcadeStageIdx === 0 ? ARENAS.find((a) => a.id === selectedStage)?.name : STORY_CAMPAIGNS[storyRoute].stages[arcadeStageIdx]?.stageName) || ''} · R${roundNum}`
               : screen === 'story'
               ? `${STORY_CAMPAIGNS[storyRoute].title} · CHAPTER ${arcadeStageIdx + 1}/${STORY_CAMPAIGNS[storyRoute].stages.length}`
@@ -6858,26 +7517,35 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   <button
                     onClick={() => {
                       ensureAllGameAssetsLoaded();
-                      selectStoryRoute('hero');
-                      setPlayMode('arcade');
+                      selectArcadeMode('solo');
                       synthRef.current?.playSfx('gong');
                       setScreen('select');
                     }}
-                    className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-amber-500 hover:from-sky-500 hover:to-amber-400 text-white font-black text-sm md:text-base rounded-2xl shadow-xl shadow-blue-600/30 hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto px-5 py-3.5 bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white font-black text-sm rounded-2xl shadow-xl shadow-orange-600/35 hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-2"
                   >
-                    <Swords size={19} /> HERO ROUTE (CERITA)
+                    <Swords size={18} /> SOLO 8 STAGE
                   </button>
                   <button
                     onClick={() => {
                       ensureAllGameAssetsLoaded();
-                      selectStoryRoute('monster');
-                      setPlayMode('arcade');
+                      selectArcadeMode('hero_story');
                       synthRef.current?.playSfx('gong');
                       setScreen('select');
                     }}
-                    className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-red-700 via-rose-600 to-orange-500 hover:from-red-600 hover:to-orange-400 text-white font-black text-sm md:text-base rounded-2xl shadow-xl shadow-red-600/35 hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto px-5 py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-black text-sm rounded-2xl shadow-xl shadow-blue-600/30 hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-2"
                   >
-                    <Flame size={19} /> MONSTER ROUTE (CERITA)
+                    <BookOpen size={18} /> HERO ROUTE
+                  </button>
+                  <button
+                    onClick={() => {
+                      ensureAllGameAssetsLoaded();
+                      selectArcadeMode('monster_story');
+                      synthRef.current?.playSfx('gong');
+                      setScreen('select');
+                    }}
+                    className="w-full sm:w-auto px-5 py-3.5 bg-gradient-to-r from-rose-700 via-red-600 to-purple-700 hover:from-rose-600 hover:to-purple-600 text-white font-black text-sm rounded-2xl shadow-xl shadow-rose-600/35 hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-2"
+                  >
+                    <Flame size={18} /> MONSTER ROUTE
                   </button>
                   <button
                     onClick={() => {
@@ -6888,9 +7556,9 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                       synthRef.current?.playSfx('gong');
                       setScreen('select');
                     }}
-                    className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black text-sm md:text-base rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto px-5 py-3.5 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-2"
                   >
-                    <Globe size={19} /> MULTIPLAYER ONLINE
+                    <Globe size={18} /> ONLINE DUEL
                   </button>
                 </div>
               </div>
@@ -6901,39 +7569,79 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         {screen === 'select' && (
           <div className="max-w-5xl w-full space-y-3">
             {/* Mode Switch Header */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-2">
               <div>
                 <h2 className="text-xl md:text-2xl font-black text-amber-400 uppercase tracking-tight">
                   Pilih Pejuang &amp; Arena
                 </h2>
                 <p className="text-xs text-slate-400 font-semibold">
-                  Gunakan <b className="text-amber-300">[←] [→]</b> untuk memilih karakter, pilih rute cerita / arena, lalu tekan <b className="text-amber-300">[ENTER]</b>!
+                  {playMode === 'online'
+                    ? 'Online Duel: Semua 13 karakter tersedia untuk bertarung real-time!'
+                    : arcadeSubMode === 'solo'
+                    ? 'Solo Mode: Semua 13 karakter terbuka · Taklukkan 8 Stage yang makin menantang!'
+                    : arcadeSubMode === 'hero_story'
+                    ? 'Hero Route: Khusus memilih karakter faksi Hero (9 Pejuang) · 4 Chapter Cerita!'
+                    : 'Monster Route: Khusus memilih karakter faksi Monster (4 Monster) · 4 Chapter Cerita!'}
                 </p>
               </div>
-              <div className="inline-flex bg-slate-900 border border-slate-700 rounded-xl p-1 gap-1 shrink-0">
+              <div className="inline-flex flex-wrap justify-center bg-slate-900 border border-slate-700 rounded-xl p-1 gap-1 shrink-0">
                 <button
                   onClick={() => {
                     if (matchStatus === 'waiting') cancelMatchmaking();
-                    setPlayMode('arcade');
+                    selectArcadeMode('solo');
+                    synthRef.current?.playSfx('select');
                   }}
                   className={cn(
-                    'px-3.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all',
-                    playMode === 'arcade' ? 'bg-amber-500 text-slate-950' : 'text-slate-300 hover:text-white'
+                    'px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all',
+                    playMode === 'arcade' && arcadeSubMode === 'solo'
+                      ? 'bg-amber-500 text-slate-950'
+                      : 'text-slate-300 hover:text-white'
                   )}
                 >
-                  <BookOpen size={14} /> Arcade Story
+                  <Swords size={14} /> Solo (8 Stage)
+                </button>
+                <button
+                  onClick={() => {
+                    if (matchStatus === 'waiting') cancelMatchmaking();
+                    selectArcadeMode('hero_story');
+                    synthRef.current?.playSfx('select');
+                  }}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all',
+                    playMode === 'arcade' && arcadeSubMode === 'hero_story'
+                      ? 'bg-sky-500 text-slate-950'
+                      : 'text-slate-300 hover:text-white'
+                  )}
+                >
+                  <BookOpen size={14} /> Hero Route
+                </button>
+                <button
+                  onClick={() => {
+                    if (matchStatus === 'waiting') cancelMatchmaking();
+                    selectArcadeMode('monster_story');
+                    synthRef.current?.playSfx('select');
+                  }}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all',
+                    playMode === 'arcade' && arcadeSubMode === 'monster_story'
+                      ? 'bg-rose-500 text-white'
+                      : 'text-slate-300 hover:text-white'
+                  )}
+                >
+                  <Flame size={14} /> Monster Route
                 </button>
                 <button
                   onClick={() => {
                     setPlayMode('online');
                     setMatchError(null);
+                    synthRef.current?.playSfx('select');
                   }}
                   className={cn(
-                    'px-3.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all',
+                    'px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all',
                     playMode === 'online' ? 'bg-emerald-500 text-slate-950' : 'text-slate-300 hover:text-white'
                   )}
                 >
-                  <Users size={14} /> Multiplayer Online
+                  <Users size={14} /> Online
                 </button>
               </div>
             </div>
@@ -6944,57 +7652,74 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               </p>
             )}
 
-            {/* Arcade Story Route Picker (Hero Route vs Monster Route) */}
-            {playMode === 'arcade' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                {(['hero', 'monster'] as StoryRoute[]).map((rKey) => {
-                  const camp = STORY_CAMPAIGNS[rKey];
-                  const activeRoute = storyRoute === rKey;
-                  const isHero = rKey === 'hero';
-                  return (
-                    <button
-                      key={rKey}
-                      type="button"
-                      onClick={() => {
-                        selectStoryRoute(rKey);
-                        synthRef.current?.playSfx('select');
-                      }}
+            {/* Mode Info Banner: Solo 8-Stage Ladder OR Active Story Route Briefing */}
+            {playMode === 'arcade' && arcadeSubMode === 'solo' && (
+              <div className="bg-slate-900/95 border border-amber-500/35 rounded-2xl p-3 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-amber-400">
+                    Tangga Turnamen Solo · 8 Stage (Semua 13 Karakter Terbuka)
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-300">
+                    HP, Kekuatan &amp; Kecerdasan Lawan Meningkat Tiap Stage!
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {SOLO_STAGES.map((stItem, idx) => (
+                    <span
+                      key={stItem.stageName}
                       className={cn(
-                        'text-left rounded-2xl p-3 border-2 transition-all bg-slate-900/95',
-                        activeRoute
-                          ? isHero
-                            ? 'border-sky-400 shadow-lg shadow-sky-500/20 bg-gradient-to-br from-slate-900 to-sky-950/50'
-                            : 'border-rose-500 shadow-lg shadow-rose-500/20 bg-gradient-to-br from-slate-900 to-rose-950/50'
-                          : 'border-slate-800 hover:border-slate-600 opacity-80 hover:opacity-100'
+                        'text-[10px] font-black px-2 py-0.5 rounded border',
+                        idx === SOLO_STAGES.length - 1
+                          ? 'bg-rose-950/80 border-rose-500/60 text-rose-300'
+                          : idx >= 4
+                          ? 'bg-orange-950/60 border-orange-500/40 text-orange-200'
+                          : 'bg-slate-950 border-slate-700 text-slate-200'
                       )}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={cn('text-sm font-black tracking-wide', isHero ? 'text-sky-300' : 'text-rose-400')}>
-                          {camp.title} · {camp.subtitle}
-                        </span>
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-black/50 border border-slate-700 text-amber-300">
-                          {camp.badge}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-300 mt-1 line-clamp-2">{camp.intro}</p>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                        {camp.stages.map((stItem, idx) => (
-                          <span
-                            key={stItem.fighter}
-                            className="text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-950/85 border border-slate-700/80 text-slate-200"
-                          >
-                            {idx === camp.stages.length - 1 ? 'BOSS: ' : `${idx + 1}. `}
-                            {FIGHTERS[stItem.fighter].name}
-                          </span>
-                        ))}
-                      </div>
-                    </button>
-                  );
-                })}
+                      S{idx + 1} · {stItem.tierLabel}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Single Horizontal Side-by-Side KTP-Portrait Strip */}
+            {playMode === 'arcade' && arcadeSubMode !== 'solo' && (() => {
+              const camp = STORY_CAMPAIGNS[storyRoute];
+              const isHero = storyRoute === 'hero';
+              return (
+                <div
+                  className={cn(
+                    'rounded-2xl p-3 border-2 bg-slate-900/95',
+                    isHero
+                      ? 'border-sky-400/70 bg-gradient-to-br from-slate-900 to-sky-950/45'
+                      : 'border-rose-500/70 bg-gradient-to-br from-slate-900 to-rose-950/45'
+                  )}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className={cn('text-sm font-black tracking-wide', isHero ? 'text-sky-300' : 'text-rose-400')}>
+                      {camp.title} · {camp.subtitle}
+                    </span>
+                    <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-black/50 border border-slate-700 text-amber-300">
+                      {isHero ? 'Hanya Karakter Hero (9)' : 'Hanya Karakter Monster (4)'} · {camp.badge}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 mt-1">{camp.intro}</p>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    {camp.stages.map((stItem, idx) => (
+                      <span
+                        key={stItem.fighter}
+                        className="text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-950/85 border border-slate-700/80 text-slate-200"
+                      >
+                        {idx === camp.stages.length - 1 ? 'BOSS: ' : `${idx + 1}. `}
+                        {FIGHTERS[stItem.fighter].name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Filtered Horizontal Side-by-Side KTP-Portrait Strip */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => stepSelectChar(-1)}
@@ -7005,7 +7730,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               </button>
 
               <div className="flex-1 flex flex-nowrap items-stretch gap-2.5 overflow-x-auto py-1.5 px-1 custom-scrollbar scroll-smooth">
-                {PLAYABLE_IDS.map((fid) => {
+                {availableRoster.map((fid) => {
                   const f = FIGHTERS[fid];
                   const isSel = selectedChar === fid;
                   return (
@@ -7087,12 +7812,17 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   onClick={() => startArcade(selectedChar)}
                   className={cn(
                     'px-6 py-3.5 text-white font-black rounded-xl shadow-lg shrink-0 active:scale-95 transition-all flex items-center gap-2',
-                    storyRoute === 'hero'
+                    arcadeSubMode === 'solo'
+                      ? 'bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500'
+                      : storyRoute === 'hero'
                       ? 'bg-gradient-to-r from-sky-600 to-amber-500 hover:from-sky-500 hover:to-amber-400'
-                      : 'bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 hover:to-orange-400'
+                      : 'bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500'
                   )}
                 >
-                  <BookOpen size={18} /> MULAI {STORY_CAMPAIGNS[storyRoute].title}! [ENTER]
+                  {arcadeSubMode === 'solo' ? <Swords size={18} /> : <BookOpen size={18} />}
+                  {arcadeSubMode === 'solo'
+                    ? 'MULAI SOLO 8 STAGE! [ENTER]'
+                    : `MULAI ${STORY_CAMPAIGNS[storyRoute].title}! [ENTER]`}
                 </button>
               )}
             </div>
@@ -7264,88 +7994,27 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           const oppProfile = FIGHTERS[chapter.fighter];
           const chapterStageId: StageId = arcadeStageIdx === 0 ? selectedStage : chapter.stage;
           const arenaInfo = ARENAS.find((a) => a.id === chapterStageId) || ARENAS[0];
-          const isHero = storyRoute === 'hero';
           return (
-            <div className="max-w-4xl w-full bg-slate-900/95 border-2 border-amber-500/45 rounded-3xl overflow-hidden shadow-2xl">
-              <div className="relative h-36 sm:h-44 overflow-hidden">
-                <img
-                  src={arenaInfo.url}
-                  alt={arenaInfo.name}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-black/30" />
-                <div className="absolute inset-x-0 bottom-0 p-4 flex flex-wrap items-end justify-between gap-2">
-                  <div>
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-1.5 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase border mb-1',
-                        isHero
-                          ? 'bg-sky-500/25 text-sky-200 border-sky-400/50'
-                          : 'bg-rose-500/25 text-rose-200 border-rose-400/50'
-                      )}
-                    >
-                      <BookOpen size={12} /> {campaign.title} · {arcadeStageIdx + 1}/{campaign.stages.length}
-                    </span>
-                    <h2 className="text-xl sm:text-2xl font-black text-amber-300 drop-shadow">
-                      {chapter.chapterTitle}
-                    </h2>
-                  </div>
-                  <span className="text-xs font-black px-3 py-1 rounded-xl bg-black/70 border border-slate-700 text-slate-200">
-                    Arena: {arenaInfo.name}
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-5 sm:p-6 space-y-5">
-                <div className="grid grid-cols-3 items-center gap-3 bg-slate-950/80 border border-slate-800 rounded-2xl p-3 sm:p-4">
-                  <div className="flex flex-col items-center text-center">
-                    <FighterPortrait id={selectedChar} active={true} variant="front" />
-                    <span className="text-xs sm:text-sm font-black text-emerald-300 mt-1">{selectedProfile.name}</span>
-                    <span className="text-[10px] font-bold text-slate-400">{selectedProfile.codename}</span>
-                  </div>
-                  <div className="flex flex-col items-center justify-center text-center">
-                    <span className="text-3xl sm:text-5xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-amber-300 to-red-600">
-                      VS
-                    </span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">
-                      Best of 3 Rounds
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center text-center">
-                    <FighterPortrait id={oppProfile.id} active={true} variant="front" />
-                    <span className="text-xs sm:text-sm font-black text-rose-400 mt-1">{oppProfile.name}</span>
-                    <span className="text-[10px] font-bold text-slate-400">{oppProfile.codename}</span>
-                  </div>
-                </div>
-
-                <div className="bg-slate-950/75 border border-slate-800 rounded-2xl p-4">
-                  <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
-                    {chapter.storyText}
-                  </p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <button
-                    onClick={() => setScreen('select')}
-                    className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-black text-slate-200"
-                  >
-                    Kembali Pilih Karakter
-                  </button>
-                  <button
-                    onClick={() => launchStoryStage()}
-                    className={cn(
-                      'w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-sm sm:text-base text-white shadow-xl active:scale-95 transition-all inline-flex items-center justify-center gap-2',
-                      isHero
-                        ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-amber-500 hover:from-sky-500 hover:to-amber-400'
-                        : 'bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 hover:from-red-500 hover:to-amber-400'
-                    )}
-                  >
-                    <Swords size={19} /> MULAI PERTARUNGAN! [ENTER]
-                  </button>
-                </div>
-              </div>
-            </div>
+            <StoryCutsceneVideoPlayer
+              route={storyRoute}
+              chapter={chapter}
+              chapterIdx={arcadeStageIdx}
+              totalChapters={campaign.stages.length}
+              arenaInfo={arenaInfo}
+              playerProfile={selectedProfile}
+              oppProfile={oppProfile}
+              muted={muted}
+              onToggleMute={() => {
+                setMuted((m) => {
+                  const next = !m;
+                  if (synthRef.current) synthRef.current.setMuted(next);
+                  return next;
+                });
+              }}
+              onTriggerCue={(cue) => synthRef.current?.playSfx(cue)}
+              onBackToSelect={() => setScreen('select')}
+              onStartFight={() => launchStoryStage()}
+            />
           );
         })()}
 
@@ -7572,15 +8241,24 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
             <div className="space-y-1">
               {!onlineOutcomeMsg && (
                 <span className="inline-block text-[10px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                  {STORY_CAMPAIGNS[storyRoute].title} TAMAT
+                  {arcadeSubMode === 'solo'
+                    ? 'SOLO 8 STAGE TAMAT'
+                    : `${STORY_CAMPAIGNS[storyRoute].title} TAMAT`}
                 </span>
               )}
               <h2 className="text-2xl sm:text-3xl font-black text-amber-400">
-                {onlineOutcomeMsg ? 'VICTORY ONLINE!' : STORY_CAMPAIGNS[storyRoute].endingTitle}
+                {onlineOutcomeMsg
+                  ? 'VICTORY ONLINE!'
+                  : arcadeSubMode === 'solo'
+                  ? 'JUARA TURNAMEN INFORMATIKA KOMBAT!'
+                  : STORY_CAMPAIGNS[storyRoute].endingTitle}
               </h2>
             </div>
             <p className="text-sm text-slate-300 leading-relaxed">
-              {onlineOutcomeMsg || STORY_CAMPAIGNS[storyRoute].endingText}
+              {onlineOutcomeMsg ||
+                (arcadeSubMode === 'solo'
+                  ? 'Luar biasa! Kamu berhasil menaklukkan seluruh 8 Stage Solo dengan tingkat kesulitan tertinggi termasuk Final Boss di Gerbang Kuantum!'
+                  : STORY_CAMPAIGNS[storyRoute].endingText)}
             </p>
             <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
               <p className="text-xs font-bold text-slate-400 uppercase">Total Skor</p>
@@ -7617,7 +8295,9 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
             <h2 className="text-3xl font-black text-rose-500">KALAH DI ARENA</h2>
             <p className="text-sm text-slate-300">
               {onlineOutcomeMsg ||
-                `Kamu gugur di ${STORY_CAMPAIGNS[storyRoute].title} Chapter ${arcadeStageIdx + 1}/${STORY_CAMPAIGNS[storyRoute].stages.length} dengan skor ${score} poin. Gunakan kombinasi Block + Uppercut!`}
+                (arcadeSubMode === 'solo'
+                  ? `Kamu gugur di Solo Stage ${arcadeStageIdx + 1}/${SOLO_STAGES.length} (${SOLO_STAGES[arcadeStageIdx]?.tierLabel || ''}) dengan skor ${score} poin. Gunakan kombinasi Block + Uppercut!`
+                  : `Kamu gugur di ${STORY_CAMPAIGNS[storyRoute].title} Chapter ${arcadeStageIdx + 1}/${STORY_CAMPAIGNS[storyRoute].stages.length} dengan skor ${score} poin. Gunakan kombinasi Block + Uppercut!`)}
             </p>
             <div className="flex gap-3">
               <button
@@ -7625,13 +8305,21 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   setMatchStatus('idle');
                   if (playMode === 'online') {
                     setScreen('select');
+                  } else if (arcadeSubMode === 'solo') {
+                    initRound(selectedChar, arcadeStageIdx, 1, 0, 0);
+                    setScreen('arena');
+                    if (!muted) synthRef.current?.startBgm();
                   } else {
                     launchStoryStage(arcadeStageIdx);
                   }
                 }}
                 className="flex-1 py-3 bg-gradient-to-r from-red-600 to-orange-600 font-black rounded-xl text-sm"
               >
-                {playMode === 'online' ? 'Cari Lawan Lagi' : 'Coba Ulang Chapter'}
+                {playMode === 'online'
+                  ? 'Cari Lawan Lagi'
+                  : arcadeSubMode === 'solo'
+                  ? 'Coba Ulang Stage'
+                  : 'Coba Ulang Chapter'}
               </button>
               <button
                 onClick={() => {
