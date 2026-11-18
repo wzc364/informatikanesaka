@@ -261,22 +261,22 @@ import mechaMouseWalkSheetUrl from '../assets/images/mecha_mouse_walk_sheet_1794
 import mechaMouseJumpSheetUrl from '../assets/images/mecha_mouse_jump_sheet_1794909480929.jpg';
 import keyTitanWalkSheetUrl from '../assets/images/key_titan_walk_sheet_1794909485311.jpg';
 import keyTitanJumpSheetUrl from '../assets/images/key_titan_jump_sheet_1794909486365.jpg';
-import kamenKabutoIdleUrl from '../assets/images/kamen_kabuto_idle_1794971247349.jpg';
-import kamenKabutoPunchWindupUrl from '../assets/images/kamen_kabuto_punch_windup_1794971293204.jpg';
-import kamenKabutoPunchUrl from '../assets/images/kamen_kabuto_punch_1794971293237.jpg';
-import kamenKabutoKickChamberUrl from '../assets/images/kamen_kabuto_kick_chamber_1794971294892.jpg';
-import kamenKabutoKickUrl from '../assets/images/kamen_kabuto_kick_1794971295517.jpg';
-import kamenKabutoUppercutCoilUrl from '../assets/images/kamen_kabuto_uppercut_coil_1794971297151.jpg';
-import kamenKabutoUppercutUrl from '../assets/images/kamen_kabuto_uppercut_1794971297817.jpg';
-import kamenKabutoCrouchUrl from '../assets/images/kamen_kabuto_crouch_1794971299572.jpg';
-import kamenKabutoSpecialChargeUrl from '../assets/images/kamen_kabuto_special_charge_1794971299633.jpg';
-import kamenKabutoSpecialUrl from '../assets/images/kamen_kabuto_special_1794971300242.jpg';
-import kamenKabutoBlockUrl from '../assets/images/kamen_kabuto_block_1794971300229.jpg';
-import kamenKabutoHitUrl from '../assets/images/kamen_kabuto_hit_1794971302239.jpg';
-import kamenKabutoFallUrl from '../assets/images/kamen_kabuto_fall_1794971302634.jpg';
-import kamenKabutoVictoryUrl from '../assets/images/kamen_kabuto_victory_1794971303964.jpg';
-import kamenKabutoWalkSheetUrl from '../assets/images/kamen_kabuto_walk_sheet_1794971305136.jpg';
-import kamenKabutoJumpSheetUrl from '../assets/images/kamen_kabuto_jump_sheet_1794971306688.jpg';
+import kamenKabutoIdleUrl from '../assets/images/kamen_kabuto_idle_v2_1794975275137.jpg';
+import kamenKabutoPunchWindupUrl from '../assets/images/kamen_kabuto_punch_v2_1794975298638.jpg';
+import kamenKabutoPunchUrl from '../assets/images/kamen_kabuto_punch_v2_1794975298638.jpg';
+import kamenKabutoKickChamberUrl from '../assets/images/kamen_kabuto_kick_v2_1794975298073.jpg';
+import kamenKabutoKickUrl from '../assets/images/kamen_kabuto_kick_v2_1794975298073.jpg';
+import kamenKabutoUppercutCoilUrl from '../assets/images/kamen_kabuto_uppercut_v2_1794975297981.jpg';
+import kamenKabutoUppercutUrl from '../assets/images/kamen_kabuto_uppercut_v2_1794975297981.jpg';
+import kamenKabutoCrouchUrl from '../assets/images/kamen_kabuto_crouch_v2_1794975278246.jpg';
+import kamenKabutoSpecialChargeUrl from '../assets/images/kamen_kabuto_special_v2_1794975297591.jpg';
+import kamenKabutoSpecialUrl from '../assets/images/kamen_kabuto_special_v2_1794975297591.jpg';
+import kamenKabutoBlockUrl from '../assets/images/kamen_kabuto_idle_v2_1794975275137.jpg';
+import kamenKabutoHitUrl from '../assets/images/kamen_kabuto_crouch_v2_1794975278246.jpg';
+import kamenKabutoFallUrl from '../assets/images/kamen_kabuto_crouch_v2_1794975278246.jpg';
+import kamenKabutoVictoryUrl from '../assets/images/kamen_kabuto_idle_v2_1794975275137.jpg';
+import kamenKabutoWalkSheetUrl from '../assets/images/kamen_kabuto_walk_sheet_v3_1794977723677.jpg';
+import kamenKabutoJumpSheetUrl from '../assets/images/kamen_kabuto_jump_sheet_v3_1794977724470.jpg';
 import fatKamenKabuto1Url from '../assets/images/fatality_kamen_kabuto_1_1794971308205.jpg';
 import fatKamenKabuto2Url from '../assets/images/fatality_kamen_kabuto_2_1794971308725.jpg';
 import fatKamenKabuto3Url from '../assets/images/fatality_kamen_kabuto_3_1794971309177.jpg';
@@ -2038,6 +2038,61 @@ function ensureArenaBackgroundsLoaded() {
 }
 
 function applyChromaKeyBuffer(d: Uint8ClampedArray, w: number, h: number, chroma: ChromaMode) {
+  const visited = new Uint8Array(w * h);
+  const queue: number[] = [];
+
+  const isDarkBg = (x: number, y: number) => {
+    const idx = (y * w + x) * 4;
+    const r = d[idx];
+    const g = d[idx + 1];
+    const b = d[idx + 2];
+    if (chroma === 'green') {
+      const maxRB = r > b ? r : b;
+      return (g - maxRB >= 22 && g > r * 1.12 && g > b * 1.12) || (r < 25 && g < 25 && b < 25);
+    } else if (chroma === 'magenta') {
+      const minRB = r < b ? r : b;
+      return (minRB - g >= 25 && r > g * 1.12 && b > g * 1.12) || (r < 25 && g < 25 && b < 25);
+    } else {
+      return r < 25 && g < 25 && b < 25;
+    }
+  };
+
+  for (let x = 0; x < w; x++) {
+    if (isDarkBg(x, 0)) { visited[x] = 1; queue.push(x); }
+    if (isDarkBg(x, h - 1)) { const pos = (h - 1) * w + x; if (!visited[pos]) { visited[pos] = 1; queue.push(pos); } }
+  }
+  for (let y = 0; y < h; y++) {
+    if (isDarkBg(0, y)) { const pos = y * w; if (!visited[pos]) { visited[pos] = 1; queue.push(pos); } }
+    if (isDarkBg(w - 1, y)) { const pos = y * w + (w - 1); if (!visited[pos]) { visited[pos] = 1; queue.push(pos); } }
+  }
+
+  let head = 0;
+  while (head < queue.length) {
+    const pos = queue[head++];
+    const x = pos % w;
+    const y = Math.floor(pos / w);
+    const idx = (y * w + x) * 4;
+    d[idx + 3] = 0;
+
+    const neighbors = [
+      { nx: x + 1, ny: y },
+      { nx: x - 1, ny: y },
+      { nx: x, ny: y + 1 },
+      { nx: x, ny: y - 1 },
+    ];
+    for (const { nx, ny } of neighbors) {
+      if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+        const npos = ny * w + nx;
+        if (!visited[npos]) {
+          visited[npos] = 1;
+          if (isDarkBg(nx, ny)) {
+            queue.push(npos);
+          }
+        }
+      }
+    }
+  }
+
   let minX = w;
   let minY = h;
   let maxX = -1;
@@ -2047,36 +2102,6 @@ function applyChromaKeyBuffer(d: Uint8ClampedArray, w: number, h: number, chroma
     const rowOffset = y * w;
     for (let x = 0; x < w; x++) {
       const idx = (rowOffset + x) * 4;
-      const r = d[idx];
-      const g = d[idx + 1];
-      const b = d[idx + 2];
-
-      if (chroma === 'green') {
-        const maxRB = r > b ? r : b;
-        const greenExcess = g - maxRB;
-
-        if (greenExcess >= 32 && g > r * 1.16 && g > b * 1.16) {
-          d[idx + 3] = 0;
-        } else if (greenExcess >= 12 && g > r * 1.05 && g > b * 1.05) {
-          const alphaRatio = 1 - (greenExcess - 12) / 20;
-          d[idx + 3] = Math.max(0, Math.min(255, (255 * alphaRatio + 0.5) | 0));
-          d[idx + 1] = g < maxRB ? g : maxRB;
-        }
-      } else {
-        const minRB = r < b ? r : b;
-        const magentaExcess = minRB - g;
-
-        if (magentaExcess >= 34 && r > g * 1.18 && b > g * 1.18) {
-          d[idx + 3] = 0;
-        } else if (magentaExcess >= 12 && r > g * 1.07 && b > g * 1.07) {
-          const alphaRatio = 1 - (magentaExcess - 12) / 22;
-          d[idx + 3] = Math.max(0, Math.min(255, (255 * alphaRatio + 0.5) | 0));
-          const cap = g + 10;
-          if (r > cap) d[idx] = cap;
-          if (b > cap) d[idx + 2] = cap;
-        }
-      }
-
       if (d[idx + 3] > 28) {
         if (x < minX) minX = x;
         if (x > maxX) maxX = x;
