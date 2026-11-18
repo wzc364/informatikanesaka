@@ -272,11 +272,11 @@ import kamenKabutoCrouchUrl from '../assets/images/kamen_kabuto_crouch_v2_179497
 import kamenKabutoSpecialChargeUrl from '../assets/images/kamen_kabuto_special_v3_1794978053473.jpg';
 import kamenKabutoSpecialUrl from '../assets/images/kamen_kabuto_special_v3_1794978053473.jpg';
 import kamenKabutoBlockUrl from '../assets/images/kamen_kabuto_idle_v2_1794975275137.jpg';
-import kamenKabutoHitUrl from '../assets/images/kamen_kabuto_hit_v3_1794978054411.jpg';
+import kamenKabutoHitUrl from '../assets/images/kamen_kabuto_hit_v4_1794989443875.jpg';
 import kamenKabutoFallUrl from '../assets/images/kamen_kabuto_fall_v3_1794988891016.jpg';
 import kamenKabutoVictoryUrl from '../assets/images/kamen_kabuto_idle_v2_1794975275137.jpg';
-import kamenKabutoWalkSheetUrl from '../assets/images/kamen_kabuto_walk_sheet_v5_1794988890104.jpg';
-import kamenKabutoJumpSheetUrl from '../assets/images/kamen_kabuto_jump_sheet_v5_1794988891365.jpg';
+import kamenKabutoWalkSheetUrl from '../assets/images/kamen_kabuto_walk_sheet_v6_1794989421434.jpg';
+import kamenKabutoJumpSheetUrl from '../assets/images/kamen_kabuto_jump_sheet_v6_1794989433141.jpg';
 import fatKamenKabuto1Url from '../assets/images/fatality_kamen_kabuto_1_1794971308205.jpg';
 import fatKamenKabuto2Url from '../assets/images/fatality_kamen_kabuto_2_1794971308725.jpg';
 import fatKamenKabuto3Url from '../assets/images/fatality_kamen_kabuto_3_1794971309177.jpg';
@@ -1618,10 +1618,10 @@ const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
       kick: kamenKabutoKickUrl,
       uppercut: kamenKabutoUppercutUrl,
       crouch: kamenKabutoCrouchUrl,
-      hit: kamenKabutoHitUrl,
+      hit: '/assets/aistudio/6_7b36a6d9.png',
       special: kamenKabutoSpecialUrl,
       block: kamenKabutoBlockUrl,
-      fall: kamenKabutoFallUrl,
+      fall: '/assets/aistudio/5_979c1a05.png',
       victory: kamenKabutoVictoryUrl,
     },
     actionFrames: {
@@ -2494,19 +2494,48 @@ function prioritizeFighterSprites(fid: FighterId) {
     });
   });
 
-  loadAndSliceSpriteSheetUrl(cfg.walkSheet, cfg.chroma, 'walk', true).then((frames) => {
-    if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
-      FIGHTER_LOCOMOTION_CACHE[fid]!.walk = frames;
-    }
-    markAssetDone(`sheet:walk:${cfg.chroma}:${cfg.walkSheet}`);
-  });
+  if (fid === 'kamen_kabuto') {
+    const walkUrls = [
+      '/assets/aistudio/1_6caaf9c1.png',
+      '/assets/aistudio/2_38bb351e.png',
+      '/assets/aistudio/3_a727976c.png',
+      '/assets/aistudio/4_903488d0.png',
+    ];
+    Promise.all(walkUrls.map((u) => loadAndKeySpriteUrl(u, cfg.chroma, true))).then((canvases) => {
+      const valid = canvases.filter((c): c is HTMLCanvasElement => Boolean(c));
+      if (valid.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
+        FIGHTER_LOCOMOTION_CACHE[fid]!.walk = valid;
+      }
+      walkUrls.forEach((u) => markSpriteDone(cfg.chroma, u));
+    });
 
-  loadAndSliceSpriteSheetUrl(cfg.jumpSheet, cfg.chroma, 'jump', true).then((frames) => {
-    if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
-      FIGHTER_LOCOMOTION_CACHE[fid]!.jump = frames;
-    }
-    markAssetDone(`sheet:jump:${cfg.chroma}:${cfg.jumpSheet}`);
-  });
+    const jumpUrls = [
+      '/assets/aistudio/7_ac6cdce2.png',
+      '/assets/aistudio/8_9865339e.png',
+      '/assets/aistudio/9_ee3c3ccf.png',
+    ];
+    Promise.all(jumpUrls.map((u) => loadAndKeySpriteUrl(u, cfg.chroma, true))).then((canvases) => {
+      const valid = canvases.filter((c): c is HTMLCanvasElement => Boolean(c));
+      if (valid.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
+        FIGHTER_LOCOMOTION_CACHE[fid]!.jump = valid;
+      }
+      jumpUrls.forEach((u) => markSpriteDone(cfg.chroma, u));
+    });
+  } else {
+    loadAndSliceSpriteSheetUrl(cfg.walkSheet, cfg.chroma, 'walk', true).then((frames) => {
+      if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
+        FIGHTER_LOCOMOTION_CACHE[fid]!.walk = frames;
+      }
+      markAssetDone(`sheet:walk:${cfg.chroma}:${cfg.walkSheet}`);
+    });
+
+    loadAndSliceSpriteSheetUrl(cfg.jumpSheet, cfg.chroma, 'jump', true).then((frames) => {
+      if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
+        FIGHTER_LOCOMOTION_CACHE[fid]!.jump = frames;
+      }
+      markAssetDone(`sheet:jump:${cfg.chroma}:${cfg.jumpSheet}`);
+    });
+  }
 
   if (cfg.actionFrames) {
     if (!FIGHTER_ACTION_FRAMES_CACHE[fid]) FIGHTER_ACTION_FRAMES_CACHE[fid] = {};
@@ -2581,27 +2610,62 @@ function ensureAllGameAssetsLoaded() {
       else standardQueue.push(task);
     });
 
-    const walkKey = `sheet:walk:${cfg.chroma}:${cfg.walkSheet}`;
-    uniqueKeys.add(walkKey);
-    standardQueue.push(() =>
-      loadAndSliceSpriteSheetUrl(cfg.walkSheet, cfg.chroma, 'walk', false).then((frames) => {
-        if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
-          FIGHTER_LOCOMOTION_CACHE[fid]!.walk = frames;
-        }
-        markAssetDone(walkKey);
-      })
-    );
+    if (fid === 'kamen_kabuto') {
+      const walkUrls = [
+        '/assets/aistudio/1_6caaf9c1.png',
+        '/assets/aistudio/2_38bb351e.png',
+        '/assets/aistudio/3_a727976c.png',
+        '/assets/aistudio/4_903488d0.png',
+      ];
+      walkUrls.forEach((u) => uniqueKeys.add(`${cfg.chroma}:${u}`));
+      standardQueue.push(() =>
+        Promise.all(walkUrls.map((u) => loadAndKeySpriteUrl(u, cfg.chroma, false))).then((canvases) => {
+          const valid = canvases.filter((c): c is HTMLCanvasElement => Boolean(c));
+          if (valid.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
+            FIGHTER_LOCOMOTION_CACHE[fid]!.walk = valid;
+          }
+          walkUrls.forEach((u) => markSpriteDone(cfg.chroma, u));
+        })
+      );
 
-    const jumpKey = `sheet:jump:${cfg.chroma}:${cfg.jumpSheet}`;
-    uniqueKeys.add(jumpKey);
-    standardQueue.push(() =>
-      loadAndSliceSpriteSheetUrl(cfg.jumpSheet, cfg.chroma, 'jump', false).then((frames) => {
-        if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
-          FIGHTER_LOCOMOTION_CACHE[fid]!.jump = frames;
-        }
-        markAssetDone(jumpKey);
-      })
-    );
+      const jumpUrls = [
+        '/assets/aistudio/7_ac6cdce2.png',
+        '/assets/aistudio/8_9865339e.png',
+        '/assets/aistudio/9_ee3c3ccf.png',
+      ];
+      jumpUrls.forEach((u) => uniqueKeys.add(`${cfg.chroma}:${u}`));
+      standardQueue.push(() =>
+        Promise.all(jumpUrls.map((u) => loadAndKeySpriteUrl(u, cfg.chroma, false))).then((canvases) => {
+          const valid = canvases.filter((c): c is HTMLCanvasElement => Boolean(c));
+          if (valid.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
+            FIGHTER_LOCOMOTION_CACHE[fid]!.jump = valid;
+          }
+          jumpUrls.forEach((u) => markSpriteDone(cfg.chroma, u));
+        })
+      );
+    } else {
+      const walkKey = `sheet:walk:${cfg.chroma}:${cfg.walkSheet}`;
+      uniqueKeys.add(walkKey);
+      standardQueue.push(() =>
+        loadAndSliceSpriteSheetUrl(cfg.walkSheet, cfg.chroma, 'walk', false).then((frames) => {
+          if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
+            FIGHTER_LOCOMOTION_CACHE[fid]!.walk = frames;
+          }
+          markAssetDone(walkKey);
+        })
+      );
+
+      const jumpKey = `sheet:jump:${cfg.chroma}:${cfg.jumpSheet}`;
+      uniqueKeys.add(jumpKey);
+      standardQueue.push(() =>
+        loadAndSliceSpriteSheetUrl(cfg.jumpSheet, cfg.chroma, 'jump', false).then((frames) => {
+          if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
+            FIGHTER_LOCOMOTION_CACHE[fid]!.jump = frames;
+          }
+          markAssetDone(jumpKey);
+        })
+      );
+    }
 
     if (cfg.actionFrames) {
       if (!FIGHTER_ACTION_FRAMES_CACHE[fid]) FIGHTER_ACTION_FRAMES_CACHE[fid] = {};
@@ -3188,15 +3252,23 @@ function drawHumanFighter(
     if (f.pose === 'walk' && walkFrames && walkFrames.length > 0 && !isPortrait) {
       const wIdx = Math.floor(((Math.abs(f.walkPhase) * 1.45) % walkFrames.length + walkFrames.length) % walkFrames.length);
       locomotionSprite = walkFrames[wIdx] || null;
-    } else if ((f.pose === 'jump' || f.pose === 'jump_land') && jumpFrames && jumpFrames.length >= 6 && !isPortrait) {
-      if (f.pose === 'jump_land') {
-        jumpFrameIdx = prog < 0.5 ? 4 : 5;
-      } else if (f.jumpPending || (f.y >= GROUND_Y - 3 && f.vy >= -0.5)) {
-        // 2 pre-jump frames while coiling & pushing off
-        jumpFrameIdx = prog < 0.5 ? 0 : 1;
+    } else if ((f.pose === 'jump' || f.pose === 'jump_land') && jumpFrames && jumpFrames.length >= 3 && !isPortrait) {
+      if (jumpFrames.length === 3) {
+        if (f.pose === 'jump_land') {
+          jumpFrameIdx = 2;
+        } else if (f.jumpPending || (f.y >= GROUND_Y - 3 && f.vy >= -0.5)) {
+          jumpFrameIdx = 0;
+        } else {
+          jumpFrameIdx = f.vy < -1.5 ? 1 : 2;
+        }
       } else {
-        // 2 airborne jump frames (rising vs apex/descent)
-        jumpFrameIdx = f.vy < -1.5 ? 2 : 3;
+        if (f.pose === 'jump_land') {
+          jumpFrameIdx = prog < 0.5 ? 4 : 5;
+        } else if (f.jumpPending || (f.y >= GROUND_Y - 3 && f.vy >= -0.5)) {
+          jumpFrameIdx = prog < 0.5 ? 0 : 1;
+        } else {
+          jumpFrameIdx = f.vy < -1.5 ? 2 : 3;
+        }
       }
       locomotionSprite = jumpFrames[jumpFrameIdx] || null;
     }
