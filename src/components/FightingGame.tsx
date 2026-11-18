@@ -1118,6 +1118,11 @@ interface FighterRuntime {
   jumpPending?: boolean;
   wasAirborne?: boolean;
   isLocalPlayer?: boolean;
+  remoteTargetX?: number;
+  remoteTargetY?: number;
+  remoteTargetVx?: number;
+  remoteTargetVy?: number;
+  remoteTargetPose?: PoseState;
 }
 
 type CombatActionName = 'punch' | 'kick' | 'uppercut' | 'sweep' | 'special' | 'fatality' | 'jump';
@@ -1125,6 +1130,8 @@ type CombatActionName = 'punch' | 'kick' | 'uppercut' | 'sweep' | 'special' | 'f
 interface OnlinePlayerSnap {
   x: number;
   y: number;
+  vx?: number;
+  vy?: number;
   facing: 1 | -1;
   pose: PoseState;
   poseTimer: number;
@@ -1133,6 +1140,7 @@ interface OnlinePlayerSnap {
   isCrouching: boolean;
   attackNonce: number;
   attackAction?: CombatActionName;
+  seq?: number;
 }
 
 interface OnlineMatchDoc {
@@ -1157,6 +1165,7 @@ interface OnlineMatchDoc {
     p2Hp: number;
     p2Energy: number;
     p2ChillTimer: number;
+    p2HitSeq?: number;
     p2PoseOverride?: PoseState;
     p2PoseTimer?: number;
     timer: number;
@@ -1169,6 +1178,7 @@ interface OnlineMatchDoc {
     fatalityVariantId?: string | null;
     fatalityVariantName?: string | null;
     projectiles: {
+      id?: number;
       owner: 'player' | 'enemy';
       originX: number;
       x: number;
@@ -1188,6 +1198,8 @@ interface OnlineMatchDoc {
 }
 
 interface Projectile {
+  id?: number;
+  createdAtMs?: number;
   owner: 'player' | 'enemy';
   originX: number;
   x: number;
@@ -4959,12 +4971,20 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   const localAttackNonceRef = useRef(0);
   const pendingLocalAttackRef = useRef<CombatActionName | undefined>(undefined);
   const lastRemoteP2AttackNonceRef = useRef(0);
+  const lastAppliedP1AttackNonceRef = useRef(0);
+  const lastAppliedP2SeqRef = useRef(-1);
+  const p2SeqCounterRef = useRef(1);
+  const p2HitSeqCounterRef = useRef(0);
+  const lastAppliedP2HitSeqRef = useRef(0);
   const lastAppliedHostSeqRef = useRef(-1);
   const lastAppliedBannerIdRef = useRef(0);
   const bannerIdCounterRef = useRef(1);
   const hostSeqCounterRef = useRef(1);
+  const projIdCounterRef = useRef(1);
   const lastNetworkSendMsRef = useRef(0);
   const lastSentSnapHashRef = useRef('');
+  const isSyncWritingRef = useRef(false);
+  const syncWriteStartMsRef = useRef(0);
 
   useEffect(() => {
     synthRef.current = new MkAudioSynth();
@@ -5070,6 +5090,11 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
     jumpPending: false,
     wasAirborne: false,
     isLocalPlayer,
+    remoteTargetX: x,
+    remoteTargetY: GROUND_Y,
+    remoteTargetVx: 0,
+    remoteTargetVy: 0,
+    remoteTargetPose: 'idle',
   });
 
   const initRound = useCallback(
@@ -5135,6 +5160,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       prewarmFatalityImages(eProf.id);
 
       keysRef.current = {};
+      pendingLocalAttackRef.current = undefined;
       setPausedSafe(false);
 
       setHudState((prev) => ({
@@ -5326,11 +5352,18 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       setOnlineOutcomeMsg(null);
       setArcadeStageIdx(0);
       lastRemoteP2AttackNonceRef.current = 0;
+      lastAppliedP1AttackNonceRef.current = 0;
+      lastAppliedP2SeqRef.current = -1;
+      p2SeqCounterRef.current = 1;
+      p2HitSeqCounterRef.current = 0;
+      lastAppliedP2HitSeqRef.current = 0;
       lastAppliedHostSeqRef.current = -1;
       lastAppliedBannerIdRef.current = 0;
       localAttackNonceRef.current = 0;
       pendingLocalAttackRef.current = undefined;
       lastSentSnapHashRef.current = '';
+      isSyncWritingRef.current = false;
+      syncWriteStartMsRef.current = 0;
 
       initRound(m.p1Fighter, 0, 1, 0, 0, {
         mode: 'online',
@@ -5394,170 +5427,189 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           if (st && st.mode === 'online' && data.status === 'active') {
             if (side === 'p1' && data.p2Snap) {
               const p2s = data.p2Snap;
-              const e = st.enemy;
-              // Smoothly steer remote P2 position
-              const dx = p2s.x - e.x;
-              if (Math.abs(dx) > 45) e.x = p2s.x;
-              else e.x += dx * 0.45;
-              const dy = p2s.y - e.y;
-              if (Math.abs(dy) > 40) e.y = p2s.y;
-              else e.y += dy * 0.5;
-              e.facing = p2s.facing;
-              e.isBlocking = p2s.isBlocking;
-              e.isCrouching = p2s.isCrouching;
+              const incomingSeq = p2s.seq ?? 0;
+              // Ignore local Firestore echoes and out-of-order stale snapshots
+              if (incomingSeq > lastAppliedP2SeqRef.current) {
+                lastAppliedP2SeqRef.current = incomingSeq;
+                const e = st.enemy;
+                if (!['hit', 'knockdown', 'ko', 'dizzy'].includes(e.pose)) {
+                  e.remoteTargetX = p2s.x;
+                  e.remoteTargetY = p2s.y;
+                  e.remoteTargetVx = p2s.vx ?? 0;
+                  e.remoteTargetVy = p2s.vy ?? 0;
+                  if (Math.abs(p2s.x - e.x) > 125) e.x = p2s.x;
+                  if (Math.abs(p2s.y - e.y) > 95) e.y = p2s.y;
+                }
+                e.isBlocking = p2s.isBlocking;
+                e.isCrouching = p2s.isCrouching;
 
-              if (p2s.attackNonce > lastRemoteP2AttackNonceRef.current) {
-                lastRemoteP2AttackNonceRef.current = p2s.attackNonce;
-                const act = p2s.attackAction;
-                if (st.phase === 'finish_him' && (act === 'fatality' || act === 'special' || act === 'uppercut')) {
-                  // Remote P2 triggers fatality on P1!
-                  const chosen = pickRandomFatalityVariant(e.profile.id);
-                  st.phase = 'fatality_cinematic';
-                  st.phaseTimer = 180;
-                  st.fatalityDark = 0.92;
-                  st.shake = 24;
-                  st.player.vx = 0;
-                  e.vx = 0;
-                  st.fatalityCine = {
-                    frame: 0,
-                    total: 180,
-                    attackerSide: 'enemy',
-                    fighterId: e.profile.id,
-                    variantId: chosen.id,
-                    fatalityName: chosen.name,
-                    imageUrl: chosen.imageUrl,
-                    accent: chosen.accent,
-                    attackerX: e.x,
-                    targetX: st.player.x,
-                    targetY: st.player.y,
-                  };
-                  e.pose = 'special';
-                  e.poseTimer = 70;
-                  e.poseDuration = 70;
-                  st.player.pose = 'dizzy';
-                  setHudState((prev) => ({
-                    ...prev,
-                    fatalityActive: true,
-                    fatalityVisual: {
+                if (['idle', 'walk', 'crouch', 'block', 'jump', 'jump_land'].includes(p2s.pose)) {
+                  e.remoteTargetPose = p2s.pose;
+                }
+
+                if (p2s.attackNonce > lastRemoteP2AttackNonceRef.current) {
+                  lastRemoteP2AttackNonceRef.current = p2s.attackNonce;
+                  // Face toward P1 cleanly on strike
+                  if (Math.abs(st.player.x - e.x) >= 6) {
+                    e.facing = st.player.x >= e.x ? 1 : -1;
+                  } else {
+                    e.facing = p2s.facing;
+                  }
+                  const act = p2s.attackAction;
+                  if (st.phase === 'finish_him' && (act === 'fatality' || act === 'special' || act === 'uppercut')) {
+                    // Remote P2 triggers fatality on P1!
+                    const chosen = pickRandomFatalityVariant(e.profile.id);
+                    st.phase = 'fatality_cinematic';
+                    st.phaseTimer = 180;
+                    st.fatalityDark = 0.92;
+                    st.shake = 24;
+                    st.player.vx = 0;
+                    e.vx = 0;
+                    st.fatalityCine = {
+                      frame: 0,
+                      total: 180,
+                      attackerSide: 'enemy',
                       fighterId: e.profile.id,
-                      attackerName: e.profile.name,
+                      variantId: chosen.id,
                       fatalityName: chosen.name,
                       imageUrl: chosen.imageUrl,
                       accent: chosen.accent,
-                      key: Date.now(),
-                    },
-                  }));
-                  synthRef.current?.playSfx('fatality');
-                } else if (act && st.phase === 'fight') {
-                  const hasSeq = Boolean(FIGHTER_SPRITE_CONFIG[e.profile.id]?.actionFrames);
-                  if (act === 'jump' && e.y >= GROUND_Y - 1 && !e.jumpPending) {
-                    e.pose = 'jump';
-                    e.poseTimer = 6;
-                    e.poseDuration = 6;
-                    e.jumpPending = true;
-                    e.wasAirborne = false;
-                  } else if (act === 'special' && e.energy >= 30) {
-                    e.energy -= 30;
+                      attackerX: e.x,
+                      targetX: st.player.x,
+                      targetY: st.player.y,
+                    };
                     e.pose = 'special';
-                    e.poseTimer = hasSeq ? 28 : 24;
-                    e.poseDuration = e.poseTimer;
-                    e.hasHitCurrentAttack = true;
-                    synthRef.current?.playSfx('fireball');
-                    st.projectiles.push({
-                      owner: 'enemy',
-                      originX: e.x + e.facing * 24,
-                      x: e.x + e.facing * 44,
-                      y: e.y - 72,
-                      vx: e.facing * 9.8,
-                      type: e.profile.projectileType,
-                      color: e.profile.projectileColor,
-                      core: e.profile.projectileCore,
-                      damage: Math.round(16 * e.profile.power),
-                      chill: e.profile.projectileType === 'ice',
-                      pull: e.profile.id === 'scorpio',
-                      life: 85,
-                    });
-                  } else if (act === 'fatality' && e.energy >= 100) {
-                    e.energy = 0;
-                    if (st.player.hp <= 45) {
-                      const chosen = pickRandomFatalityVariant(e.profile.id);
-                      st.player.hp = 0;
-                      st.player.vx = 0;
-                      e.vx = 0;
-                      st.eWins = Math.min(2, st.eWins + 1);
-                      setEnemyWins(st.eWins);
-                      st.phase = 'fatality_cinematic';
-                      st.phaseTimer = 180;
-                      st.fatalityDark = 0.92;
-                      st.shake = 24;
-                      st.fatalityCine = {
-                        frame: 0,
-                        total: 180,
-                        attackerSide: 'enemy',
+                    e.poseTimer = 70;
+                    e.poseDuration = 70;
+                    st.player.pose = 'dizzy';
+                    setHudState((prev) => ({
+                      ...prev,
+                      fatalityActive: true,
+                      fatalityVisual: {
                         fighterId: e.profile.id,
-                        variantId: chosen.id,
+                        attackerName: e.profile.name,
                         fatalityName: chosen.name,
                         imageUrl: chosen.imageUrl,
                         accent: chosen.accent,
-                        attackerX: e.x,
-                        targetX: st.player.x,
-                        targetY: st.player.y,
-                      };
+                        key: Date.now(),
+                      },
+                    }));
+                    synthRef.current?.playSfx('fatality');
+                  } else if (act && st.phase === 'fight') {
+                    const hasSeq = Boolean(FIGHTER_SPRITE_CONFIG[e.profile.id]?.actionFrames);
+                    if (act === 'jump' && e.y >= GROUND_Y - 3 && !e.jumpPending) {
+                      e.pose = 'jump';
+                      e.poseTimer = 6;
+                      e.poseDuration = 6;
+                      e.jumpPending = true;
+                      e.wasAirborne = false;
+                    } else if (act === 'special' && e.energy >= 30) {
+                      e.energy -= 30;
                       e.pose = 'special';
-                      e.poseTimer = 70;
-                      e.poseDuration = 70;
-                      setHudState((prev) => ({
-                        ...prev,
-                        fatalityActive: true,
-                        fatalityVisual: {
-                          fighterId: e.profile.id,
-                          attackerName: e.profile.name,
-                          fatalityName: chosen.name,
-                          imageUrl: chosen.imageUrl,
-                          accent: chosen.accent,
-                          key: Date.now(),
-                        },
-                      }));
-                      synthRef.current?.playSfx('fatality');
-                    } else {
-                      e.pose = 'uppercut';
-                      e.poseTimer = 32;
-                      e.poseDuration = 32;
-                      e.hasHitCurrentAttack = false;
-                      st.shake = 12;
-                      synthRef.current?.playSfx('heavy');
+                      e.poseTimer = hasSeq ? 28 : 24;
+                      e.poseDuration = e.poseTimer;
+                      e.hasHitCurrentAttack = true;
+                      synthRef.current?.playSfx('fireball');
                       st.projectiles.push({
+                        id: projIdCounterRef.current++,
                         owner: 'enemy',
                         originX: e.x + e.facing * 24,
                         x: e.x + e.facing * 44,
                         y: e.y - 72,
-                        vx: e.facing * 11.5,
+                        vx: e.facing * 9.8,
                         type: e.profile.projectileType,
-                        color: '#ef4444',
-                        core: '#fef08a',
-                        damage: 38,
-                        life: 80,
+                        color: e.profile.projectileColor,
+                        core: e.profile.projectileCore,
+                        damage: Math.round(16 * e.profile.power),
+                        chill: e.profile.projectileType === 'ice',
+                        pull: e.profile.id === 'scorpio',
+                        life: 85,
                       });
+                    } else if (act === 'fatality' && e.energy >= 100) {
+                      e.energy = 0;
+                      if (st.player.hp <= 45) {
+                        const chosen = pickRandomFatalityVariant(e.profile.id);
+                        st.player.hp = 0;
+                        st.player.vx = 0;
+                        e.vx = 0;
+                        st.eWins = Math.min(2, st.eWins + 1);
+                        setEnemyWins(st.eWins);
+                        st.phase = 'fatality_cinematic';
+                        st.phaseTimer = 180;
+                        st.fatalityDark = 0.92;
+                        st.shake = 24;
+                        st.fatalityCine = {
+                          frame: 0,
+                          total: 180,
+                          attackerSide: 'enemy',
+                          fighterId: e.profile.id,
+                          variantId: chosen.id,
+                          fatalityName: chosen.name,
+                          imageUrl: chosen.imageUrl,
+                          accent: chosen.accent,
+                          attackerX: e.x,
+                          targetX: st.player.x,
+                          targetY: st.player.y,
+                        };
+                        e.pose = 'special';
+                        e.poseTimer = 70;
+                        e.poseDuration = 70;
+                        setHudState((prev) => ({
+                          ...prev,
+                          fatalityActive: true,
+                          fatalityVisual: {
+                            fighterId: e.profile.id,
+                            attackerName: e.profile.name,
+                            fatalityName: chosen.name,
+                            imageUrl: chosen.imageUrl,
+                            accent: chosen.accent,
+                            key: Date.now(),
+                          },
+                        }));
+                        synthRef.current?.playSfx('fatality');
+                      } else {
+                        e.pose = 'uppercut';
+                        e.poseTimer = 32;
+                        e.poseDuration = 32;
+                        e.hasHitCurrentAttack = false;
+                        st.shake = 12;
+                        synthRef.current?.playSfx('heavy');
+                        st.projectiles.push({
+                          id: projIdCounterRef.current++,
+                          owner: 'enemy',
+                          originX: e.x + e.facing * 24,
+                          x: e.x + e.facing * 44,
+                          y: e.y - 72,
+                          vx: e.facing * 11.5,
+                          type: e.profile.projectileType,
+                          color: '#ef4444',
+                          core: '#fef08a',
+                          damage: 38,
+                          life: 80,
+                        });
+                      }
+                    } else if (['punch', 'kick', 'uppercut', 'sweep'].includes(act)) {
+                      e.pose = e.y < GROUND_Y - 5 ? 'jump_kick' : (act as PoseState);
+                      e.poseTimer =
+                        act === 'uppercut'
+                          ? hasSeq ? 26 : 24
+                          : act === 'sweep'
+                          ? hasSeq ? 24 : 22
+                          : act === 'kick'
+                          ? hasSeq ? 24 : 20
+                          : hasSeq ? 20 : 14;
+                      e.poseDuration = e.poseTimer;
+                      e.hasHitCurrentAttack = false;
+                      synthRef.current?.playSfx(act === 'uppercut' ? 'heavy' : act === 'punch' ? 'punch' : 'kick');
                     }
-                  } else if (['punch', 'kick', 'uppercut', 'sweep'].includes(act)) {
-                    e.pose = e.y < GROUND_Y - 5 ? 'jump_kick' : (act as PoseState);
-                    e.poseTimer =
-                      act === 'uppercut'
-                        ? hasSeq ? 26 : 24
-                        : act === 'sweep'
-                        ? hasSeq ? 24 : 22
-                        : act === 'kick'
-                        ? hasSeq ? 24 : 20
-                        : hasSeq ? 20 : 14;
-                    e.poseDuration = e.poseTimer;
-                    e.hasHitCurrentAttack = false;
-                    synthRef.current?.playSfx(act === 'uppercut' ? 'heavy' : act === 'punch' ? 'punch' : 'kick');
                   }
-                }
-              } else if (['idle', 'walk', 'crouch', 'block', 'jump', 'jump_land'].includes(p2s.pose) && !['hit', 'knockdown', 'ko', 'dizzy'].includes(e.pose)) {
-                if (e.poseTimer <= 0) {
+                } else if (
+                  ['idle', 'walk', 'crouch', 'block'].includes(p2s.pose) &&
+                  !['hit', 'knockdown', 'ko', 'dizzy', 'victory'].includes(e.pose) &&
+                  e.poseTimer <= 0 &&
+                  e.y >= GROUND_Y - 4
+                ) {
                   e.pose = p2s.pose;
-                  if (p2s.pose === 'walk') e.walkPhase += 0.28;
                 }
               }
             } else if (side === 'p2' && data.hostSync && data.hostSync.seq > lastAppliedHostSeqRef.current) {
@@ -5577,28 +5629,80 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                 return;
               }
 
-              // Reconcile P1 (enemy on left)
+              // Smoothly Reconcile Remote P1 (No bouncy vy bug, no poseTimer rewind flicker!)
               const p1r = st.player;
-              const dx = hs.p1.x - p1r.x;
-              if (Math.abs(dx) > 45) p1r.x = hs.p1.x;
-              else p1r.x += dx * 0.55;
-              p1r.vy = hs.p1.y - p1r.y;
-              p1r.y = hs.p1.y;
-              p1r.facing = hs.p1.facing;
+              const p2r = st.enemy;
+              p1r.remoteTargetX = hs.p1.x;
+              p1r.remoteTargetY = hs.p1.y;
+              p1r.remoteTargetVx = hs.p1.vx ?? 0;
+              p1r.remoteTargetVy = hs.p1.vy ?? 0;
+              if (Math.abs(hs.p1.x - p1r.x) > 125) p1r.x = hs.p1.x;
+              if (Math.abs(hs.p1.y - p1r.y) > 95) p1r.y = hs.p1.y;
+
+              if (Math.abs(p2r.x - p1r.x) >= 6) {
+                p1r.facing = p2r.x >= p1r.x ? 1 : -1;
+              } else {
+                p1r.facing = hs.p1.facing;
+              }
               p1r.hp = hs.p1.hp;
               p1r.energy = hs.p1.energy;
               p1r.chillTimer = hs.p1.chillTimer;
               p1r.isBlocking = hs.p1.isBlocking;
               p1r.isCrouching = hs.p1.isCrouching;
-              if (p1r.pose !== hs.p1.pose && ['punch', 'kick', 'uppercut', 'sweep', 'special', 'jump_kick'].includes(hs.p1.pose)) {
-                synthRef.current?.playSfx(hs.p1.pose === 'special' ? 'fireball' : hs.p1.pose === 'uppercut' ? 'heavy' : hs.p1.pose === 'punch' ? 'punch' : 'kick');
-              }
-              p1r.pose = hs.p1.pose;
-              p1r.poseTimer = hs.p1.poseTimer;
-              p1r.poseDuration = hs.p1.poseDuration;
 
-              // Reconcile P2 authoritative HP/Energy/Hit states
-              const p2r = st.enemy;
+              if (['idle', 'walk', 'crouch', 'block', 'jump', 'jump_land'].includes(hs.p1.pose)) {
+                p1r.remoteTargetPose = hs.p1.pose;
+              }
+
+              if (hs.p1.attackNonce > lastAppliedP1AttackNonceRef.current) {
+                lastAppliedP1AttackNonceRef.current = hs.p1.attackNonce;
+                const act = hs.p1.attackAction;
+                if (act === 'jump' && p1r.y >= GROUND_Y - 3) {
+                  p1r.pose = 'jump';
+                  p1r.poseTimer = 6;
+                  p1r.poseDuration = 6;
+                } else if (act && ['punch', 'kick', 'uppercut', 'sweep', 'special', 'fatality'].includes(act)) {
+                  const hasSeq = Boolean(FIGHTER_SPRITE_CONFIG[p1r.profile.id]?.actionFrames);
+                  const mappedPose: PoseState =
+                    p1r.y < GROUND_Y - 5 && act !== 'special'
+                      ? 'jump_kick'
+                      : act === 'fatality'
+                      ? 'uppercut'
+                      : (act as PoseState);
+                  p1r.pose = mappedPose;
+                  p1r.poseDuration =
+                    hs.p1.poseDuration > 0
+                      ? hs.p1.poseDuration
+                      : mappedPose === 'special'
+                      ? hasSeq ? 28 : 24
+                      : mappedPose === 'uppercut'
+                      ? hasSeq ? 26 : 24
+                      : mappedPose === 'sweep'
+                      ? hasSeq ? 24 : 22
+                      : mappedPose === 'kick' || mappedPose === 'jump_kick'
+                      ? hasSeq ? 24 : 20
+                      : hasSeq ? 20 : 14;
+                  p1r.poseTimer = p1r.poseDuration;
+                  synthRef.current?.playSfx(
+                    mappedPose === 'special' ? 'fireball' : mappedPose === 'uppercut' ? 'heavy' : mappedPose === 'punch' ? 'punch' : 'kick'
+                  );
+                }
+              } else if (['hit', 'knockdown', 'ko', 'dizzy', 'victory'].includes(hs.p1.pose)) {
+                if (p1r.pose !== hs.p1.pose) {
+                  p1r.pose = hs.p1.pose;
+                  p1r.poseTimer = Math.max(8, hs.p1.poseTimer || 18);
+                  p1r.poseDuration = Math.max(p1r.poseTimer, hs.p1.poseDuration || 18);
+                }
+              } else if (
+                ['idle', 'walk', 'crouch', 'block'].includes(hs.p1.pose) &&
+                !['hit', 'knockdown', 'ko', 'dizzy', 'victory'].includes(p1r.pose) &&
+                p1r.poseTimer <= 0 &&
+                p1r.y >= GROUND_Y - 4
+              ) {
+                p1r.pose = hs.p1.pose;
+              }
+
+              // Reconcile P2 authoritative HP/Energy/Hit states cleanly once per hit event
               if (hs.p2Hp < p2r.hp) {
                 synthRef.current?.playSfx('punch');
                 st.shake = 6;
@@ -5606,9 +5710,22 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               p2r.hp = hs.p2Hp;
               p2r.energy = hs.p2Energy;
               p2r.chillTimer = hs.p2ChillTimer;
-              if (hs.p2PoseOverride && ['hit', 'knockdown', 'ko', 'dizzy', 'victory'].includes(hs.p2PoseOverride)) {
+              const incomingHitSeq = hs.p2HitSeq ?? 0;
+              if (
+                hs.p2PoseOverride &&
+                ['hit', 'knockdown', 'ko', 'dizzy', 'victory'].includes(hs.p2PoseOverride) &&
+                (incomingHitSeq > lastAppliedP2HitSeqRef.current ||
+                  (['ko', 'dizzy', 'victory'].includes(hs.p2PoseOverride) && p2r.pose !== hs.p2PoseOverride))
+              ) {
+                lastAppliedP2HitSeqRef.current = Math.max(lastAppliedP2HitSeqRef.current, incomingHitSeq);
                 p2r.pose = hs.p2PoseOverride;
-                if (hs.p2PoseTimer !== undefined) p2r.poseTimer = hs.p2PoseTimer;
+                if (hs.p2PoseTimer !== undefined) {
+                  p2r.poseTimer = hs.p2PoseTimer;
+                  p2r.poseDuration = Math.max(hs.p2PoseTimer, 18);
+                }
+                if (hs.p2PoseOverride === 'knockdown') {
+                  p2r.vy = -10;
+                }
               }
 
               st.timer = hs.timer;
@@ -5658,7 +5775,48 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               setPlayerWins(hs.p1Wins);
               setEnemyWins(hs.p2Wins);
 
-              st.projectiles = (hs.projectiles || []).map((pr) => ({ ...pr }));
+              // Smooth projectile reconciliation (never wipe P2's newly launched fireball before host echo!)
+              const nowPerf = performance.now();
+              const hostProjs = hs.projectiles || [];
+              const mergedProjs: Projectile[] = [];
+              const usedLocalIdx = new Set<number>();
+
+              hostProjs.forEach((hp) => {
+                let matchIdx = -1;
+                if (hp.id !== undefined) {
+                  matchIdx = st.projectiles.findIndex((lp, idx) => !usedLocalIdx.has(idx) && lp.id === hp.id);
+                }
+                if (matchIdx < 0) {
+                  matchIdx = st.projectiles.findIndex(
+                    (lp, idx) =>
+                      !usedLocalIdx.has(idx) &&
+                      lp.owner === hp.owner &&
+                      Math.abs(lp.originX - hp.originX) < 35 &&
+                      Math.abs(lp.x - hp.x) < 120
+                  );
+                }
+                if (matchIdx >= 0) {
+                  usedLocalIdx.add(matchIdx);
+                  const existing = st.projectiles[matchIdx];
+                  const nextX = Math.abs(hp.x - existing.x) > 75 ? hp.x : existing.x + (hp.x - existing.x) * 0.45;
+                  mergedProjs.push({ ...hp, x: nextX });
+                } else {
+                  mergedProjs.push({ ...hp });
+                }
+              });
+
+              st.projectiles.forEach((lp, idx) => {
+                if (
+                  !usedLocalIdx.has(idx) &&
+                  lp.owner === 'enemy' &&
+                  lp.createdAtMs !== undefined &&
+                  nowPerf - lp.createdAtMs < 450 &&
+                  lp.life > 0
+                ) {
+                  mergedProjs.push(lp);
+                }
+              });
+              st.projectiles = mergedProjs;
 
               if (hs.bannerEvent && hs.bannerEvent.id > lastAppliedBannerIdRef.current) {
                 lastAppliedBannerIdRef.current = hs.bannerEvent.id;
@@ -5998,17 +6156,19 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       const p = isP2Local ? st.enemy : st.player;
       const opp = isP2Local ? st.player : st.enemy;
       const myRoleSide: 'player' | 'enemy' = isP2Local ? 'enemy' : 'player';
-
-      // Notify network for P2 immediate strike relay
-      if (isP2Local) {
-        localAttackNonceRef.current += 1;
-        pendingLocalAttackRef.current = action;
-      }
+      const emitOnlineAction = (act: CombatActionName) => {
+        if (st.mode === 'online') {
+          localAttackNonceRef.current += 1;
+          pendingLocalAttackRef.current = act;
+        }
+      };
 
       if (st.phase === 'finish_him' && (action === 'fatality' || action === 'special' || action === 'uppercut')) {
+        emitOnlineAction(action);
         if (!isP2Local) {
           launchFatalityCinematic(st, 'player');
         } else {
+          if (Math.abs(opp.x - p.x) >= 6) p.facing = opp.x >= p.x ? 1 : -1;
           // Optimistically animate on P2 while host confirms
           p.pose = 'special';
           p.poseTimer = 60;
@@ -6023,11 +6183,13 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
       if (action === 'jump') {
         if (p.y >= GROUND_Y - 1 && !p.jumpPending && p.pose !== 'jump') {
+          if (Math.abs(opp.x - p.x) >= 6) p.facing = opp.x >= p.x ? 1 : -1;
           p.pose = 'jump';
           p.poseTimer = 6;
           p.poseDuration = 6;
           p.jumpPending = true;
           p.wasAirborne = false;
+          emitOnlineAction('jump');
         }
         return;
       }
@@ -6035,9 +6197,15 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       if (['punch', 'kick', 'uppercut', 'sweep', 'special', 'jump_kick'].includes(p.pose)) return;
       p.jumpPending = false;
 
+      // Always face opponent right before committing to an attack
+      if (Math.abs(opp.x - p.x) >= 6) {
+        p.facing = opp.x >= p.x ? 1 : -1;
+      }
+
       const hasSeq = Boolean(FIGHTER_SPRITE_CONFIG[p.profile.id]?.actionFrames);
 
       if (p.y < GROUND_Y - 5) {
+        emitOnlineAction(action);
         p.pose = 'jump_kick';
         p.poseTimer = hasSeq ? 24 : 22;
         p.poseDuration = p.poseTimer;
@@ -6048,6 +6216,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
       if (action === 'special') {
         if (p.energy < 30) return;
+        emitOnlineAction('special');
         p.energy -= 30;
         p.pose = 'special';
         p.poseTimer = hasSeq ? 28 : 24;
@@ -6065,6 +6234,8 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           });
         }
         st.projectiles.push({
+          id: projIdCounterRef.current++,
+          createdAtMs: performance.now(),
           owner: myRoleSide,
           originX: p.x + p.facing * 24,
           x: p.x + p.facing * 44,
@@ -6083,6 +6254,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
       if (action === 'fatality') {
         if (p.energy < 100) return;
+        emitOnlineAction('fatality');
         p.energy = 0;
 
         // If opponent is low enough on HP (<= 45), execute a direct full FATALITY cinematic!
@@ -6118,6 +6290,8 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           scale: 1.15,
         });
         st.projectiles.push({
+          id: projIdCounterRef.current++,
+          createdAtMs: performance.now(),
           owner: myRoleSide,
           originX: p.x + p.facing * 24,
           x: p.x + p.facing * 44,
@@ -6132,6 +6306,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         return;
       }
 
+      emitOnlineAction(action);
       if (action === 'uppercut') {
         p.pose = 'uppercut';
         p.poseTimer = hasSeq ? 26 : 24;
@@ -6404,6 +6579,16 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         synthRef.current?.playSfx(hitType === 'kick' ? 'kick' : 'punch');
       }
 
+      if (st.mode === 'online' && defender === st.enemy) {
+        p2HitSeqCounterRef.current += 1;
+      }
+      if (st.mode === 'online' && !defender.isLocalPlayer) {
+        defender.remoteTargetX = defender.x;
+        defender.remoteTargetY = defender.y;
+        defender.remoteTargetVx = defender.vx;
+        defender.remoteTargetVy = defender.vy;
+      }
+
       spawnHitParticles(defender.x, defender.y - 68, '#fde047', hitType === 'uppercut' ? 22 : 13);
       spawnHitParticles(defender.x, defender.y - 68, '#ef4444', 6);
     };
@@ -6512,6 +6697,15 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           }
         }
 
+        // Always face each other cleanly on both Left and Right sides (Arcade + Online P1 + Online P2)
+        if (st.phase === 'fight' || st.phase === 'finish_him') {
+          if (Math.abs(e.x - p.x) >= 6) {
+            const autoFacePoses: PoseState[] = ['idle', 'walk', 'crouch', 'block', 'jump', 'jump_land'];
+            if (autoFacePoses.includes(p.pose)) p.facing = e.x >= p.x ? 1 : -1;
+            if (autoFacePoses.includes(e.pose)) e.facing = p.x >= e.x ? 1 : -1;
+          }
+        }
+
         if (!isP2Client) {
           // HOST / SOLO AUTHORITATIVE GAMEPLAY LOGIC
           if (st.phase === 'intro') {
@@ -6538,13 +6732,6 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
             if (st.timerAcc >= 60) {
               st.timerAcc = 0;
               st.timer = Math.max(0, st.timer - 1);
-            }
-
-            if (p.y >= GROUND_Y - 1 && ['idle', 'walk', 'crouch', 'block'].includes(p.pose)) {
-              p.facing = e.x >= p.x ? 1 : -1;
-            }
-            if (e.y >= GROUND_Y - 1 && ['idle', 'walk', 'crouch', 'block'].includes(e.pose)) {
-              e.facing = p.x >= e.x ? 1 : -1;
             }
 
             // Escalating Arcade Opponent Logic when mode === 'arcade'
@@ -6964,6 +7151,90 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
             f.vx = 0;
           }
 
+          if (isOnline && !f.isLocalPlayer) {
+            // Smooth 60FPS Dead-Reckoning + Target Interpolation for Remote Opponent (Eliminates Lag/Flicker!)
+            const tVx = f.remoteTargetVx ?? 0;
+            let tVy = f.remoteTargetVy ?? 0;
+            let tX = (f.remoteTargetX ?? f.x) + tVx;
+            let tY = (f.remoteTargetY ?? f.y) + tVy;
+            if (tY < GROUND_Y) {
+              tVy += GRAVITY;
+              if (tY >= GROUND_Y) {
+                tY = GROUND_Y;
+                tVy = 0;
+              }
+            } else {
+              tY = GROUND_Y;
+              tVy = 0;
+            }
+            tX = Math.max(48, Math.min(STAGE_W - 48, tX));
+            f.remoteTargetX = tX;
+            f.remoteTargetY = tY;
+            f.remoteTargetVy = tVy;
+
+            const dx = tX - f.x;
+            const dy = tY - f.y;
+            if (Math.abs(dx) > 125) f.x = tX;
+            else f.x += dx * 0.36;
+            if (Math.abs(dy) > 95) f.y = tY;
+            else f.y += dy * 0.42;
+            if (f.y >= GROUND_Y - 0.5 && tY >= GROUND_Y - 0.5) {
+              f.y = GROUND_Y;
+            }
+            f.vx = tVx;
+            f.vy = tVy;
+
+            // Advance 6-frame walk animation smoothly at full 60FPS!
+            if (f.pose === 'walk') {
+              f.walkPhase += 0.28;
+            }
+
+            if (f.jumpPending) {
+              if (f.pose !== 'jump') {
+                f.jumpPending = false;
+              } else if (f.poseTimer <= 2) {
+                f.jumpPending = false;
+                f.wasAirborne = true;
+                f.poseTimer = 0;
+              }
+            }
+
+            if (f.poseTimer > 0) {
+              f.poseTimer--;
+              if (f.poseTimer === 0 && !f.jumpPending && !['ko', 'dizzy', 'victory'].includes(f.pose)) {
+                if (f.y < GROUND_Y - 4) {
+                  f.pose = 'jump';
+                } else {
+                  const targetP = f.remoteTargetPose;
+                  f.pose = targetP && ['idle', 'walk', 'crouch', 'block'].includes(targetP) ? targetP : 'idle';
+                }
+              }
+            } else if (!['ko', 'dizzy', 'victory', 'hit', 'knockdown'].includes(f.pose)) {
+              if (f.y < GROUND_Y - 4) {
+                f.pose = 'jump';
+                f.wasAirborne = true;
+              } else if (f.wasAirborne) {
+                f.wasAirborne = false;
+                f.pose = 'jump_land';
+                f.poseTimer = 7;
+                f.poseDuration = 7;
+              } else {
+                const targetP = f.remoteTargetPose;
+                if (targetP && ['idle', 'walk', 'crouch', 'block'].includes(targetP)) {
+                  f.pose = targetP;
+                } else if (f.pose === 'jump' || f.pose === 'jump_kick') {
+                  f.pose = 'idle';
+                }
+              }
+            }
+
+            if (f.comboResetTimer > 0) {
+              f.comboResetTimer--;
+              if (f.comboResetTimer === 0) f.comboCount = 0;
+            }
+            return;
+          }
+
           // Pre-jump 2-frame coil before actual liftoff
           if (f.jumpPending) {
             if (f.pose !== 'jump') {
@@ -7070,22 +7341,31 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         });
       }
 
-      // Firebase Multiplayer State Sync (~11Hz or immediate on attack)
+      // Firebase Multiplayer State Sync (20Hz smooth rate or immediate on attack, non-overlapping writes)
       if (isOnline && activeMatchIdRef.current && !st.onlineFinished) {
         const nowMs = performance.now();
         const hasPendingAttack = Boolean(pendingLocalAttackRef.current);
-        if (hasPendingAttack || nowMs - lastNetworkSendMsRef.current >= 95) {
+        const writeStale = isSyncWritingRef.current && nowMs - syncWriteStartMsRef.current > 350;
+        const canWrite = !isSyncWritingRef.current || writeStale;
+
+        if (canWrite && (hasPendingAttack || nowMs - lastNetworkSendMsRef.current >= 50)) {
           if (!isP2Client) {
-            const syncHash = `${Math.round(st.player.x)}_${Math.round(st.player.y)}_${st.player.pose}_${st.player.hp}_${st.enemy.hp}_${st.phase}_${st.timer}_${st.pWins}_${st.eWins}_${st.projectiles.length}`;
-            if (syncHash !== lastSentSnapHashRef.current || st.lastBannerSent) {
+            const act = pendingLocalAttackRef.current;
+            const syncHash = `${Math.round(st.player.x)}_${Math.round(st.player.y)}_${Math.round(st.player.vx * 10)}_${st.player.facing}_${st.player.pose}_${localAttackNonceRef.current}_${st.player.hp}_${st.enemy.hp}_${p2HitSeqCounterRef.current}_${st.phase}_${st.timer}_${st.pWins}_${st.eWins}_${st.projectiles.length}`;
+            if (hasPendingAttack || syncHash !== lastSentSnapHashRef.current || st.lastBannerSent) {
               lastSentSnapHashRef.current = syncHash;
               lastNetworkSendMsRef.current = nowMs;
+              pendingLocalAttackRef.current = undefined;
+              isSyncWritingRef.current = true;
+              syncWriteStartMsRef.current = nowMs;
               const payload: Record<string, any> = {
                 updatedAt: serverTimestamp(),
                 hostSync: {
                   p1: {
                     x: Math.round(st.player.x),
                     y: Math.round(st.player.y),
+                    vx: Number(st.player.vx.toFixed(1)),
+                    vy: Number(st.player.vy.toFixed(1)),
                     facing: st.player.facing,
                     pose: st.player.pose,
                     poseTimer: st.player.poseTimer,
@@ -7093,6 +7373,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                     isBlocking: st.player.isBlocking,
                     isCrouching: st.player.isCrouching,
                     attackNonce: localAttackNonceRef.current,
+                    attackAction: act || null,
                     hp: st.player.hp,
                     energy: Math.round(st.player.energy),
                     chillTimer: st.player.chillTimer,
@@ -7101,6 +7382,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   p2Hp: st.enemy.hp,
                   p2Energy: Math.round(st.enemy.energy),
                   p2ChillTimer: st.enemy.chillTimer,
+                  p2HitSeq: p2HitSeqCounterRef.current,
                   p2PoseOverride: ['hit', 'knockdown', 'ko', 'dizzy', 'victory'].includes(st.enemy.pose)
                     ? st.enemy.pose
                     : null,
@@ -7115,6 +7397,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   fatalityVariantId: st.fatalityCine?.variantId || null,
                   fatalityVariantName: st.fatalityCine?.fatalityName || null,
                   projectiles: st.projectiles.slice(0, 6).map((pr) => ({
+                    id: pr.id,
                     owner: pr.owner,
                     originX: Math.round(pr.originX),
                     x: Math.round(pr.x),
@@ -7131,20 +7414,28 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                 },
               };
               st.lastBannerSent = undefined;
-              updateDoc(doc(db, 'kombat_matches', activeMatchIdRef.current), payload).catch(() => {});
+              updateDoc(doc(db, 'kombat_matches', activeMatchIdRef.current), payload)
+                .catch(() => {})
+                .finally(() => {
+                  isSyncWritingRef.current = false;
+                });
             }
           } else {
-            const p2SnapHash = `${Math.round(st.enemy.x)}_${Math.round(st.enemy.y)}_${st.enemy.pose}_${st.enemy.isBlocking}_${localAttackNonceRef.current}`;
+            const p2SnapHash = `${Math.round(st.enemy.x)}_${Math.round(st.enemy.y)}_${Math.round(st.enemy.vx * 10)}_${st.enemy.facing}_${st.enemy.pose}_${st.enemy.isBlocking}_${localAttackNonceRef.current}`;
             if (hasPendingAttack || p2SnapHash !== lastSentSnapHashRef.current) {
               lastSentSnapHashRef.current = p2SnapHash;
               lastNetworkSendMsRef.current = nowMs;
               const act = pendingLocalAttackRef.current;
               pendingLocalAttackRef.current = undefined;
+              isSyncWritingRef.current = true;
+              syncWriteStartMsRef.current = nowMs;
               updateDoc(doc(db, 'kombat_matches', activeMatchIdRef.current), {
                 updatedAt: serverTimestamp(),
                 p2Snap: {
                   x: Math.round(st.enemy.x),
                   y: Math.round(st.enemy.y),
+                  vx: Number(st.enemy.vx.toFixed(1)),
+                  vy: Number(st.enemy.vy.toFixed(1)),
                   facing: st.enemy.facing,
                   pose: st.enemy.pose,
                   poseTimer: st.enemy.poseTimer,
@@ -7153,8 +7444,13 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   isCrouching: st.enemy.isCrouching,
                   attackNonce: localAttackNonceRef.current,
                   attackAction: act || null,
+                  seq: p2SeqCounterRef.current++,
                 },
-              }).catch(() => {});
+              })
+                .catch(() => {})
+                .finally(() => {
+                  isSyncWritingRef.current = false;
+                });
             }
           }
         }
