@@ -85,7 +85,7 @@ import knightAttackUrl from '../assets/images/knight_attack_1794840563554.jpg';
 import knightKickUrl from '../assets/images/knight_kick_1794841141597.jpg';
 import knightSpecialUrl from '../assets/images/knight_special_1794841141458.jpg';
 import knightUppercutUrl from '../assets/images/knight_uppercut_1794843725641.jpg';
-import knightCrouchUrl from '../assets/images/knight_crouch_1794843725644.jpg';
+import knightCrouchUrl from '../assets/images/knight_crouch_v3_1794971289611.jpg';
 import knightHitUrl from '../assets/images/knight_hit_1794843726810.jpg';
 import knightBlockUrl from '../assets/images/knight_block_1794845223062.jpg';
 import knightFallUrl from '../assets/images/knight_fall_1794845220461.jpg';
@@ -104,7 +104,8 @@ import queenIdleUrl from '../assets/images/queen_idle_1794840565562.jpg';
 import queenAttackUrl from '../assets/images/queen_attack_1794840568272.jpg';
 import queenPunchUrl from '../assets/images/queen_punch_1794841144254.jpg';
 import queenSpecialUrl from '../assets/images/queen_special_1794841144544.jpg';
-import queenUppercutUrl from '../assets/images/queen_uppercut_1794843729505.jpg';
+import queenUppercutUrl from '../assets/images/queen_uppercut_v2_1794971243084.jpg';
+import queenCrouchUrl from '../assets/images/queen_crouch_v3_1794971291519.jpg';
 import queenHitUrl from '../assets/images/queen_hit_1794843730592.jpg';
 import queenBlockUrl from '../assets/images/queen_block_1794845223244.jpg';
 import queenFallUrl from '../assets/images/queen_fall_1794845222194.jpg';
@@ -250,16 +251,35 @@ import kamenBladeWalkSheetUrl from '../assets/images/kamen_blade_walk_sheet_1794
 import kamenBladeJumpSheetUrl from '../assets/images/kamen_blade_jump_sheet_1794909446792.jpg';
 import kamenGeatsWalkSheetUrl from '../assets/images/kamen_geats_walk_sheet_1794909449506.jpg';
 import kamenGeatsJumpSheetUrl from '../assets/images/kamen_geats_jump_sheet_1794909453433.jpg';
-import ultramanNexusWalkSheetUrl from '../assets/images/ultraman_nexus_walk_sheet_1794909458371.jpg';
+import ultramanNexusWalkSheetUrl from '../assets/images/ultraman_nexus_walk_sheet_v3_1794971292811.jpg';
 import ultramanNexusJumpSheetUrl from '../assets/images/ultraman_nexus_jump_sheet_1794909460456.jpg';
 import ultramanZeroWalkSheetUrl from '../assets/images/ultraman_zero_walk_sheet_1794909464309.jpg';
-import ultramanZeroJumpSheetUrl from '../assets/images/ultraman_zero_jump_sheet_1794909468816.jpg';
+import ultramanZeroJumpSheetUrl from '../assets/images/ultraman_zero_jump_sheet_v2_1794971247255.jpg';
 import cyberPhoneWalkSheetUrl from '../assets/images/cyber_phone_walk_sheet_1794909471193.jpg';
 import cyberPhoneJumpSheetUrl from '../assets/images/cyber_phone_jump_sheet_1794909474400.jpg';
 import mechaMouseWalkSheetUrl from '../assets/images/mecha_mouse_walk_sheet_1794909478421.jpg';
 import mechaMouseJumpSheetUrl from '../assets/images/mecha_mouse_jump_sheet_1794909480929.jpg';
 import keyTitanWalkSheetUrl from '../assets/images/key_titan_walk_sheet_1794909485311.jpg';
 import keyTitanJumpSheetUrl from '../assets/images/key_titan_jump_sheet_1794909486365.jpg';
+import kamenKabutoIdleUrl from '../assets/images/kamen_kabuto_idle_1794971247349.jpg';
+import kamenKabutoPunchWindupUrl from '../assets/images/kamen_kabuto_punch_windup_1794971293204.jpg';
+import kamenKabutoPunchUrl from '../assets/images/kamen_kabuto_punch_1794971293237.jpg';
+import kamenKabutoKickChamberUrl from '../assets/images/kamen_kabuto_kick_chamber_1794971294892.jpg';
+import kamenKabutoKickUrl from '../assets/images/kamen_kabuto_kick_1794971295517.jpg';
+import kamenKabutoUppercutCoilUrl from '../assets/images/kamen_kabuto_uppercut_coil_1794971297151.jpg';
+import kamenKabutoUppercutUrl from '../assets/images/kamen_kabuto_uppercut_1794971297817.jpg';
+import kamenKabutoCrouchUrl from '../assets/images/kamen_kabuto_crouch_1794971299572.jpg';
+import kamenKabutoSpecialChargeUrl from '../assets/images/kamen_kabuto_special_charge_1794971299633.jpg';
+import kamenKabutoSpecialUrl from '../assets/images/kamen_kabuto_special_1794971300242.jpg';
+import kamenKabutoBlockUrl from '../assets/images/kamen_kabuto_block_1794971300229.jpg';
+import kamenKabutoHitUrl from '../assets/images/kamen_kabuto_hit_1794971302239.jpg';
+import kamenKabutoFallUrl from '../assets/images/kamen_kabuto_fall_1794971302634.jpg';
+import kamenKabutoVictoryUrl from '../assets/images/kamen_kabuto_victory_1794971303964.jpg';
+import kamenKabutoWalkSheetUrl from '../assets/images/kamen_kabuto_walk_sheet_1794971305136.jpg';
+import kamenKabutoJumpSheetUrl from '../assets/images/kamen_kabuto_jump_sheet_1794971306688.jpg';
+import fatKamenKabuto1Url from '../assets/images/fatality_kamen_kabuto_1_1794971308205.jpg';
+import fatKamenKabuto2Url from '../assets/images/fatality_kamen_kabuto_2_1794971308725.jpg';
+import fatKamenKabuto3Url from '../assets/images/fatality_kamen_kabuto_3_1794971309177.jpg';
 import storyCyberPhoneUrl from '../assets/images/story_cyber_phone_1794911270312.jpg';
 import storyMechaMouseUrl from '../assets/images/story_mecha_mouse_1794911274004.jpg';
 import storyKeyTitanUrl from '../assets/images/story_key_titan_1794911270626.jpg';
@@ -304,6 +324,7 @@ type FighterId =
   | 'virus_rex'
   | 'kamen_blade'
   | 'kamen_geats'
+  | 'kamen_kabuto'
   | 'ultraman_nexus'
   | 'ultraman_zero'
   | 'cyber_phone'
@@ -575,6 +596,32 @@ const FIGHTERS: Record<FighterId, FighterProfile> = {
     power: 1.15,
     maxHp: 115,
   },
+  kamen_kabuto: {
+    id: 'kamen_kabuto',
+    faction: 'hero',
+    name: 'KAMEN KABUTO',
+    codename: 'Ksatria Kumbang Clock Up',
+    style: 'Clock Up & Roundhouse Rider Kick',
+    specialName: 'Clock Up Rider Kick',
+    specialDesc: 'Mengaktifkan kecepatan cahaya Clock Up dan melepaskan gelombang energi Rider Kick!',
+    fatalityName: 'MAXIMUM RIDER POWER',
+    skin: '#e2e8f0',
+    skinHighlight: '#ffffff',
+    skinShadow: '#64748b',
+    primary: '#dc2626',
+    primaryLight: '#38bdf8',
+    secondary: '#991b1b',
+    suitDark: '#09090b',
+    pants: '#111827',
+    hairOrHat: 'kamen_helmet',
+    eyeGlow: '#38bdf8',
+    projectileType: 'lightning',
+    projectileColor: '#ef4444',
+    projectileCore: '#38bdf8',
+    speed: 5.55,
+    power: 1.22,
+    maxHp: 120,
+  },
   ultraman_nexus: {
     id: 'ultraman_nexus',
     faction: 'hero',
@@ -710,6 +757,17 @@ const FIGHTERS: Record<FighterId, FighterProfile> = {
   },
 };
 
+type SoloVariant = 'challenge' | 'free' | 'training';
+type FreeDifficulty = 'mudah' | 'normal' | 'sulit' | 'elite';
+type TrainingDummyBehavior = 'diam' | 'jongkok' | 'blokir' | 'serang';
+
+const FREE_DIFFICULTY_CFG: Record<FreeDifficulty, { hpMult: number; powerMult: number; speedMult: number; diffLevel: number; label: string }> = {
+  mudah: { hpMult: 0.8, powerMult: 0.85, speedMult: 0.85, diffLevel: 0.1, label: 'Mudah' },
+  normal: { hpMult: 1.0, powerMult: 1.0, speedMult: 1.0, diffLevel: 0.4, label: 'Normal' },
+  sulit: { hpMult: 1.25, powerMult: 1.15, speedMult: 1.1, diffLevel: 0.75, label: 'Sulit' },
+  elite: { hpMult: 1.5, powerMult: 1.3, speedMult: 1.2, diffLevel: 1.0, label: 'Elite Boss' },
+};
+
 const ARENAS: { id: StageId; name: string; theme: string; url: string }[] = [
   { id: 1, name: 'Kuil Malam', theme: 'Bulan Purnama', url: arenaCourtyardUrl },
   { id: 2, name: 'Jembatan Jurang', theme: 'Kabut Zamrud', url: arenaPitUrl },
@@ -730,6 +788,7 @@ const PLAYABLE_IDS: FighterId[] = [
   'queen',
   'kamen_blade',
   'kamen_geats',
+  'kamen_kabuto',
   'ultraman_nexus',
   'ultraman_zero',
   'virus_rex',
@@ -1355,6 +1414,11 @@ const FATALITY_POOL: Record<FighterId, FatalityVariant[]> = {
     { id: 'geats_2', name: 'MAGNUM BOOST BARRAGE', imageUrl: fatKamenGeats2Url, accent: '#f97316' },
     { id: 'geats_3', name: 'GRAND VICTORY CANNON', imageUrl: fatKamenGeats3Url, accent: '#38bdf8' },
   ],
+  kamen_kabuto: [
+    { id: 'kabuto_1', name: 'MAXIMUM RIDER POWER', imageUrl: fatKamenKabuto1Url, accent: '#ef4444' },
+    { id: 'kabuto_2', name: 'CLOCK UP HYPER SLASH', imageUrl: fatKamenKabuto2Url, accent: '#38bdf8' },
+    { id: 'kabuto_3', name: 'HYPER KABUTO CAST OFF', imageUrl: fatKamenKabuto3Url, accent: '#f97316' },
+  ],
   ultraman_nexus: [
     { id: 'nexus_1', name: 'CORE DISINTEGRATION', imageUrl: fatUltramanNexus1Url, accent: '#38bdf8' },
     { id: 'nexus_2', name: 'SCHUMANN ARROW RAY', imageUrl: fatUltramanNexus2Url, accent: '#f43f5e' },
@@ -1544,6 +1608,65 @@ const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
       sweep: [kamenGeatsCrouchUrl, kamenGeatsCrouchUrl, kamenGeatsKickUrl, kamenGeatsKickUrl, kamenGeatsCrouchUrl, kamenGeatsIdleUrl],
     },
   },
+  kamen_kabuto: {
+    chroma: 'magenta',
+    walkSheet: kamenKabutoWalkSheetUrl,
+    jumpSheet: kamenKabutoJumpSheetUrl,
+    urls: {
+      idle: kamenKabutoIdleUrl,
+      punch: kamenKabutoPunchUrl,
+      kick: kamenKabutoKickUrl,
+      uppercut: kamenKabutoUppercutUrl,
+      crouch: kamenKabutoCrouchUrl,
+      hit: kamenKabutoHitUrl,
+      special: kamenKabutoSpecialUrl,
+      block: kamenKabutoBlockUrl,
+      fall: kamenKabutoFallUrl,
+      victory: kamenKabutoVictoryUrl,
+    },
+    actionFrames: {
+      punch: [
+        kamenKabutoIdleUrl,
+        kamenKabutoPunchWindupUrl,
+        kamenKabutoPunchUrl,
+        kamenKabutoPunchUrl,
+        kamenKabutoPunchWindupUrl,
+        kamenKabutoIdleUrl,
+      ],
+      kick: [
+        kamenKabutoIdleUrl,
+        kamenKabutoKickChamberUrl,
+        kamenKabutoKickUrl,
+        kamenKabutoKickUrl,
+        kamenKabutoKickChamberUrl,
+        kamenKabutoIdleUrl,
+      ],
+      uppercut: [
+        kamenKabutoCrouchUrl,
+        kamenKabutoUppercutCoilUrl,
+        kamenKabutoUppercutUrl,
+        kamenKabutoUppercutUrl,
+        kamenKabutoBlockUrl,
+        kamenKabutoIdleUrl,
+      ],
+      special: [
+        kamenKabutoSpecialChargeUrl,
+        kamenKabutoSpecialChargeUrl,
+        kamenKabutoSpecialUrl,
+        kamenKabutoSpecialUrl,
+        kamenKabutoSpecialChargeUrl,
+        kamenKabutoIdleUrl,
+      ],
+      sweep: [
+        kamenKabutoCrouchUrl,
+        kamenKabutoKickChamberUrl,
+        kamenKabutoKickUrl,
+        kamenKabutoKickChamberUrl,
+        kamenKabutoCrouchUrl,
+        kamenKabutoIdleUrl,
+      ],
+    },
+  },
   ultraman_nexus: {
     chroma: 'magenta',
     walkSheet: ultramanNexusWalkSheetUrl,
@@ -1635,7 +1758,7 @@ const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
       punch: queenPunchUrl,
       kick: queenAttackUrl,
       uppercut: queenUppercutUrl,
-      crouch: queenIdleUrl,
+      crouch: queenCrouchUrl,
       hit: queenHitUrl,
       special: queenSpecialUrl,
       block: queenBlockUrl,
@@ -2030,11 +2153,45 @@ function keyAndSliceSpriteSheet(
   const imgData = tctx.getImageData(0, 0, w, h);
   const d = imgData.data;
   applyChromaKeyBuffer(d, w, h, chroma);
+
+  // Scrub any residual grid divider lines (horizontal mid-gap bars or vertical margin-spanning borders)
+  for (let y = 0; y < h; y++) {
+    let rowOp = 0;
+    const rowOff = y * w;
+    for (let x = 0; x < w; x++) {
+      if (d[(rowOff + x) * 4 + 3] > 28) rowOp++;
+    }
+    if (rowOp > w * 0.72) {
+      for (let yy = Math.max(0, y - 1); yy <= Math.min(h - 1, y + 1); yy++) {
+        const yyOff = yy * w;
+        for (let x = 0; x < w; x++) d[(yyOff + x) * 4 + 3] = 0;
+      }
+    }
+  }
+  const topBandEnd = Math.max(4, Math.floor(h * 0.06));
+  const botBandStart = Math.min(h - 4, Math.floor(h * 0.94));
+  for (let x = 0; x < w; x++) {
+    let topHits = 0;
+    let botHits = 0;
+    let colHits = 0;
+    for (let y = 0; y < h; y++) {
+      if (d[(y * w + x) * 4 + 3] > 28) {
+        colHits++;
+        if (y < topBandEnd) topHits++;
+        else if (y >= botBandStart) botHits++;
+      }
+    }
+    if (colHits > h * 0.76 || (topHits >= 3 && botHits >= 3)) {
+      for (let xx = Math.max(0, x - 2); xx <= Math.min(w - 1, x + 2); xx++) {
+        for (let y = 0; y < h; y++) d[(y * w + xx) * 4 + 3] = 0;
+      }
+    }
+  }
   tctx.putImageData(imgData, 0, 0);
 
   // Locate horizontal gap splitting row 1 and row 2
-  const ySearchMin = Math.floor(h * 0.34);
-  const ySearchMax = Math.floor(h * 0.66);
+  const ySearchMin = Math.floor(h * 0.36);
+  const ySearchMax = Math.floor(h * 0.64);
   let splitY = Math.floor(h * 0.5);
   let bestScore = Infinity;
 
@@ -2079,7 +2236,27 @@ function keyAndSliceSpriteSheet(
     return cell;
   };
 
-  const detectRowCells = (y0: number, y1: number): HTMLCanvasElement[] => {
+  const splitWideSegment = (seg: { x0: number; x1: number; mass: number }, colHits: Uint16Array) => {
+    const segW = seg.x1 - seg.x0;
+    if (segW < w * 0.36) return [seg];
+    // Split wide merged segment at lowest vertical pixel-mass valley near its center
+    const sMin = seg.x0 + Math.floor(segW * 0.35);
+    const sMax = seg.x0 + Math.floor(segW * 0.65);
+    let bestX = Math.floor((seg.x0 + seg.x1) * 0.5);
+    let minV = Infinity;
+    for (let x = sMin; x <= sMax; x++) {
+      if (colHits[x] < minV) {
+        minV = colHits[x];
+        bestX = x;
+      }
+    }
+    return [
+      { x0: seg.x0, x1: bestX, mass: Math.floor(seg.mass * 0.5) },
+      { x0: bestX + 1, x1: seg.x1, mass: Math.floor(seg.mass * 0.5) },
+    ];
+  };
+
+  const detectRowCells = (y0: number, y1: number, fallbackCols = 3): HTMLCanvasElement[] => {
     const colHits = new Uint16Array(w);
     for (let y = y0; y < y1; y++) {
       const rowOff = y * w;
@@ -2107,8 +2284,8 @@ function keyAndSliceSpriteSheet(
     }
     if (inSeg) rawSegs.push({ x0: segStart, x1: w, mass: segMass });
 
-    // Merge narrow gaps inside the same sprite (e.g., between legs or cape)
-    const maxGap = Math.max(6, Math.round(w * 0.016));
+    // Merge tiny internal gaps inside one fighter (legs, weapon, cape)
+    const maxGap = Math.max(5, Math.round(w * 0.013));
     const merged: { x0: number; x1: number; mass: number }[] = [];
     for (const seg of rawSegs) {
       const prev = merged[merged.length - 1];
@@ -2120,26 +2297,44 @@ function keyAndSliceSpriteSheet(
       }
     }
 
-    const valid = merged.filter((s) => s.x1 - s.x0 >= w * 0.06 && s.mass >= 45);
+    const valid = merged
+      .filter((s) => s.x1 - s.x0 >= w * 0.06 && s.mass >= 45)
+      .flatMap((s) => splitWideSegment(s, colHits));
+
     if (valid.length >= 3 && valid.length <= 4) {
       return valid
         .map((s) => cropBandRegion(s.x0, s.x1, y0, y1))
         .filter((c): c is HTMLCanvasElement => Boolean(c));
     }
 
-    // Fallback: equal 3-column division
+    // Valley-guided fallback division (never merges two sprites into one frame)
+    const cuts = [0];
+    for (let c = 1; c < fallbackCols; c++) {
+      const target = Math.floor((c * w) / fallbackCols);
+      const searchMin = Math.max(cuts[cuts.length - 1] + 20, target - Math.floor(w * 0.07));
+      const searchMax = Math.min(w - 20, target + Math.floor(w * 0.07));
+      let bestCut = target;
+      let minMass = Infinity;
+      for (let x = searchMin; x <= searchMax; x++) {
+        if (colHits[x] < minMass) {
+          minMass = colHits[x];
+          bestCut = x;
+        }
+      }
+      cuts.push(bestCut);
+    }
+    cuts.push(w);
+
     const out: HTMLCanvasElement[] = [];
-    for (let c = 0; c < 3; c++) {
-      const cx0 = Math.floor((c * w) / 3);
-      const cx1 = Math.floor(((c + 1) * w) / 3);
-      const cropped = cropBandRegion(cx0, cx1, y0, y1);
+    for (let c = 0; c < fallbackCols; c++) {
+      const cropped = cropBandRegion(cuts[c], cuts[c + 1], y0, y1);
       if (cropped) out.push(cropped);
     }
     return out;
   };
 
-  const topCells = detectRowCells(0, splitY);
-  const botCells = detectRowCells(splitY, h);
+  const topCells = detectRowCells(0, splitY, 3);
+  const botCells = detectRowCells(splitY, h, topCells.length === 4 ? 4 : 3);
   const allCells = [...topCells, ...botCells];
 
   if (allCells.length === 8) {
@@ -2469,6 +2664,17 @@ function drawVictoryAura(ctx: CanvasRenderingContext2D, fid: FighterId, time: nu
       ctx.quadraticCurveTo(gx + 8, -50, gx + 8, 2);
       ctx.closePath();
       ctx.fill();
+    }
+  } else if (fid === 'kamen_kabuto') {
+    // Clock Up Tachyon Crimson Rings & Cyan Plasma Sparks
+    for (let i = 0; i < 4; i++) {
+      const h = ((time * 0.16 + i * 30) % 120);
+      const alpha = 1 - h / 120;
+      ctx.strokeStyle = i % 2 === 0 ? `rgba(239, 68, 68, ${alpha * 0.8})` : `rgba(56, 189, 248, ${alpha * 0.78})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(0, -h, 22 + h * 0.2, 7.5, -0.08, 0, Math.PI * 2);
+      ctx.stroke();
     }
   } else if (fid === 'kamen_rider' || fid === 'kamen_blade' || fid === 'kamen_geats') {
     // Typhoon Cyclone Wind Rings swirling upward
@@ -3019,6 +3225,7 @@ function drawHumanFighter(
         } else if (
           p.id === 'kamen_blade' ||
           p.id === 'kamen_geats' ||
+          p.id === 'kamen_kabuto' ||
           p.id === 'ultraman_nexus' ||
           p.id === 'ultraman_zero' ||
           p.id === 'cyber_phone' ||
@@ -3026,24 +3233,26 @@ function drawHumanFighter(
           p.id === 'key_titan'
         ) {
           if (actionFrameIdx === 0 || actionFrameIdx === 1) {
-            targetH = Math.round(baseH * 0.72);
+            targetH = Math.round(baseH * 0.78);
           } else if (actionFrameIdx === 2 || actionFrameIdx === 3) {
-            targetH = Math.round(baseH * 1.12);
+            targetH = Math.round(baseH * 1.1);
           } else {
             targetH = baseH;
           }
         } else {
-          targetH = Math.round(baseH * (hasDedicatedUppercut ? 1.32 : 1.12));
+          // Calibrated uppercut height so Queen / Knight / Bisop head & body remain true to idle proportions
+          targetH = Math.round(baseH * (hasDedicatedUppercut ? 1.09 : 1.1));
         }
         targetW = targetH * spriteAspect;
       } else if (poseKey === 'crouch') {
-        targetH = Math.round(baseH * 0.68);
+        targetH = Math.round(baseH * (hasDedicatedCrouch ? 0.75 : 0.68));
         targetW = targetH * spriteAspect;
-        offsetY = 16;
+        offsetY = hasDedicatedCrouch ? 2 : 16;
       } else if (
         (f.pose === 'kick' || f.pose === 'jump_kick' || f.pose === 'sweep') &&
         (p.id === 'kamen_blade' ||
           p.id === 'kamen_geats' ||
+          p.id === 'kamen_kabuto' ||
           p.id === 'ultraman_nexus' ||
           p.id === 'ultraman_zero' ||
           p.id === 'cyber_phone' ||
@@ -3051,8 +3260,8 @@ function drawHumanFighter(
           p.id === 'key_titan') &&
         (actionFrameIdx === 1 || actionFrameIdx === 4 || (f.pose === 'sweep' && actionFrameIdx === 0))
       ) {
-        // Crouch windup/recovery frames inside kick & sweep sequences stay crouched
-        targetH = Math.round(baseH * 0.72);
+        // Crouch windup/recovery frames inside kick & sweep sequences stay crouched cleanly
+        targetH = Math.round(baseH * 0.76);
         targetW = targetH * spriteAspect;
       } else if ((poseKey === 'kick' || poseKey === 'special') && spriteAspect > 1.08) {
         // Normalize horizontal flying kick / wide lunging sprites so head & torso never balloon larger than idle
@@ -3085,9 +3294,9 @@ function drawHumanFighter(
         }
       } else if (f.pose === 'crouch') {
         if (hasDedicatedCrouch) {
-          sx = 1.05;
-          sy = 0.96;
-          offsetY = 3;
+          sx = 1.04;
+          sy = 0.98;
+          offsetY = 2;
         } else {
           sx = 1.08;
           sy = 0.74;
@@ -4782,6 +4991,29 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   const [selectedChar, setSelectedChar] = useState<FighterId>('scorpio');
   const [selectedStage, setSelectedStage] = useState<StageId>(1);
   const [arcadeStageIdx, setArcadeStageIdx] = useState(0);
+
+  const [soloVariant, setSoloVariant] = useState<SoloVariant>('challenge');
+  const [freeDifficulty, setFreeDifficulty] = useState<FreeDifficulty>('normal');
+  const [freeOpponent, setFreeOpponent] = useState<FighterId | 'random'>('random');
+  const [trainingDummyChar, setTrainingDummyChar] = useState<FighterId>('virus_rex');
+  const [trainingDummyBehavior, setTrainingDummyBehavior] = useState<TrainingDummyBehavior>('diam');
+  const [trainingAutoRegen, setTrainingAutoRegen] = useState<boolean>(true);
+  const [trainingDummyCount, setTrainingDummyCount] = useState<number>(1);
+
+  const soloVariantRef = useRef<SoloVariant>('challenge');
+  const freeDifficultyRef = useRef<FreeDifficulty>('normal');
+  const freeOpponentRef = useRef<FighterId | 'random'>('random');
+  const trainingDummyCharRef = useRef<FighterId>('virus_rex');
+  const trainingDummyBehaviorRef = useRef<TrainingDummyBehavior>('diam');
+  const trainingAutoRegenRef = useRef<boolean>(true);
+
+  useEffect(() => { soloVariantRef.current = soloVariant; }, [soloVariant]);
+  useEffect(() => { freeDifficultyRef.current = freeDifficulty; }, [freeDifficulty]);
+  useEffect(() => { freeOpponentRef.current = freeOpponent; }, [freeOpponent]);
+  useEffect(() => { trainingDummyCharRef.current = trainingDummyChar; }, [trainingDummyChar]);
+  useEffect(() => { trainingDummyBehaviorRef.current = trainingDummyBehavior; }, [trainingDummyBehavior]);
+  useEffect(() => { trainingAutoRegenRef.current = trainingAutoRegen; }, [trainingAutoRegen]);
+
   const [muted, setMuted] = useState(false);
   const [bannerReady, setBannerReady] = useState(() => FATALITY_IMAGE_CACHE.has(menuBannerUrl));
   const [isPaused, setIsPaused] = useState(false);
@@ -5028,6 +5260,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   const engineRef = useRef<{
     player: FighterRuntime;
     enemy: FighterRuntime;
+    extraDummies: FighterRuntime[];
     projectiles: Projectile[];
     particles: Particle[];
     banners: FloatingBanner[];
@@ -5060,6 +5293,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
     stageId: StageId;
     aiCooldown: number;
     mode: 'arcade' | 'online';
+    soloVariant: SoloVariant;
     mySide: 'p1' | 'p2';
     p1Label: string;
     p2Label: string;
@@ -5115,16 +5349,69 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
     ) => {
       const isOnline = options?.mode === 'online';
       const isSoloTower = !isOnline && arcadeSubModeRef.current === 'solo';
+      const activeSoloVar: SoloVariant = isSoloTower ? (soloVariantRef.current || 'challenge') : 'challenge';
       const campaign = STORY_CAMPAIGNS[storyRouteRef.current];
-      const totalStages = isOnline ? 1 : isSoloTower ? SOLO_STAGES.length : campaign.stages.length;
-      const diffLevel = isOnline ? 0.5 : stageIndex / Math.max(1, totalStages - 1);
+
+      let totalStages = 1;
+      let diffLevel = 0.5;
+      let chosenStageId: StageId = options?.stageId ?? selectedStageRef.current;
+      let opponentId: FighterId = options?.p2FighterId || 'virus_rex';
+      let hpMult = 1;
+      let powerMult = 1;
+      let speedMult = 1;
 
       const soloCfg = SOLO_STAGES[stageIndex] || SOLO_STAGES[0];
       const storyCfg = campaign.stages[stageIndex] || campaign.stages[0];
 
-      // Prevent mirror match on regular solo ladder stages; pick alternate boss if player is Trojan Rex
-      let opponentId: FighterId = isOnline && options ? options.p2FighterId : isSoloTower ? soloCfg.fighter : storyCfg.fighter;
-      if (!isOnline && isSoloTower && opponentId === playerId) {
+      if (isOnline) {
+        totalStages = 1;
+        opponentId = options?.p2FighterId || 'scorpio';
+      } else if (isSoloTower) {
+        if (activeSoloVar === 'challenge') {
+          totalStages = SOLO_STAGES.length;
+          diffLevel = stageIndex / Math.max(1, totalStages - 1);
+          chosenStageId = soloCfg.stage;
+          opponentId = soloCfg.fighter;
+          hpMult = soloCfg.hpMult;
+          powerMult = soloCfg.powerMult;
+          speedMult = soloCfg.speedMult;
+        } else if (activeSoloVar === 'free') {
+          totalStages = 1;
+          const freeCfg = FREE_DIFFICULTY_CFG[freeDifficultyRef.current];
+          diffLevel = freeCfg.diffLevel;
+          chosenStageId = selectedStageRef.current;
+          const rawOpp = freeOpponentRef.current;
+          if (rawOpp === 'random') {
+            const others = PLAYABLE_IDS.filter((id) => id !== playerId);
+            opponentId = others[Math.floor(Math.random() * others.length)] || 'virus_rex';
+          } else {
+            opponentId = rawOpp;
+          }
+          hpMult = freeCfg.hpMult;
+          powerMult = freeCfg.powerMult;
+          speedMult = freeCfg.speedMult;
+        } else {
+          // training
+          totalStages = 1;
+          diffLevel = 0.25;
+          chosenStageId = selectedStageRef.current;
+          opponentId = trainingDummyCharRef.current;
+          hpMult = 99.0;
+          powerMult = 0.4;
+          speedMult = 0.8;
+        }
+      } else {
+        totalStages = campaign.stages.length;
+        diffLevel = stageIndex / Math.max(1, totalStages - 1);
+        chosenStageId = stageIndex === 0 ? selectedStageRef.current : storyCfg.stage;
+        opponentId = storyCfg.fighter;
+        hpMult = 0.94 + diffLevel * 0.42;
+        powerMult = 0.92 + diffLevel * 0.34;
+        speedMult = 0.96 + diffLevel * 0.22;
+      }
+
+      // Prevent mirror match on challenge mode
+      if (!isOnline && isSoloTower && activeSoloVar === 'challenge' && opponentId === playerId) {
         if (stageIndex === SOLO_STAGES.length - 1) {
           opponentId = playerId === 'virus_rex' ? 'ultraman_zero' : 'virus_rex';
         } else {
@@ -5134,16 +5421,10 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       }
 
       const side = options?.mySide || 'p1';
-      const chosenStageId: StageId =
-        options?.stageId ?? (stageIndex === 0 ? selectedStageRef.current : isSoloTower ? soloCfg.stage : storyCfg.stage);
       const arenaInfo = ARENAS.find((a) => a.id === chosenStageId) || ARENAS[0];
       const pProf = FIGHTERS[playerId];
       const baseOppProf = FIGHTERS[opponentId];
 
-      // Escalate opponent stats smoothly as stage climbs
-      const hpMult = isOnline ? 1 : isSoloTower ? soloCfg.hpMult : 0.94 + diffLevel * 0.42;
-      const powerMult = isOnline ? 1 : isSoloTower ? soloCfg.powerMult : 0.92 + diffLevel * 0.34;
-      const speedMult = isOnline ? 1 : isSoloTower ? soloCfg.speedMult : 0.96 + diffLevel * 0.22;
       const eProf: FighterProfile = isOnline
         ? baseOppProf
         : {
@@ -5173,17 +5454,27 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       const stageBannerSub = isOnline
         ? `${options?.p1Label} VS ${options?.p2Label}`
         : isSoloTower
-        ? `STAGE ${stageIndex + 1}/${totalStages} (${soloCfg.tierLabel}) · ${arenaInfo.name}`
+        ? activeSoloVar === 'training'
+          ? `TRAINING MODE · ${arenaInfo.name}`
+          : activeSoloVar === 'free'
+          ? `FREE MODE (${FREE_DIFFICULTY_CFG[freeDifficultyRef.current].label}) · ${arenaInfo.name}`
+          : `STAGE ${stageIndex + 1}/${totalStages} (${soloCfg.tierLabel}) · ${arenaInfo.name}`
         : `${storyCfg.chapterTitle} · ${arenaInfo.name}`;
+
+      const extraDummiesList: FighterRuntime[] = [];
+      if (activeSoloVar === 'training' && !isOnline) {
+        setTrainingDummyCount(1);
+      }
 
       engineRef.current = {
         player: makeFighterRuntime(pProf, 200, 1, !isOnline || side === 'p1'),
         enemy: makeFighterRuntime(eProf, 600, -1, isOnline && side === 'p2'),
+        extraDummies: extraDummiesList,
         projectiles: [],
         particles: [],
         banners: [
           {
-            text: `ROUND ${roundN}`,
+            text: activeSoloVar === 'training' ? 'TRAINING ARENA' : `ROUND ${roundN}`,
             subtext: stageBannerSub,
             color: '#fbbf24',
             x: STAGE_W / 2,
@@ -5192,10 +5483,10 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
             scale: 1.2,
           },
         ],
-        timer: 99,
+        timer: activeSoloVar === 'training' ? 99 : 99,
         timerAcc: 0,
-        phase: 'intro',
-        phaseTimer: 115,
+        phase: activeSoloVar === 'training' ? 'fight' : 'intro',
+        phaseTimer: activeSoloVar === 'training' ? 10 : 115,
         shake: 0,
         hitStop: 0,
         fatalityDark: 0,
@@ -5209,6 +5500,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         stageId: chosenStageId,
         aiCooldown: Math.round(28 - diffLevel * 12),
         mode: isOnline ? 'online' : 'arcade',
+        soloVariant: activeSoloVar,
         mySide: side,
         p1Label: options?.p1Label || pProf.name,
         p2Label: options?.p2Label || eProf.name,
@@ -5332,9 +5624,57 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
     if (playModeRef.current !== 'arcade') return;
     const st = engineRef.current;
     const stageIndex = st ? st.stageIdx : arcadeStageIdx;
-    initRound(selectedChar, stageIndex, 1, 0, 0);
+    const p2Id = st?.enemy.profile.id;
+    initRound(selectedChar, stageIndex, 1, 0, 0, p2Id ? { mode: 'arcade', mySide: 'p1', p2FighterId: p2Id, p1Label: '', p2Label: '' } : undefined);
     if (!muted) synthRef.current?.startBgm();
   }, [arcadeStageIdx, initRound, muted, selectedChar]);
+
+  const changeCharacterSolo = useCallback(() => {
+    setPausedSafe(false);
+    synthRef.current?.stopBgm();
+    setScreen('select');
+  }, [setPausedSafe]);
+
+  const addTrainingDummy = useCallback(() => {
+    const st = engineRef.current;
+    if (!st || st.extraDummies.length >= 2) return;
+    const dummyProf = FIGHTERS[trainingDummyCharRef.current];
+    prioritizeFighterSprites(dummyProf.id);
+    const newDummy = makeFighterRuntime(dummyProf, 550 + st.extraDummies.length * 110, -1, false);
+    st.extraDummies.push(newDummy);
+    setTrainingDummyCount(st.extraDummies.length + 1);
+  }, []);
+
+  const removeTrainingDummy = useCallback(() => {
+    const st = engineRef.current;
+    if (!st || st.extraDummies.length === 0) return;
+    st.extraDummies.pop();
+    setTrainingDummyCount(st.extraDummies.length + 1);
+  }, []);
+
+  const cycleTrainingDummyChar = useCallback(() => {
+    const cur = trainingDummyCharRef.current;
+    const idx = PLAYABLE_IDS.indexOf(cur);
+    const next = PLAYABLE_IDS[(idx + 1) % PLAYABLE_IDS.length];
+    setTrainingDummyChar(next);
+    trainingDummyCharRef.current = next;
+    prioritizeFighterSprites(next);
+    const st = engineRef.current;
+    if (st) {
+      st.enemy.profile = FIGHTERS[next];
+      st.enemy.hp = st.enemy.profile.maxHp;
+      st.enemy.trailHp = st.enemy.profile.maxHp;
+      st.extraDummies.forEach((d) => {
+        d.profile = FIGHTERS[next];
+        d.hp = d.profile.maxHp;
+        d.trailHp = d.profile.maxHp;
+      });
+    }
+  }, []);
+
+  const resetTrainingArena = useCallback(() => {
+    initRound(selectedChar, 0, 1, 0, 0);
+  }, [initRound, selectedChar]);
 
   const returnToMainMenu = useCallback(() => {
     setPausedSafe(false);
@@ -7948,34 +8288,160 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               </p>
             )}
 
-            {/* Mode Info Banner: Solo 8-Stage Ladder OR Active Story Route Briefing */}
+            {/* Solo 3 Modes Selector: Challenge | Free | Training */}
             {playMode === 'arcade' && arcadeSubMode === 'solo' && (
-              <div className="bg-slate-900/95 border border-amber-500/35 rounded-2xl p-3 space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-amber-400">
-                    Tangga Turnamen Solo · 8 Stage (Semua 13 Karakter Terbuka)
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-300">
-                    HP, Kekuatan &amp; Kecerdasan Lawan Meningkat Tiap Stage!
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {SOLO_STAGES.map((stItem, idx) => (
-                    <span
-                      key={stItem.stageName}
+              <div className="bg-slate-900/95 border border-amber-500/40 rounded-2xl p-3.5 space-y-3">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                    <button
+                      onClick={() => setSoloVariant('challenge')}
                       className={cn(
-                        'text-[10px] font-black px-2 py-0.5 rounded border',
-                        idx === SOLO_STAGES.length - 1
-                          ? 'bg-rose-950/80 border-rose-500/60 text-rose-300'
-                          : idx >= 4
-                          ? 'bg-orange-950/60 border-orange-500/40 text-orange-200'
-                          : 'bg-slate-950 border-slate-700 text-slate-200'
+                        'px-3 py-1.5 rounded-lg text-xs font-black transition-all',
+                        soloVariant === 'challenge' ? 'bg-amber-500 text-slate-950' : 'text-slate-300 hover:text-white'
                       )}
                     >
-                      S{idx + 1} · {stItem.tierLabel}
-                    </span>
-                  ))}
+                      Challenge Mode (8 Stage)
+                    </button>
+                    <button
+                      onClick={() => setSoloVariant('free')}
+                      className={cn(
+                        'px-3 py-1.5 rounded-lg text-xs font-black transition-all',
+                        soloVariant === 'free' ? 'bg-amber-500 text-slate-950' : 'text-slate-300 hover:text-white'
+                      )}
+                    >
+                      Free Mode
+                    </button>
+                    <button
+                      onClick={() => setSoloVariant('training')}
+                      className={cn(
+                        'px-3 py-1.5 rounded-lg text-xs font-black transition-all',
+                        soloVariant === 'training' ? 'bg-amber-500 text-slate-950' : 'text-slate-300 hover:text-white'
+                      )}
+                    >
+                      Training Mode
+                    </button>
+                  </div>
+                  <span className="text-[11px] font-bold text-amber-300">
+                    {soloVariant === 'challenge'
+                      ? 'Turnamen Tangga 8 Stage (Makin Sulit)'
+                      : soloVariant === 'free'
+                      ? 'Pertandingan Bebas (Pilih Kesukaran & Lawan)'
+                      : 'Mode Latihan (Dummy & Auto-Regen HP)'}
+                  </span>
                 </div>
+
+                {soloVariant === 'challenge' && (
+                  <div className="space-y-2 pt-1 border-t border-slate-800">
+                    <p className="text-[11px] text-slate-300 font-medium">
+                      Background Arena &amp; Tingkat Kesulitan otomatis berubah dari Stage 1 hingga Stage 8 (Final Boss).
+                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {SOLO_STAGES.map((stItem, idx) => (
+                        <span
+                          key={stItem.stageName}
+                          className={cn(
+                            'text-[10px] font-black px-2 py-0.5 rounded border',
+                            idx === SOLO_STAGES.length - 1
+                              ? 'bg-rose-950/80 border-rose-500/60 text-rose-300'
+                              : idx >= 4
+                              ? 'bg-orange-950/60 border-orange-500/40 text-orange-200'
+                              : 'bg-slate-950 border-slate-700 text-slate-200'
+                          )}
+                        >
+                          S{idx + 1} · {stItem.tierLabel}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {soloVariant === 'free' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-800">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-400">Tingkat Kesulitan Lawan:</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(['mudah', 'normal', 'sulit', 'elite'] as FreeDifficulty[]).map((diff) => (
+                          <button
+                            key={diff}
+                            onClick={() => setFreeDifficulty(diff)}
+                            className={cn(
+                              'px-2.5 py-1 rounded-lg text-xs font-black uppercase transition-all border',
+                              freeDifficulty === diff
+                                ? 'bg-amber-500 text-slate-950 border-amber-300'
+                                : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-600'
+                            )}
+                          >
+                            {FREE_DIFFICULTY_CFG[diff].label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-400">Pilih Lawan:</label>
+                      <select
+                        value={freeOpponent}
+                        onChange={(e) => setFreeOpponent(e.target.value as FighterId | 'random')}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-black text-amber-300 focus:outline-none focus:border-amber-400"
+                      >
+                        <option value="random">Acak (Random Opponent)</option>
+                        {PLAYABLE_IDS.map((id) => (
+                          <option key={id} value={id}>
+                            {FIGHTERS[id].name} ({FIGHTERS[id].codename})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {soloVariant === 'training' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-slate-800 items-center">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-400">Karakter Dummy:</label>
+                      <select
+                        value={trainingDummyChar}
+                        onChange={(e) => setTrainingDummyChar(e.target.value as FighterId)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-black text-amber-300 focus:outline-none focus:border-amber-400"
+                      >
+                        {PLAYABLE_IDS.map((id) => (
+                          <option key={id} value={id}>
+                            {FIGHTERS[id].name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-400">Perilaku Dummy:</label>
+                      <div className="flex flex-wrap gap-1">
+                        {(['diam', 'jongkok', 'blokir', 'serang'] as TrainingDummyBehavior[]).map((beh) => (
+                          <button
+                            key={beh}
+                            onClick={() => setTrainingDummyBehavior(beh)}
+                            className={cn(
+                              'px-2 py-1 rounded text-[10px] font-black uppercase transition-all border',
+                              trainingDummyBehavior === beh
+                                ? 'bg-amber-500 text-slate-950 border-amber-300'
+                                : 'bg-slate-950 text-slate-300 border-slate-800'
+                            )}
+                          >
+                            {beh}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 pt-4">
+                      <label className="text-xs font-bold text-slate-300 cursor-pointer flex items-center gap-1.5">
+                        <input
+                          type="checkbox"
+                          checked={trainingAutoRegen}
+                          onChange={(e) => setTrainingAutoRegen(e.target.checked)}
+                          className="rounded bg-slate-950 border-slate-700 text-amber-500 focus:ring-0"
+                        />
+                        Auto-Regen HP Pemain
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -8403,6 +8869,14 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                         <RotateCcw size={16} /> Restart Pertarungan
                       </button>
                     )}
+                    {playMode === 'arcade' && arcadeSubMode === 'solo' && (
+                      <button
+                        onClick={changeCharacterSolo}
+                        className="w-full py-3 rounded-xl bg-purple-600/80 hover:bg-purple-600 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg"
+                      >
+                        <Users size={16} /> Ganti Karakter
+                      </button>
+                    )}
                     <button
                       onClick={returnToMainMenu}
                       className="w-full py-3 rounded-xl bg-slate-800 hover:bg-rose-900/70 border border-slate-700 text-slate-100 font-black text-sm flex items-center justify-center gap-2"
@@ -8410,6 +8884,60 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                       <Home size={16} /> Kembali ke Menu Utama
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* In-Arena Floating Training Toolbar */}
+            {playMode === 'arcade' && arcadeSubMode === 'solo' && engineRef.current?.soloVariant === 'training' && !isPaused && (
+              <div className="absolute top-2 inset-x-2 z-30 bg-slate-950/85 backdrop-blur-md border border-amber-500/50 rounded-2xl p-2 flex flex-wrap items-center justify-between gap-2 shadow-2xl pointer-events-auto">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-amber-400 uppercase">Training Toolbar:</span>
+                  <button
+                    onClick={addTrainingDummy}
+                    disabled={trainingDummyCount >= 3}
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-[11px] font-black rounded-lg"
+                  >
+                    + Tambah Dummy
+                  </button>
+                  <button
+                    onClick={removeTrainingDummy}
+                    disabled={trainingDummyCount <= 1}
+                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-[11px] font-black rounded-lg"
+                  >
+                    - Hapus Dummy
+                  </button>
+                  <span className="text-[11px] font-bold text-slate-300">({trainingDummyCount}/3 Dummies)</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-slate-400 font-bold">Perilaku:</span>
+                    {(['diam', 'jongkok', 'blokir', 'serang'] as TrainingDummyBehavior[]).map((beh) => (
+                      <button
+                        key={beh}
+                        onClick={() => setTrainingDummyBehavior(beh)}
+                        className={cn(
+                          'px-2 py-0.5 rounded text-[10px] font-black uppercase transition-all',
+                          trainingDummyBehavior === beh ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:text-white'
+                        )}
+                      >
+                        {beh}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={cycleTrainingDummyChar}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 text-[11px] font-black rounded-lg"
+                    title="Ganti Karakter Dummy"
+                  >
+                    Dummy: {FIGHTERS[trainingDummyChar].name}
+                  </button>
+                  <button
+                    onClick={resetTrainingArena}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-[11px] font-black rounded-lg flex items-center gap-1"
+                  >
+                    <RotateCcw size={12} /> Reset
+                  </button>
                 </div>
               </div>
             )}
