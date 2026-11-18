@@ -266,17 +266,17 @@ import kamenKabutoPunchWindupUrl from '../assets/images/kamen_kabuto_punch_v2_17
 import kamenKabutoPunchUrl from '../assets/images/kamen_kabuto_punch_v2_1794975298638.jpg';
 import kamenKabutoKickChamberUrl from '../assets/images/kamen_kabuto_kick_v2_1794975298073.jpg';
 import kamenKabutoKickUrl from '../assets/images/kamen_kabuto_kick_v2_1794975298073.jpg';
-import kamenKabutoUppercutCoilUrl from '../assets/images/kamen_kabuto_uppercut_v2_1794975297981.jpg';
-import kamenKabutoUppercutUrl from '../assets/images/kamen_kabuto_uppercut_v2_1794975297981.jpg';
+import kamenKabutoUppercutCoilUrl from '../assets/images/kamen_kabuto_uppercut_v3_1794988890006.jpg';
+import kamenKabutoUppercutUrl from '../assets/images/kamen_kabuto_uppercut_v3_1794988890006.jpg';
 import kamenKabutoCrouchUrl from '../assets/images/kamen_kabuto_crouch_v2_1794975278246.jpg';
 import kamenKabutoSpecialChargeUrl from '../assets/images/kamen_kabuto_special_v3_1794978053473.jpg';
 import kamenKabutoSpecialUrl from '../assets/images/kamen_kabuto_special_v3_1794978053473.jpg';
 import kamenKabutoBlockUrl from '../assets/images/kamen_kabuto_idle_v2_1794975275137.jpg';
 import kamenKabutoHitUrl from '../assets/images/kamen_kabuto_hit_v3_1794978054411.jpg';
-import kamenKabutoFallUrl from '../assets/images/kamen_kabuto_hit_v3_1794978054411.jpg';
+import kamenKabutoFallUrl from '../assets/images/kamen_kabuto_fall_v3_1794988891016.jpg';
 import kamenKabutoVictoryUrl from '../assets/images/kamen_kabuto_idle_v2_1794975275137.jpg';
-import kamenKabutoWalkSheetUrl from '../assets/images/kamen_kabuto_walk_sheet_v4_1794978054531.jpg';
-import kamenKabutoJumpSheetUrl from '../assets/images/kamen_kabuto_jump_sheet_v4_1794978054863.jpg';
+import kamenKabutoWalkSheetUrl from '../assets/images/kamen_kabuto_walk_sheet_v5_1794988890104.jpg';
+import kamenKabutoJumpSheetUrl from '../assets/images/kamen_kabuto_jump_sheet_v5_1794988891365.jpg';
 import fatKamenKabuto1Url from '../assets/images/fatality_kamen_kabuto_1_1794971308205.jpg';
 import fatKamenKabuto2Url from '../assets/images/fatality_kamen_kabuto_2_1794971308725.jpg';
 import fatKamenKabuto3Url from '../assets/images/fatality_kamen_kabuto_3_1794971309177.jpg';
@@ -762,7 +762,7 @@ type FreeDifficulty = 'mudah' | 'normal' | 'sulit' | 'elite';
 type TrainingDummyBehavior = 'diam' | 'jongkok' | 'blokir' | 'serang';
 
 const FREE_DIFFICULTY_CFG: Record<FreeDifficulty, { hpMult: number; powerMult: number; speedMult: number; diffLevel: number; label: string }> = {
-  mudah: { hpMult: 0.8, powerMult: 0.85, speedMult: 0.85, diffLevel: 0.1, label: 'Mudah' },
+  mudah: { hpMult: 0.55, powerMult: 0.45, speedMult: 0.65, diffLevel: 0.04, label: 'Mudah' },
   normal: { hpMult: 1.0, powerMult: 1.0, speedMult: 1.0, diffLevel: 0.4, label: 'Normal' },
   sulit: { hpMult: 1.25, powerMult: 1.15, speedMult: 1.1, diffLevel: 0.75, label: 'Sulit' },
   elite: { hpMult: 1.5, powerMult: 1.3, speedMult: 1.2, diffLevel: 1.0, label: 'Elite Boss' },
