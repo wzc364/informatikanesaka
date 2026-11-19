@@ -20,6 +20,7 @@ export interface QuestionMaterialItem {
   konsepUtama: string;
   penjelasanSingkat: string;
   rumusAtauAturanKunci: string[];
+  contohPenerapan?: string;
   tipsMemahami: string;
 }
 

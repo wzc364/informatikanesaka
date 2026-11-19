@@ -527,13 +527,18 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
         {/* Bagian 1: Kisi-kisi Soal */}
         {showKisiKisi && activeResult.kisiKisi!.length > 0 && (
           <section className="mb-8">
-            <div className="flex items-center gap-2.5 pb-2 mb-3.5 border-b-2 border-slate-200 print-keep-with-next">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-700 text-white text-xs font-extrabold tabular-nums shrink-0">
-                {++sectionCounter}
+            <div className="flex items-center justify-between gap-2 pb-2 mb-3.5 border-b-2 border-slate-200 print-keep-with-next">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-700 text-white text-xs font-extrabold tabular-nums shrink-0">
+                  {++sectionCounter}
+                </span>
+                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                  Kisi-Kisi Soal
+                </h2>
+              </div>
+              <span className="text-[10.5px] font-bold text-slate-500">
+                {activeResult.kisiKisi!.length} Nomor Soal
               </span>
-              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                Kisi-Kisi Soal
-              </h2>
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-slate-300">
@@ -591,22 +596,27 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
         {/* Bagian 2: Materi dari Soal */}
         {showMateri && activeResult.materiDariSoal!.length > 0 && (
           <section className="mb-8">
-            <div className="flex items-center gap-2.5 pb-2 mb-3.5 border-b-2 border-slate-200 print-keep-with-next">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-700 text-white text-xs font-extrabold tabular-nums shrink-0">
-                {++sectionCounter}
+            <div className="flex items-center justify-between gap-2 pb-2 mb-3.5 border-b-2 border-slate-200 print-keep-with-next">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-700 text-white text-xs font-extrabold tabular-nums shrink-0">
+                  {++sectionCounter}
+                </span>
+                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                  Materi Pembelajaran dari Soal
+                </h2>
+              </div>
+              <span className="text-[10.5px] font-bold text-slate-500">
+                {activeResult.materiDariSoal!.length} Topik Materi
               </span>
-              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                Ringkasan Materi dari Soal
-              </h2>
             </div>
 
             <div className="space-y-4">
               {activeResult.materiDariSoal!.map((materi, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-xl border border-slate-300 bg-white print-avoid-break"
+                  className="p-4 sm:p-5 rounded-xl border border-slate-300 bg-white space-y-3"
                 >
-                  <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex items-start justify-between gap-3 pb-2 border-b border-slate-200">
                     <h3 className="text-[14.5px] font-extrabold text-slate-900 leading-snug">
                       {idx + 1}. {materi.judulTopik}
                     </h3>
@@ -615,12 +625,12 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
                     </span>
                   </div>
 
-                  <p className="text-[12.5px] text-slate-700 leading-relaxed mb-3">
+                  <div className="text-[12.5px] text-slate-800 leading-relaxed whitespace-pre-line">
                     {materi.penjelasanSingkat}
-                  </p>
+                  </div>
 
                   {materi.rumusAtauAturanKunci && materi.rumusAtauAturanKunci.length > 0 && (
-                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 mb-2.5">
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 print-avoid-break">
                       <p className="text-[11px] font-extrabold uppercase tracking-wider text-blue-800 mb-1.5">
                         Rumus &amp; Aturan Kunci:
                       </p>
@@ -632,9 +642,18 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
                     </div>
                   )}
 
+                  {materi.contohPenerapan && (
+                    <div className="p-3 rounded-lg bg-blue-50/70 border border-blue-200 text-[12px] text-slate-800 whitespace-pre-line print-avoid-break">
+                      <p className="text-[11px] font-extrabold uppercase tracking-wider text-blue-900 mb-1">
+                        Contoh Penerapan:
+                      </p>
+                      {materi.contohPenerapan}
+                    </div>
+                  )}
+
                   {materi.tipsMemahami && (
-                    <div className="text-[12px] text-slate-700 bg-amber-50/70 border-l-4 border-amber-500 px-3 py-2 rounded-r-lg">
-                      <strong className="text-amber-900">Tips Cepat: </strong>
+                    <div className="text-[12px] text-slate-700 bg-amber-50/70 border-l-4 border-amber-500 px-3 py-2 rounded-r-lg print-avoid-break">
+                      <strong className="text-amber-900">Tips Cepat &amp; Catatan Penting: </strong>
                       {materi.tipsMemahami}
                     </div>
                   )}
@@ -647,13 +666,18 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
         {/* Bagian 3: Penyelesaian Soal Secara Rinci */}
         {showPenyelesaian && activeResult.penyelesaianRinci!.length > 0 && (
           <section className="mb-8">
-            <div className="flex items-center gap-2.5 pb-2 mb-3.5 border-b-2 border-slate-200 print-keep-with-next">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-slate-900 text-white text-xs font-extrabold tabular-nums shrink-0">
-                {++sectionCounter}
+            <div className="flex items-center justify-between gap-2 pb-2 mb-3.5 border-b-2 border-slate-200 print-keep-with-next">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-slate-900 text-white text-xs font-extrabold tabular-nums shrink-0">
+                  {++sectionCounter}
+                </span>
+                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                  Penyelesaian Soal Secara Rinci
+                </h2>
+              </div>
+              <span className="text-[10.5px] font-bold text-slate-500">
+                {activeResult.penyelesaianRinci!.length} Soal Dibahas
               </span>
-              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                Penyelesaian Soal Secara Rinci
-              </h2>
             </div>
 
             <div className="space-y-4">

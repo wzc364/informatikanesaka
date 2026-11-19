@@ -193,11 +193,171 @@ async function extractDocumentPart(fileName, mimeType, fileBase64) {
   );
 }
 
-function buildResponseSchema(sections) {
-  const properties = {
+function buildContents(extractedPart, promptText) {
+  if (extractedPart.kind === 'inlineData') {
+    return {
+      parts: [
+        {
+          inlineData: {
+            mimeType: extractedPart.mimeType,
+            data: extractedPart.data,
+          },
+        },
+        { text: promptText },
+      ],
+    };
+  }
+  return `${promptText}\n\n=== ISI DOKUMEN SOAL ===\n${extractedPart.text.slice(0, 120000)}`;
+}
+
+function normalizeQuestionKey(raw) {
+  const s = String(raw || '')
+    .trim()
+    .replace(/^(soal|no\.?|nomor)\s*/i, '')
+    .replace(/[.)\]]+$/, '')
+    .trim();
+  return s.toLowerCase();
+}
+
+function compareQuestionNumbers(a, b) {
+  const na = parseInt(String(a).replace(/\D+/g, ''), 10);
+  const nb = parseInt(String(b).replace(/\D+/g, ''), 10);
+  if (!Number.isNaN(na) && !Number.isNaN(nb) && na !== nb) {
+    return na - nb;
+  }
+  return String(a).localeCompare(String(b), 'id');
+}
+
+function chunkArray(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) {
+    out.push(arr.slice(i, i + size));
+  }
+  return out;
+}
+
+async function runWithConcurrency(tasks, concurrency = 3) {
+  const results = new Array(tasks.length);
+  let nextIdx = 0;
+  const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, async () => {
+    while (nextIdx < tasks.length) {
+      const idx = nextIdx++;
+      results[idx] = await tasks[idx]();
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+async function generateWithRetry(fn, maxAttempts = 2) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      const status = err?.status || err?.code;
+      const name = String(err?.name || '');
+      const msg = String(err?.message || '').toLowerCase();
+      if (name === 'TimeoutError' || name === 'AbortError' || status === 20) {
+        const timeoutErr = new Error(
+          'Permintaan analisis AI melebihi batas waktu. Coba lagi atau perkecil jumlah halaman/soal dalam satu dokumen.'
+        );
+        timeoutErr.name = 'TimeoutError';
+        timeoutErr.status = 504;
+        throw timeoutErr;
+      }
+      const isRetryable =
+        status === 429 ||
+        status === 500 ||
+        status === 502 ||
+        status === 503 ||
+        status === 504 ||
+        msg.includes('network') ||
+        msg.includes('fetch') ||
+        msg.includes('unavailable') ||
+        msg.includes('resource_exhausted');
+      if (!isRetryable || attempt === maxAttempts) {
+        throw err;
+      }
+      const waitMs = status === 429 ? 2000 * attempt : 900 * Math.pow(2, attempt - 1);
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+  }
+  throw lastError;
+}
+
+async function callGeminiJson(ai, extractedPart, promptText, schema) {
+  const contents = buildContents(extractedPart, promptText);
+
+  const callModel = async (modelName, timeoutMs) => {
+    let timer;
+    try {
+      return await Promise.race([
+        ai.models.generateContent({
+          model: modelName,
+          contents,
+          config: {
+            abortSignal: AbortSignal.timeout(timeoutMs),
+            systemInstruction:
+              'Anda adalah pakar kurikulum dan guru senior di Indonesia. Keluarkan JSON valid sesuai schema. DILARANG KERAS menyingkat, menggabungkan, atau melewatkan nomor soal yang diminta. Gunakan simbol matematika yang rapi (×, ÷, ², ³, √, ≤, ≥, →) tanpa markup LaTeX mentah.',
+            thinkingConfig: {
+              thinkingLevel:
+                modelName === 'gemini-4-hydrogen' ? ThinkingLevel.LOW : ThinkingLevel.MINIMAL,
+            },
+            responseMimeType: 'application/json',
+            responseSchema: schema,
+          },
+        }),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => {
+            const err = new Error(
+              `Batas waktu permintaan (${Math.round(timeoutMs / 1000)} detik) tercapai.`
+            );
+            err.name = 'TimeoutError';
+            err.status = 504;
+            reject(err);
+          }, timeoutMs + 500);
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
+
+  let response;
+  try {
+    response = await generateWithRetry(() => callModel('gemini-4-hydrogen', 35000), 2);
+  } catch (primaryErr) {
+    const status = primaryErr?.status || primaryErr?.code;
+    const msg = String(primaryErr?.message || '').toLowerCase();
+    const shouldFallback =
+      status === 429 ||
+      status === 500 ||
+      status === 503 ||
+      status === 504 ||
+      primaryErr?.name === 'TimeoutError' ||
+      msg.includes('unavailable') ||
+      msg.includes('high demand') ||
+      msg.includes('deadline');
+    if (!shouldFallback) {
+      throw primaryErr;
+    }
+    response = await generateWithRetry(() => callModel('gemini-3.1-flash-lite', 35000), 2);
+  }
+
+  const rawText = (response.text ?? '').trim();
+  if (!rawText) {
+    throw new Error('Model tidak mengembalikan hasil analisis. Silakan coba lagi.');
+  }
+  return JSON.parse(rawText);
+}
+
+const SUMMARY_AND_INDEX_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
     ringkasanUmum: {
       type: Type.OBJECT,
-      description: 'Ringkasan umum isi dokumen soal yang diunggah.',
       properties: {
         mataPelajaran: { type: Type.STRING },
         jenjang: { type: Type.STRING },
@@ -213,15 +373,22 @@ function buildResponseSchema(sections) {
         'ringkasan',
       ],
     },
-  };
-
-  const requiredFields = ['ringkasanUmum'];
-
-  if (sections.kisiKisi) {
-    requiredFields.push('kisiKisi');
-    properties.kisiKisi = {
+    daftarNomorSoal: {
       type: Type.ARRAY,
-      description: 'Tabel kisi-kisi lengkap untuk setiap butir soal di dokumen.',
+      description:
+        'Daftar lengkap SEMUA nomor soal yang ada di dokumen secara berurutan dari soal pertama hingga soal terakhir.',
+      items: { type: Type.STRING },
+    },
+  },
+  required: ['ringkasanUmum', 'daftarNomorSoal'],
+};
+
+const KISI_ONLY_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    kisiKisi: {
+      type: Type.ARRAY,
+      description: 'Tabel kisi-kisi lengkap untuk SETIAP nomor soal yang diminta tanpa terkecuali.',
       items: {
         type: Type.OBJECT,
         properties: {
@@ -243,23 +410,35 @@ function buildResponseSchema(sections) {
           'tingkatKesulitan',
         ],
       },
-    };
-  }
+    },
+  },
+  required: ['kisiKisi'],
+};
 
-  if (sections.materiDariSoal) {
-    requiredFields.push('materiDariSoal');
-    properties.materiDariSoal = {
+const MATERI_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    materiDariSoal: {
       type: Type.ARRAY,
-      description: 'Ringkasan materi pembelajaran, konsep inti, dan rumus kunci dari soal-soal tersebut.',
+      description:
+        'Uraian materi pembelajaran yang LENGKAP, PANJANG, dan MENDALAM mencakup seluruh topik dan kompetensi dari semua soal di dokumen.',
       items: {
         type: Type.OBJECT,
         properties: {
           judulTopik: { type: Type.STRING },
           konsepUtama: { type: Type.STRING },
-          penjelasanSingkat: { type: Type.STRING },
+          penjelasanSingkat: {
+            type: Type.STRING,
+            description:
+              'Penjelasan materi yang LENGKAP dan PANJANG (minimal 4-6 paragraf terstruktur dipisahkan baris baru \\n\\n) berisi konsep dasar, cara analisis soal, dan variasi bentuk soal.',
+          },
           rumusAtauAturanKunci: {
             type: Type.ARRAY,
             items: { type: Type.STRING },
+          },
+          contohPenerapan: {
+            type: Type.STRING,
+            description: 'Contoh soal mini beserta langkah penerapannya secara singkat dan jelas.',
           },
           tipsMemahami: { type: Type.STRING },
         },
@@ -268,17 +447,22 @@ function buildResponseSchema(sections) {
           'konsepUtama',
           'penjelasanSingkat',
           'rumusAtauAturanKunci',
+          'contohPenerapan',
           'tipsMemahami',
         ],
       },
-    };
-  }
+    },
+  },
+  required: ['materiDariSoal'],
+};
 
-  if (sections.penyelesaianRinci) {
-    requiredFields.push('penyelesaianRinci');
-    properties.penyelesaianRinci = {
+const PENYELESAIAN_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    penyelesaianRinci: {
       type: Type.ARRAY,
-      description: 'Pembahasan lengkap dan langkah demi langkah untuk setiap soal di dokumen.',
+      description:
+        'Pembahasan rinci langkah demi langkah untuk SETIAP nomor soal yang diminta tanpa melewatkan satu pun.',
       items: {
         type: Type.OBJECT,
         properties: {
@@ -306,14 +490,18 @@ function buildResponseSchema(sections) {
           'penjelasanMengapaBenar',
         ],
       },
-    };
-  }
+    },
+  },
+  required: ['penyelesaianRinci'],
+};
 
-  if (sections.latihanSoal) {
-    requiredFields.push('latihanSoalMirip');
-    properties.latihanSoalMirip = {
+const LATIHAN_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    latihanSoalMirip: {
       type: Type.ARRAY,
-      description: 'Latihan soal baru yang mirip tingkat kesulitan dan konsepnya dengan soal di dokumen.',
+      description:
+        'Kumpulan soal latihan baru yang mirip pola, tingkat kesulitan, dan sebaran topik dengan seluruh dokumen.',
       items: {
         type: Type.OBJECT,
         properties: {
@@ -336,50 +524,10 @@ function buildResponseSchema(sections) {
           'pembahasanSingkat',
         ],
       },
-    };
-  }
-
-  return {
-    type: Type.OBJECT,
-    properties,
-    required: requiredFields,
-  };
-}
-
-async function generateWithRetry(fn, maxAttempts = 2) {
-  let lastError;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastError = err;
-      const status = err?.status || err?.code;
-      const name = String(err?.name || '');
-      const msg = String(err?.message || '').toLowerCase();
-      if (name === 'TimeoutError' || name === 'AbortError' || status === 20) {
-        const timeoutErr = new Error(
-          'Permintaan analisis AI melebihi batas waktu. Coba lagi atau perkecil jumlah halaman/soal dalam satu dokumen.'
-        );
-        timeoutErr.name = 'TimeoutError';
-        timeoutErr.status = 504;
-        throw timeoutErr;
-      }
-      const isRetryable =
-        status === 500 ||
-        status === 502 ||
-        status === 503 ||
-        status === 504 ||
-        msg.includes('network') ||
-        msg.includes('fetch') ||
-        msg.includes('unavailable');
-      if (!isRetryable || attempt === maxAttempts) {
-        throw err;
-      }
-      await new Promise((r) => setTimeout(r, 800 * Math.pow(2, attempt - 1)));
-    }
-  }
-  throw lastError;
-}
+    },
+  },
+  required: ['latihanSoalMirip'],
+};
 
 export async function analyzeQuestionDocument(input) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -405,52 +553,6 @@ export async function analyzeQuestionDocument(input) {
   const extractedPart = await extractDocumentPart(fileName, mimeType, fileBase64);
   const bufferBytes = Buffer.byteLength(fileBase64, 'base64');
 
-  const requestedLabels = [
-    sections.kisiKisi ? '1. Kisi-kisi Soal (lengkap per nomor soal)' : null,
-    sections.materiDariSoal
-      ? '2. Materi dari Soal (konsep inti, penjelasan, rumus/aturan kunci, dan tips)'
-      : null,
-    sections.penyelesaianRinci
-      ? '3. Penyelesaian Soal Secara Rinci (diketahui, ditanyakan, langkah demi langkah hingga jawaban benar)'
-      : null,
-    sections.latihanSoal
-      ? '4. Latihan Soal yang Mirip (minimal 5 soal baru atau sesuai variasi topik soal asli, lengkap dengan 4 pilihan A/B/C/D, kunci jawaban, dan pembahasan singkat)'
-      : null,
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  const promptText = `Judul Dokumen Analisis: "${title}"
-Nama File Asli: "${fileName}"
-
-Tugas Anda sebagai pakar pendidikan & kurikulum Indonesia:
-Analisis seluruh soal yang terdapat dalam dokumen terlampir secara teliti, akurat, terstruktur, dan mudah dicetak sebagai dokumen modul guru/siswa.
-
-Hasilkan bagian-bagian berikut dalam bahasa Indonesia yang rapi, baku, dan edukatif:
-${requestedLabels}
-
-Aturan Penulisan:
-- Pastikan perhitungan matematika, logika informatika, konsep sains/bahasa, dan kunci jawaban benar-benar akurat dan terverifikasi.
-- Untuk bagian Kisi-kisi: isi levelKognitif dengan taksonomi Bloom (misal: C1 Mengingat, C2 Memahami, C3 Menerapkan, C4 Menganalisis, C5 Mengevaluasi) dan tingkatKesulitan (Mudah / Sedang / Sukar).
-- Untuk bagian Penyelesaian Rinci: uraikan langkahPenyelesaian secara runtut per poin agar mudah dibaca siswa dan dicetak. Jangan mencampur semua langkah menjadi satu paragraf panjang.
-- Untuk bagian Latihan Soal yang Mirip: buat soal BARU yang mirip pola, kompetensi, dan konteksnya (bukan menyalin soal persis sama), setiap soal memiliki 4 opsi jawaban bersih (tanpa perlu duplikasi huruf A./B. jika tidak konsisten—atau tulis jelas tanpa simbol aneh) serta kunciJawaban dan pembahasanSingkat.
-- Gunakan simbol matematika yang mudah dibaca saat dicetak (seperti ×, ÷, ², ³, √, ≤, ≥, →) dan hindari markup LaTeX mentah berantakan seperti \\frac atau $$.`;
-
-  const contents =
-    extractedPart.kind === 'inlineData'
-      ? {
-          parts: [
-            {
-              inlineData: {
-                mimeType: extractedPart.mimeType,
-                data: extractedPart.data,
-              },
-            },
-            { text: promptText },
-          ],
-        }
-      : `${promptText}\n\n=== ISI DOKUMEN SOAL ===\n${extractedPart.text.slice(0, 120000)}`;
-
   const ai = new GoogleGenAI({
     apiKey,
     httpOptions: {
@@ -461,71 +563,188 @@ Aturan Penulisan:
     },
   });
 
-  const callModel = async (modelName, timeoutMs) => {
-    let timer;
-    try {
-      return await Promise.race([
-        ai.models.generateContent({
-          model: modelName,
-          contents,
-          config: {
-            abortSignal: AbortSignal.timeout(timeoutMs),
-            systemInstruction:
-              'Anda adalah asisten analisis soal profesional untuk guru SMP/SMA di Indonesia. Selalu keluarkan JSON valid sesuai schema dengan bahasa Indonesia yang jelas, sistematis, teliti dalam perhitungan, dan siap dicetak.',
-            thinkingConfig: {
-              thinkingLevel:
-                modelName === 'gemini-4-hydrogen' ? ThinkingLevel.LOW : ThinkingLevel.MINIMAL,
-            },
-            responseMimeType: 'application/json',
-            responseSchema: buildResponseSchema(sections),
-          },
-        }),
-        new Promise((_, reject) => {
-          timer = setTimeout(() => {
-            const err = new Error(
-              `Batas waktu permintaan (${Math.round(timeoutMs / 1000)} detik) tercapai.`
-            );
-            err.name = 'TimeoutError';
-            err.status = 504;
-            reject(err);
-          }, timeoutMs + 500);
-        }),
-      ]);
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
+  // Gelombang 1: Inventarisasi SEMUA nomor soal + ringkasan, paralel dengan Materi & Latihan bila dicentang
+  const indexPrompt = `Judul Dokumen: "${title}" (${fileName}).
+Tugas Anda:
+1. Hitung dan daftarkan SEMUA nomor soal yang terdapat dalam dokumen secara lengkap dari nomor pertama sampai nomor terakhir pada "daftarNomorSoal" (contoh: ["1","2","3",...]). JANGAN melewati nomor soal atau menyingkat dengan "dst".
+2. Isi "ringkasanUmum" secara akurat sesuai jumlah total soal yang terdeteksi.`;
+
+  const materiPrompt = `Judul Dokumen: "${title}" (${fileName}).
+Tugas Anda: Susun **Materi Pembelajaran Lengkap dari Soal** sebagai modul ajar guru/siswa yang PANJANG, KOMPREHENSIF, dan MENDALAM.
+Aturan WAJIB:
+- Cakup SELURUH topik, bab, dan kompetensi dari soal pertama hingga soal terakhir di dokumen. Jangan hanya menulis 1 topik atau ringkasan pendek! Jika dokumen membahas beberapa materi berbeda, buat beberapa topik terperinci sesuai kelompok nomor soalnya (misalnya Topik 1 (Soal 1-5), Topik 2 (Soal 6-10), dst.).
+- Pada field "penjelasanSingkat" di setiap topik, tulis uraian materi yang PANJANG, LENGKAP, dan MENDALAM (minimal 4 paragraf atau sub-poin terstruktur, dipisahkan dengan baris baru \\n\\n) mencakup definisi/konsep dasar, cara kerja atau penurunan konsep, cara membedakan variasi soal, dan panduan langkah pengerjaan.
+- Pada "rumusAtauAturanKunci", tuliskan semua rumus, kaidah, definisi kunci, atau aturan penting beserta keterangan arti setiap variabel/istilahnya.
+- Pada "contohPenerapan", berikan 1 contoh penerapan lengkap beserta langkah singkatnya.
+- Pada "tipsMemahami", tuliskan kesalahan umum yang sering terjadi dan cara cepat menyelesaikan soal tipe tersebut.`;
+
+  const latihanPrompt = `Judul Dokumen: "${title}" (${fileName}).
+Tugas Anda: Buat paket **Latihan Soal yang Mirip** yang mewakili seluruh variasi topik dalam dokumen.
+Aturan WAJIB:
+- Buat antara 5 hingga 10 soal BARU yang setara secara kompetensi, pola berpikir, dan tingkat kesulitan (bukan menyalin soal asli persis sama). Jika dokumen memiliki banyak topik/soal, buat 8-10 soal agar merata ke seluruh topik.
+- Setiap soal memiliki 4 pilihan jawaban bersih ("pilihanGanda"), "kunciJawaban" (misal: "B. ..."), dan "pembahasanSingkat" yang jelas.`;
+
+  const indexPromise = callGeminiJson(ai, extractedPart, indexPrompt, SUMMARY_AND_INDEX_SCHEMA);
+  const materiPromise = sections.materiDariSoal
+    ? callGeminiJson(ai, extractedPart, materiPrompt, MATERI_SCHEMA)
+    : Promise.resolve(null);
+  const latihanPromise = sections.latihanSoal
+    ? callGeminiJson(ai, extractedPart, latihanPrompt, LATIHAN_SCHEMA)
+    : Promise.resolve(null);
+
+  // Tangkap error sementara pada promise paralel agar tidak terjadi unhandled rejection jika index gagal lebih dulu
+  const backgroundSettledPromise = Promise.allSettled([materiPromise, latihanPromise]);
+
+  const indexData = (await indexPromise) || {};
+
+  const ringkasanUmum = indexData.ringkasanUmum || {
+    mataPelajaran: 'Umum',
+    jenjang: 'SMP',
+    jumlahSoalTerdeteksi: 0,
+    tingkatKesulitanDominan: 'Sedang',
+    ringkasan: 'Hasil analisis dokumen soal.',
   };
 
-  let response;
-  try {
-    response = await generateWithRetry(() => callModel('gemini-4-hydrogen', 55000), 2);
-  } catch (primaryErr) {
-    const status = primaryErr?.status || primaryErr?.code;
-    const msg = String(primaryErr?.message || '').toLowerCase();
-    const shouldFallback =
-      status === 503 ||
-      status === 504 ||
-      status === 500 ||
-      primaryErr?.name === 'TimeoutError' ||
-      msg.includes('unavailable') ||
-      msg.includes('high demand') ||
-      msg.includes('deadline');
-    if (!shouldFallback) {
-      throw primaryErr;
+  let allQuestionNumbers = Array.isArray(indexData.daftarNomorSoal)
+    ? indexData.daftarNomorSoal.map((n) => String(n).trim()).filter(Boolean)
+    : [];
+
+  if (allQuestionNumbers.length === 0 && ringkasanUmum.jumlahSoalTerdeteksi > 0) {
+    allQuestionNumbers = Array.from(
+      { length: ringkasanUmum.jumlahSoalTerdeteksi },
+      (_, idx) => String(idx + 1)
+    );
+  }
+  if (allQuestionNumbers.length === 0) {
+    allQuestionNumbers = ['1'];
+  }
+  if (ringkasanUmum.jumlahSoalTerdeteksi < allQuestionNumbers.length) {
+    ringkasanUmum.jumlahSoalTerdeteksi = allQuestionNumbers.length;
+  }
+
+  // Gelombang 2: Kisi-kisi (batch semua nomor) & Penyelesaian Rinci (batch semua nomor) berjalan paralel dengan Materi & Latihan
+  const wave2Tasks = [];
+  let kisiKisi = [];
+  let penyelesaianRinci = [];
+
+  if (sections.kisiKisi) {
+    const kisiBatches = chunkArray(allQuestionNumbers, 15);
+    kisiBatches.forEach((batchNos) => {
+      wave2Tasks.push(async () => {
+        const prompt = `Judul Dokumen: "${title}" (${fileName}).
+Buat tabel **Kisi-Kisi Soal** untuk SEMUA nomor soal berikut ini tanpa terkecuali: ${batchNos.join(', ')}.
+Aturan WAJIB:
+- Harus ada tepat 1 baris kisi-kisi untuk SETIAP nomor soal di daftar [${batchNos.join(', ')}].
+- DILARANG menggabungkan nomor (seperti "1-5") atau melewatkan satu nomor pun!
+- Isi levelKognitif dengan Taksonomi Bloom (misal: C1 Mengingat, C2 Memahami, C3 Menerapkan, C4 Menganalisis, C5 Mengevaluasi) dan tingkatKesulitan (Mudah / Sedang / Sukar).`;
+        const res = await callGeminiJson(ai, extractedPart, prompt, KISI_ONLY_SCHEMA);
+        if (Array.isArray(res?.kisiKisi)) {
+          kisiKisi.push(...res.kisiKisi);
+        }
+      });
+    });
+  }
+
+  if (sections.penyelesaianRinci) {
+    const solBatches = chunkArray(allQuestionNumbers, 8);
+    solBatches.forEach((batchNos) => {
+      wave2Tasks.push(async () => {
+        const prompt = `Judul Dokumen: "${title}" (${fileName}).
+Buat **Penyelesaian Soal Secara Rinci** untuk SEMUA nomor soal berikut ini satu per satu: ${batchNos.join(', ')}.
+Aturan WAJIB:
+- Anda WAJIB menyelesaikan SEMUA ${batchNos.length} soal pada daftar [${batchNos.join(', ')}] dari awal sampai akhir batch ini.
+- DILARANG berhenti setelah 1 soal atau hanya memberi contoh!
+- Untuk setiap soal, tulis "nomorSoal" sesuai nomor aslinya, "teksSoalRingkas", daftar "diketahui", "ditanyakan", "langkahPenyelesaian" yang runtut per langkah, "jawabanBenar", dan "penjelasanMengapaBenar".`;
+        const res = await callGeminiJson(ai, extractedPart, prompt, PENYELESAIAN_SCHEMA);
+        if (Array.isArray(res?.penyelesaianRinci)) {
+          penyelesaianRinci.push(...res.penyelesaianRinci);
+        }
+      });
+    });
+  }
+
+  const [settledBackground] = await Promise.all([
+    backgroundSettledPromise,
+    wave2Tasks.length > 0 ? runWithConcurrency(wave2Tasks, 3) : Promise.resolve(),
+  ]);
+
+  if (settledBackground[0].status === 'rejected') {
+    throw settledBackground[0].reason;
+  }
+  if (settledBackground[1].status === 'rejected') {
+    throw settledBackground[1].reason;
+  }
+  const materiData = settledBackground[0].value;
+  const latihanData = settledBackground[1].value;
+
+  // Pemulihan otomatis jika masih ada nomor soal yang terlewat di Kisi-kisi atau Penyelesaian
+  const recoveryTasks = [];
+
+  if (sections.kisiKisi) {
+    const coveredKisi = new Set(kisiKisi.map((item) => normalizeQuestionKey(item.noSoal)));
+    const missingKisi = allQuestionNumbers.filter(
+      (n) => !coveredKisi.has(normalizeQuestionKey(n))
+    );
+    if (missingKisi.length > 0) {
+      chunkArray(missingKisi, 15).forEach((batchNos) => {
+        recoveryTasks.push(async () => {
+          const prompt = `Lengkapi Kisi-Kisi Soal yang belum dibuat HANYA untuk nomor soal berikut: ${batchNos.join(', ')}. Wajib sertakan setiap nomor tersebut satu per satu tanpa ada yang terlewat.`;
+          const res = await callGeminiJson(ai, extractedPart, prompt, KISI_ONLY_SCHEMA);
+          if (Array.isArray(res?.kisiKisi)) {
+            kisiKisi.push(...res.kisiKisi);
+          }
+        });
+      });
     }
-    response = await generateWithRetry(() => callModel('gemini-3.1-flash-lite', 45000), 2);
   }
 
-  const rawText = (response.text ?? '').trim();
-  if (!rawText) {
-    throw new Error('Model tidak mengembalikan hasil analisis. Silakan coba lagi.');
+  if (sections.penyelesaianRinci) {
+    const coveredSol = new Set(
+      penyelesaianRinci.map((item) => normalizeQuestionKey(item.nomorSoal))
+    );
+    const missingSol = allQuestionNumbers.filter(
+      (n) => !coveredSol.has(normalizeQuestionKey(n))
+    );
+    if (missingSol.length > 0) {
+      chunkArray(missingSol, 8).forEach((batchNos) => {
+        recoveryTasks.push(async () => {
+          const prompt = `Selesaikan Penyelesaian Soal Secara Rinci untuk SEMUA nomor soal yang tersisa berikut ini satu per satu: ${batchNos.join(', ')}. Jangan melewati satu pun!`;
+          const res = await callGeminiJson(ai, extractedPart, prompt, PENYELESAIAN_SCHEMA);
+          if (Array.isArray(res?.penyelesaianRinci)) {
+            penyelesaianRinci.push(...res.penyelesaianRinci);
+          }
+        });
+      });
+    }
   }
 
-  let parsed;
-  try {
-    parsed = JSON.parse(rawText);
-  } catch {
-    throw new Error('Format hasil analisis dari server tidak valid. Silakan ulangi analisis.');
+  if (recoveryTasks.length > 0) {
+    await runWithConcurrency(recoveryTasks, 2);
+  }
+
+  // Deduplikasi dan pengurutan numerik sesuai urutan soal asli
+  if (sections.kisiKisi) {
+    const seen = new Set();
+    kisiKisi = kisiKisi
+      .filter((item) => {
+        const key = normalizeQuestionKey(item.noSoal);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => compareQuestionNumbers(a.noSoal, b.noSoal));
+  }
+
+  if (sections.penyelesaianRinci) {
+    const seen = new Set();
+    penyelesaianRinci = penyelesaianRinci
+      .filter((item) => {
+        const key = normalizeQuestionKey(item.nomorSoal);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => compareQuestionNumbers(a.nomorSoal, b.nomorSoal));
   }
 
   return {
@@ -535,28 +754,20 @@ Aturan Penulisan:
     fileSize: bufferBytes,
     analyzedAt: new Date().toISOString(),
     requestedSections: { ...sections },
-    ringkasanUmum: parsed.ringkasanUmum || {
-      mataPelajaran: 'Umum',
-      jenjang: 'SMP',
-      jumlahSoalTerdeteksi: 0,
-      tingkatKesulitanDominan: 'Sedang',
-      ringkasan: 'Hasil analisis dokumen soal.',
-    },
-    ...(sections.kisiKisi ? { kisiKisi: Array.isArray(parsed.kisiKisi) ? parsed.kisiKisi : [] } : {}),
+    ringkasanUmum,
+    ...(sections.kisiKisi ? { kisiKisi } : {}),
     ...(sections.materiDariSoal
-      ? { materiDariSoal: Array.isArray(parsed.materiDariSoal) ? parsed.materiDariSoal : [] }
-      : {}),
-    ...(sections.penyelesaianRinci
       ? {
-          penyelesaianRinci: Array.isArray(parsed.penyelesaianRinci)
-            ? parsed.penyelesaianRinci
+          materiDariSoal: Array.isArray(materiData?.materiDariSoal)
+            ? materiData.materiDariSoal
             : [],
         }
       : {}),
+    ...(sections.penyelesaianRinci ? { penyelesaianRinci } : {}),
     ...(sections.latihanSoal
       ? {
-          latihanSoalMirip: Array.isArray(parsed.latihanSoalMirip)
-            ? parsed.latihanSoalMirip
+          latihanSoalMirip: Array.isArray(latihanData?.latihanSoalMirip)
+            ? latihanData.latihanSoalMirip
             : [],
         }
       : {}),
