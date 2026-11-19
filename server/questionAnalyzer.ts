@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 import type {
   QuestionAnalysisResult,
   QuestionAnalysisSectionSelection,
-} from '../src/questionAnalysisTypes';
+} from '../src/questionAnalysisTypes.ts';
 
 export interface AnalyzeQuestionDocInput {
   title: string;

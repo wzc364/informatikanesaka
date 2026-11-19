@@ -1,16 +1,15 @@
 import "dotenv/config";
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import { analyzeQuestionDocument } from "./server/questionAnalyzer";
+import { analyzeQuestionDocument } from "./server/questionAnalyzer.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // Trust proxy to get correct IP from headers
   app.set('trust proxy', true);
@@ -100,8 +99,14 @@ async function startServer() {
     });
   });
 
+  // Ensure unmatched /api/* routes return JSON instead of HTML fallback
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "Endpoint API tidak ditemukan." });
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -110,7 +115,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

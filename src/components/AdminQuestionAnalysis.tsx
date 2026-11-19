@@ -229,6 +229,11 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (response.status === 404 && !payload?.error) {
+          throw new Error(
+            'Endpoint analisis server belum aktif (HTTP 404). Silakan muat ulang halaman atau coba lagi sebentar.'
+          );
+        }
         throw new Error(
           payload?.error || `Gagal menganalisis dokumen (HTTP ${response.status}).`
         );
