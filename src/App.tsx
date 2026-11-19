@@ -66,7 +66,8 @@ import {
   Calculator,
   MonitorPlay,
   ClipboardList,
-  GraduationCap
+  GraduationCap,
+  Printer
 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
@@ -83,6 +84,7 @@ import Login from './components/Login';
 import AdminGames from './components/AdminGames';
 import AdminSoal from './components/AdminSoal';
 import StudentSoalRunner from './components/StudentSoalRunner';
+import { AdminMaterialPrintModal } from './components/AdminMaterialPrintModal';
 
 enum OperationType {
   CREATE = 'create',
@@ -230,6 +232,7 @@ export default function App() {
   const [localMaterialConfig, setLocalMaterialConfig] = useState<any>(null);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [editingMaterialConfigId, setEditingMaterialConfigId] = useState<string | null>(null);
+  const [printingMaterialCourseId, setPrintingMaterialCourseId] = useState<string | null>(null);
 
   // Automatically calculate total course timer based on topic/quiz timers
   useEffect(() => {
@@ -2130,7 +2133,10 @@ export default function App() {
     ] as const;
 
     return (
-      <div className="flex h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/40 text-slate-900 overflow-hidden">
+      <div className={cn(
+        "flex h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/40 text-slate-900 overflow-hidden",
+        printingMaterialCourseId && "print:hidden"
+      )}>
         {/* Mobile Header */}
         <div className="md:hidden fixed top-3 left-3 right-3 h-14 bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-2xl shadow-lg shadow-slate-900/5 z-50 flex items-center justify-between px-3.5 transition-all duration-300">
           <div className="flex items-center gap-2.5">
@@ -3426,14 +3432,21 @@ export default function App() {
                           </button>
                           <button 
                             onClick={() => setEditingMaterialConfigId(course.id)}
-                            className="px-3 py-1.5 bg-white text-slate-700 hover:text-slate-900 border border-slate-200/80 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all duration-300 shadow-xs active:scale-95 flex items-center gap-2"
+                            className="px-3 py-1.5 bg-white text-slate-700 hover:text-slate-900 border border-slate-200/80 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all duration-300 shadow-xs active:scale-95 flex items-center gap-1.5"
                           >
                             <Settings size={14} />
                             Setelan
                           </button>
                           <button 
+                            onClick={() => setPrintingMaterialCourseId(course.id)}
+                            className="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all duration-300 shadow-xs active:scale-95 flex items-center gap-1.5"
+                          >
+                            <Printer size={14} />
+                            Cetak
+                          </button>
+                          <button 
                             onClick={() => { setActiveCourseId(course.id); setCurrentPage('course'); }}
-                            className="px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all duration-300 shadow-xs active:scale-95 flex items-center gap-2"
+                            className="px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all duration-300 shadow-xs active:scale-95 flex items-center gap-1.5"
                           >
                             <Eye size={14} />
                             Pratinjau
@@ -4834,6 +4847,17 @@ export default function App() {
               </div>
             )}
           </AnimatePresence>
+          {printingMaterialCourseId && (() => {
+            const targetCourse = COURSES.find((c) => c.id === printingMaterialCourseId);
+            if (!targetCourse) return null;
+            return (
+              <AdminMaterialPrintModal
+                course={targetCourse}
+                logoUrl={settingsConfig?.logoUrl || '/images/labkom_nesaka_logo.jpg'}
+                onClose={() => setPrintingMaterialCourseId(null)}
+              />
+            );
+          })()}
         </main>
       </div>
     );
