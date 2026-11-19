@@ -17,6 +17,7 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { Topic } from '../types';
+import { resolveCourseImageUrl, getPublicFallbackImageUrl } from '../courseImageMap';
 
 export interface PrintableCourse {
   id: string;
@@ -47,7 +48,11 @@ export const AdminMaterialPrintModal: React.FC<AdminMaterialPrintModalProps> = (
   const [includeAnswers, setIncludeAnswers] = useState<boolean>(false);
   const [pageBreakPerTopic, setPageBreakPerTopic] = useState<boolean>(true);
 
+  const [isPreparingPrint, setIsPreparingPrint] = useState<boolean>(false);
+  const [isExportingHtml, setIsExportingHtml] = useState<boolean>(false);
+
   const previewDocRef = useRef<HTMLDivElement | null>(null);
+  const portalDocRef = useRef<HTMLDivElement | null>(null);
 
   const visibleTopics = useMemo(() => {
     if (selectedTopicId === 'ALL') return course.topics;
@@ -69,32 +74,102 @@ export const AdminMaterialPrintModal: React.FC<AdminMaterialPrintModalProps> = (
     []
   );
 
-  const handlePrint = () => {
+  const waitForContainerImages = async (container: HTMLElement | null) => {
+    if (!container) return;
+    const imgs = Array.from(container.querySelectorAll('img'));
+    await Promise.race([
+      Promise.all(
+        imgs.map(async (img) => {
+          if (!img.complete) {
+            await new Promise<void>((resolve) => {
+              const onDone = () => {
+                img.removeEventListener('load', onDone);
+                img.removeEventListener('error', onDone);
+                resolve();
+              };
+              img.addEventListener('load', onDone);
+              img.addEventListener('error', onDone);
+            });
+          }
+          if (typeof img.decode === 'function') {
+            try {
+              await img.decode();
+            } catch {
+              // ignore decode rejection for errored images
+            }
+          }
+        })
+      ),
+      new Promise<void>((resolve) => setTimeout(resolve, 2500)),
+    ]);
+  };
+
+  const handlePrint = async () => {
+    setIsPreparingPrint(true);
     try {
+      await Promise.all([
+        waitForContainerImages(portalDocRef.current),
+        waitForContainerImages(previewDocRef.current),
+      ]);
       window.print();
     } catch (err) {
       console.error('Gagal membuka dialog cetak:', err);
+    } finally {
+      setIsPreparingPrint(false);
     }
   };
 
-  const handleDownloadHtml = () => {
+  const toDataUrl = async (imgSrc: string): Promise<string> => {
+    if (!imgSrc || imgSrc.startsWith('data:')) return imgSrc;
+    try {
+      const response = await fetch(imgSrc);
+      if (!response.ok) return imgSrc;
+      const blob = await response.blob();
+      return await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () =>
+          resolve(typeof reader.result === 'string' ? reader.result : imgSrc);
+        reader.onerror = () => resolve(imgSrc);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return imgSrc;
+    }
+  };
+
+  const handleDownloadHtml = async () => {
     if (!previewDocRef.current || typeof document === 'undefined') return;
+    setIsExportingHtml(true);
 
-    const headStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-      .map((el) => {
-        if (el.tagName.toLowerCase() === 'link') {
-          const href = (el as HTMLLinkElement).href;
-          return href ? `<link rel="stylesheet" href="${href}" />` : '';
-        }
-        return `<style>${el.innerHTML}</style>`;
-      })
-      .join('\n');
+    try {
+      await waitForContainerImages(previewDocRef.current);
 
-    const safeTitle = `${course.title}${
-      selectedTopicId !== 'ALL' && visibleTopics[0] ? ` - ${visibleTopics[0].title}` : ''
-    }`;
+      const clone = previewDocRef.current.cloneNode(true) as HTMLDivElement;
+      const clonedImages = Array.from(clone.querySelectorAll('img'));
+      await Promise.all(
+        clonedImages.map(async (img) => {
+          const currentSrc = img.getAttribute('src') || img.src;
+          if (!currentSrc) return;
+          const inlined = await toDataUrl(currentSrc);
+          img.setAttribute('src', inlined);
+        })
+      );
 
-    const htmlPayload = `<!DOCTYPE html>
+      const headStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map((el) => {
+          if (el.tagName.toLowerCase() === 'link') {
+            const href = (el as HTMLLinkElement).href;
+            return href ? `<link rel="stylesheet" href="${href}" />` : '';
+          }
+          return `<style>${el.innerHTML}</style>`;
+        })
+        .join('\n');
+
+      const safeTitle = `${course.title}${
+        selectedTopicId !== 'ALL' && visibleTopics[0] ? ` - ${visibleTopics[0].title}` : ''
+      }`;
+
+      const htmlPayload = `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
@@ -119,20 +194,23 @@ export const AdminMaterialPrintModal: React.FC<AdminMaterialPrintModalProps> = (
     <button onclick="window.print()" style="background:#2563eb;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-weight:700;cursor:pointer;">Cetak / Simpan PDF</button>
   </div>
   <div class="export-sheet">
-    ${previewDocRef.current.innerHTML}
+    ${clone.innerHTML}
   </div>
 </body>
 </html>`;
 
-    const blob = new Blob([htmlPayload], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `materi-${course.id}${selectedTopicId !== 'ALL' ? `-${selectedTopicId}` : ''}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const blob = new Blob([htmlPayload], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `materi-${course.id}${selectedTopicId !== 'ALL' ? `-${selectedTopicId}` : ''}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } finally {
+      setIsExportingHtml(false);
+    }
   };
 
   const renderDocumentBody = (isPortalCopy = false) => (
@@ -145,10 +223,19 @@ export const AdminMaterialPrintModal: React.FC<AdminMaterialPrintModalProps> = (
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex items-center gap-3">
             <img
-              src={logoUrl}
+              src={resolveCourseImageUrl(logoUrl)}
               alt="Logo Sekolah"
               referrerPolicy="no-referrer"
               loading="eager"
+              decoding="sync"
+              onError={(e) => {
+                const img = e.currentTarget;
+                const fallback = getPublicFallbackImageUrl(logoUrl);
+                if (img.dataset.fallbackApplied !== '1' && fallback && img.getAttribute('src') !== fallback) {
+                  img.dataset.fallbackApplied = '1';
+                  img.src = fallback;
+                }
+              }}
               className="w-11 h-11 rounded-lg object-cover border border-slate-300 shrink-0"
             />
             <div>
@@ -312,23 +399,35 @@ export const AdminMaterialPrintModal: React.FC<AdminMaterialPrintModalProps> = (
                   li: ({ children }) => (
                     <li className="pl-1 leading-[1.68] [&>p]:mb-1">{children}</li>
                   ),
-                  img: ({ src, alt, ...props }: any) => (
-                    <figure className="my-4 p-2.5 rounded-lg border border-slate-300 bg-slate-50/50 text-center print-avoid-break">
-                      <img
-                        src={src}
-                        alt={alt || 'Ilustrasi Materi'}
-                        referrerPolicy="no-referrer"
-                        loading="eager"
-                        className="max-h-[240px] w-auto max-w-full mx-auto object-contain rounded"
-                        {...props}
-                      />
-                      {alt && (
-                        <figcaption className="mt-2 text-[11px] text-slate-600 italic font-medium">
-                          Gambar: {alt}
-                        </figcaption>
-                      )}
-                    </figure>
-                  ),
+                  img: ({ src, alt, ...props }: any) => {
+                    const resolvedSrc = resolveCourseImageUrl(src);
+                    const fallbackSrc = getPublicFallbackImageUrl(src);
+                    return (
+                      <figure className="my-4 w-full p-2.5 rounded-lg border border-slate-300 bg-slate-50/50 text-center print-avoid-break">
+                        <img
+                          src={resolvedSrc}
+                          alt={alt || 'Ilustrasi Materi'}
+                          referrerPolicy="no-referrer"
+                          loading="eager"
+                          decoding="sync"
+                          onError={(e) => {
+                            const img = e.currentTarget;
+                            if (img.dataset.fallbackApplied !== '1' && fallbackSrc && img.getAttribute('src') !== fallbackSrc) {
+                              img.dataset.fallbackApplied = '1';
+                              img.src = fallbackSrc;
+                            }
+                          }}
+                          className="max-h-[240px] w-auto max-w-full mx-auto object-contain rounded"
+                          {...props}
+                        />
+                        {alt && (
+                          <figcaption className="mt-2 text-[11px] text-slate-600 italic font-medium">
+                            Gambar: {alt}
+                          </figcaption>
+                        )}
+                      </figure>
+                    );
+                  },
                   table: ({ children }: any) => (
                     <div className="my-4 overflow-x-auto rounded-lg border border-slate-300 print-avoid-break">
                       <table className="w-full border-collapse text-left text-[12px] text-slate-800">
@@ -566,20 +665,22 @@ export const AdminMaterialPrintModal: React.FC<AdminMaterialPrintModalProps> = (
             <button
               type="button"
               onClick={handleDownloadHtml}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 transition-all flex items-center gap-1.5 active:scale-95"
+              disabled={isExportingHtml}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-60"
               title="Unduh file HTML siap cetak"
             >
               <Download size={14} />
-              Unduh (.html)
+              {isExportingHtml ? 'Menyiapkan...' : 'Unduh (.html)'}
             </button>
 
             <button
               type="button"
               onClick={handlePrint}
-              className="px-4 py-2 rounded-xl text-xs font-extrabold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2 active:scale-95"
+              disabled={isPreparingPrint}
+              className="px-4 py-2 rounded-xl text-xs font-extrabold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-60"
             >
               <Printer size={15} />
-              Cetak / Simpan PDF
+              {isPreparingPrint ? 'Menyiapkan...' : 'Cetak / Simpan PDF'}
             </button>
 
             <button
@@ -601,12 +702,14 @@ export const AdminMaterialPrintModal: React.FC<AdminMaterialPrintModalProps> = (
         </div>
       </div>
 
-      {/* Portal Cetak A4 Bersih di Root Body (Aktif hanya saat window.print()) */}
+      {/* Portal Cetak A4 Bersih di Root Body (Dirender off-screen agar gambar siap didekode sebelum print) */}
       {typeof document !== 'undefined' &&
         createPortal(
           <div
+            ref={portalDocRef}
             id="printable-material-portal"
-            className="hidden print:block bg-white text-slate-900"
+            aria-hidden="true"
+            className="fixed -left-[99999px] top-0 w-[210mm] opacity-0 pointer-events-none print:static print:left-auto print:w-full print:opacity-100 print:pointer-events-auto print:block bg-white text-slate-900"
           >
             {renderDocumentBody(true)}
           </div>,

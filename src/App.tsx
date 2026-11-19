@@ -85,6 +85,7 @@ import AdminGames from './components/AdminGames';
 import AdminSoal from './components/AdminSoal';
 import StudentSoalRunner from './components/StudentSoalRunner';
 import { AdminMaterialPrintModal } from './components/AdminMaterialPrintModal';
+import { resolveCourseImageUrl, getPublicFallbackImageUrl } from './courseImageMap';
 
 enum OperationType {
   CREATE = 'create',
@@ -5234,30 +5235,42 @@ export default function App() {
                                   </p>
                                 );
                               },
-                              img: ({ src, alt, ...props }: any) => (
-                                <figure className="my-8 rounded-2xl md:rounded-3xl overflow-hidden border border-slate-300 bg-slate-100 shadow-md group">
-                                  <div className="relative overflow-hidden bg-slate-200 flex items-center justify-center p-2 md:p-3">
-                                    <img
-                                      src={src}
-                                      alt={alt || "Ilustrasi Visual Materi"}
-                                      referrerPolicy="no-referrer"
-                                      loading="lazy"
-                                      className="w-full h-auto object-contain rounded-xl md:rounded-2xl transition-transform duration-500 group-hover:scale-[1.01]"
-                                      {...props}
-                                    />
-                                  </div>
-                                  {alt && (
-                                    <figcaption className="px-5 py-3.5 bg-slate-200 border-t border-slate-300 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 font-medium">
-                                      <span className="flex items-center gap-2 font-bold text-slate-800">
-                                        <ImageIcon size={16} className="text-brand shrink-0" /> {alt}
-                                      </span>
-                                      <span className="text-[10px] uppercase font-bold tracking-wider text-brand bg-brand/10 border border-brand/20 px-3 py-1 rounded-full">
-                                        💡 Ilustrasi Visual Materi
-                                      </span>
-                                    </figcaption>
-                                  )}
-                                </figure>
-                              ),
+                              img: ({ src, alt, ...props }: any) => {
+                                const resolvedSrc = resolveCourseImageUrl(src);
+                                const fallbackSrc = getPublicFallbackImageUrl(src);
+                                return (
+                                  <figure className="my-8 w-full rounded-2xl md:rounded-3xl overflow-hidden border border-slate-300 bg-slate-100 shadow-md group">
+                                    <div className="relative w-full overflow-hidden bg-slate-200 flex items-center justify-center p-2 md:p-3">
+                                      <img
+                                        src={resolvedSrc}
+                                        alt={alt || "Ilustrasi Visual Materi"}
+                                        referrerPolicy="no-referrer"
+                                        loading="eager"
+                                        decoding="async"
+                                        onError={(e) => {
+                                          const img = e.currentTarget;
+                                          if (img.dataset.fallbackApplied !== '1' && fallbackSrc && img.getAttribute('src') !== fallbackSrc) {
+                                            img.dataset.fallbackApplied = '1';
+                                            img.src = fallbackSrc;
+                                          }
+                                        }}
+                                        className="w-full h-auto object-contain rounded-xl md:rounded-2xl transition-transform duration-500 group-hover:scale-[1.01]"
+                                        {...props}
+                                      />
+                                    </div>
+                                    {alt && (
+                                      <figcaption className="px-5 py-3.5 bg-slate-200 border-t border-slate-300 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 font-medium">
+                                        <span className="flex items-center gap-2 font-bold text-slate-800">
+                                          <ImageIcon size={16} className="text-brand shrink-0" /> {alt}
+                                        </span>
+                                        <span className="text-[10px] uppercase font-bold tracking-wider text-brand bg-brand/10 border border-brand/20 px-3 py-1 rounded-full">
+                                          💡 Ilustrasi Visual Materi
+                                        </span>
+                                      </figcaption>
+                                    )}
+                                  </figure>
+                                );
+                              },
                               table: ({ children }: any) => (
                                 <div className="my-6 overflow-x-auto rounded-2xl border border-slate-300 shadow-sm bg-slate-100">
                                   <table className="w-full text-left text-sm text-slate-700 border-collapse">

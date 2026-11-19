@@ -15,7 +15,7 @@ export const POLA_BILANGAN_TOPICS: Topic[] = [
 
 Untuk menyelesaikan soal pola bilangan (terutama soal cerita), kunci utamanya adalah **mampu menerjemahkan setiap kalimat soal menjadi variabel matematis**.
 
-![Infografis Perbandingan Barisan Geometri vs Aritmetika](/src/assets/images/hero_pola_bilangan_1794221595492.jpg)
+![Infografis Perbandingan Barisan Geometri vs Aritmetika](/images/hero_pola_bilangan_1794221595492.jpg)
 
 ---
 
@@ -90,7 +90,7 @@ Barisan aritmetika adalah barisan bilangan yang memiliki **selisih atau beda tet
 ### Soal 1. Pertumbuhan Bakteri
 > *"Sebuah bakteri membelah diri menjadi dua setiap 20 menit. Pada awal pengamatan terdapat 4 bakteri. Berapa jumlah bakteri setelah 2 jam?"*
 
-![Diagram Tahapan Pembelahan Biner Bakteri Setiap 20 Menit](/src/assets/images/bakteri_geometri_split_1794221595982.jpg)
+![Diagram Tahapan Pembelahan Biner Bakteri Setiap 20 Menit](/images/bakteri_geometri_split_1794221595982.jpg)
 
 #### Pilihan Jawaban:
 * **a)** 256
@@ -181,7 +181,7 @@ Karena a = 4 adalah jumlah mula-mula sebelum pembelahan ke-1:
 ### Soal 3. Pertumbuhan Tanaman
 > *"Seorang petani melakukan percobaan menanam tanaman hias dengan metode stek. Setiap tanaman yang berhasil tumbuh kemudian menghasilkan dua tunas baru dalam setiap tahap pertumbuhan. Pada tahap awal terdapat 3 tanaman. Jika jumlah tanaman terus bertambah menjadi dua kali lipat pada setiap tahap, pada tahap ke berapakah jumlah tanaman mencapai 192 tanaman?"*
 
-![Diagram Tahapan Pertumbuhan Tanaman Stek dengan Pelipatan Tunas](/src/assets/images/tanaman_geometri_stek_1794221597110.jpg)
+![Diagram Tahapan Pertumbuhan Tanaman Stek dengan Pelipatan Tunas](/images/tanaman_geometri_stek_1794221597110.jpg)
 
 #### Pilihan Jawaban:
 * **a)** tahap-6
@@ -469,7 +469,7 @@ Karena 64 = 2⁶, maka didapat **n = 6**.
 ### Soal 10. Pola Menabung
 > *"Andi mulai menabung di celengan sebesar Rp5.000 pada minggu pertama. Setiap minggu berikutnya, Andi menambah jumlah tabungannya sebesar Rp2.000 dari jumlah tabungan minggu sebelumnya. Jika pola menabung tersebut berlangsung secara teratur, berapakah jumlah uang yang ditabung Andi pada minggu ke-10?"*
 
-![Infografis Pola Menabung Andi yang Bertambah Tetap Setiap Minggu](/src/assets/images/tabungan_aritmetika_step_1794221597240.jpg)
+![Infografis Pola Menabung Andi yang Bertambah Tetap Setiap Minggu](/images/tabungan_aritmetika_step_1794221597240.jpg)
 
 #### Pilihan Jawaban:
 * **a)** Rp21.000

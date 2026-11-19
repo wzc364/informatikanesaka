@@ -181,17 +181,17 @@ Pernahkah kamu heran mengapa beranda TikTok atau YouTube selalu menampilkan vide
     icon: 'Calculator',
     content: `# Pengenalan Pola Bilangan Aritmetika dan Geometri
 
-Sebagai penutup yang sangat penting dalam Berpikir Komputasional, mari kita pelajari bagaimana matematika memformalkan keteraturan angka ke dalam dua jenis pola fundamental: **Pola Aritmetika (Pola Selisih Tetap)** dan **Pola Geometri (Pola Perkalian/Rasio Tetap)**.
+Sebagai penutup yang sangat penting dalam **Berpikir Komputasional**, mari kita pelajari bagaimana matematika memodelkan keteraturan angka ke dalam dua jenis pola utama: **Pola Aritmetika** (*selisih penjumlahan/pengurangan tetap*) dan **Pola Geometri** (*kelipatan perkalian/pembagian tetap*).
 
-Kemampuan membedakan kedua jenis pola ini adalah contoh nyata penerapan berpikir komputasional tingkat tinggi!
+Kemampuan mengenali kedua pola ini—serta memahami **mengapa rumusnya terkadang memakai \`n - 1\` dan terkadang memakai \`n\` saja**—adalah kunci agar kamu tidak sekadar menghafal rumus, melainkan benar-benar paham cara kerjanya!
 
 ![Perbandingan Pola Bilangan Aritmetika vs Geometri Buku Teks Matematika SMP](/images/pola_aritmetika_geometri_1794222968903.jpg)
 
 ---
 
-## A. Pola Barisan Aritmetika (Penjumlahan / Pengurangan)
+## A. Pola Barisan Aritmetika (Selisih Tetap)
 
-Barisan aritmetika adalah barisan bilangan di mana **selisih atau beda antara dua suku yang berurutan selalu bernilai tetap (konstan)**.
+**Barisan aritmetika** adalah barisan bilangan di mana **selisih atau beda antara dua suku yang berurutan selalu bernilai tetap (konstan)**.
 
 ### Contoh Pola:
 \`\`\`text
@@ -199,37 +199,35 @@ Urutan suku :  U₁    U₂    U₃    U₄    U₅
 Nilai angka :  3     7     11    15    19  ...
 Selisih     :    +4    +4    +4    +4
 \`\`\`
-Setiap melangkah ke suku berikutnya, angkanya selalu bertambah **+4**.
+Setiap melangkah satu posisi ke kanan, angkanya selalu bertambah **+4**.
 
 ### Rumus Matematis:
-1. **Rumus Beda (b):**
+1. **Rumus Beda (\`b\`):**
    > **b = Uₙ - Uₙ₋₁**  
    *(Contoh: b = 7 - 3 = 4)*
 
-2. **Rumus Suku ke-n (Uₙ):**
+2. **Rumus Suku ke-n (\`Uₙ\`):**
    > 📐 **Uₙ = a + (n - 1) × b**
 
 ### Keterangan Variabel:
-* **a** = Suku pertama mula-mula (U₁)
-* **b** = Beda atau selisih antar dua suku
+* **a** = Suku pertama mula-mula (\`U₁\`)
+* **b** = Beda atau selisih antar dua suku berurutan
 * **n** = Nomor urutan suku yang dicari
 * **Uₙ** = Nilai bilangan pada suku ke-n
 
-### Contoh Kasus Menemukan Suku ke-10:
-* Suku pertama: **a = 3**
-* Beda: **b = 4**
-* Urutan suku: **n = 10**
-* Perhitungan:
-  **U₁₀ = a + (n - 1) × b**  
-  **U₁₀ = 3 + (10 - 1) × 4**  
-  **U₁₀ = 3 + 9 × 4**  
-  **U₁₀ = 3 + 36 = 39**
+### Contoh Kasus: Menemukan Suku ke-10
+* Diketahui: **a = 3**, **b = 4**, dan **n = 10**
+* Perhitungan:  
+  \`U₁₀ = a + (n - 1) × b\`  
+  \`U₁₀ = 3 + (10 - 1) × 4\`  
+  \`U₁₀ = 3 + 9 × 4\`  
+  \`U₁₀ = 3 + 36 = 39\`
 
 ---
 
-## B. Pola Barisan Geometri (Perkalian / Pembagian Rasio)
+## B. Pola Barisan Geometri (Rasio Perkalian Tetap)
 
-Barisan geometri adalah barisan bilangan di mana **perbandingan atau rasio antara dua suku yang berurutan selalu bernilai tetap (konstan)**.
+**Barisan geometri** adalah barisan bilangan di mana **perbandingan atau rasio antara dua suku yang berurutan selalu bernilai tetap (konstan)**.
 
 ### Contoh Pola:
 \`\`\`text
@@ -237,45 +235,122 @@ Urutan suku :  U₁    U₂    U₃    U₄    U₅
 Nilai angka :  2     6     18    54    162 ...
 Pengali     :    ×3    ×3    ×3    ×3
 \`\`\`
-Setiap melangkah ke suku berikutnya, angkanya selalu dikalikan **×3**.
+Setiap melangkah satu posisi ke kanan, angkanya selalu dikalikan **×3**.
 
 ### Rumus Matematis:
-1. **Rumus Rasio (r):**
+1. **Rumus Rasio (\`r\`):**
    > **r = Uₙ / Uₙ₋₁**  
    *(Contoh: r = 6 / 2 = 3)*
 
-2. **Rumus Suku ke-n (Uₙ):**
+2. **Rumus Suku ke-n (\`Uₙ\`):**
    > 📐 **Uₙ = a × rⁿ⁻¹**
 
-3. **Rumus Pertumbuhan Nyata (Siklus Pelipatgandaan dari Kondisi Awal):**
+3. **Rumus Pertumbuhan Nyata (Dari Kondisi Awal Sebelum Perubahan):**
    > 📐 **U = a × rⁿ**  
-   *(Digunakan pada soal cerita pertumbuhan bakteri atau penduduk setelah n kali periode)*
+   *(Sering dipakai pada soal cerita pembelahan bakteri, pertumbuhan penduduk, atau pelipatan bertahap setelah \`n\` kali periode)*
 
 ### Keterangan Variabel:
-* **a** = Suku pertama atau jumlah mula-mula
-* **r** = Rasio atau faktor pengali (kelipatan)
-* **n** = Nomor urutan suku atau jumlah siklus pembelahan
-* **Uₙ** = Nilai suku ke-n atau jumlah total akhir
+* **a** = Suku pertama (\`U₁\`) atau jumlah mula-mula sebelum siklus dimulai
+* **r** = Rasio atau faktor pengali tetap
+* **n** = Nomor urutan suku atau banyaknya siklus pelipatan yang sudah terjadi
+* **Uₙ** = Nilai suku ke-n atau jumlah total pada akhir periode
 
-### Contoh Kasus Menemukan Suku ke-5:
-* Barisan: 2, 4, 8, 16, 32, ...
-* Suku pertama: **a = 2**
-* Rasio: **r = 4 / 2 = 2**
-* Urutan suku: **n = 6**
-* Perhitungan:
-  **U₆ = a × r⁶⁻¹ = 2 × 2⁵ = 2 × 32 = 64**
+### Contoh Kasus: Menemukan Suku ke-6
+* Barisan: \`2, 4, 8, 16, 32, ...\`
+* Diketahui: **a = 2**, **r = 4 / 2 = 2**, dan **n = 6**
+* Perhitungan:  
+  \`U₆ = a × r⁶⁻¹ = 2 × 2⁵ = 2 × 32 = 64\`
 
 ---
 
-## Tabel Perbandingan Cepat: Aritmetika vs Geometri
+## C. Mengapa di Rumus Kadang \`n - 1\` dan Kadang \`n\` Saja?
+
+Ini adalah pertanyaan paling penting dan paling sering membuat siswa bingung! Sebenarnya rahasianya bukan pada rumusnya, melainkan pada **pertanyaan logis berikut**:
+
+> 💡 **Kunci Utama:**  
+> *"Dari titik awal \`a\`, sudah **berapa kali** perubahan (\`+b\` atau \`×r\`) benar-benar terjadi?"*
+
+---
+
+### 1. Kapan Kita Menggunakan \`(n - 1)\`?
+Rumus memakai **\`n - 1\`** apabila **\`a\` sudah dihitung sebagai suku ke-1 (\`U₁\`)**.
+
+Perhatikan diagram lompatan panah untuk mencari **suku ke-4 (\`U₄\`)** pada sebuah barisan:
+\`\`\`text
+Posisi Suku :   U₁ ───────▶ U₂ ───────▶ U₃ ───────▶ U₄
+Jumlah Langkah:      (1)         (2)         (3)
+\`\`\`
+
+Lihat dengan teliti!
+* Pada posisi **\`U₁\`**, kita **belum melangkah** sama sekali (\`1 - 1 = 0\` langkah), sehingga nilainya tetap \`a\`.
+* Untuk mencapai **\`U₂\`**, kita hanya melakukan **1 kali** lompatan perubahan (\`2 - 1 = 1\`).
+* Untuk mencapai **\`U₃\`**, kita hanya melakukan **2 kali** lompatan perubahan (\`3 - 1 = 2\`).
+* Untuk mencapai **\`U₄\`**, kita hanya melakukan **3 kali** lompatan perubahan (\`4 - 1 = 3\`).
+
+Jadi, jika ada **\`n\` buah suku** dari \`U₁\` sampai \`Uₙ\`, jumlah jarak/lompatan di antara keduanya selalu **\`n - 1\`**.
+
+> 🚩 **Analogi Tiang Bendera:**  
+> Bayangkan ada **5 tiang bendera** berjajar lurus. Ada **5 tiang (\`n = 5\`)**, tetapi jarak kosong di antara tiang-tiang itu hanya ada **4 jarak (\`5 - 1 = 4\`)**!  
+> Begitu pula dari **U₁** ke **U₅**: kita sudah punya nilai awal di posisi ke-1, jadi untuk sampai ke posisi ke-5 hanya butuh **4 kali** penambahan atau perkalian!
+
+---
+
+### 2. Kapan Kita Menggunakan \`n\` Saja (Tanpa Dikurangi 1)?
+Rumus memakai **\`n\` saja** apabila **\`a\` adalah kondisi awal mula-mula (\`t = 0\` atau \`U₀\`) sebelum perubahan pertama terjadi**, dan **\`n\` menyatakan berapa kali proses perubahan itu berlangsung**.
+
+Perhatikan contoh soal cerita pembelahan bakteri berikut:
+> *"Pada awal pengamatan terdapat 4 bakteri. Setiap 20 menit bakteri membelah diri menjadi 2. Berapa jumlah bakteri setelah 1 jam (3 kali pembelahan)?"*
+
+Mari kita gambar alur waktunya:
+\`\`\`text
+Kondisi Awal (0 mnt) ──(×2 ke-1)──▶ 20 mnt ──(×2 ke-2)──▶ 40 mnt ──(×2 ke-3)──▶ 60 mnt
+       a = 4                              8                    16                   32
+\`\`\`
+
+Perhatikan perbedaannya!
+* Nilai **\`4\`** bukanlah hasil dari pembelahan ke-1, melainkan **keadaan awal saat waktu masih \`0\` (\`U₀\`)** sebelum bakteri membelah.
+* Saat terjadi **1 kali pembelahan (\`n = 1\`, menit ke-20)**, jumlah bakteri langsung berubah menjadi \`4 × 2¹ = 8\`.
+* Saat terjadi **3 kali pembelahan (\`n = 3\`, menit ke-60)**, proses pengalian \`×2\` benar-benar terjadi **penuh 3 kali**, sehingga rumusnya menjadi **\`4 × 2³ = 32\`** (bukan \`n - 1\`!).
+
+Prinsip yang sama juga berlaku pada soal **penambahan (aritmetika)**:
+* **Pakai \`n - 1\` (urutan posisi ke-n):**  
+  *"Hari ke-1 tabungan Rina Rp5.000, dan setiap hari berikutnya bertambah Rp2.000. Berapa besar tabungan yang disetor pada **hari ke-5**?"*  
+  → Karena \`Rp5.000\` sudah menjadi nilai **hari ke-1 (\`U₁\`)**, dari hari ke-1 ke hari ke-5 hanya terjadi \`5 - 1 = 4\` kali kenaikan:  
+  \`5.000 + (5 - 1) × 2.000 = Rp13.000\`.
+* **Pakai \`n\` saja (jumlah siklus setelah kondisi awal):**  
+  *"Saldo celengan Rina mula-mula sudah berisi Rp5.000. Setiap hari ia memasukkan Rp2.000. Berapa total isi celengannya **setelah 5 hari** menabung?"*  
+  → Karena \`Rp5.000\` adalah **saldo awal (\`U₀\`)** sebelum 5 hari menabung dimulai, ia memasukkan uang penuh sebanyak 5 kali:  
+  \`5.000 + 5 × 2.000 = Rp15.000\`.
+
+---
+
+### 3. Trik Cepat 3 Detik: Uji Dengan \`n = 1\`!
+Jika suatu saat kamu ragu saat mengerjakan soal ujian, gunakan trik berpikir komputasional ini: **coba masukkan \`n = 1\` ke dalam rumusmu!**
+
+1. Jika menurut cerita soal, saat \`n = 1\` nilainya **masih tetap \`a\`** *(contoh: Suku ke-1 = \`a\`, Minggu ke-1 = \`a\`, Baris ke-1 = \`a\`)*, maka **WAJIB pakai \`n - 1\`** *(karena \`1 - 1 = 0\`, sehingga perubahan = 0 kali dan hasilnya tetap \`a\`)* .
+2. Jika menurut cerita soal, saat \`n = 1\` nilainya **sudah berubah 1 kali dari \`a\`** *(contoh: Setelah 1 kali pembelahan, Setelah 1 tahun berbunga, Setelah 1 tahap pertumbuhan dari stok awal)*, maka **WAJIB pakai \`n\` saja**!
+
+| Aspek Pembeda | Memakai \`(n - 1)\` | Memakai \`n\` Saja |
+| :--- | :--- | :--- |
+| **Posisi Nilai Awal (\`a\`)** | \`a\` adalah **Suku Pertama (\`U₁\`)** | \`a\` adalah **Kondisi Awal (\`U₀\`, sebelum proses ke-1)** |
+| **Arti Angka \`n\`** | **Urutan posisi/suku** (ke-1, ke-2, ..., ke-n) | **Banyaknya siklus/kali kejadian** perubahan |
+| **Kata Kunci di Soal** | *"Suku ke-n"*, *"Baris ke-n"*, *"Hari ke-1 adalah..."* | *"Awal pengamatan..."*, *"Setelah 2 jam..."*, *"Mengalami n tahap pertumbuhan..."* |
+| **Uji Saat \`n = 1\`** | Nilai tetap \`a\` | Nilai sudah berubah 1 langkah dari \`a\` |
+| **Rumus Geometri** | **Uₙ = a × rⁿ⁻¹** | **U = a × rⁿ** |
+| **Rumus Aritmetika** | **Uₙ = a + (n - 1) × b** | **U = a + n × b** *(jika dihitung dari kondisi awal \`U₀\`)* |
+
+---
+
+## D. Tabel Perbandingan Cepat: Aritmetika vs Geometri
 
 | Parameter | Barisan Aritmetika | Barisan Geometri |
 | :--- | :--- | :--- |
 | **Operasi Kunci** | Penjumlahan / Pengurangan tetap | Perkalian / Pembagian tetap |
-| **Karakteristik Pengatur** | **Beda (b)** dengan pengurangan | **Rasio (r)** dengan pembagian |
+| **Karakteristik Pengatur** | **Beda (b)** dicari dengan pengurangan | **Rasio (r)** dicari dengan pembagian |
 | **Grafik Pertumbuhan** | Garis lurus linier | Kurva lengkung eksponensial |
-| **Rumus Suku ke-n** | **Uₙ = a + (n - 1) × b** | **Uₙ = a × rⁿ⁻¹** |
-| **Contoh Nyata** | Menabung Rp2.000 setiap minggu | Bakteri membelah diri jadi 2 setiap 20 menit |
+| **Rumus Suku ke-n (dari U₁)** | **Uₙ = a + (n - 1) × b** | **Uₙ = a × rⁿ⁻¹** |
+| **Rumus Pertumbuhan (dari kondisi awal U₀)** | **U = a + n × b** | **U = a × rⁿ** |
+| **Contoh Nyata** | Menabung tambah Rp2.000 setiap minggu | Bakteri membelah diri jadi 2 setiap 20 menit |
 `,
     quiz: [
       {
@@ -299,6 +374,17 @@ Setiap melangkah ke suku berikutnya, angkanya selalu dikalikan **×3**.
         ],
         correctAnswer: 1,
         explanation: "Setiap suku dikalikan 2 (r = 2). Suku ke-6: U₆ = 3 × 2⁶⁻¹ = 3 × 2⁵ = 3 × 32 = 96 (atau 48 × 2 = 96)."
+      },
+      {
+        question: "Mengapa rumus suku ke-n barisan geometri menggunakan pangkat (n - 1), sedangkan rumus pembelahan bakteri dari kondisi awal sering menggunakan pangkat n saja?",
+        options: [
+          "Karena bakteri selalu membelah satu kali lebih lambat daripada angka",
+          "Karena pada suku ke-n nilai awal (a) sudah dihitung sebagai U₁ sehingga hanya butuh (n - 1) langkah, sedangkan kondisi awal pengamatan adalah U₀ sebelum pembelahan ke-1 terjadi",
+          "Karena rumus U = a × rⁿ hanya berlaku untuk angka genap",
+          "Karena (n - 1) digunakan khusus jika soal memiliki satuan jam"
+        ],
+        correctAnswer: 1,
+        explanation: "Jika a sudah menduduki posisi ke-1 (U₁), jarak lompatan ke posisi ke-n adalah (n - 1). Sebaliknya, jika a adalah keadaan awal sebelum siklus dimulai (U₀), maka setelah n kali siklus berjalan perubahan terjadi penuh sebanyak n kali."
       },
       {
         question: "Jika sebuah soal cerita menyatakan: 'Sebuah amuba membelah diri menjadi 2 setiap 15 menit', pola apakah yang paling tepat digunakan untuk menyelesaikannya?",
