@@ -30,6 +30,8 @@ import {
   Home,
   BookOpen,
   Film,
+  Target,
+  Lock,
 } from 'lucide-react';
 import { cn } from '../utils';
 import { db } from '../firebase';
@@ -117,6 +119,10 @@ import virusBlockUrl from '../assets/images/virus_block_1794845225204.jpg';
 import virusFallUrl from '../assets/images/virus_fall_1794845222338.jpg';
 import virusVictoryUrl from '../assets/images/virus_victory_1794843719481.jpg';
 import menuBannerUrl from '../assets/images/menu_banner_kombat_1794843714129.jpg';
+import startMenuKombatBannerV2Url from '../assets/images/start_menu_kombat_banner_v2_1795053715133.jpg';
+import soloChallengeCardUrl from '../assets/images/solo_challenge_card_1795053715869.jpg';
+import soloFreeCardUrl from '../assets/images/solo_free_card_1795053716146.jpg';
+import soloTrainingCardUrl from '../assets/images/solo_training_card_1795053716821.jpg';
 import kamenBladeIdleUrl from '../assets/images/kamen_blade_idle_1794875347860.jpg';
 import kamenBladePunchUrl from '../assets/images/kamen_blade_punch_1794876793680.jpg';
 import kamenBladeKickUrl from '../assets/images/kamen_blade_kick_1794876794775.jpg';
@@ -1618,10 +1624,10 @@ const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
       kick: kamenKabutoKickUrl,
       uppercut: kamenKabutoUppercutUrl,
       crouch: kamenKabutoCrouchUrl,
-      hit: '/assets/aistudio/6_7b36a6d9.png',
+      hit: '/assets/aistudio/6_f1021817.png',
       special: kamenKabutoSpecialUrl,
       block: kamenKabutoBlockUrl,
-      fall: '/assets/aistudio/5_979c1a05.png',
+      fall: '/assets/aistudio/5_4a6bd057.png',
       victory: kamenKabutoVictoryUrl,
     },
     actionFrames: {
@@ -2041,11 +2047,61 @@ function applyChromaKeyBuffer(d: Uint8ClampedArray, w: number, h: number, chroma
   const visited = new Uint8Array(w * h);
   const queue: number[] = [];
 
-  const isDarkBg = (x: number, y: number) => {
+  // Flood outer transparent padding (a < 25) from all 4 image edges to inspect the actual boundary of opaque pixels.
+  // This catches PNGs whose outer edges/corners are transparent while the sprite is still inside a solid white box.
+  const tVis = new Uint8Array(w * h);
+  const tQueue: number[] = [];
+  for (let x = 0; x < w; x++) {
+    tVis[x] = 1;
+    tQueue.push(x);
+    if (h > 1) {
+      const bot = (h - 1) * w + x;
+      tVis[bot] = 1;
+      tQueue.push(bot);
+    }
+  }
+  for (let y = 0; y < h; y++) {
+    const left = y * w;
+    if (!tVis[left]) { tVis[left] = 1; tQueue.push(left); }
+    const right = y * w + (w - 1);
+    if (!tVis[right]) { tVis[right] = 1; tQueue.push(right); }
+  }
+
+  let opaqueBoundary = 0;
+  let whiteBoundary = 0;
+  let tHead = 0;
+  while (tHead < tQueue.length) {
+    const pos = tQueue[tHead++];
+    const idx = pos * 4;
+    if (d[idx + 3] >= 25) {
+      opaqueBoundary++;
+      const r = d[idx], g = d[idx + 1], b = d[idx + 2];
+      const diff = Math.max(r, g, b) - Math.min(r, g, b);
+      if (r >= 225 && g >= 225 && b >= 225 && diff <= 26) {
+        whiteBoundary++;
+      }
+      continue;
+    }
+    const x = pos % w;
+    const y = Math.floor(pos / w);
+    if (x + 1 < w && !tVis[pos + 1]) { tVis[pos + 1] = 1; tQueue.push(pos + 1); }
+    if (x - 1 >= 0 && !tVis[pos - 1]) { tVis[pos - 1] = 1; tQueue.push(pos - 1); }
+    if (y + 1 < h && !tVis[pos + w]) { tVis[pos + w] = 1; tQueue.push(pos + w); }
+    if (y - 1 >= 0 && !tVis[pos - w]) { tVis[pos - w] = 1; tQueue.push(pos - w); }
+  }
+  const hasWhiteBg = whiteBoundary >= Math.max(12, opaqueBoundary * 0.35);
+
+  const isBgPixel = (x: number, y: number) => {
     const idx = (y * w + x) * 4;
     const r = d[idx];
     const g = d[idx + 1];
     const b = d[idx + 2];
+    const a = d[idx + 3];
+    if (a < 25) return true;
+    if (hasWhiteBg) {
+      const diff = Math.max(r, g, b) - Math.min(r, g, b);
+      if (r >= 216 && g >= 216 && b >= 216 && diff <= 30) return true;
+    }
     if (chroma === 'green') {
       const maxRB = r > b ? r : b;
       return (g - maxRB >= 22 && g > r * 1.12 && g > b * 1.12) || (r < 25 && g < 25 && b < 25);
@@ -2058,12 +2114,12 @@ function applyChromaKeyBuffer(d: Uint8ClampedArray, w: number, h: number, chroma
   };
 
   for (let x = 0; x < w; x++) {
-    if (isDarkBg(x, 0)) { visited[x] = 1; queue.push(x); }
-    if (isDarkBg(x, h - 1)) { const pos = (h - 1) * w + x; if (!visited[pos]) { visited[pos] = 1; queue.push(pos); } }
+    if (isBgPixel(x, 0)) { visited[x] = 1; queue.push(x); }
+    if (isBgPixel(x, h - 1)) { const pos = (h - 1) * w + x; if (!visited[pos]) { visited[pos] = 1; queue.push(pos); } }
   }
   for (let y = 0; y < h; y++) {
-    if (isDarkBg(0, y)) { const pos = y * w; if (!visited[pos]) { visited[pos] = 1; queue.push(pos); } }
-    if (isDarkBg(w - 1, y)) { const pos = y * w + (w - 1); if (!visited[pos]) { visited[pos] = 1; queue.push(pos); } }
+    if (isBgPixel(0, y)) { const pos = y * w; if (!visited[pos]) { visited[pos] = 1; queue.push(pos); } }
+    if (isBgPixel(w - 1, y)) { const pos = y * w + (w - 1); if (!visited[pos]) { visited[pos] = 1; queue.push(pos); } }
   }
 
   let head = 0;
@@ -2085,8 +2141,80 @@ function applyChromaKeyBuffer(d: Uint8ClampedArray, w: number, h: number, chroma
         const npos = ny * w + nx;
         if (!visited[npos]) {
           visited[npos] = 1;
-          if (isDarkBg(nx, ny)) {
+          if (isBgPixel(nx, ny)) {
             queue.push(npos);
+          }
+        }
+      }
+    }
+  }
+
+  if (hasWhiteBg) {
+    // Clear enclosed interior pure-white background pockets (e.g. gaps between limbs and torso)
+    const pocketVisited = new Uint8Array(w * h);
+    for (let sy = 1; sy < h - 1; sy++) {
+      for (let sx = 1; sx < w - 1; sx++) {
+        const sp = sy * w + sx;
+        if (visited[sp] || pocketVisited[sp]) continue;
+        const sIdx = sp * 4;
+        const sr = d[sIdx], sg = d[sIdx + 1], sb = d[sIdx + 2], sa = d[sIdx + 3];
+        const sDiff = Math.max(sr, sg, sb) - Math.min(sr, sg, sb);
+        if (sa > 200 && sr >= 240 && sg >= 240 && sb >= 240 && sDiff <= 14) {
+          const comp: number[] = [sp];
+          pocketVisited[sp] = 1;
+          let cHead = 0;
+          while (cHead < comp.length) {
+            const cp = comp[cHead++];
+            const cx = cp % w;
+            const cy = Math.floor(cp / w);
+            const cNeighbors = [
+              { nx: cx + 1, ny: cy },
+              { nx: cx - 1, ny: cy },
+              { nx: cx, ny: cy + 1 },
+              { nx: cx, ny: cy - 1 },
+            ];
+            for (const { nx, ny } of cNeighbors) {
+              if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                const np = ny * w + nx;
+                if (visited[np] || pocketVisited[np]) continue;
+                const nIdx = np * 4;
+                const nr = d[nIdx], ng = d[nIdx + 1], nb = d[nIdx + 2], na = d[nIdx + 3];
+                const nDiff = Math.max(nr, ng, nb) - Math.min(nr, ng, nb);
+                if (na > 200 && nr >= 230 && ng >= 230 && nb >= 230 && nDiff <= 22) {
+                  pocketVisited[np] = 1;
+                  comp.push(np);
+                }
+              }
+            }
+          }
+          if (comp.length >= 10) {
+            for (let ci = 0; ci < comp.length; ci++) {
+              const cp = comp[ci];
+              d[cp * 4 + 3] = 0;
+              visited[cp] = 1;
+            }
+          }
+        }
+      }
+    }
+
+    // Remove/soften bright anti-alias fringe bordering cleared white background
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const pos = y * w + x;
+        const idx = pos * 4;
+        if (d[idx + 3] === 0) continue;
+        const touchesBg =
+          d[(pos - 1) * 4 + 3] === 0 ||
+          d[(pos + 1) * 4 + 3] === 0 ||
+          d[(pos - w) * 4 + 3] === 0 ||
+          d[(pos + w) * 4 + 3] === 0;
+        if (touchesBg) {
+          const r = d[idx], g = d[idx + 1], b = d[idx + 2];
+          const lum = (r + g + b) / 3;
+          const diff = Math.max(r, g, b) - Math.min(r, g, b);
+          if (lum >= 188 && diff <= 30) {
+            d[idx + 3] = 0;
           }
         }
       }
@@ -2496,10 +2624,10 @@ function prioritizeFighterSprites(fid: FighterId) {
 
   if (fid === 'kamen_kabuto') {
     const walkUrls = [
-      '/assets/aistudio/1_6caaf9c1.png',
-      '/assets/aistudio/2_38bb351e.png',
-      '/assets/aistudio/3_a727976c.png',
-      '/assets/aistudio/4_903488d0.png',
+      '/assets/aistudio/1_669c0a61.png',
+      '/assets/aistudio/2_41e4f889.png',
+      '/assets/aistudio/3_0777112a.png',
+      '/assets/aistudio/4_db21809c.png',
     ];
     Promise.all(walkUrls.map((u) => loadAndKeySpriteUrl(u, cfg.chroma, true))).then((canvases) => {
       const valid = canvases.filter((c): c is HTMLCanvasElement => Boolean(c));
@@ -2510,9 +2638,9 @@ function prioritizeFighterSprites(fid: FighterId) {
     });
 
     const jumpUrls = [
-      '/assets/aistudio/7_ac6cdce2.png',
-      '/assets/aistudio/8_9865339e.png',
-      '/assets/aistudio/9_ee3c3ccf.png',
+      '/assets/aistudio/7_96deeb66.png',
+      '/assets/aistudio/8_fc59edea.png',
+      '/assets/aistudio/2_41e4f889.png',
     ];
     Promise.all(jumpUrls.map((u) => loadAndKeySpriteUrl(u, cfg.chroma, true))).then((canvases) => {
       const valid = canvases.filter((c): c is HTMLCanvasElement => Boolean(c));
@@ -2562,9 +2690,13 @@ function ensureAllGameAssetsLoaded() {
   const priorityQueue: (() => Promise<void>)[] = [];
   const standardQueue: (() => Promise<void>)[] = [];
 
-  // 1. Menu Banner & Primary Arena (highest priority)
-  uniqueKeys.add(`raw:${menuBannerUrl}`);
-  priorityQueue.push(() => preloadRawImage(menuBannerUrl, true));
+  // 1. Menu Banner, Solo Menu Cards & Primary Arena (highest priority)
+  uniqueKeys.add(`raw:${startMenuKombatBannerV2Url}`);
+  priorityQueue.push(() => preloadRawImage(startMenuKombatBannerV2Url, true));
+  [soloChallengeCardUrl, soloFreeCardUrl, soloTrainingCardUrl].forEach((cardUrl) => {
+    uniqueKeys.add(`raw:${cardUrl}`);
+    priorityQueue.push(() => preloadRawImage(cardUrl, true));
+  });
 
   ARENAS.forEach((arena) => {
     uniqueKeys.add(`arena:${arena.id}`);
@@ -2612,10 +2744,10 @@ function ensureAllGameAssetsLoaded() {
 
     if (fid === 'kamen_kabuto') {
       const walkUrls = [
-        '/assets/aistudio/1_6caaf9c1.png',
-        '/assets/aistudio/2_38bb351e.png',
-        '/assets/aistudio/3_a727976c.png',
-        '/assets/aistudio/4_903488d0.png',
+        '/assets/aistudio/1_669c0a61.png',
+        '/assets/aistudio/2_41e4f889.png',
+        '/assets/aistudio/3_0777112a.png',
+        '/assets/aistudio/4_db21809c.png',
       ];
       walkUrls.forEach((u) => uniqueKeys.add(`${cfg.chroma}:${u}`));
       standardQueue.push(() =>
@@ -2629,9 +2761,9 @@ function ensureAllGameAssetsLoaded() {
       );
 
       const jumpUrls = [
-        '/assets/aistudio/7_ac6cdce2.png',
-        '/assets/aistudio/8_9865339e.png',
-        '/assets/aistudio/9_ee3c3ccf.png',
+        '/assets/aistudio/7_96deeb66.png',
+        '/assets/aistudio/8_fc59edea.png',
+        '/assets/aistudio/2_41e4f889.png',
       ];
       jumpUrls.forEach((u) => uniqueKeys.add(`${cfg.chroma}:${u}`));
       standardQueue.push(() =>
@@ -3255,11 +3387,11 @@ function drawHumanFighter(
     } else if ((f.pose === 'jump' || f.pose === 'jump_land') && jumpFrames && jumpFrames.length >= 3 && !isPortrait) {
       if (jumpFrames.length === 3) {
         if (f.pose === 'jump_land') {
-          jumpFrameIdx = 2;
+          jumpFrameIdx = 2; // 2.png setelah melompat
         } else if (f.jumpPending || (f.y >= GROUND_Y - 3 && f.vy >= -0.5)) {
-          jumpFrameIdx = 0;
+          jumpFrameIdx = 0; // 7.png saat akan melompat
         } else {
-          jumpFrameIdx = f.vy < -1.5 ? 1 : 2;
+          jumpFrameIdx = 1; // 8.png saat melompat (seluruh fase udara)
         }
       } else {
         if (f.pose === 'jump_land') {
@@ -3304,7 +3436,10 @@ function drawHumanFighter(
           ctx.translate(0, 44);
         }
       } else if (jumpFrameIdx >= 0) {
-        const jumpHeightScale = [0.80, 0.98, 0.89, 0.92, 0.82, 0.97][jumpFrameIdx] ?? 0.94;
+        const jumpHeightScale =
+          jumpFrames && jumpFrames.length === 3
+            ? [0.84, 1.06, 0.98][jumpFrameIdx] ?? 0.96
+            : [0.80, 0.98, 0.89, 0.92, 0.82, 0.97][jumpFrameIdx] ?? 0.94;
         targetH = Math.round(baseH * jumpHeightScale);
         targetW = targetH * spriteAspect;
       } else if (poseKey === 'uppercut') {
@@ -5081,7 +5216,7 @@ function StoryCutsceneVideoPlayer({
 }
 
 export default function FightingGame({ currentStudent, isAdmin, onExit, onFirestoreError }: FightingGameProps) {
-  const [screen, setScreen] = useState<'title' | 'select' | 'story' | 'arena' | 'victory' | 'gameover'>('title');
+  const [screen, setScreen] = useState<'title' | 'solo_menu' | 'select' | 'story' | 'arena' | 'victory' | 'gameover'>('title');
   const [playMode, setPlayMode] = useState<'arcade' | 'online'>('arcade');
   const [arcadeSubMode, setArcadeSubMode] = useState<ArcadeSubMode>('solo');
   const [storyRoute, setStoryRoute] = useState<StoryRoute>('hero');
@@ -5095,7 +5230,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   const [trainingDummyChar, setTrainingDummyChar] = useState<FighterId>('virus_rex');
   const [trainingDummyBehavior, setTrainingDummyBehavior] = useState<TrainingDummyBehavior>('diam');
   const [trainingAutoRegen, setTrainingAutoRegen] = useState<boolean>(true);
-  const [trainingDummyCount, setTrainingDummyCount] = useState<number>(1);
+  const [trainingDummyCount, setTrainingDummyCount] = useState<number>(0);
 
   const soloVariantRef = useRef<SoloVariant>('challenge');
   const freeDifficultyRef = useRef<FreeDifficulty>('normal');
@@ -5112,7 +5247,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
   useEffect(() => { trainingAutoRegenRef.current = trainingAutoRegen; }, [trainingAutoRegen]);
 
   const [muted, setMuted] = useState(false);
-  const [bannerReady, setBannerReady] = useState(() => FATALITY_IMAGE_CACHE.has(menuBannerUrl));
+  const [bannerReady, setBannerReady] = useState(() => FATALITY_IMAGE_CACHE.has(startMenuKombatBannerV2Url));
   const [isPaused, setIsPaused] = useState(false);
   const isPausedRef = useRef(false);
   const [spriteProgress, setSpriteProgress] = useState(() => getSpriteLoadStatus());
@@ -5500,7 +5635,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       } else {
         totalStages = campaign.stages.length;
         diffLevel = stageIndex / Math.max(1, totalStages - 1);
-        chosenStageId = stageIndex === 0 ? selectedStageRef.current : storyCfg.stage;
+        chosenStageId = storyCfg.stage;
         opponentId = storyCfg.fighter;
         hpMult = 0.94 + diffLevel * 0.42;
         powerMult = 0.92 + diffLevel * 0.34;
@@ -5560,7 +5695,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
       const extraDummiesList: FighterRuntime[] = [];
       if (activeSoloVar === 'training' && !isOnline) {
-        setTrainingDummyCount(1);
+        setTrainingDummyCount(0);
       }
 
       engineRef.current = {
@@ -5690,7 +5825,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         if (firstChapter) {
           prioritizeFighterSprites(chosenChar);
           prioritizeFighterSprites(firstChapter.fighter);
-          prioritizeArenaBackground(selectedStageRef.current);
+          prioritizeArenaBackground(firstChapter.stage);
         }
         setScreen('story');
       }
@@ -5734,19 +5869,20 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
   const addTrainingDummy = useCallback(() => {
     const st = engineRef.current;
-    if (!st || st.extraDummies.length >= 2) return;
+    if (!st || st.extraDummies.length >= 3) return;
     const dummyProf = FIGHTERS[trainingDummyCharRef.current];
     prioritizeFighterSprites(dummyProf.id);
-    const newDummy = makeFighterRuntime(dummyProf, 550 + st.extraDummies.length * 110, -1, false);
+    const spawnX = Math.min(STAGE_W - 85, 500 + st.extraDummies.length * 95);
+    const newDummy = makeFighterRuntime(dummyProf, spawnX, -1, false);
     st.extraDummies.push(newDummy);
-    setTrainingDummyCount(st.extraDummies.length + 1);
+    setTrainingDummyCount(st.extraDummies.length);
   }, []);
 
   const removeTrainingDummy = useCallback(() => {
     const st = engineRef.current;
     if (!st || st.extraDummies.length === 0) return;
     st.extraDummies.pop();
-    setTrainingDummyCount(st.extraDummies.length + 1);
+    setTrainingDummyCount(st.extraDummies.length);
   }, []);
 
   const cycleTrainingDummyChar = useCallback(() => {
@@ -6590,8 +6726,16 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       if (!st) return;
 
       const isP2Local = st.mode === 'online' && st.mySide === 'p2';
+      const isTrainingMode = st.mode !== 'online' && st.soloVariant === 'training';
       const p = isP2Local ? st.enemy : st.player;
-      const opp = isP2Local ? st.player : st.enemy;
+      let opp: FighterRuntime | null = isP2Local ? st.player : st.enemy;
+      if (isTrainingMode) {
+        opp = st.extraDummies.length > 0
+          ? st.extraDummies.reduce((best, cur) =>
+              Math.abs(cur.x - p.x) < Math.abs(best.x - p.x) ? cur : best
+            )
+          : null;
+      }
       const myRoleSide: 'player' | 'enemy' = isP2Local ? 'enemy' : 'player';
       const emitOnlineAction = (act: CombatActionName) => {
         if (st.mode === 'online') {
@@ -6605,7 +6749,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         if (!isP2Local) {
           launchFatalityCinematic(st, 'player');
         } else {
-          if (Math.abs(opp.x - p.x) >= 6) p.facing = opp.x >= p.x ? 1 : -1;
+          if (opp && Math.abs(opp.x - p.x) >= 6) p.facing = opp.x >= p.x ? 1 : -1;
           // Optimistically animate on P2 while host confirms
           p.pose = 'special';
           p.poseTimer = 60;
@@ -6620,7 +6764,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
       if (action === 'jump') {
         if (p.y >= GROUND_Y - 1 && !p.jumpPending && p.pose !== 'jump') {
-          if (Math.abs(opp.x - p.x) >= 6) p.facing = opp.x >= p.x ? 1 : -1;
+          if (opp && Math.abs(opp.x - p.x) >= 6) p.facing = opp.x >= p.x ? 1 : -1;
           p.pose = 'jump';
           p.poseTimer = 6;
           p.poseDuration = 6;
@@ -6634,8 +6778,8 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       if (['punch', 'kick', 'uppercut', 'sweep', 'special', 'jump_kick'].includes(p.pose)) return;
       p.jumpPending = false;
 
-      // Always face opponent right before committing to an attack
-      if (Math.abs(opp.x - p.x) >= 6) {
+      // Always face opponent right before committing to an attack (if an opponent exists)
+      if (opp && Math.abs(opp.x - p.x) >= 6) {
         p.facing = opp.x >= p.x ? 1 : -1;
       }
 
@@ -6695,7 +6839,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         p.energy = 0;
 
         // If opponent is low enough on HP (<= 45), execute a direct full FATALITY cinematic!
-        if (!isP2Local && opp.hp <= 45) {
+        if (!isP2Local && !isTrainingMode && opp && opp.hp <= 45) {
           opp.hp = 0;
           st.pWins = Math.min(2, st.pWins + 1);
           setPlayerWins(st.pWins);
@@ -7071,6 +7215,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
       const isOnline = st.mode === 'online';
       const isP2Client = isOnline && st.mySide === 'p2';
+      const isTraining = !isOnline && st.soloVariant === 'training';
       const localFighter = isP2Client ? st.enemy : st.player;
 
       if (isPausedRef.current && !isOnline) {
@@ -7107,6 +7252,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               localFighter.vx = 0;
             } else if (left) {
               localFighter.vx = -localFighter.profile.speed;
+              if (isTraining && st.extraDummies.length === 0) localFighter.facing = -1;
               if (
                 localFighter.y >= GROUND_Y - 1 &&
                 !localFighter.jumpPending &&
@@ -7117,6 +7263,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               }
             } else if (right) {
               localFighter.vx = localFighter.profile.speed;
+              if (isTraining && st.extraDummies.length === 0) localFighter.facing = 1;
               if (
                 localFighter.y >= GROUND_Y - 1 &&
                 !localFighter.jumpPending &&
@@ -7134,10 +7281,19 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           }
         }
 
-        // Always face each other cleanly on both Left and Right sides (Arcade + Online P1 + Online P2)
+        // Always face opponent cleanly on both Left and Right sides (Arcade + Online; Training faces nearest dummy if any)
         if (st.phase === 'fight' || st.phase === 'finish_him') {
-          if (Math.abs(e.x - p.x) >= 6) {
-            const autoFacePoses: PoseState[] = ['idle', 'walk', 'crouch', 'block', 'jump', 'jump_land'];
+          const autoFacePoses: PoseState[] = ['idle', 'walk', 'crouch', 'block', 'jump', 'jump_land'];
+          if (isTraining) {
+            if (st.extraDummies.length > 0 && autoFacePoses.includes(p.pose)) {
+              const nearest = st.extraDummies.reduce((best, cur) =>
+                Math.abs(cur.x - p.x) < Math.abs(best.x - p.x) ? cur : best
+              );
+              if (Math.abs(nearest.x - p.x) >= 6) {
+                p.facing = nearest.x >= p.x ? 1 : -1;
+              }
+            }
+          } else if (Math.abs(e.x - p.x) >= 6) {
             if (autoFacePoses.includes(p.pose)) p.facing = e.x >= p.x ? 1 : -1;
             if (autoFacePoses.includes(e.pose)) e.facing = p.x >= e.x ? 1 : -1;
           }
@@ -7165,24 +7321,112 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               st.phase = 'fight';
             }
           } else if (st.phase === 'fight') {
-            st.timerAcc++;
-            if (st.timerAcc >= 60) {
+            if (isTraining) {
+              st.timer = 99;
               st.timerAcc = 0;
-              st.timer = Math.max(0, st.timer - 1);
+            } else {
+              st.timerAcc++;
+              if (st.timerAcc >= 60) {
+                st.timerAcc = 0;
+                st.timer = Math.max(0, st.timer - 1);
+              }
             }
 
-            // Escalating Arcade Opponent Logic when mode === 'arcade'
-            if (!isOnline) {
+            // Training Mode Dummy Logic vs Escalating Arcade Opponent Logic
+            if (isTraining) {
+              const beh = trainingDummyBehaviorRef.current;
+              if (trainingAutoRegenRef.current) {
+                if (p.pose !== 'hit' && p.pose !== 'knockdown') {
+                  p.hp = Math.min(p.profile.maxHp, p.hp + 1.5);
+                } else if (p.hp <= 0) {
+                  p.hp = 1;
+                }
+              }
+              if (beh === 'serang' && st.aiCooldown > 0) st.aiCooldown--;
+
+              st.extraDummies.forEach((d) => {
+                d.trailHp += (d.hp - d.trailHp) * 0.08;
+                if (d.chillTimer > 0) d.chillTimer--;
+                if (trainingAutoRegenRef.current || d.hp <= 0) {
+                  if (d.pose !== 'hit' && d.pose !== 'knockdown') {
+                    d.hp = d.hp <= 0 ? d.profile.maxHp : Math.min(d.profile.maxHp, d.hp + 1.5);
+                  } else if (d.hp <= 0) {
+                    d.hp = 1;
+                  }
+                }
+
+                const canMoveD = ['idle', 'walk', 'jump', 'jump_land', 'crouch', 'block'].includes(d.pose);
+                if (!canMoveD) return;
+
+                if (beh === 'diam') {
+                  // Completely stationary & idle — never walks, blocks, turns, or attacks
+                  d.isBlocking = false;
+                  d.isCrouching = false;
+                  d.vx = 0;
+                  if (d.y >= GROUND_Y - 1 && !d.jumpPending) d.pose = 'idle';
+                } else if (beh === 'jongkok') {
+                  d.isBlocking = false;
+                  d.isCrouching = d.y >= GROUND_Y - 1;
+                  d.vx = 0;
+                  if (d.y >= GROUND_Y - 1 && !d.jumpPending) d.pose = 'crouch';
+                } else if (beh === 'blokir') {
+                  d.isBlocking = true;
+                  d.isCrouching = false;
+                  d.vx = 0;
+                  if (d.y >= GROUND_Y - 1 && !d.jumpPending) d.pose = 'block';
+                  if (Math.abs(p.x - d.x) >= 6) d.facing = p.x >= d.x ? 1 : -1;
+                } else if (beh === 'serang') {
+                  if (Math.abs(p.x - d.x) >= 6) d.facing = p.x >= d.x ? 1 : -1;
+                  const dDist = Math.abs(p.x - d.x);
+                  if (dDist > 110) {
+                    d.vx = d.facing * d.profile.speed * 0.85;
+                    if (d.y >= GROUND_Y - 1 && !d.jumpPending && d.pose !== 'jump_land') {
+                      d.pose = 'walk';
+                      d.walkPhase += 0.24;
+                    }
+                  } else {
+                    d.vx *= 0.6;
+                    if (d.y >= GROUND_Y - 1 && !d.jumpPending && d.pose !== 'jump_land') d.pose = 'idle';
+                    if (st.aiCooldown <= 0) {
+                      const roll = Math.random();
+                      if (roll < 0.4) {
+                        d.pose = 'punch';
+                        d.poseTimer = 15;
+                        d.poseDuration = 15;
+                        d.hasHitCurrentAttack = false;
+                        st.aiCooldown = 36;
+                        synthRef.current?.playSfx('punch');
+                      } else if (roll < 0.8) {
+                        d.pose = 'kick';
+                        d.poseTimer = 21;
+                        d.poseDuration = 21;
+                        d.hasHitCurrentAttack = false;
+                        st.aiCooldown = 40;
+                        synthRef.current?.playSfx('kick');
+                      } else {
+                        d.pose = 'uppercut';
+                        d.poseTimer = 24;
+                        d.poseDuration = 24;
+                        d.hasHitCurrentAttack = false;
+                        st.aiCooldown = 46;
+                        synthRef.current?.playSfx('heavy');
+                      }
+                    }
+                  }
+                }
+              });
+            } else if (!isOnline) {
               const dist = Math.abs(p.x - e.x);
-              const dLv = st.diffLevel; // 0.0 (Stage 1) -> 1.0 (Final Boss)
+              const dLv = st.diffLevel; // 0.04 (Mudah) -> 1.0 (Final Boss)
               const aiSpeed = e.chillTimer > 0 ? e.profile.speed * 0.48 : e.profile.speed;
               const canMoveE = ['idle', 'walk', 'jump', 'jump_land', 'crouch', 'block'].includes(e.pose);
               if (e.chillTimer > 0) e.chillTimer--;
               if (st.aiCooldown > 0) st.aiCooldown--;
 
               if (canMoveE) {
-                const blockChance = 0.14 + dLv * 0.5;
-                const specialProb = 0.03 + dLv * 0.09;
+                const blockChance = 0.025 + dLv * 0.36;
+                const specialProb = 0.008 + dLv * 0.075;
+                const easyPause = Math.round((1 - dLv) * 32);
                 const incomingPlayerProj = st.projectiles.some(
                   (pr) => pr.owner === 'player' && Math.abs(pr.x - e.x) < 155 && Math.sign(pr.vx) !== e.facing
                 );
@@ -7190,8 +7434,8 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                 if (e.isBlocking && !e.jumpPending) {
                   e.pose = 'block';
                   e.vx = 0;
-                  if (Math.random() < 0.065 - dLv * 0.025) e.isBlocking = false;
-                } else if (incomingPlayerProj && Math.random() < 0.12 + dLv * 0.42) {
+                  if (Math.random() < 0.1 - dLv * 0.05) e.isBlocking = false;
+                } else if (incomingPlayerProj && Math.random() < 0.04 + dLv * 0.38) {
                   if (dLv >= 0.4 && e.y >= GROUND_Y - 1 && !e.jumpPending && Math.random() < 0.45) {
                     e.vx = e.facing * 4.2;
                     e.pose = 'jump';
@@ -7199,13 +7443,13 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                     e.poseDuration = 6;
                     e.jumpPending = true;
                     e.wasAirborne = false;
-                    st.aiCooldown = Math.round(28 - dLv * 12);
+                    st.aiCooldown = Math.round(28 - dLv * 12) + easyPause;
                   } else {
                     e.isBlocking = true;
                     e.pose = 'block';
                   }
                 } else if (dist > 110) {
-                  e.vx = e.facing * aiSpeed * (0.82 + dLv * 0.24);
+                  e.vx = e.facing * aiSpeed * (0.72 + dLv * 0.32);
                   if (e.y >= GROUND_Y - 1 && !e.jumpPending && e.pose !== 'jump_land') {
                     e.pose = 'walk';
                     e.walkPhase += 0.24;
@@ -7216,7 +7460,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                     e.poseTimer = 24;
                     e.poseDuration = 24;
                     e.hasHitCurrentAttack = true;
-                    st.aiCooldown = Math.max(18, Math.round(46 - dLv * 24));
+                    st.aiCooldown = Math.max(18, Math.round(46 - dLv * 24)) + easyPause;
                     synthRef.current?.playSfx('fireball');
                     st.projectiles.push({
                       owner: 'enemy',
@@ -7256,21 +7500,21 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                       e.poseTimer = 15;
                       e.poseDuration = 15;
                       e.hasHitCurrentAttack = false;
-                      st.aiCooldown = Math.max(12, 32 - cdScale);
+                      st.aiCooldown = Math.max(12, 32 - cdScale) + easyPause;
                       synthRef.current?.playSfx('punch');
                     } else if (roll < 0.62) {
                       e.pose = 'kick';
                       e.poseTimer = 21;
                       e.poseDuration = 21;
                       e.hasHitCurrentAttack = false;
-                      st.aiCooldown = Math.max(14, 36 - cdScale);
+                      st.aiCooldown = Math.max(14, 36 - cdScale) + easyPause;
                       synthRef.current?.playSfx('kick');
                     } else if (roll < sweepCutoff) {
                       e.pose = 'sweep';
                       e.poseTimer = 22;
                       e.poseDuration = 22;
                       e.hasHitCurrentAttack = false;
-                      st.aiCooldown = Math.max(15, 40 - cdScale);
+                      st.aiCooldown = Math.max(15, 40 - cdScale) + easyPause;
                       synthRef.current?.playSfx('kick');
                     } else if (roll < 0.92 && e.y >= GROUND_Y - 1 && !e.jumpPending) {
                       e.vx = -e.facing * 3.5;
@@ -7279,13 +7523,13 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                       e.poseDuration = 6;
                       e.jumpPending = true;
                       e.wasAirborne = false;
-                      st.aiCooldown = Math.max(16, 34 - Math.round(dLv * 14));
+                      st.aiCooldown = Math.max(16, 34 - Math.round(dLv * 14)) + easyPause;
                     } else {
                       e.pose = 'uppercut';
                       e.poseTimer = 24;
                       e.poseDuration = 24;
                       e.hasHitCurrentAttack = false;
-                      st.aiCooldown = Math.max(18, 42 - cdScale);
+                      st.aiCooldown = Math.max(18, 42 - cdScale) + easyPause;
                       synthRef.current?.playSfx('heavy');
                     }
                   }
@@ -7333,10 +7577,19 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               }
             };
 
-            checkMelee(p, e);
-            checkMelee(e, p);
+            if (isTraining) {
+              st.extraDummies.forEach((d) => {
+                checkMelee(p, d);
+                if (trainingDummyBehaviorRef.current === 'serang') {
+                  checkMelee(d, p);
+                }
+              });
+            } else {
+              checkMelee(p, e);
+              checkMelee(e, p);
+            }
 
-            if (e.hp <= 0 || (st.timer === 0 && p.hp >= e.hp)) {
+            if (!isTraining && (e.hp <= 0 || (st.timer === 0 && p.hp >= e.hp))) {
               const newPWins = st.pWins + 1;
               st.pWins = newPWins;
               setPlayerWins(newPWins);
@@ -7383,7 +7636,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                 st.lastBannerSent = bObj;
                 synthRef.current?.playSfx('ko');
               }
-            } else if (p.hp <= 0 || (st.timer === 0 && e.hp > p.hp)) {
+            } else if (!isTraining && (p.hp <= 0 || (st.timer === 0 && e.hp > p.hp))) {
               const newEWins = st.eWins + 1;
               st.eWins = newEWins;
               setEnemyWins(newEWins);
@@ -7517,7 +7770,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                 }
               } else {
                 const isSoloTower = arcadeSubModeRef.current === 'solo';
-                const totalSt = isSoloTower ? SOLO_STAGES.length : STORY_CAMPAIGNS[storyRouteRef.current].stages.length;
+                const totalSt = st.totalStages;
                 if (st.pWins >= 2) {
                   const nextStage = st.stageIdx + 1;
                   if (nextStage < totalSt) {
@@ -7578,8 +7831,9 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           }
         }
 
-        // Physics & Timers for Both Fighters
-        [p, e].forEach((f) => {
+        // Physics & Timers for Fighters (supports Training Dummies)
+        const fightersToSim = isTraining ? [p, ...st.extraDummies] : [p, e];
+        fightersToSim.forEach((f) => {
           // Stop any residual slide after winning, falling KO, or round transition
           if (
             ['victory', 'dizzy'].includes(f.pose) ||
@@ -7718,7 +7972,28 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           }
         });
 
-        if (Math.abs(p.x - e.x) < 42 && Math.abs(p.y - e.y) < 50 && p.pose !== 'ko' && e.pose !== 'ko') {
+        if (isTraining) {
+          const beh = trainingDummyBehaviorRef.current;
+          st.extraDummies.forEach((d) => {
+            if (Math.abs(p.x - d.x) < 42 && Math.abs(p.y - d.y) < 50 && p.pose !== 'ko' && d.pose !== 'ko') {
+              const overlap = 42 - Math.abs(p.x - d.x);
+              if (beh === 'diam') {
+                // Keep stationary dummy anchored so 'diam' never slides
+                p.x += p.x < d.x ? -overlap : overlap;
+                p.x = Math.max(48, Math.min(STAGE_W - 48, p.x));
+              } else {
+                const push = overlap * 0.5;
+                if (p.x < d.x) {
+                  p.x -= push;
+                  d.x += push;
+                } else {
+                  p.x += push;
+                  d.x -= push;
+                }
+              }
+            }
+          });
+        } else if (Math.abs(p.x - e.x) < 42 && Math.abs(p.y - e.y) < 50 && p.pose !== 'ko' && e.pose !== 'ko') {
           const push = (42 - Math.abs(p.x - e.x)) * 0.5;
           if (p.x < e.x) {
             p.x -= push;
@@ -7732,8 +8007,6 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         st.projectiles = st.projectiles.filter((proj) => {
           proj.x += proj.vx;
           proj.life--;
-          const target = proj.owner === 'player' ? e : p;
-          const attacker = proj.owner === 'player' ? p : e;
 
           if (Math.random() < 0.6) {
             st.particles.push({
@@ -7749,15 +8022,24 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           }
 
           if (!isP2Client) {
-            const targetTop = target.isCrouching ? target.y - 42 : target.y - 102;
-            const targetBot = target.isCrouching ? target.y - 4 : target.y;
-            if (Math.abs(proj.x - target.x) < 28 && proj.y >= targetTop && proj.y <= targetBot) {
-              if (target.isCrouching && proj.y < target.y - 46) {
-                // Projectile passes overhead safely while crouching!
-              } else {
-                if (proj.chill) target.chillTimer = 180;
-                applyHit(attacker, target, proj.damage, 'projectile', Boolean(proj.pull));
-                return false;
+            const targets = isTraining
+              ? proj.owner === 'player'
+                ? st.extraDummies
+                : [p]
+              : [proj.owner === 'player' ? e : p];
+            const attacker = proj.owner === 'player' ? p : st.extraDummies[0] || e;
+
+            for (const target of targets) {
+              const targetTop = target.isCrouching ? target.y - 42 : target.y - 102;
+              const targetBot = target.isCrouching ? target.y - 4 : target.y;
+              if (Math.abs(proj.x - target.x) < 28 && proj.y >= targetTop && proj.y <= targetBot) {
+                if (target.isCrouching && proj.y < target.y - 46) {
+                  // Projectile passes overhead safely while crouching!
+                } else {
+                  if (proj.chill) target.chillTimer = 180;
+                  applyHit(attacker, target, proj.damage, 'projectile', Boolean(proj.pull));
+                  return false;
+                }
               }
             }
           }
@@ -7900,7 +8182,11 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       }
 
       drawArenaBackground(ctx, st.stageId, time, st.fatalityDark);
-      drawHumanFighter(ctx, st.enemy, time);
+      if (isTraining) {
+        st.extraDummies.forEach((d) => drawHumanFighter(ctx, d, time));
+      } else {
+        drawHumanFighter(ctx, st.enemy, time);
+      }
       drawHumanFighter(ctx, st.player, time);
 
       st.projectiles.forEach((proj) => drawProjectile(ctx, proj, time));
@@ -7956,21 +8242,24 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       ctx.fillStyle = pGrad;
       ctx.fillRect(30, 24, barW * pRatio, barH);
 
+      const activeEnemyHud = isTraining ? st.extraDummies[0] || null : st.enemy;
       const eBarX = STAGE_W - 28 - barW - 4;
       ctx.fillStyle = '#111827';
       ctx.fillRect(eBarX, 22, barW + 4, barH + 4);
       ctx.strokeStyle = '#fbbf24';
       ctx.strokeRect(eBarX, 22, barW + 4, barH + 4);
 
-      const eRatio = Math.max(0, st.enemy.hp / st.enemy.profile.maxHp);
-      const eTrailRatio = Math.max(0, st.enemy.trailHp / st.enemy.profile.maxHp);
-      ctx.fillStyle = '#dc2626';
-      ctx.fillRect(eBarX + 2 + barW * (1 - eTrailRatio), 24, barW * eTrailRatio, barH);
-      const eGrad = ctx.createLinearGradient(0, 24, 0, 24 + barH);
-      eGrad.addColorStop(0, '#4ade80');
-      eGrad.addColorStop(1, '#15803d');
-      ctx.fillStyle = eGrad;
-      ctx.fillRect(eBarX + 2 + barW * (1 - eRatio), 24, barW * eRatio, barH);
+      if (activeEnemyHud) {
+        const eRatio = Math.max(0, activeEnemyHud.hp / activeEnemyHud.profile.maxHp);
+        const eTrailRatio = Math.max(0, activeEnemyHud.trailHp / activeEnemyHud.profile.maxHp);
+        ctx.fillStyle = '#dc2626';
+        ctx.fillRect(eBarX + 2 + barW * (1 - eTrailRatio), 24, barW * eTrailRatio, barH);
+        const eGrad = ctx.createLinearGradient(0, 24, 0, 24 + barH);
+        eGrad.addColorStop(0, '#4ade80');
+        eGrad.addColorStop(1, '#15803d');
+        ctx.fillStyle = eGrad;
+        ctx.fillRect(eBarX + 2 + barW * (1 - eRatio), 24, barW * eRatio, barH);
+      }
 
       ctx.font = '900 13px monospace';
       ctx.fillStyle = st.mySide === 'p1' ? '#fde047' : '#cbd5e1';
@@ -7980,24 +8269,32 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
         30,
         62
       );
-      ctx.fillStyle = st.mySide === 'p2' && isOnline ? '#fde047' : '#cbd5e1';
+      ctx.fillStyle = isTraining && !activeEnemyHud ? '#94a3b8' : st.mySide === 'p2' && isOnline ? '#fde047' : '#cbd5e1';
       ctx.textAlign = 'right';
       ctx.fillText(
-        isOnline ? `${st.p2Label} (${st.enemy.profile.name})` : st.enemy.profile.name,
+        isOnline
+          ? `${st.p2Label} (${st.enemy.profile.name})`
+          : isTraining
+          ? activeEnemyHud
+            ? `DUMMY: ${activeEnemyHud.profile.name}`
+            : 'TANPA MUSUH (+ TAMBAH DUMMY)'
+          : st.enemy.profile.name,
         STAGE_W - 30,
         62
       );
 
-      for (let i = 0; i < 2; i++) {
-        ctx.fillStyle = i < st.pWins ? '#f59e0b' : 'rgba(255,255,255,0.18)';
-        ctx.beginPath();
-        ctx.arc(36 + i * 18, 76, 6, 0, Math.PI * 2);
-        ctx.fill();
+      if (!isTraining) {
+        for (let i = 0; i < 2; i++) {
+          ctx.fillStyle = i < st.pWins ? '#f59e0b' : 'rgba(255,255,255,0.18)';
+          ctx.beginPath();
+          ctx.arc(36 + i * 18, 76, 6, 0, Math.PI * 2);
+          ctx.fill();
 
-        ctx.fillStyle = i < st.eWins ? '#ef4444' : 'rgba(255,255,255,0.18)';
-        ctx.beginPath();
-        ctx.arc(STAGE_W - 36 - i * 18, 76, 6, 0, Math.PI * 2);
-        ctx.fill();
+          ctx.fillStyle = i < st.eWins ? '#ef4444' : 'rgba(255,255,255,0.18)';
+          ctx.beginPath();
+          ctx.arc(STAGE_W - 36 - i * 18, 76, 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       ctx.fillStyle = '#09090b';
@@ -8006,9 +8303,9 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
       ctx.lineWidth = 2;
       ctx.strokeRect(STAGE_W / 2 - 28, 16, 56, 36);
       ctx.font = '900 24px monospace';
-      ctx.fillStyle = st.timer <= 15 ? '#ef4444' : '#fde047';
+      ctx.fillStyle = !isTraining && st.timer <= 15 ? '#ef4444' : '#fde047';
       ctx.textAlign = 'center';
-      ctx.fillText(String(st.timer).padStart(2, '0'), STAGE_W / 2, 43);
+      ctx.fillText(isTraining ? '∞' : String(st.timer).padStart(2, '0'), STAGE_W / 2, 43);
 
       // Local Fighter Energy Bar (Bottom-Left)
       ctx.fillStyle = 'rgba(0,0,0,0.65)';
@@ -8057,12 +8354,13 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
       hudSyncCounter++;
       if (hudSyncCounter % 6 === 0) {
+        const enemyHudRef = isTraining ? st.extraDummies[0] : isP2Client ? st.player : st.enemy;
         setHudState((prev) => ({
           pHp: localFighter.hp,
           pMax: localFighter.profile.maxHp,
           pEnergy: localFighter.energy,
-          eHp: (isP2Client ? st.player : st.enemy).hp,
-          eMax: (isP2Client ? st.player : st.enemy).profile.maxHp,
+          eHp: enemyHudRef ? enemyHudRef.hp : 0,
+          eMax: enemyHudRef ? enemyHudRef.profile.maxHp : 100,
           timer: st.timer,
           finishHim: st.phase === 'finish_him',
           combo: localFighter.comboCount,
@@ -8124,8 +8422,14 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               ? playMode === 'online'
                 ? `ONLINE · ROOM ${activeMatchDoc?.roomCode || ''} · ROUND ${roundNum}`
                 : arcadeSubMode === 'solo'
-                ? `SOLO STAGE ${arcadeStageIdx + 1}/${SOLO_STAGES.length} (${SOLO_STAGES[arcadeStageIdx]?.tierLabel || ''}) · ${(arcadeStageIdx === 0 ? ARENAS.find((a) => a.id === selectedStage)?.name : SOLO_STAGES[arcadeStageIdx]?.stageName) || ''} · R${roundNum}`
-                : `${STORY_CAMPAIGNS[storyRoute].title} · CH ${arcadeStageIdx + 1}/${STORY_CAMPAIGNS[storyRoute].stages.length} · ${(arcadeStageIdx === 0 ? ARENAS.find((a) => a.id === selectedStage)?.name : STORY_CAMPAIGNS[storyRoute].stages[arcadeStageIdx]?.stageName) || ''} · R${roundNum}`
+                ? soloVariant === 'training'
+                  ? `TRAINING MODE · ${ARENAS.find((a) => a.id === selectedStage)?.name || ''}`
+                  : soloVariant === 'free'
+                  ? `FREE MODE (${FREE_DIFFICULTY_CFG[freeDifficulty].label}) · ${ARENAS.find((a) => a.id === selectedStage)?.name || ''} · R${roundNum}`
+                  : `CHALLENGE STAGE ${arcadeStageIdx + 1} (${SOLO_STAGES[arcadeStageIdx]?.tierLabel || ''}) · ${SOLO_STAGES[arcadeStageIdx]?.stageName || ''} · R${roundNum}`
+                : `${STORY_CAMPAIGNS[storyRoute].title} · CH ${arcadeStageIdx + 1}/${STORY_CAMPAIGNS[storyRoute].stages.length} · ${STORY_CAMPAIGNS[storyRoute].stages[arcadeStageIdx]?.stageName || ''} · R${roundNum}`
+              : screen === 'solo_menu'
+              ? 'Informatika Kombat · Menu Solo Mode'
               : screen === 'story'
               ? `${STORY_CAMPAIGNS[storyRoute].title} · CHAPTER ${arcadeStageIdx + 1}/${STORY_CAMPAIGNS[storyRoute].stages.length}`
               : 'Informatika Kombat · 16-Bit SNES'}
@@ -8197,7 +8501,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           <div className="max-w-4xl w-full relative overflow-hidden rounded-3xl border-2 border-amber-500/50 shadow-2xl bg-[radial-gradient(ellipse_at_center,_#450a0a_0%,_#180614_50%,_#020617_100%)]">
             <div className="relative w-full aspect-[16/9] min-h-[360px] flex flex-col items-center justify-end p-5 md:p-8 text-center">
               <img
-                src={menuBannerUrl}
+                src={startMenuKombatBannerV2Url}
                 alt="Informatika Kombat"
                 referrerPolicy="no-referrer"
                 loading="eager"
@@ -8210,11 +8514,11 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   bannerReady ? 'opacity-100' : 'opacity-0'
                 )}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-slate-950/65 to-black/35" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-slate-950/60 to-black/30" />
 
               <div className="relative z-10 max-w-3xl w-full space-y-3">
                 <div className="inline-flex items-center gap-2 text-[11px] md:text-xs font-black uppercase tracking-[0.25em] text-amber-300 bg-black/60 border border-amber-500/40 px-3.5 py-1 rounded-full">
-                  <Flame size={15} className="text-red-500" /> ARCADE STORY ROUTES &amp; ONLINE MULTIPLAYER
+                  <Flame size={15} className="text-red-500" /> FAKSI HERO VS FAKSI MONSTER · ARENA KOMBAT
                 </div>
                 <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-orange-500 to-red-600 drop-shadow-[0_4px_18px_rgba(0,0,0,0.95)]">
                   INFORMATIKA KOMBAT
@@ -8252,11 +8556,11 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                       ensureAllGameAssetsLoaded();
                       selectArcadeMode('solo');
                       synthRef.current?.playSfx('gong');
-                      setScreen('select');
+                      setScreen('solo_menu');
                     }}
                     className="w-full sm:w-auto px-5 py-3.5 bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white font-black text-sm rounded-2xl shadow-xl shadow-orange-600/35 hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-2"
                   >
-                    <Swords size={18} /> SOLO 8 STAGE
+                    <Swords size={18} /> SOLO MODE
                   </button>
                   <button
                     onClick={() => {
@@ -8299,6 +8603,160 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           </div>
         )}
 
+        {screen === 'solo_menu' && (
+          <div className="max-w-5xl w-full space-y-5 py-2">
+            <div className="relative overflow-hidden rounded-3xl border border-amber-500/40 bg-gradient-to-br from-slate-900 via-slate-950 to-amber-950/30 p-5 md:p-7 shadow-2xl">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-center sm:text-left space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-[11px] font-black uppercase tracking-widest text-amber-300">
+                    <Swords size={13} /> SOLO MODE ARENA
+                  </div>
+                  <h2 className="text-2xl md:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-400 to-red-500">
+                    PILIH MODE PERTARUNGAN SOLO
+                  </h2>
+                  <p className="text-xs md:text-sm text-slate-300 font-medium">
+                    Tentukan tantanganmu: Turnamen Challenge Mode, Pertarungan Bebas Free Mode, atau Dojo Training Mode.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    synthRef.current?.playSfx('select');
+                    setScreen('title');
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-xs font-black text-slate-200 inline-flex items-center gap-1.5 shrink-0 transition-all"
+                >
+                  <ArrowLeft size={15} /> Kembali ke Menu Utama
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Challenge Mode Card */}
+              <button
+                type="button"
+                onClick={() => {
+                  selectArcadeMode('solo');
+                  setSoloVariant('challenge');
+                  synthRef.current?.playSfx('gong');
+                  setScreen('select');
+                }}
+                className="group relative overflow-hidden rounded-3xl border-2 border-amber-500/50 hover:border-amber-400 bg-slate-900 text-left transition-all duration-200 hover:-translate-y-1 shadow-2xl flex flex-col"
+              >
+                <div className="relative h-44 w-full overflow-hidden">
+                  <img
+                    src={soloChallengeCardUrl}
+                    alt="Challenge Mode"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-transparent" />
+                  <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/90 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow">
+                    <Trophy size={12} /> TURNAMEN TANGGA
+                  </div>
+                </div>
+                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div className="space-y-1.5">
+                    <h3 className="text-xl font-black text-amber-300 group-hover:text-amber-200">
+                      Challenge Mode
+                    </h3>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Pertarungan tangga berjenjang! Hadapi penantang yang semakin tangguh di tiap arena hingga menumbangkan Final Boss.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/90">
+                    <span className="text-xs font-black text-amber-400 inline-flex items-center gap-1">
+                      Masuk Challenge <ChevronRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400">Skor &amp; Boss</span>
+                  </div>
+                </div>
+              </button>
+
+              {/* Free Mode Card */}
+              <button
+                type="button"
+                onClick={() => {
+                  selectArcadeMode('solo');
+                  setSoloVariant('free');
+                  synthRef.current?.playSfx('gong');
+                  setScreen('select');
+                }}
+                className="group relative overflow-hidden rounded-3xl border-2 border-sky-500/50 hover:border-sky-400 bg-slate-900 text-left transition-all duration-200 hover:-translate-y-1 shadow-2xl flex flex-col"
+              >
+                <div className="relative h-44 w-full overflow-hidden">
+                  <img
+                    src={soloFreeCardUrl}
+                    alt="Free Mode"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-transparent" />
+                  <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/90 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow">
+                    <Zap size={12} /> BEBAS ATUR
+                  </div>
+                </div>
+                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div className="space-y-1.5">
+                    <h3 className="text-xl font-black text-sky-300 group-hover:text-sky-200">
+                      Free Mode
+                    </h3>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Bebas memilih tingkat kesukaran (Mudah, Normal, Sulit, Elite), menentukan karakter lawan, serta memilih 1 dari 9 arena ikonik!
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/90">
+                    <span className="text-xs font-black text-sky-400 inline-flex items-center gap-1">
+                      Masuk Free Mode <ChevronRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400">Custom Duel</span>
+                  </div>
+                </div>
+              </button>
+
+              {/* Training Mode Card */}
+              <button
+                type="button"
+                onClick={() => {
+                  selectArcadeMode('solo');
+                  setSoloVariant('training');
+                  synthRef.current?.playSfx('gong');
+                  setScreen('select');
+                }}
+                className="group relative overflow-hidden rounded-3xl border-2 border-emerald-500/50 hover:border-emerald-400 bg-slate-900 text-left transition-all duration-200 hover:-translate-y-1 shadow-2xl flex flex-col"
+              >
+                <div className="relative h-44 w-full overflow-hidden">
+                  <img
+                    src={soloTrainingCardUrl}
+                    alt="Training Mode"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-transparent" />
+                  <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/90 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow">
+                    <Target size={12} /> DOJO LATIHAN
+                  </div>
+                </div>
+                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div className="space-y-1.5">
+                    <h3 className="text-xl font-black text-emerald-300 group-hover:text-emerald-200">
+                      Training Mode
+                    </h3>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Arena latihan bebas waktu! Mulai tanpa musuh dan tambahkan dummy musuh yang diam tak bergerak untuk berlatih kombo &amp; jurus.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/90">
+                    <span className="text-xs font-black text-emerald-400 inline-flex items-center gap-1">
+                      Masuk Training <ChevronRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400">Kombo &amp; Dummy</span>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
         {screen === 'select' && (
           <div className="max-w-5xl w-full space-y-3">
             {/* Mode Switch Header */}
@@ -8311,7 +8769,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   {playMode === 'online'
                     ? 'Online Duel: Semua 13 karakter tersedia untuk bertarung real-time!'
                     : arcadeSubMode === 'solo'
-                    ? 'Solo Mode: Semua 13 karakter terbuka · Taklukkan 8 Stage yang makin menantang!'
+                    ? 'Solo Mode: Semua 13 karakter terbuka · Pilih mode Challenge, Free, atau Training!'
                     : arcadeSubMode === 'hero_story'
                     ? 'Hero Route: Khusus memilih karakter faksi Hero (9 Pejuang) · 4 Chapter Cerita!'
                     : 'Monster Route: Khusus memilih karakter faksi Monster (4 Monster) · 4 Chapter Cerita!'}
@@ -8323,6 +8781,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                     if (matchStatus === 'waiting') cancelMatchmaking();
                     selectArcadeMode('solo');
                     synthRef.current?.playSfx('select');
+                    setScreen('solo_menu');
                   }}
                   className={cn(
                     'px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all',
@@ -8331,7 +8790,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                       : 'text-slate-300 hover:text-white'
                   )}
                 >
-                  <Swords size={14} /> Solo (8 Stage)
+                  <Swords size={14} /> Solo Mode
                 </button>
                 <button
                   onClick={() => {
@@ -8397,7 +8856,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                         soloVariant === 'challenge' ? 'bg-amber-500 text-slate-950' : 'text-slate-300 hover:text-white'
                       )}
                     >
-                      Challenge Mode (8 Stage)
+                      Challenge Mode
                     </button>
                     <button
                       onClick={() => setSoloVariant('free')}
@@ -8418,19 +8877,28 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                       Training Mode
                     </button>
                   </div>
-                  <span className="text-[11px] font-bold text-amber-300">
-                    {soloVariant === 'challenge'
-                      ? 'Turnamen Tangga 8 Stage (Makin Sulit)'
-                      : soloVariant === 'free'
-                      ? 'Pertandingan Bebas (Pilih Kesukaran & Lawan)'
-                      : 'Mode Latihan (Dummy & Auto-Regen HP)'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-amber-300">
+                      {soloVariant === 'challenge'
+                        ? 'Turnamen Tangga Bertahap (Makin Sulit Tiap Stage)'
+                        : soloVariant === 'free'
+                        ? 'Pertandingan Bebas (Pilih Kesukaran & Lawan)'
+                        : 'Mode Latihan (Mulai Tanpa Musuh & Dummy Diam)'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setScreen('solo_menu')}
+                      className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-black text-slate-200 shrink-0"
+                    >
+                      Menu Solo
+                    </button>
+                  </div>
                 </div>
 
                 {soloVariant === 'challenge' && (
                   <div className="space-y-2 pt-1 border-t border-slate-800">
                     <p className="text-[11px] text-slate-300 font-medium">
-                      Background Arena &amp; Tingkat Kesulitan otomatis berubah dari Stage 1 hingga Stage 8 (Final Boss).
+                      Background Arena &amp; Tingkat Kesulitan otomatis meningkat dari Stage awal hingga Final Boss.
                     </p>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {SOLO_STAGES.map((stItem, idx) => (
@@ -8680,55 +9148,105 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                 >
                   {arcadeSubMode === 'solo' ? <Swords size={18} /> : <BookOpen size={18} />}
                   {arcadeSubMode === 'solo'
-                    ? 'MULAI SOLO 8 STAGE! [ENTER]'
+                    ? soloVariant === 'training'
+                      ? 'MULAI TRAINING MODE! [ENTER]'
+                      : soloVariant === 'free'
+                      ? 'MULAI FREE MODE! [ENTER]'
+                      : 'MULAI CHALLENGE MODE! [ENTER]'
                     : `MULAI ${STORY_CAMPAIGNS[storyRoute].title}! [ENTER]`}
                 </button>
               )}
             </div>
 
-            {/* 9-Arena Background Picker */}
-            <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-3 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-black uppercase tracking-wider text-amber-400">
-                  Pilih Arena Pertarungan ({selectedStage}/9 · {ARENAS.find((a) => a.id === selectedStage)?.name})
-                </span>
-                <span className="text-[11px] text-slate-400 font-semibold">
-                  {ARENAS.find((a) => a.id === selectedStage)?.theme}
-                </span>
-              </div>
-              <div className="flex flex-nowrap items-stretch gap-2 overflow-x-auto pb-1 custom-scrollbar">
-                {ARENAS.map((arena) => {
-                  const isArenaSel = selectedStage === arena.id;
-                  return (
-                    <button
-                      key={arena.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedStage(arena.id);
-                        synthRef.current?.playSfx('select');
-                      }}
-                      className={cn(
-                        'w-28 shrink-0 rounded-xl overflow-hidden border-2 text-left transition-all bg-slate-950',
-                        isArenaSel
-                          ? 'border-amber-400 shadow-md shadow-amber-500/30 scale-[1.03]'
-                          : 'border-slate-800 hover:border-slate-600 opacity-80 hover:opacity-100'
-                      )}
-                    >
-                      <img
-                        src={arena.url}
-                        alt={arena.name}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-14 object-cover block"
-                      />
-                      <div className="px-1.5 py-1">
-                        <p className="text-[10px] font-black text-white truncate">{arena.name}</p>
-                        <p className="text-[9px] font-semibold text-amber-300/90 truncate">{arena.theme}</p>
+            {/* Arena Section: Locked per-chapter for Hero/Monster Routes & Challenge, Pickable for Free/Training/Online */}
+            {playMode === 'arcade' && arcadeSubMode !== 'solo' ? (
+              <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-black uppercase tracking-wider text-amber-400 inline-flex items-center gap-1.5">
+                    <Lock size={13} /> Arena Cerita Sudah Ditetapkan Otomatis ({STORY_CAMPAIGNS[storyRoute].title})
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400">
+                    Tiap chapter memiliki arena tetap
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {STORY_CAMPAIGNS[storyRoute].stages.map((ch, idx) => {
+                    const arena = ARENAS.find((a) => a.id === ch.stage) || ARENAS[0];
+                    return (
+                      <div
+                        key={ch.chapterTitle}
+                        className="rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950/90 opacity-90 cursor-not-allowed"
+                      >
+                        <img
+                          src={arena.url}
+                          alt={arena.name}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-14 object-cover block"
+                        />
+                        <div className="px-2 py-1.5">
+                          <p className="text-[10px] font-black text-amber-300 truncate">
+                            Chapter {idx + 1} · {arena.name}
+                          </p>
+                          <p className="text-[9px] font-semibold text-slate-400 truncate">
+                            Lawan: {FIGHTERS[ch.fighter].name}
+                          </p>
+                        </div>
                       </div>
-                    </button>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-black uppercase tracking-wider text-amber-400">
+                    {playMode === 'arcade' && arcadeSubMode === 'solo' && soloVariant === 'challenge'
+                      ? 'Arena Challenge Mode Ditetapkan Tiap Stage (Berubah Otomatis)'
+                      : `Pilih Arena Pertarungan (${selectedStage}/9 · ${ARENAS.find((a) => a.id === selectedStage)?.name})`}
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-semibold">
+                    {ARENAS.find((a) => a.id === selectedStage)?.theme}
+                  </span>
+                </div>
+                <div className="flex flex-nowrap items-stretch gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                  {ARENAS.map((arena) => {
+                    const isChallengeLocked =
+                      playMode === 'arcade' && arcadeSubMode === 'solo' && soloVariant === 'challenge';
+                    const isArenaSel = isChallengeLocked ? arena.id === SOLO_STAGES[0].stage : selectedStage === arena.id;
+                    return (
+                      <button
+                        key={arena.id}
+                        type="button"
+                        disabled={isChallengeLocked}
+                        onClick={() => {
+                          if (isChallengeLocked) return;
+                          setSelectedStage(arena.id);
+                          synthRef.current?.playSfx('select');
+                        }}
+                        className={cn(
+                          'w-28 shrink-0 rounded-xl overflow-hidden border-2 text-left transition-all bg-slate-950',
+                          isArenaSel
+                            ? 'border-amber-400 shadow-md shadow-amber-500/30 scale-[1.03]'
+                            : 'border-slate-800 hover:border-slate-600 opacity-80 hover:opacity-100',
+                          isChallengeLocked && 'cursor-not-allowed opacity-60'
+                        )}
+                      >
+                        <img
+                          src={arena.url}
+                          alt={arena.name}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-14 object-cover block"
+                        />
+                        <div className="px-1.5 py-1">
+                          <p className="text-[10px] font-black text-white truncate">{arena.name}</p>
+                          <p className="text-[9px] font-semibold text-amber-300/90 truncate">{arena.theme}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Online Multiplayer Firebase Matchmaking Panel */}
             {playMode === 'online' && (
@@ -8851,7 +9369,7 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
           const campaign = STORY_CAMPAIGNS[storyRoute];
           const chapter = campaign.stages[arcadeStageIdx] || campaign.stages[0];
           const oppProfile = FIGHTERS[chapter.fighter];
-          const chapterStageId: StageId = arcadeStageIdx === 0 ? selectedStage : chapter.stage;
+          const chapterStageId: StageId = chapter.stage;
           const arenaInfo = ARENAS.find((a) => a.id === chapterStageId) || ARENAS[0];
           return (
             <StoryCutsceneVideoPlayer
@@ -8999,12 +9517,14 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                   </button>
                   <button
                     onClick={removeTrainingDummy}
-                    disabled={trainingDummyCount <= 1}
+                    disabled={trainingDummyCount <= 0}
                     className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-[11px] font-black rounded-lg"
                   >
                     - Hapus Dummy
                   </button>
-                  <span className="text-[11px] font-bold text-slate-300">({trainingDummyCount}/3 Dummies)</span>
+                  <span className="text-[11px] font-bold text-slate-300">
+                    ({trainingDummyCount === 0 ? 'Tanpa Musuh' : `${trainingDummyCount}/3 Dummies`})
+                  </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex items-center gap-1">
@@ -9163,7 +9683,9 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
               {!onlineOutcomeMsg && (
                 <span className="inline-block text-[10px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
                   {arcadeSubMode === 'solo'
-                    ? 'SOLO 8 STAGE TAMAT'
+                    ? soloVariant === 'free'
+                      ? 'FREE MODE MENANG!'
+                      : 'CHALLENGE MODE TAMAT!'
                     : `${STORY_CAMPAIGNS[storyRoute].title} TAMAT`}
                 </span>
               )}
@@ -9171,14 +9693,18 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
                 {onlineOutcomeMsg
                   ? 'VICTORY ONLINE!'
                   : arcadeSubMode === 'solo'
-                  ? 'JUARA TURNAMEN INFORMATIKA KOMBAT!'
+                  ? soloVariant === 'free'
+                    ? 'PEMENANG FREE MODE!'
+                    : 'JUARA TURNAMEN INFORMATIKA KOMBAT!'
                   : STORY_CAMPAIGNS[storyRoute].endingTitle}
               </h2>
             </div>
             <p className="text-sm text-slate-300 leading-relaxed">
               {onlineOutcomeMsg ||
                 (arcadeSubMode === 'solo'
-                  ? 'Luar biasa! Kamu berhasil menaklukkan seluruh 8 Stage Solo dengan tingkat kesulitan tertinggi termasuk Final Boss di Gerbang Kuantum!'
+                  ? soloVariant === 'free'
+                    ? 'Hebat! Kamu berhasil memenangkan duel di Free Mode dan menguasai arena pilihanmu!'
+                    : 'Luar biasa! Kamu berhasil menaklukkan seluruh lawan di Challenge Mode hingga menumbangkan Final Boss di Gerbang Kuantum!'
                   : STORY_CAMPAIGNS[storyRoute].endingText)}
             </p>
             <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
@@ -9217,7 +9743,9 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
             <p className="text-sm text-slate-300">
               {onlineOutcomeMsg ||
                 (arcadeSubMode === 'solo'
-                  ? `Kamu gugur di Solo Stage ${arcadeStageIdx + 1}/${SOLO_STAGES.length} (${SOLO_STAGES[arcadeStageIdx]?.tierLabel || ''}) dengan skor ${score} poin. Gunakan kombinasi Block + Uppercut!`
+                  ? soloVariant === 'free'
+                    ? `Kamu gugur di Free Mode (${FREE_DIFFICULTY_CFG[freeDifficulty].label}) dengan skor ${score} poin. Gunakan kombinasi Block + Uppercut!`
+                    : `Kamu gugur di Challenge Stage ${arcadeStageIdx + 1} (${SOLO_STAGES[arcadeStageIdx]?.tierLabel || ''}) dengan skor ${score} poin. Gunakan kombinasi Block + Uppercut!`
                   : `Kamu gugur di ${STORY_CAMPAIGNS[storyRoute].title} Chapter ${arcadeStageIdx + 1}/${STORY_CAMPAIGNS[storyRoute].stages.length} dengan skor ${score} poin. Gunakan kombinasi Block + Uppercut!`)}
             </p>
             <div className="flex gap-3">
