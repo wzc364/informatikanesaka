@@ -229,6 +229,16 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (response.status === 413) {
+          throw new Error(
+            'Ukuran file terlalu besar untuk dikirim ke server (HTTP 413). Kompres/perkecil dokumen hingga di bawah 3 MB atau pecah menjadi beberapa bagian.'
+          );
+        }
+        if (response.status === 504 && !payload?.error) {
+          throw new Error(
+            'Waktu pemrosesan server habis (HTTP 504). Coba kurangi jumlah halaman/soal atau centang sebagian komponen terlebih dahulu.'
+          );
+        }
         if (response.status === 404 && !payload?.error) {
           const isSharedPreview =
             typeof window !== 'undefined' &&
@@ -236,7 +246,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
           throw new Error(
             isSharedPreview
               ? 'Fitur Analisis Soal membutuhkan server backend aktif, sedangkan URL pratinjau bersama (ais-pre) hanya menyajikan file statis. Silakan buka dari Pratinjau Editor (ais-dev) atau deploy aplikasi agar server aktif.'
-              : 'Endpoint analisis server belum aktif (HTTP 404). Silakan muat ulang halaman atau coba lagi sebentar.'
+              : 'Endpoint analisis server belum aktif (HTTP 404). Pastikan folder /api ikut ter-deploy atau muat ulang halaman.'
           );
         }
         throw new Error(

@@ -365,18 +365,14 @@ function buildResponseSchema(sections: QuestionAnalysisSectionSelection): Schema
 async function generateWithRetry<T>(fn: () => Promise<T>, maxAttempts = 2): Promise<T> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const t0 = Date.now();
     try {
-      const res = await fn();
-      console.log(`[AnalisisSoal] Gemini attempt ${attempt} OK in ${Date.now() - t0}ms`);
-      return res;
+      return await fn();
     } catch (err: any) {
       lastError = err;
       const status = err?.status || err?.code;
       const name = String(err?.name || '');
       const msg = String(err?.message || '').toLowerCase();
-      console.error(`[AnalisisSoal] Gemini attempt ${attempt} failed in ${Date.now() - t0}ms:`, status || name, err?.message);
-      if (name === 'TimeoutError' || name === 'AbortError') {
+      if (name === 'TimeoutError' || name === 'AbortError' || status === 20) {
         const timeoutErr: any = new Error(
           'Permintaan analisis AI melebihi batas waktu. Coba lagi atau perkecil jumlah halaman/soal dalam satu dokumen.'
         );
@@ -473,7 +469,7 @@ Aturan Penulisan:
       headers: {
         'User-Agent': 'aistudio-build',
       },
-      timeout: 30000,
+      timeout: 90000,
     },
   });
 
@@ -512,7 +508,7 @@ Aturan Penulisan:
 
   let response;
   try {
-    response = await generateWithRetry(() => callModel('gemini-4-hydrogen', 25000), 2);
+    response = await generateWithRetry(() => callModel('gemini-4-hydrogen', 55000), 2);
   } catch (primaryErr: any) {
     const status = primaryErr?.status || primaryErr?.code;
     const msg = String(primaryErr?.message || '').toLowerCase();
@@ -527,7 +523,7 @@ Aturan Penulisan:
     if (!shouldFallback) {
       throw primaryErr;
     }
-    response = await generateWithRetry(() => callModel('gemini-3.1-flash-lite', 35000), 2);
+    response = await generateWithRetry(() => callModel('gemini-3.1-flash-lite', 45000), 2);
   }
 
   const rawText = (response.text ?? '').trim();
@@ -575,4 +571,87 @@ Aturan Penulisan:
         }
       : {}),
   };
+}
+
+export async function processAnalyzeQuestionRequest(
+  body: any
+): Promise<{ status: number; payload: QuestionAnalysisResult | { error: string } }> {
+  try {
+    const { title, fileName, mimeType, fileBase64, sections } = body || {};
+
+    if (!fileName || typeof fileName !== 'string') {
+      return { status: 400, payload: { error: 'Nama file dokumen wajib disertakan.' } };
+    }
+    if (!fileBase64 || typeof fileBase64 !== 'string') {
+      return { status: 400, payload: { error: 'Isi file dokumen tidak boleh kosong.' } };
+    }
+
+    const cleanTitle =
+      typeof title === 'string' && title.trim()
+        ? title.trim()
+        : fileName.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ');
+
+    const normalizedSections = {
+      kisiKisi: Boolean(sections?.kisiKisi),
+      materiDariSoal: Boolean(sections?.materiDariSoal),
+      penyelesaianRinci: Boolean(sections?.penyelesaianRinci),
+      latihanSoal: Boolean(sections?.latihanSoal),
+    };
+
+    const result = await analyzeQuestionDocument({
+      title: cleanTitle,
+      fileName,
+      mimeType: typeof mimeType === 'string' ? mimeType : '',
+      fileBase64,
+      sections: normalizedSections,
+    });
+
+    return { status: 200, payload: result };
+  } catch (err: any) {
+    console.error('Error analyzing question document:', err);
+    const status = typeof err?.status === 'number' ? err.status : 500;
+    const rawMessage = err?.message || 'Terjadi kesalahan saat menganalisis dokumen soal.';
+
+    if (
+      rawMessage.includes('API_KEY_INVALID') ||
+      rawMessage.includes('PERMISSION_DENIED') ||
+      status === 403
+    ) {
+      return {
+        status: 403,
+        payload: {
+          error:
+            'Kunci API Gemini tidak valid atau tidak memiliki izin. Silakan periksa Environment Variables (GEMINI_API_KEY) di Vercel / Settings > Secrets.',
+        },
+      };
+    }
+    if (rawMessage.includes('RESOURCE_EXHAUSTED') || status === 429) {
+      return {
+        status: 429,
+        payload: {
+          error: 'Kuota permintaan AI sedang penuh (429). Tunggu beberapa saat lalu coba lagi.',
+        },
+      };
+    }
+    if (
+      status === 503 ||
+      status === 504 ||
+      rawMessage.includes('UNAVAILABLE') ||
+      rawMessage.includes('DEADLINE_EXCEEDED') ||
+      rawMessage.includes('high demand')
+    ) {
+      return {
+        status: 503,
+        payload: {
+          error:
+            'Layanan AI sedang mengalami lonjakan trafik sementara. Silakan klik Analisis Soal lagi beberapa saat.',
+        },
+      };
+    }
+    const clientStatus = status >= 400 && status < 500 ? status : 400;
+    return {
+      status: rawMessage.includes('GEMINI_API_KEY') || status >= 500 ? 500 : clientStatus,
+      payload: { error: rawMessage },
+    };
+  }
 }

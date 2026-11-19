@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { analyzeQuestionDocument } from "./server/questionAnalyzer.ts";
+import { processAnalyzeQuestionRequest } from "./server/questionAnalyzer.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,68 +34,8 @@ async function startServer() {
 
   // API Route to analyze uploaded exam/question documents with Gemini
   app.post("/api/analyze-question-doc", async (req, res) => {
-    try {
-      const { title, fileName, mimeType, fileBase64, sections } = req.body || {};
-
-      if (!fileName || typeof fileName !== 'string') {
-        return res.status(400).json({ error: 'Nama file dokumen wajib disertakan.' });
-      }
-      if (!fileBase64 || typeof fileBase64 !== 'string') {
-        return res.status(400).json({ error: 'Isi file dokumen tidak boleh kosong.' });
-      }
-
-      const cleanTitle =
-        typeof title === 'string' && title.trim()
-          ? title.trim()
-          : fileName.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ');
-
-      const normalizedSections = {
-        kisiKisi: Boolean(sections?.kisiKisi),
-        materiDariSoal: Boolean(sections?.materiDariSoal),
-        penyelesaianRinci: Boolean(sections?.penyelesaianRinci),
-        latihanSoal: Boolean(sections?.latihanSoal),
-      };
-
-      const result = await analyzeQuestionDocument({
-        title: cleanTitle,
-        fileName,
-        mimeType: typeof mimeType === 'string' ? mimeType : '',
-        fileBase64,
-        sections: normalizedSections,
-      });
-
-      return res.json(result);
-    } catch (err: any) {
-      console.error('Error analyzing question document:', err);
-      const status = typeof err?.status === 'number' ? err.status : 500;
-      const rawMessage = err?.message || 'Terjadi kesalahan saat menganalisis dokumen soal.';
-
-      if (rawMessage.includes('API_KEY_INVALID') || rawMessage.includes('PERMISSION_DENIED') || status === 403) {
-        return res.status(403).json({
-          error: 'Kunci API Gemini tidak valid atau tidak memiliki izin. Silakan periksa panel Settings > Secrets.',
-        });
-      }
-      if (rawMessage.includes('RESOURCE_EXHAUSTED') || status === 429) {
-        return res.status(429).json({
-          error: 'Kuota permintaan AI sedang penuh (429). Tunggu beberapa saat lalu coba lagi.',
-        });
-      }
-      if (
-        status === 503 ||
-        status === 504 ||
-        rawMessage.includes('UNAVAILABLE') ||
-        rawMessage.includes('DEADLINE_EXCEEDED') ||
-        rawMessage.includes('high demand')
-      ) {
-        return res.status(503).json({
-          error: 'Layanan AI sedang mengalami lonjakan trafik sementara. Silakan klik Analisis Soal lagi beberapa saat.',
-        });
-      }
-      const clientStatus = status >= 400 && status < 500 ? status : 400;
-      return res.status(
-        rawMessage.includes('GEMINI_API_KEY') || status >= 500 ? 500 : clientStatus
-      ).json({ error: rawMessage });
-    }
+    const { status, payload } = await processAnalyzeQuestionRequest(req.body);
+    return res.status(status).json(payload);
   });
 
   // API Route to get client info
