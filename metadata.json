@@ -2,5 +2,7 @@
   "name": "Ruang Informatika",
   "description": "Aplikasi media pembelajaran interaktif Informatika SMP (Berpikir Komputasional, Algoritma, Dekomposisi & Pengenalan Pola).",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

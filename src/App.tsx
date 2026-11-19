@@ -85,6 +85,7 @@ import AdminGames from './components/AdminGames';
 import AdminSoal from './components/AdminSoal';
 import StudentSoalRunner from './components/StudentSoalRunner';
 import { AdminMaterialPrintModal } from './components/AdminMaterialPrintModal';
+import { AdminQuestionAnalysis } from './components/AdminQuestionAnalysis';
 import { resolveCourseImageUrl, getPublicFallbackImageUrl } from './courseImageMap';
 
 enum OperationType {
@@ -234,6 +235,8 @@ export default function App() {
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [editingMaterialConfigId, setEditingMaterialConfigId] = useState<string | null>(null);
   const [printingMaterialCourseId, setPrintingMaterialCourseId] = useState<string | null>(null);
+  const [materialSubTab, setMaterialSubTab] = useState<'list' | 'analisis_soal'>('list');
+  const [hasPrintableQuestionAnalysis, setHasPrintableQuestionAnalysis] = useState<boolean>(false);
 
   // Automatically calculate total course timer based on topic/quiz timers
   useEffect(() => {
@@ -2136,7 +2139,7 @@ export default function App() {
     return (
       <div className={cn(
         "flex h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/40 text-slate-900 overflow-hidden",
-        printingMaterialCourseId && "print:hidden"
+        (printingMaterialCourseId || (adminTab === 'materials' && materialSubTab === 'analisis_soal' && hasPrintableQuestionAnalysis)) && "print:hidden"
       )}>
         {/* Mobile Header */}
         <div className="md:hidden fixed top-3 left-3 right-3 h-14 bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-2xl shadow-lg shadow-slate-900/5 z-50 flex items-center justify-between px-3.5 transition-all duration-300">
@@ -3377,10 +3380,56 @@ export default function App() {
             
             {adminTab === 'materials' && (
               <>
-                <div className="mb-8">
-                  <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Ruang Informatika</h2>
-                  <p className="text-slate-500 font-medium mt-1">Terbitkan materi agar dapat diakses oleh siswa di dashboard mereka.</p>
+                <div className="mb-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                      {materialSubTab === 'analisis_soal' ? 'Analisis Soal' : 'Ruang Informatika'}
+                    </h2>
+                    <p className="text-slate-500 font-medium mt-1">
+                      {materialSubTab === 'analisis_soal'
+                        ? 'Unggah dokumen soal untuk menyusun kisi-kisi, materi, pembahasan rinci, dan latihan soal serupa.'
+                        : 'Terbitkan materi agar dapat diakses oleh siswa di dashboard mereka.'}
+                    </p>
+                  </div>
+
+                  {/* Navigasi Sub-Halaman di Kelola Materi */}
+                  <div className="inline-flex items-center gap-1.5 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80 w-fit shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setMaterialSubTab('list')}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2",
+                        materialSubTab === 'list'
+                          ? "bg-brand text-white shadow-md shadow-brand/20"
+                          : "text-slate-600 hover:text-slate-900"
+                      )}
+                    >
+                      <GraduationCap size={15} />
+                      Daftar Materi
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMaterialSubTab('analisis_soal')}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2",
+                        materialSubTab === 'analisis_soal'
+                          ? "bg-brand text-white shadow-md shadow-brand/20"
+                          : "text-slate-600 hover:text-slate-900"
+                      )}
+                    >
+                      <Sparkles size={15} />
+                      Analisis Soal
+                    </button>
+                  </div>
                 </div>
+
+                {materialSubTab === 'analisis_soal' ? (
+                  <AdminQuestionAnalysis
+                    logoUrl={settingsConfig?.logoUrl || '/images/labkom_nesaka_logo.jpg'}
+                    suppressPrintPortal={Boolean(printingMaterialCourseId)}
+                    onHasPrintableResultChange={setHasPrintableQuestionAnalysis}
+                  />
+                ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {COURSES.map((course, index) => {
                     const isActive = materialConfigs[course.id]?.isActive ?? true;
@@ -3457,6 +3506,7 @@ export default function App() {
                     );
                   })}
                 </div>
+                )}
               </>
             )}
             {adminTab === 'assessments' && (
