@@ -7,9 +7,24 @@ import { analyzeQuestionDocument } from "./server/questionAnalyzer.ts";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function resolvePort(): number {
+  const args = process.argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--port' && args[i + 1]) {
+      const p = Number(args[i + 1]);
+      if (Number.isFinite(p) && p > 0) return p;
+    }
+    if (args[i].startsWith('--port=')) {
+      const p = Number(args[i].slice('--port='.length));
+      if (Number.isFinite(p) && p > 0) return p;
+    }
+  }
+  return Number(process.env.PORT) || 3000;
+}
+
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = resolvePort();
 
   // Trust proxy to get correct IP from headers
   app.set('trust proxy', true);

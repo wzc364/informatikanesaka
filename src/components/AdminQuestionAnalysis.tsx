@@ -230,8 +230,13 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         if (response.status === 404 && !payload?.error) {
+          const isSharedPreview =
+            typeof window !== 'undefined' &&
+            window.location.hostname.startsWith('ais-pre-');
           throw new Error(
-            'Endpoint analisis server belum aktif (HTTP 404). Silakan muat ulang halaman atau coba lagi sebentar.'
+            isSharedPreview
+              ? 'Fitur Analisis Soal membutuhkan server backend aktif, sedangkan URL pratinjau bersama (ais-pre) hanya menyajikan file statis. Silakan buka dari Pratinjau Editor (ais-dev) atau deploy aplikasi agar server aktif.'
+              : 'Endpoint analisis server belum aktif (HTTP 404). Silakan muat ulang halaman atau coba lagi sebentar.'
           );
         }
         throw new Error(
