@@ -249,6 +249,11 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
               : 'Endpoint analisis server belum aktif (HTTP 404). Pastikan folder /api ikut ter-deploy atau muat ulang halaman.'
           );
         }
+        if (response.status === 500 && !payload?.error) {
+          throw new Error(
+            'Terjadi gangguan pada fungsi server (HTTP 500). Pastikan GEMINI_API_KEY sudah ditambahkan di Vercel Environment Variables lalu lakukan Redeploy.'
+          );
+        }
         throw new Error(
           payload?.error || `Gagal menganalisis dokumen (HTTP ${response.status}).`
         );

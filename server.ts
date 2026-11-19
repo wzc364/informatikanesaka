@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { processAnalyzeQuestionRequest } from "./server/questionAnalyzer.ts";
+import { processAnalyzeQuestionRequest } from "./server/questionAnalyzer.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

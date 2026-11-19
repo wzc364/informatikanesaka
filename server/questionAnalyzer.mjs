@@ -1,19 +1,4 @@
-import { GoogleGenAI, ThinkingLevel, Type, type Schema } from '@google/genai';
-import mammoth from 'mammoth';
-import WordExtractor from 'word-extractor';
-import * as XLSX from 'xlsx';
-import type {
-  QuestionAnalysisResult,
-  QuestionAnalysisSectionSelection,
-} from '../src/questionAnalysisTypes.ts';
-
-export interface AnalyzeQuestionDocInput {
-  title: string;
-  fileName: string;
-  mimeType: string;
-  fileBase64: string;
-  sections: QuestionAnalysisSectionSelection;
-}
+import { GoogleGenAI, ThinkingLevel, Type } from '@google/genai';
 
 const IMAGE_MIME_TYPES = new Set([
   'image/png',
@@ -23,12 +8,12 @@ const IMAGE_MIME_TYPES = new Set([
   'image/gif',
 ]);
 
-function getExtension(fileName: string): string {
+function getExtension(fileName) {
   const idx = fileName.lastIndexOf('.');
   return idx >= 0 ? fileName.slice(idx + 1).toLowerCase() : '';
 }
 
-function stripRtfControlWords(rtfText: string): string {
+function stripRtfControlWords(rtfText) {
   return rtfText
     .replace(/\{\\([a-zA-Z]+)[^}]*\}/g, ' ')
     .replace(/\\par[d]?/g, '\n')
@@ -41,7 +26,7 @@ function stripRtfControlWords(rtfText: string): string {
     .trim();
 }
 
-function stripHtmlTags(htmlText: string): string {
+function stripHtmlTags(htmlText) {
   return htmlText
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
@@ -57,7 +42,7 @@ function stripHtmlTags(htmlText: string): string {
     .trim();
 }
 
-function isMostlyPrintableText(text: string): boolean {
+function isMostlyPrintableText(text) {
   if (!text) return false;
   let badChars = 0;
   const sample = text.slice(0, 2000);
@@ -70,14 +55,7 @@ function isMostlyPrintableText(text: string): boolean {
   return badChars / sample.length < 0.05;
 }
 
-async function extractDocumentPart(
-  fileName: string,
-  mimeType: string,
-  fileBase64: string
-): Promise<
-  | { kind: 'inlineData'; mimeType: string; data: string }
-  | { kind: 'text'; text: string }
-> {
+async function extractDocumentPart(fileName, mimeType, fileBase64) {
   const ext = getExtension(fileName);
   const normalizedMime = (mimeType || '').toLowerCase().trim();
 
@@ -111,6 +89,8 @@ async function extractDocumentPart(
     normalizedMime ===
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ) {
+    const mammothMod = await import('mammoth');
+    const mammoth = mammothMod.default || mammothMod;
     const result = await mammoth.extractRawText({ buffer });
     const text = (result.value || '').trim();
     if (!text) {
@@ -123,6 +103,8 @@ async function extractDocumentPart(
 
   if (ext === 'doc' || normalizedMime === 'application/msword') {
     try {
+      const wordExtractorMod = await import('word-extractor');
+      const WordExtractor = wordExtractorMod.default || wordExtractorMod;
       const extractor = new WordExtractor();
       const doc = await extractor.extract(buffer);
       const parts = [doc.getHeaders({ includeFooters: true }), doc.getBody(), doc.getFootnotes()]
@@ -159,6 +141,8 @@ async function extractDocumentPart(
     normalizedMime.includes('spreadsheet') ||
     normalizedMime.includes('excel')
   ) {
+    const xlsxMod = await import('xlsx');
+    const XLSX = xlsxMod.default?.read ? xlsxMod.default : xlsxMod;
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     const sheetTexts = workbook.SheetNames.map((name) => {
       const sheet = workbook.Sheets[name];
@@ -209,8 +193,8 @@ async function extractDocumentPart(
   );
 }
 
-function buildResponseSchema(sections: QuestionAnalysisSectionSelection): Schema {
-  const properties: Record<string, Schema> = {
+function buildResponseSchema(sections) {
+  const properties = {
     ringkasanUmum: {
       type: Type.OBJECT,
       description: 'Ringkasan umum isi dokumen soal yang diunggah.',
@@ -231,7 +215,7 @@ function buildResponseSchema(sections: QuestionAnalysisSectionSelection): Schema
     },
   };
 
-  const requiredFields: string[] = ['ringkasanUmum'];
+  const requiredFields = ['ringkasanUmum'];
 
   if (sections.kisiKisi) {
     requiredFields.push('kisiKisi');
@@ -362,18 +346,18 @@ function buildResponseSchema(sections: QuestionAnalysisSectionSelection): Schema
   };
 }
 
-async function generateWithRetry<T>(fn: () => Promise<T>, maxAttempts = 2): Promise<T> {
-  let lastError: unknown;
+async function generateWithRetry(fn, maxAttempts = 2) {
+  let lastError;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await fn();
-    } catch (err: any) {
+    } catch (err) {
       lastError = err;
       const status = err?.status || err?.code;
       const name = String(err?.name || '');
       const msg = String(err?.message || '').toLowerCase();
       if (name === 'TimeoutError' || name === 'AbortError' || status === 20) {
-        const timeoutErr: any = new Error(
+        const timeoutErr = new Error(
           'Permintaan analisis AI melebihi batas waktu. Coba lagi atau perkecil jumlah halaman/soal dalam satu dokumen.'
         );
         timeoutErr.name = 'TimeoutError';
@@ -397,13 +381,11 @@ async function generateWithRetry<T>(fn: () => Promise<T>, maxAttempts = 2): Prom
   throw lastError;
 }
 
-export async function analyzeQuestionDocument(
-  input: AnalyzeQuestionDocInput
-): Promise<QuestionAnalysisResult> {
+export async function analyzeQuestionDocument(input) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error(
-      'GEMINI_API_KEY belum terkonfigurasi di server. Periksa panel Settings > Secrets.'
+      'GEMINI_API_KEY belum terkonfigurasi di server. Pastikan GEMINI_API_KEY sudah diisi di Vercel Environment Variables atau Settings > Secrets.'
     );
   }
 
@@ -425,9 +407,15 @@ export async function analyzeQuestionDocument(
 
   const requestedLabels = [
     sections.kisiKisi ? '1. Kisi-kisi Soal (lengkap per nomor soal)' : null,
-    sections.materiDariSoal ? '2. Materi dari Soal (konsep inti, penjelasan, rumus/aturan kunci, dan tips)' : null,
-    sections.penyelesaianRinci ? '3. Penyelesaian Soal Secara Rinci (diketahui, ditanyakan, langkah demi langkah hingga jawaban benar)' : null,
-    sections.latihanSoal ? '4. Latihan Soal yang Mirip (minimal 5 soal baru atau sesuai variasi topik soal asli, lengkap dengan 4 pilihan A/B/C/D, kunci jawaban, dan pembahasan singkat)' : null,
+    sections.materiDariSoal
+      ? '2. Materi dari Soal (konsep inti, penjelasan, rumus/aturan kunci, dan tips)'
+      : null,
+    sections.penyelesaianRinci
+      ? '3. Penyelesaian Soal Secara Rinci (diketahui, ditanyakan, langkah demi langkah hingga jawaban benar)'
+      : null,
+    sections.latihanSoal
+      ? '4. Latihan Soal yang Mirip (minimal 5 soal baru atau sesuai variasi topik soal asli, lengkap dengan 4 pilihan A/B/C/D, kunci jawaban, dan pembahasan singkat)'
+      : null,
   ]
     .filter(Boolean)
     .join('\n');
@@ -473,8 +461,8 @@ Aturan Penulisan:
     },
   });
 
-  const callModel = async (modelName: 'gemini-4-hydrogen' | 'gemini-3.1-flash-lite', timeoutMs: number) => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
+  const callModel = async (modelName, timeoutMs) => {
+    let timer;
     try {
       return await Promise.race([
         ai.models.generateContent({
@@ -492,9 +480,11 @@ Aturan Penulisan:
             responseSchema: buildResponseSchema(sections),
           },
         }),
-        new Promise<never>((_, reject) => {
+        new Promise((_, reject) => {
           timer = setTimeout(() => {
-            const err: any = new Error(`Batas waktu permintaan (${Math.round(timeoutMs / 1000)} detik) tercapai.`);
+            const err = new Error(
+              `Batas waktu permintaan (${Math.round(timeoutMs / 1000)} detik) tercapai.`
+            );
             err.name = 'TimeoutError';
             err.status = 504;
             reject(err);
@@ -509,7 +499,7 @@ Aturan Penulisan:
   let response;
   try {
     response = await generateWithRetry(() => callModel('gemini-4-hydrogen', 55000), 2);
-  } catch (primaryErr: any) {
+  } catch (primaryErr) {
     const status = primaryErr?.status || primaryErr?.code;
     const msg = String(primaryErr?.message || '').toLowerCase();
     const shouldFallback =
@@ -531,7 +521,7 @@ Aturan Penulisan:
     throw new Error('Model tidak mengembalikan hasil analisis. Silakan coba lagi.');
   }
 
-  let parsed: any;
+  let parsed;
   try {
     parsed = JSON.parse(rawText);
   } catch {
@@ -573,9 +563,7 @@ Aturan Penulisan:
   };
 }
 
-export async function processAnalyzeQuestionRequest(
-  body: any
-): Promise<{ status: number; payload: QuestionAnalysisResult | { error: string } }> {
+export async function processAnalyzeQuestionRequest(body) {
   try {
     const { title, fileName, mimeType, fileBase64, sections } = body || {};
 
@@ -607,7 +595,7 @@ export async function processAnalyzeQuestionRequest(
     });
 
     return { status: 200, payload: result };
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error analyzing question document:', err);
     const status = typeof err?.status === 'number' ? err.status : 500;
     const rawMessage = err?.message || 'Terjadi kesalahan saat menganalisis dokumen soal.';
