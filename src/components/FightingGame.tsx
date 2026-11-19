@@ -145,7 +145,8 @@ import kamenGeatsFallUrl from '../assets/images/kamen_geats_fall_1794876821212.j
 import kamenGeatsVictoryUrl from '../assets/images/kamen_geats_victory_1794876821160.jpg';
 import ultramanNexusIdleUrl from '../assets/images/ultraman_nexus_idle_1794875347850.jpg';
 import ultramanNexusPunchUrl from '../assets/images/ultraman_nexus_punch_1794876839434.jpg';
-import ultramanNexusKickUrl from '../assets/images/ultraman_nexus_kick_1794876839746.jpg';
+import ultramanNexusKickUrl from '../assets/images/ultraman_nexus_kick_v2_1795061170809.jpg';
+import ultramanNexusKickChamberUrl from '../assets/images/ultraman_nexus_kick_chamber_v2_1795061170566.jpg';
 import ultramanNexusUppercutUrl from '../assets/images/ultraman_nexus_uppercut_1794876840396.jpg';
 import ultramanNexusCrouchUrl from '../assets/images/ultraman_nexus_crouch_1794876840316.jpg';
 import ultramanNexusSpecialUrl from '../assets/images/ultraman_nexus_special_1794876842141.jpg';
@@ -257,7 +258,10 @@ import kamenBladeWalkSheetUrl from '../assets/images/kamen_blade_walk_sheet_1794
 import kamenBladeJumpSheetUrl from '../assets/images/kamen_blade_jump_sheet_1794909446792.jpg';
 import kamenGeatsWalkSheetUrl from '../assets/images/kamen_geats_walk_sheet_1794909449506.jpg';
 import kamenGeatsJumpSheetUrl from '../assets/images/kamen_geats_jump_sheet_1794909453433.jpg';
-import ultramanNexusWalkSheetUrl from '../assets/images/ultraman_nexus_walk_sheet_v4_1794972515450.jpg';
+import ultramanNexusWalk1Url from '../assets/images/nexus_walk_v6_1_1795060238242.jpg';
+import ultramanNexusWalk2Url from '../assets/images/nexus_walk_v8_opposite_1795060282134.jpg';
+import ultramanNexusWalk3Url from '../assets/images/nexus_walk_v5_4_1795060215373.jpg';
+import ultramanNexusWalk4Url from '../assets/images/nexus_walk_v8_pass_1795060283045.jpg';
 import ultramanNexusJumpSheetUrl from '../assets/images/ultraman_nexus_jump_sheet_1794909460456.jpg';
 import ultramanZeroWalkSheetUrl from '../assets/images/ultraman_zero_walk_sheet_1794909464309.jpg';
 import ultramanZeroJumpSheetUrl from '../assets/images/ultraman_zero_jump_sheet_v2_1794971247255.jpg';
@@ -1368,6 +1372,7 @@ interface SpriteFighterConfig {
   chroma: ChromaMode;
   urls: Record<SpritePoseKey, string>;
   walkSheet: string;
+  walkFrames?: string[];
   jumpSheet: string;
   actionFrames?: Partial<Record<ActionSequenceKey, string[]>>;
 }
@@ -1675,7 +1680,13 @@ const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
   },
   ultraman_nexus: {
     chroma: 'magenta',
-    walkSheet: ultramanNexusWalkSheetUrl,
+    walkSheet: ultramanNexusWalk1Url,
+    walkFrames: [
+      ultramanNexusWalk1Url,
+      ultramanNexusWalk2Url,
+      ultramanNexusWalk3Url,
+      ultramanNexusWalk4Url,
+    ],
     jumpSheet: ultramanNexusJumpSheetUrl,
     urls: {
       idle: ultramanNexusIdleUrl,
@@ -1691,7 +1702,7 @@ const FIGHTER_SPRITE_CONFIG: Partial<Record<FighterId, SpriteFighterConfig>> = {
     },
     actionFrames: {
       punch: [ultramanNexusIdleUrl, ultramanNexusBlockUrl, ultramanNexusPunchUrl, ultramanNexusPunchUrl, ultramanNexusBlockUrl, ultramanNexusIdleUrl],
-      kick: [ultramanNexusIdleUrl, ultramanNexusCrouchUrl, ultramanNexusKickUrl, ultramanNexusKickUrl, ultramanNexusCrouchUrl, ultramanNexusIdleUrl],
+      kick: [ultramanNexusIdleUrl, ultramanNexusKickChamberUrl, ultramanNexusKickUrl, ultramanNexusKickUrl, ultramanNexusKickChamberUrl, ultramanNexusIdleUrl],
       uppercut: [ultramanNexusCrouchUrl, ultramanNexusCrouchUrl, ultramanNexusUppercutUrl, ultramanNexusUppercutUrl, ultramanNexusBlockUrl, ultramanNexusIdleUrl],
       special: [ultramanNexusBlockUrl, ultramanNexusSpecialUrl, ultramanNexusSpecialUrl, ultramanNexusSpecialUrl, ultramanNexusBlockUrl, ultramanNexusIdleUrl],
       sweep: [ultramanNexusCrouchUrl, ultramanNexusCrouchUrl, ultramanNexusKickUrl, ultramanNexusKickUrl, ultramanNexusCrouchUrl, ultramanNexusIdleUrl],
@@ -2650,12 +2661,22 @@ function prioritizeFighterSprites(fid: FighterId) {
       jumpUrls.forEach((u) => markSpriteDone(cfg.chroma, u));
     });
   } else {
-    loadAndSliceSpriteSheetUrl(cfg.walkSheet, cfg.chroma, 'walk', true).then((frames) => {
-      if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
-        FIGHTER_LOCOMOTION_CACHE[fid]!.walk = frames;
-      }
-      markAssetDone(`sheet:walk:${cfg.chroma}:${cfg.walkSheet}`);
-    });
+    if (cfg.walkFrames && cfg.walkFrames.length > 0) {
+      Promise.all(cfg.walkFrames.map((u) => loadAndKeySpriteUrl(u, cfg.chroma, true))).then((canvases) => {
+        const valid = canvases.filter((c): c is HTMLCanvasElement => Boolean(c));
+        if (valid.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
+          FIGHTER_LOCOMOTION_CACHE[fid]!.walk = valid;
+        }
+        cfg.walkFrames!.forEach((u) => markSpriteDone(cfg.chroma, u));
+      });
+    } else {
+      loadAndSliceSpriteSheetUrl(cfg.walkSheet, cfg.chroma, 'walk', true).then((frames) => {
+        if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
+          FIGHTER_LOCOMOTION_CACHE[fid]!.walk = frames;
+        }
+        markAssetDone(`sheet:walk:${cfg.chroma}:${cfg.walkSheet}`);
+      });
+    }
 
     loadAndSliceSpriteSheetUrl(cfg.jumpSheet, cfg.chroma, 'jump', true).then((frames) => {
       if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
@@ -2776,16 +2797,30 @@ function ensureAllGameAssetsLoaded() {
         })
       );
     } else {
-      const walkKey = `sheet:walk:${cfg.chroma}:${cfg.walkSheet}`;
-      uniqueKeys.add(walkKey);
-      standardQueue.push(() =>
-        loadAndSliceSpriteSheetUrl(cfg.walkSheet, cfg.chroma, 'walk', false).then((frames) => {
-          if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
-            FIGHTER_LOCOMOTION_CACHE[fid]!.walk = frames;
-          }
-          markAssetDone(walkKey);
-        })
-      );
+      if (cfg.walkFrames && cfg.walkFrames.length > 0) {
+        const walkList = cfg.walkFrames;
+        walkList.forEach((u) => uniqueKeys.add(`${cfg.chroma}:${u}`));
+        standardQueue.push(() =>
+          Promise.all(walkList.map((u) => loadAndKeySpriteUrl(u, cfg.chroma, false))).then((canvases) => {
+            const valid = canvases.filter((c): c is HTMLCanvasElement => Boolean(c));
+            if (valid.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
+              FIGHTER_LOCOMOTION_CACHE[fid]!.walk = valid;
+            }
+            walkList.forEach((u) => markSpriteDone(cfg.chroma, u));
+          })
+        );
+      } else {
+        const walkKey = `sheet:walk:${cfg.chroma}:${cfg.walkSheet}`;
+        uniqueKeys.add(walkKey);
+        standardQueue.push(() =>
+          loadAndSliceSpriteSheetUrl(cfg.walkSheet, cfg.chroma, 'walk', false).then((frames) => {
+            if (frames.length > 0 && FIGHTER_LOCOMOTION_CACHE[fid]) {
+              FIGHTER_LOCOMOTION_CACHE[fid]!.walk = frames;
+            }
+            markAssetDone(walkKey);
+          })
+        );
+      }
 
       const jumpKey = `sheet:jump:${cfg.chroma}:${cfg.jumpSheet}`;
       uniqueKeys.add(jumpKey);
@@ -3485,7 +3520,7 @@ function drawHumanFighter(
         (p.id === 'kamen_blade' ||
           p.id === 'kamen_geats' ||
           p.id === 'kamen_kabuto' ||
-          p.id === 'ultraman_nexus' ||
+          (p.id === 'ultraman_nexus' && f.pose === 'sweep') ||
           p.id === 'ultraman_zero' ||
           p.id === 'cyber_phone' ||
           p.id === 'mecha_mouse' ||
