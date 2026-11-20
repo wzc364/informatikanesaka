@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Plus,
   Search,
@@ -26,6 +26,10 @@ import {
   ClipboardList,
   ToggleLeft,
   ToggleRight,
+  GraduationCap,
+  BookOpen,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import { db } from '../firebase';
 import {
@@ -37,11 +41,14 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
+import { COURSES } from '../constants';
+import { QuestionAnalysisResult } from '../questionAnalysisTypes';
 import { SoalOption, SoalQuestion, SoalSet } from '../types';
 
 interface AdminSoalProps {
   soalSets: SoalSet[];
   soalQuestions: SoalQuestion[];
+  materialConfigs?: Record<string, { isActive?: boolean }>;
   onPreviewSet: (set: SoalSet) => void;
   onFirestoreError?: (error: unknown, op: 'create' | 'update' | 'delete' | 'write', path: string) => void;
 }
@@ -221,9 +228,61 @@ function parseBulkText(rawText: string, defaultTimer: number): ParsedBulkItem[] 
   return items;
 }
 
+const QUESTION_ANALYSIS_STORAGE_KEY = 'ruang_informatika_question_analyses_v1';
+
+interface MaterialCandidateQuestion {
+  uid: string;
+  sourceLabel: string;
+  courseTitle: string;
+  topicTitle: string;
+  questionText: string;
+  options: [SoalOption, SoalOption, SoalOption, SoalOption];
+  correctAnswer: 0 | 1 | 2 | 3;
+  explanation?: string;
+}
+
+function stripChoicePrefix(text: string): string {
+  return String(text || '').replace(/^[A-Ea-e][).:\]]\s+/, '').trim();
+}
+
+function toFourSoalOptions(rawOptions: string[]): [SoalOption, SoalOption, SoalOption, SoalOption] {
+  const cleaned = (Array.isArray(rawOptions) ? rawOptions : []).slice(0, 4).map((opt) => ({
+    text: stripChoicePrefix(opt),
+  }));
+  while (cleaned.length < 4) {
+    cleaned.push({ text: '' });
+  }
+  return cleaned as [SoalOption, SoalOption, SoalOption, SoalOption];
+}
+
+function resolveAnalysisAnswerIndex(kunci: string, rawOptions: string[]): 0 | 1 | 2 | 3 {
+  const trimmed = String(kunci || '').trim();
+  const letterMatch = trimmed.match(/^([A-Da-d])(?:\b|[.):\]])/);
+  if (letterMatch) {
+    const idx = letterMatch[1].toUpperCase().charCodeAt(0) - 65;
+    if (idx >= 0 && idx < 4) return idx as 0 | 1 | 2 | 3;
+  }
+  const cleanKey = stripChoicePrefix(trimmed).toLowerCase();
+  const matchedIdx = rawOptions.findIndex(
+    (o) => stripChoicePrefix(o).toLowerCase() === cleanKey
+  );
+  if (matchedIdx >= 0 && matchedIdx < 4) {
+    return matchedIdx as 0 | 1 | 2 | 3;
+  }
+  return 0;
+}
+
+function normalizeQuestionFingerprint(text: string): string {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export default function AdminSoal({
   soalSets,
   soalQuestions,
+  materialConfigs,
   onPreviewSet,
   onFirestoreError,
 }: AdminSoalProps) {
@@ -284,6 +343,22 @@ export default function AdminSoal({
   // Lightbox Image Preview
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Ambil Soal dari Kelola Materi Modal
+  const [isMaterialPickerOpen, setIsMaterialPickerOpen] = useState(false);
+  const [materialSourceTab, setMaterialSourceTab] = useState<'courses' | 'analisis'>('courses');
+  const [pickerCourseId, setPickerCourseId] = useState<string>(COURSES[0]?.id || '');
+  const [pickerTopicId, setPickerTopicId] = useState<string>('all');
+  const [savedAnalyses, setSavedAnalyses] = useState<QuestionAnalysisResult[]>([]);
+  const [pickerAnalysisId, setPickerAnalysisId] = useState<string>('');
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerTargetMode, setPickerTargetMode] = useState<'existing' | 'new'>('new');
+  const [pickerTargetSetId, setPickerTargetSetId] = useState<string>('');
+  const [pickerNewSetTitle, setPickerNewSetTitle] = useState('');
+  const [pickerNewSetKelas, setPickerNewSetKelas] = useState('Semua Kelas');
+  const [pickerNewSetActive, setPickerNewSetActive] = useState(true);
+  const [selectedMaterialQuestionIds, setSelectedMaterialQuestionIds] = useState<Set<string>>(new Set());
+  const [isImportingMaterial, setIsImportingMaterial] = useState(false);
 
   const excelInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -813,6 +888,374 @@ export default function AdminSoal({
     }
   };
 
+  // ========== AMBIL SOAL DARI KELOLA MATERI ==========
+  const selectedPickerCourse = useMemo(
+    () => COURSES.find((c) => c.id === pickerCourseId) || COURSES[0] || null,
+    [pickerCourseId]
+  );
+
+  const analysisSetsWithPractice = useMemo(
+    () =>
+      savedAnalyses.filter(
+        (a) => Array.isArray(a.latihanSoalMirip) && a.latihanSoalMirip.length > 0
+      ),
+    [savedAnalyses]
+  );
+
+  const rawMaterialCandidates = useMemo<MaterialCandidateQuestion[]>(() => {
+    if (materialSourceTab === 'courses') {
+      if (!selectedPickerCourse) return [];
+      const topics =
+        pickerTopicId === 'all'
+          ? selectedPickerCourse.topics
+          : selectedPickerCourse.topics.filter((t) => t.id === pickerTopicId);
+
+      const list: MaterialCandidateQuestion[] = [];
+      topics.forEach((topic) => {
+        (topic.quiz || []).forEach((q, qIdx) => {
+          const rawOpts = Array.isArray(q.options) ? q.options : [];
+          if (!q.question || rawOpts.length < 2) return;
+          const safeCorrect =
+            typeof q.correctAnswer === 'number' &&
+            q.correctAnswer >= 0 &&
+            q.correctAnswer < Math.min(4, rawOpts.length)
+              ? (q.correctAnswer as 0 | 1 | 2 | 3)
+              : 0;
+          list.push({
+            uid: `course:${selectedPickerCourse.id}:${topic.id}:${qIdx}`,
+            sourceLabel: 'Materi Pembelajaran',
+            courseTitle: selectedPickerCourse.title,
+            topicTitle: topic.title,
+            questionText: q.question.trim(),
+            options: toFourSoalOptions(rawOpts),
+            correctAnswer: safeCorrect,
+            explanation: q.explanation?.trim() || '',
+          });
+        });
+      });
+      return list;
+    }
+
+    const activeAnalysis =
+      analysisSetsWithPractice.find((a) => a.id === pickerAnalysisId) ||
+      analysisSetsWithPractice[0];
+    if (!activeAnalysis || !Array.isArray(activeAnalysis.latihanSoalMirip)) return [];
+
+    return activeAnalysis.latihanSoalMirip
+      .filter((item) => item.pertanyaan && Array.isArray(item.pilihanGanda) && item.pilihanGanda.length >= 2)
+      .map((item, idx) => ({
+        uid: `analisis:${activeAnalysis.id}:${idx}`,
+        sourceLabel: 'Analisis Soal',
+        courseTitle: activeAnalysis.title,
+        topicTitle: item.konteksAtauTopik || 'Latihan Soal Mirip',
+        questionText: item.pertanyaan.trim(),
+        options: toFourSoalOptions(item.pilihanGanda),
+        correctAnswer: resolveAnalysisAnswerIndex(item.kunciJawaban, item.pilihanGanda),
+        explanation: item.pembahasanSingkat?.trim() || '',
+      }));
+  }, [
+    materialSourceTab,
+    selectedPickerCourse,
+    pickerTopicId,
+    analysisSetsWithPractice,
+    pickerAnalysisId,
+  ]);
+
+  const filteredMaterialCandidates = useMemo(() => {
+    const q = pickerSearch.trim().toLowerCase();
+    if (!q) return rawMaterialCandidates;
+    return rawMaterialCandidates.filter(
+      (item) =>
+        item.questionText.toLowerCase().includes(q) ||
+        item.topicTitle.toLowerCase().includes(q) ||
+        item.options.some((o) => o.text.toLowerCase().includes(q))
+    );
+  }, [rawMaterialCandidates, pickerSearch]);
+
+  const existingTargetFingerprints = useMemo(() => {
+    const fp =
+      pickerTargetMode === 'existing' && pickerTargetSetId
+        ? new Set(
+            (questionsBySet[pickerTargetSetId] || []).map((q) =>
+              normalizeQuestionFingerprint(q.questionText)
+            )
+          )
+        : new Set<string>();
+    return fp;
+  }, [pickerTargetMode, pickerTargetSetId, questionsBySet]);
+
+  useEffect(() => {
+    if (!isMaterialPickerOpen) return;
+    const next = new Set<string>();
+    rawMaterialCandidates.forEach((item) => {
+      if (!existingTargetFingerprints.has(normalizeQuestionFingerprint(item.questionText))) {
+        next.add(item.uid);
+      }
+    });
+    setSelectedMaterialQuestionIds(next);
+  }, [isMaterialPickerOpen, rawMaterialCandidates, existingTargetFingerprints]);
+
+  const suggestNewTitleForSelection = (
+    tab: 'courses' | 'analisis',
+    courseId: string,
+    topicId: string,
+    analysisId: string,
+    analysesList: QuestionAnalysisResult[]
+  ) => {
+    if (tab === 'courses') {
+      const course = COURSES.find((c) => c.id === courseId) || COURSES[0];
+      if (!course) return 'Paket Soal Materi';
+      if (topicId !== 'all') {
+        const topic = course.topics.find((t) => t.id === topicId);
+        if (topic) return `Soal ${course.title} - ${topic.title}`;
+      }
+      return `Latihan Soal: ${course.title}`;
+    }
+    const found = analysesList.find((a) => a.id === analysisId) || analysesList[0];
+    return found ? `Latihan: ${found.title}` : 'Latihan Soal Analisis';
+  };
+
+  const openMaterialPicker = (origin: 'top' | 'set') => {
+    let loadedAnalyses: QuestionAnalysisResult[] = [];
+    try {
+      const raw = localStorage.getItem(QUESTION_ANALYSIS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) loadedAnalyses = parsed;
+      }
+    } catch {
+      loadedAnalyses = [];
+    }
+    setSavedAnalyses(loadedAnalyses);
+    const analysesWithPractice = loadedAnalyses.filter(
+      (a) => Array.isArray(a.latihanSoalMirip) && a.latihanSoalMirip.length > 0
+    );
+
+    const defaultCourse = COURSES[0];
+    const defaultCourseId = defaultCourse?.id || '';
+    const defaultAnalysisId = analysesWithPractice[0]?.id || '';
+
+    setMaterialSourceTab('courses');
+    setPickerCourseId(defaultCourseId);
+    setPickerTopicId('all');
+    setPickerAnalysisId(defaultAnalysisId);
+    setPickerSearch('');
+
+    if (origin === 'set' && selectedSet) {
+      setPickerTargetMode('existing');
+      setPickerTargetSetId(selectedSet.id);
+      setPickerNewSetTitle(
+        suggestNewTitleForSelection('courses', defaultCourseId, 'all', defaultAnalysisId, loadedAnalyses)
+      );
+    } else {
+      setPickerTargetMode('new');
+      setPickerTargetSetId(soalSets[0]?.id || '');
+      setPickerNewSetTitle(
+        suggestNewTitleForSelection('courses', defaultCourseId, 'all', defaultAnalysisId, loadedAnalyses)
+      );
+      setPickerNewSetKelas('Semua Kelas');
+      setPickerNewSetActive(true);
+    }
+
+    // Pre-select non-duplicate questions from default course
+    const targetFp =
+      origin === 'set' && selectedSet
+        ? new Set(
+            (questionsBySet[selectedSet.id] || []).map((q) =>
+              normalizeQuestionFingerprint(q.questionText)
+            )
+          )
+        : new Set<string>();
+    const initialIds = new Set<string>();
+    if (defaultCourse) {
+      defaultCourse.topics.forEach((topic) => {
+        (topic.quiz || []).forEach((q, qIdx) => {
+          if (q.question && Array.isArray(q.options) && q.options.length >= 2) {
+            const uid = `course:${defaultCourse.id}:${topic.id}:${qIdx}`;
+            if (!targetFp.has(normalizeQuestionFingerprint(q.question))) {
+              initialIds.add(uid);
+            }
+          }
+        });
+      });
+    }
+    setSelectedMaterialQuestionIds(initialIds);
+    setIsMaterialPickerOpen(true);
+  };
+
+  const applySelectionForCurrentList = (
+    candidates: MaterialCandidateQuestion[],
+    targetMode: 'existing' | 'new',
+    targetSetId: string
+  ) => {
+    const fp =
+      targetMode === 'existing' && targetSetId
+        ? new Set(
+            (questionsBySet[targetSetId] || []).map((q) =>
+              normalizeQuestionFingerprint(q.questionText)
+            )
+          )
+        : new Set<string>();
+    const next = new Set<string>();
+    candidates.forEach((item) => {
+      if (!fp.has(normalizeQuestionFingerprint(item.questionText))) {
+        next.add(item.uid);
+      }
+    });
+    setSelectedMaterialQuestionIds(next);
+  };
+
+  const handlePickerCourseChange = (courseId: string) => {
+    setPickerCourseId(courseId);
+    setPickerTopicId('all');
+    const course = COURSES.find((c) => c.id === courseId);
+    if (pickerTargetMode === 'new') {
+      setPickerNewSetTitle(
+        suggestNewTitleForSelection('courses', courseId, 'all', pickerAnalysisId, savedAnalyses)
+      );
+    }
+    if (course) {
+      const candidates: MaterialCandidateQuestion[] = [];
+      course.topics.forEach((t) => {
+        (t.quiz || []).forEach((q, idx) => {
+          if (q.question && Array.isArray(q.options) && q.options.length >= 2) {
+            candidates.push({
+              uid: `course:${course.id}:${t.id}:${idx}`,
+              sourceLabel: 'Materi Pembelajaran',
+              courseTitle: course.title,
+              topicTitle: t.title,
+              questionText: q.question,
+              options: toFourSoalOptions(q.options),
+              correctAnswer: 0,
+            });
+          }
+        });
+      });
+      applySelectionForCurrentList(candidates, pickerTargetMode, pickerTargetSetId);
+    }
+  };
+
+  const handlePickerTopicChange = (topicId: string) => {
+    setPickerTopicId(topicId);
+    if (pickerTargetMode === 'new') {
+      setPickerNewSetTitle(
+        suggestNewTitleForSelection('courses', pickerCourseId, topicId, pickerAnalysisId, savedAnalyses)
+      );
+    }
+    if (selectedPickerCourse) {
+      const topics =
+        topicId === 'all'
+          ? selectedPickerCourse.topics
+          : selectedPickerCourse.topics.filter((t) => t.id === topicId);
+      const candidates: MaterialCandidateQuestion[] = [];
+      topics.forEach((t) => {
+        (t.quiz || []).forEach((q, idx) => {
+          if (q.question && Array.isArray(q.options) && q.options.length >= 2) {
+            candidates.push({
+              uid: `course:${selectedPickerCourse.id}:${t.id}:${idx}`,
+              sourceLabel: 'Materi Pembelajaran',
+              courseTitle: selectedPickerCourse.title,
+              topicTitle: t.title,
+              questionText: q.question,
+              options: toFourSoalOptions(q.options),
+              correctAnswer: 0,
+            });
+          }
+        });
+      });
+      applySelectionForCurrentList(candidates, pickerTargetMode, pickerTargetSetId);
+    }
+  };
+
+  const handleImportFromMaterial = async () => {
+    const pickedItems = rawMaterialCandidates.filter((item) =>
+      selectedMaterialQuestionIds.has(item.uid)
+    );
+    if (pickedItems.length === 0) return;
+
+    if (pickerTargetMode === 'new' && !pickerNewSetTitle.trim()) return;
+    if (pickerTargetMode === 'existing' && !pickerTargetSetId) return;
+
+    setIsImportingMaterial(true);
+    const now = new Date().toISOString();
+
+    try {
+      let targetId = pickerTargetSetId;
+      let targetTitle = '';
+      let defaultTimer = 30;
+      let nextOrder = 0;
+
+      if (pickerTargetMode === 'new') {
+        const newSetRef = doc(collection(db, 'soal_sets'));
+        targetId = newSetRef.id;
+        targetTitle = pickerNewSetTitle.trim();
+        const newSet: SoalSet = {
+          id: targetId,
+          title: targetTitle,
+          description:
+            materialSourceTab === 'courses' && selectedPickerCourse
+              ? `Diambil dari Kelola Materi: ${selectedPickerCourse.title}`
+              : 'Diambil dari hasil Analisis Soal di Kelola Materi',
+          kelas: pickerNewSetKelas.trim() || 'Semua Kelas',
+          isActive: pickerNewSetActive,
+          isFullScreen: false,
+          isScoreVisible: true,
+          timerMode: 'per_judul',
+          titleTimerSeconds: 900,
+          defaultQuestionTimerSeconds: 30,
+          shuffleQuestions: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+        await setDoc(newSetRef, newSet);
+      } else {
+        const existingSet = soalSets.find((s) => s.id === pickerTargetSetId);
+        if (!existingSet) return;
+        targetTitle = existingSet.title;
+        defaultTimer = existingSet.defaultQuestionTimerSeconds || 30;
+        const existingList = questionsBySet[existingSet.id] || [];
+        nextOrder = existingList.reduce((max, item) => Math.max(max, item.order ?? 0), 0);
+      }
+
+      for (let i = 0; i < pickedItems.length; i += 400) {
+        const chunk = pickedItems.slice(i, i + 400);
+        const batch = writeBatch(db);
+        chunk.forEach((item) => {
+          nextOrder += 1;
+          const newQRef = doc(collection(db, 'soal_questions'));
+          const newQ: SoalQuestion = {
+            id: newQRef.id,
+            setId: targetId,
+            order: nextOrder,
+            isActive: true,
+            questionText: item.questionText,
+            options: item.options,
+            correctAnswer: item.correctAnswer,
+            timerSeconds: defaultTimer,
+            ...(item.explanation ? { explanation: item.explanation } : {}),
+            createdAt: now,
+            updatedAt: now,
+          };
+          batch.set(newQRef, newQ);
+        });
+        await batch.commit();
+      }
+
+      if (pickerTargetMode === 'existing') {
+        await updateDoc(doc(db, 'soal_sets', targetId), { updatedAt: now });
+      }
+
+      setIsMaterialPickerOpen(false);
+      setSelectedSetId(targetId);
+      setQuestionSearch('');
+      showToast(`${pickedItems.length} soal dari materi berhasil ditambahkan ke "${targetTitle}".`);
+    } catch (err) {
+      onFirestoreError?.(err, 'write', 'soal_questions');
+    } finally {
+      setIsImportingMaterial(false);
+    }
+  };
+
   // ========== RENDER ==========
   return (
     <div className="space-y-6">
@@ -839,6 +1282,13 @@ export default function AdminSoal({
                 <Layers size={14} className="text-brand" />
                 <span>{soalSets.length} Kartu • {soalSets.filter(s => s.isActive).length} Aktif • {soalQuestions.length} Butir Soal</span>
               </div>
+              <button
+                onClick={() => openMaterialPicker('top')}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-sm shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <GraduationCap size={18} />
+                Ambil dari Materi
+              </button>
               <button
                 onClick={openCreateSetModal}
                 className="px-4 py-2.5 bg-brand hover:bg-brand-hover text-white rounded-xl font-black text-sm shadow-lg shadow-brand/20 active:scale-95 transition-all flex items-center gap-2"
@@ -1141,6 +1591,13 @@ export default function AdminSoal({
                       <Upload size={16} />
                       Import Bulk Soal
                     </button>
+                    <button
+                      onClick={() => openMaterialPicker('set')}
+                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs md:text-sm shadow-md shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-2"
+                    >
+                      <GraduationCap size={16} />
+                      Ambil dari Materi
+                    </button>
                     {allQs.length > 0 && (
                       <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-300 rounded-xl p-1">
                         <button
@@ -1269,9 +1726,10 @@ export default function AdminSoal({
                             </p>
                           </div>
 
-                          {/* 4 Options Grid */}
+                          {/* Opsi Jawaban */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {q.options.map((opt, optIdx) => {
+                              if (!opt.text?.trim() && !opt.image?.trim()) return null;
                               const isKey = q.correctAnswer === optIdx;
                               return (
                                 <div
@@ -1361,6 +1819,13 @@ export default function AdminSoal({
                       >
                         <Upload size={16} />
                         Import Bulk Soal
+                      </button>
+                      <button
+                        onClick={() => openMaterialPicker('set')}
+                        className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-md flex items-center gap-2"
+                      >
+                        <GraduationCap size={16} />
+                        Ambil dari Materi
                       </button>
                     </div>
                   )}
@@ -2149,6 +2614,432 @@ export default function AdminSoal({
               >
                 {isDeleting ? 'Menghapus...' : 'Ya, Hapus'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================== MODAL AMBIL SOAL DARI KELOLA MATERI ================== */}
+      {isMaterialPickerOpen && (
+        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-[120] flex items-center justify-center p-3 md:p-6">
+          <div className="bg-slate-100 border border-slate-300 rounded-[2rem] w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+            {/* Header */}
+            <div className="p-5 md:p-6 bg-slate-200 border-b border-slate-300 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <GraduationCap size={20} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg md:text-xl font-black text-slate-900 truncate">
+                    Ambil Soal dari Kelola Materi
+                  </h3>
+                  <p className="text-xs font-bold text-slate-600 truncate">
+                    Pilih soal kuis yang sudah ada di materi pembelajaran atau hasil Analisis Soal
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMaterialPickerOpen(false)}
+                className="p-2 hover:bg-slate-300 rounded-xl text-slate-600 shrink-0"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 md:p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
+              {/* Target Kartu Soal */}
+              <div className="bg-white border border-slate-300 rounded-2xl p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-700">
+                    Tujuan Penyimpanan Kartu Soal
+                  </span>
+                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setPickerTargetMode('new')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                        pickerTargetMode === 'new'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      + Buat Kartu Baru
+                    </button>
+                    <button
+                      type="button"
+                      disabled={soalSets.length === 0}
+                      onClick={() => {
+                        setPickerTargetMode('existing');
+                        if (!pickerTargetSetId && soalSets[0]) {
+                          setPickerTargetSetId(soalSets[0].id);
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all disabled:opacity-40 ${
+                        pickerTargetMode === 'existing'
+                          ? 'bg-brand text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Ke Kartu yang Ada ({soalSets.length})
+                    </button>
+                  </div>
+                </div>
+
+                {pickerTargetMode === 'new' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-1">
+                    <div className="md:col-span-6">
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                        Judul Kartu Soal Baru *
+                      </label>
+                      <input
+                        type="text"
+                        value={pickerNewSetTitle}
+                        onChange={(e) => setPickerNewSetTitle(e.target.value)}
+                        placeholder="Contoh: Latihan Soal Berpikir Komputasi..."
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                        Target Kelas
+                      </label>
+                      <input
+                        type="text"
+                        value={pickerNewSetKelas}
+                        onChange={(e) => setPickerNewSetKelas(e.target.value)}
+                        placeholder="Semua Kelas"
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-semibold text-slate-800"
+                      />
+                    </div>
+                    <div className="md:col-span-3 flex items-end">
+                      <label className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl cursor-pointer">
+                        <span className="text-xs font-black text-slate-800">Langsung Aktif</span>
+                        <input
+                          type="checkbox"
+                          checked={pickerNewSetActive}
+                          onChange={(e) => setPickerNewSetActive(e.target.checked)}
+                          className="w-4 h-4 accent-emerald-600"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pt-1">
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      Pilih Kartu Soal Tujuan
+                    </label>
+                    <select
+                      value={pickerTargetSetId}
+                      onChange={(e) => setPickerTargetSetId(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    >
+                      {soalSets.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.title} ({(questionsBySet[s.id] || []).length} soal • {s.kelas || 'Semua Kelas'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Sumber Soal Tabs & Filter */}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex bg-slate-200 p-1 rounded-2xl border border-slate-300 w-fit">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMaterialSourceTab('courses');
+                        if (pickerTargetMode === 'new') {
+                          setPickerNewSetTitle(
+                            suggestNewTitleForSelection('courses', pickerCourseId, pickerTopicId, pickerAnalysisId, savedAnalyses)
+                          );
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all ${
+                        materialSourceTab === 'courses'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <BookOpen size={15} />
+                      Materi Pembelajaran ({COURSES.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMaterialSourceTab('analisis');
+                        if (pickerTargetMode === 'new') {
+                          setPickerNewSetTitle(
+                            suggestNewTitleForSelection('analisis', pickerCourseId, pickerTopicId, pickerAnalysisId, savedAnalyses)
+                          );
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all ${
+                        materialSourceTab === 'analisis'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Sparkles size={15} />
+                      Latihan Analisis Soal ({analysisSetsWithPractice.length})
+                    </button>
+                  </div>
+
+                  <div className="relative flex-1 min-w-[220px] max-w-xs">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="text"
+                      value={pickerSearch}
+                      onChange={(e) => setPickerSearch(e.target.value)}
+                      placeholder="Cari teks pertanyaan / topik..."
+                      className="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    />
+                  </div>
+                </div>
+
+                {materialSourceTab === 'courses' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                        Pilih Materi di Kelola Materi
+                      </label>
+                      <select
+                        value={pickerCourseId}
+                        onChange={(e) => handlePickerCourseChange(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      >
+                        {COURSES.map((c) => {
+                          const totalQ = c.topics.reduce((acc, t) => acc + (t.quiz?.length || 0), 0);
+                          const isActiveMat = materialConfigs?.[c.id]?.isActive ?? true;
+                          return (
+                            <option key={c.id} value={c.id}>
+                              {c.title} ({totalQ} soal • {isActiveMat ? 'Terbit' : 'Draft'})
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                        Filter Topik / Sub-Bab
+                      </label>
+                      <select
+                        value={pickerTopicId}
+                        onChange={(e) => handlePickerTopicChange(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      >
+                        <option value="all">
+                          Semua Topik ({selectedPickerCourse?.topics.reduce((a, t) => a + (t.quiz?.length || 0), 0) || 0} soal)
+                        </option>
+                        {selectedPickerCourse?.topics.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.title} ({t.quiz?.length || 0} soal)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      Pilih Riwayat Analisis Soal (Kelola Materi &rarr; Analisis Soal)
+                    </label>
+                    {analysisSetsWithPractice.length > 0 ? (
+                      <select
+                        value={pickerAnalysisId || analysisSetsWithPractice[0]?.id || ''}
+                        onChange={(e) => {
+                          setPickerAnalysisId(e.target.value);
+                          if (pickerTargetMode === 'new') {
+                            setPickerNewSetTitle(
+                              suggestNewTitleForSelection('analisis', pickerCourseId, pickerTopicId, e.target.value, savedAnalyses)
+                            );
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900"
+                      >
+                        {analysisSetsWithPractice.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.title} ({a.latihanSoalMirip?.length || 0} latihan soal)
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="p-4 bg-white border border-dashed border-slate-300 rounded-xl text-xs text-slate-600 font-medium">
+                        Belum ada latihan soal tersimpan dari menu <strong>Kelola Materi &rarr; Analisis Soal</strong>. Gunakan tab <strong>Materi Pembelajaran</strong> untuk mengambil soal dari materi yang sudah ada.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Action bar Pilih Semua + Counter */}
+              {filteredMaterialCandidates.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-200/80 px-4 py-2.5 rounded-xl border border-slate-300">
+                  <span className="text-xs font-black text-slate-800">
+                    Menampilkan {filteredMaterialCandidates.length} soal •{' '}
+                    <span className="text-emerald-700">
+                      {rawMaterialCandidates.filter((i) => selectedMaterialQuestionIds.has(i.uid)).length} dipilih untuk diambil
+                    </span>
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = new Set(selectedMaterialQuestionIds);
+                        filteredMaterialCandidates.forEach((item) => next.add(item.uid));
+                        setSelectedMaterialQuestionIds(next);
+                      }}
+                      className="px-3 py-1 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-black transition-colors"
+                    >
+                      Pilih Semua ({filteredMaterialCandidates.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = new Set(selectedMaterialQuestionIds);
+                        filteredMaterialCandidates.forEach((item) => next.delete(item.uid));
+                        setSelectedMaterialQuestionIds(next);
+                      }}
+                      className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 rounded-lg text-xs font-bold transition-colors"
+                    >
+                      Kosongkan Pilihan
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Daftar Soal Kandidat */}
+              {filteredMaterialCandidates.length > 0 ? (
+                <div className="space-y-3">
+                  {filteredMaterialCandidates.map((item, idx) => {
+                    const isChecked = selectedMaterialQuestionIds.has(item.uid);
+                    const isDuplicate = existingTargetFingerprints.has(
+                      normalizeQuestionFingerprint(item.questionText)
+                    );
+                    return (
+                      <div
+                        key={item.uid}
+                        onClick={() => {
+                          setSelectedMaterialQuestionIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(item.uid)) next.delete(item.uid);
+                            else next.add(item.uid);
+                            return next;
+                          });
+                        }}
+                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                          isChecked
+                            ? 'bg-white border-emerald-500 ring-2 ring-emerald-500/15 shadow-xs'
+                            : 'bg-slate-50 border-slate-300 hover:border-slate-400 opacity-85'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className={`mt-0.5 shrink-0 ${isChecked ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {isChecked ? <CheckSquare size={20} /> : <Square size={20} />}
+                          </span>
+                          <div className="flex-1 min-w-0 space-y-2.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-md bg-slate-800 text-white text-[10px] font-black">
+                                #{idx + 1}
+                              </span>
+                              <span className="px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold">
+                                {item.topicTitle}
+                              </span>
+                              {isDuplicate && (
+                                <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-black">
+                                  Sudah ada di kartu tujuan
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="text-sm font-bold text-slate-900 leading-relaxed whitespace-pre-wrap">
+                              {item.questionText}
+                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                              {item.options.map((opt, oIdx) => {
+                                if (!opt.text?.trim()) return null;
+                                const isKey = item.correctAnswer === oIdx;
+                                return (
+                                  <div
+                                    key={oIdx}
+                                    className={`px-2.5 py-1.5 rounded-lg border flex items-start gap-2 ${
+                                      isKey
+                                        ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-bold'
+                                        : 'bg-slate-50 border-slate-200 text-slate-700'
+                                    }`}
+                                  >
+                                    <span className="font-black shrink-0">{OPTION_LABELS[oIdx]}.</span>
+                                    <span className="flex-1">{opt.text}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {item.explanation && (
+                              <p className="text-[11px] text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg">
+                                <strong className="text-slate-800">Pembahasan: </strong>
+                                {item.explanation}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-10 text-center bg-white rounded-2xl border border-dashed border-slate-300 text-slate-500 text-xs font-semibold">
+                  Tidak ada soal yang cocok pada sumber / kata kunci tersebut.
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 bg-slate-200 border-t border-slate-300 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <span className="text-xs font-bold text-slate-600">
+                {(() => {
+                  const count = rawMaterialCandidates.filter((i) =>
+                    selectedMaterialQuestionIds.has(i.uid)
+                  ).length;
+                  return count > 0
+                    ? `${count} soal siap diambil ke ${pickerTargetMode === 'new' ? 'kartu soal baru' : 'kartu soal tujuan'}`
+                    : 'Centang minimal 1 soal untuk diambil';
+                })()}
+              </span>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsMaterialPickerOpen(false)}
+                  className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-300/60"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    isImportingMaterial ||
+                    rawMaterialCandidates.filter((i) => selectedMaterialQuestionIds.has(i.uid))
+                      .length === 0 ||
+                    (pickerTargetMode === 'new' && !pickerNewSetTitle.trim()) ||
+                    (pickerTargetMode === 'existing' && !pickerTargetSetId)
+                  }
+                  onClick={handleImportFromMaterial}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-sm shadow-lg shadow-emerald-600/20 disabled:opacity-40 flex items-center gap-2"
+                >
+                  <GraduationCap size={17} />
+                  {isImportingMaterial
+                    ? 'Mengambil Soal...'
+                    : `Ambil ${
+                        rawMaterialCandidates.filter((i) => selectedMaterialQuestionIds.has(i.uid))
+                          .length
+                      } Soal`}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -576,9 +576,10 @@ export default function StudentSoalRunner({
               </h2>
             )}
 
-            {/* 4 Opsi Jawaban */}
+            {/* Opsi Jawaban */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
               {currentQuestion.options.map((opt, optIdx) => {
+                if (!opt?.text?.trim() && !opt?.image?.trim()) return null;
                 const isSelected = answers[currentQuestion.id] === optIdx;
                 return (
                   <button

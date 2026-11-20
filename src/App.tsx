@@ -4150,6 +4150,7 @@ export default function App() {
               <AdminSoal
                 soalSets={soalSets}
                 soalQuestions={soalQuestions}
+                materialConfigs={materialConfigs}
                 onPreviewSet={(set) => {
                   setActiveSoalSetId(set.id);
                   sessionStorage.setItem('activeSoalSetId', set.id);
