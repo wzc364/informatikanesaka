@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Plus,
   Search,
@@ -2911,9 +2912,9 @@ export default function AdminSoal({
       )}
 
       {/* ================== MODAL AMBIL SOAL DARI KELOLA MATERI ================== */}
-      {isMaterialPickerOpen && (
+      {isMaterialPickerOpen && createPortal(
         <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-[120] flex items-center justify-center p-3 md:p-6">
-          <div className="bg-slate-100 border border-slate-300 rounded-[2rem] w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+          <div className="bg-slate-100 border border-slate-300 rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="p-5 md:p-6 bg-slate-200 border-b border-slate-300 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
@@ -3333,124 +3334,113 @@ export default function AdminSoal({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ================== MODAL TAMBAH SOAL AI ================== */}
-      {isAiModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-[122] flex items-center justify-center p-3 md:p-6">
-          <div className="bg-slate-100 border border-slate-300 rounded-[2rem] w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+      {isAiModalOpen && createPortal(
+        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-[122] flex items-center justify-center p-3 md:p-5">
+          <div className="bg-slate-100 border border-slate-300 rounded-2xl w-full max-w-6xl overflow-hidden shadow-2xl flex flex-col h-[90vh] max-h-[90vh]">
             {/* Header */}
-            <div className="p-5 md:p-6 bg-slate-200 border-b border-slate-300 flex items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                  <Wand2 size={20} />
+            <div className="px-4 py-3 md:px-5 bg-slate-200 border-b border-slate-300 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
+                  <Wand2 size={17} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-lg md:text-xl font-black text-slate-900 truncate">
+                  <h3 className="text-sm md:text-base font-black text-slate-900 truncate">
                     Tambah Soal Otomatis dengan AI
                   </h3>
-                  <p className="text-xs font-bold text-slate-600 truncate">
-                    Buat soal PG 4 opsi + kunci + pembahasan otomatis dari topik atau materi
+                  <p className="text-[11px] font-semibold text-slate-600 truncate">
+                    Atur topik di kiri, lalu pratinjau &amp; edit soal hasil AI di kanan
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAiModalOpen(false)}
-                className="p-2 hover:bg-slate-300 rounded-xl text-slate-600 shrink-0"
+                className="p-1.5 hover:bg-slate-300 rounded-lg text-slate-600 shrink-0"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
-            {/* Body */}
-            <div className="p-5 md:p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
-              {/* Tujuan Penyimpanan */}
-              <div className="bg-white border border-slate-300 rounded-2xl p-4 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-700">
-                    Tujuan Penyimpanan Soal AI
-                  </span>
-                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-                    <button
-                      type="button"
-                      onClick={() => setAiTargetMode('new')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
-                        aiTargetMode === 'new'
-                          ? 'bg-purple-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      + Buat Kartu Baru
-                    </button>
-                    <button
-                      type="button"
-                      disabled={soalSets.length === 0}
-                      onClick={() => {
-                        setAiTargetMode('existing');
-                        if (!aiTargetSetId && soalSets[0]) {
-                          setAiTargetSetId(soalSets[0].id);
-                        }
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all disabled:opacity-40 ${
-                        aiTargetMode === 'existing'
-                          ? 'bg-brand text-white shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      Ke Kartu yang Ada ({soalSets.length})
-                    </button>
+            {/* Body: 2 Kolom Horizontal (Kiri Pengaturan, Kanan Pratinjau) */}
+            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+              {/* Panel Kiri: Pengaturan & Prompt */}
+              <div className="lg:col-span-5 bg-white border-b lg:border-b-0 lg:border-r border-slate-300 p-4 space-y-3.5 overflow-y-auto custom-scrollbar">
+                {/* Tujuan Penyimpanan */}
+                <div className="space-y-2 pb-3 border-b border-slate-200">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+                      Tujuan Kartu
+                    </span>
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setAiTargetMode('new')}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all ${
+                          aiTargetMode === 'new'
+                            ? 'bg-purple-600 text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        + Kartu Baru
+                      </button>
+                      <button
+                        type="button"
+                        disabled={soalSets.length === 0}
+                        onClick={() => {
+                          setAiTargetMode('existing');
+                          if (!aiTargetSetId && soalSets[0]) {
+                            setAiTargetSetId(soalSets[0].id);
+                          }
+                        }}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all disabled:opacity-40 ${
+                          aiTargetMode === 'existing'
+                            ? 'bg-brand text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Kartu Ada ({soalSets.length})
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                {aiTargetMode === 'new' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-1">
-                    <div className="md:col-span-6">
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                        Judul Kartu Soal Baru *
-                      </label>
+                  {aiTargetMode === 'new' ? (
+                    <div className="space-y-2">
                       <input
                         type="text"
                         value={aiNewSetTitle}
                         onChange={(e) => setAiNewSetTitle(e.target.value)}
-                        placeholder="Contoh: Kuis AI - Algoritma & Pemrograman"
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                        placeholder="Judul Kartu Soal Baru *"
+                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
                       />
-                    </div>
-                    <div className="md:col-span-3">
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                        Target Kelas
-                      </label>
-                      <input
-                        type="text"
-                        value={aiNewSetKelas}
-                        onChange={(e) => setAiNewSetKelas(e.target.value)}
-                        placeholder="Semua Kelas"
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-semibold text-slate-800"
-                      />
-                    </div>
-                    <div className="md:col-span-3 flex items-end">
-                      <label className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl cursor-pointer">
-                        <span className="text-xs font-black text-slate-800">Langsung Aktif</span>
+                      <div className="grid grid-cols-2 gap-2">
                         <input
-                          type="checkbox"
-                          checked={aiNewSetActive}
-                          onChange={(e) => setAiNewSetActive(e.target.checked)}
-                          className="w-4 h-4 accent-purple-600"
+                          type="text"
+                          value={aiNewSetKelas}
+                          onChange={(e) => setAiNewSetKelas(e.target.value)}
+                          placeholder="Target Kelas (Semua Kelas)"
+                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800"
                         />
-                      </label>
+                        <label className="flex items-center justify-between px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg cursor-pointer">
+                          <span className="text-[11px] font-bold text-slate-800">Langsung Aktif</span>
+                          <input
+                            type="checkbox"
+                            checked={aiNewSetActive}
+                            onChange={(e) => setAiNewSetActive(e.target.checked)}
+                            className="w-3.5 h-3.5 accent-purple-600"
+                          />
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="pt-1">
-                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                      Pilih Kartu Soal Tujuan
-                    </label>
+                  ) : (
                     <select
                       value={aiTargetSetId}
                       onChange={(e) => setAiTargetSetId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
                     >
                       {soalSets.map((s) => (
                         <option key={s.id} value={s.id}>
@@ -3458,68 +3448,58 @@ export default function AdminSoal({
                         </option>
                       ))}
                     </select>
-                  </div>
-                )}
-              </div>
-
-              {/* Pengaturan Prompt / Materi AI */}
-              <div className="bg-white border border-slate-300 rounded-2xl p-4 md:p-5 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-700">
-                    Sumber Topik Pembuatan Soal
-                  </span>
-                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-                    <button
-                      type="button"
-                      onClick={() => setAiContextMode('custom')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
-                        aiContextMode === 'custom'
-                          ? 'bg-purple-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      Tulis Topik Bebas
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAiContextMode('course')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
-                        aiContextMode === 'course'
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      Dari Materi Kelola Materi
-                    </button>
-                  </div>
+                  )}
                 </div>
 
-                {aiContextMode === 'custom' ? (
-                  <div>
-                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1.5">
-                      Topik / Materi Soal *
-                    </label>
+                {/* Sumber Topik */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+                      Sumber Topik
+                    </span>
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setAiContextMode('custom')}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all ${
+                          aiContextMode === 'custom'
+                            ? 'bg-purple-600 text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Topik Bebas
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAiContextMode('course')}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all ${
+                          aiContextMode === 'course'
+                            ? 'bg-emerald-600 text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Dari Materi
+                      </button>
+                    </div>
+                  </div>
+
+                  {aiContextMode === 'custom' ? (
                     <input
                       type="text"
                       value={aiTopicPrompt}
                       onChange={(e) => setAiTopicPrompt(e.target.value)}
-                      placeholder="Contoh: Berpikir Komputasional, Sistem Bilangan Biner, atau Jaringan Komputer & Internet"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                      placeholder="Contoh: Berpikir Komputasional, Sistem Biner, Jaringan..."
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
                     />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                        Materi Acuan (Kelola Materi)
-                      </label>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <select
                         value={aiCourseId}
                         onChange={(e) => {
                           setAiCourseId(e.target.value);
                           setAiTopicId('all');
                         }}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900"
+                        className="w-full px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
                       >
                         {COURSES.map((c) => (
                           <option key={c.id} value={c.id}>
@@ -3527,17 +3507,12 @@ export default function AdminSoal({
                           </option>
                         ))}
                       </select>
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                        Sub-Topik Materi
-                      </label>
                       <select
                         value={aiTopicId}
                         onChange={(e) => setAiTopicId(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900"
+                        className="w-full px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
                       >
-                        <option value="all">Semua Topik dalam Materi Ini</option>
+                        <option value="all">Semua Topik</option>
                         {selectedAiCourse?.topics.map((t) => (
                           <option key={t.id} value={t.id}>
                             {t.title}
@@ -3545,10 +3520,11 @@ export default function AdminSoal({
                         ))}
                       </select>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Parameter Soal */}
+                <div className="space-y-2.5">
                   <div>
                     <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
                       Jumlah Soal (1–20)
@@ -3559,7 +3535,7 @@ export default function AdminSoal({
                           key={preset}
                           type="button"
                           onClick={() => setAiCount(preset)}
-                          className={`px-2.5 py-2 rounded-xl text-xs font-black border transition-all ${
+                          className={`flex-1 py-1.5 rounded-lg text-xs font-black border transition-all ${
                             aiCount === preset
                               ? 'bg-purple-600 text-white border-purple-600'
                               : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
@@ -3576,47 +3552,46 @@ export default function AdminSoal({
                         onChange={(e) =>
                           setAiCount(Math.min(20, Math.max(1, parseInt(e.target.value, 10) || 1)))
                         }
-                        className="w-16 px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-black text-slate-900 text-center"
+                        className="w-14 px-2 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-black text-slate-900 text-center tabular-nums"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                      Jenjang / Kelas
-                    </label>
-                    <select
-                      value={aiJenjang}
-                      onChange={(e) => setAiJenjang(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
-                    >
-                      <option value="SMP Kelas VII">SMP Kelas VII</option>
-                      <option value="SMP Kelas VIII">SMP Kelas VIII</option>
-                      <option value="SMP Kelas IX">SMP Kelas IX</option>
-                      <option value="SMP Fase D (Umum)">SMP Fase D (Umum)</option>
-                      <option value="SMA / SMK">SMA / SMK</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                        Jenjang
+                      </label>
+                      <select
+                        value={aiJenjang}
+                        onChange={(e) => setAiJenjang(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
+                      >
+                        <option value="SMP Kelas VII">SMP Kelas VII</option>
+                        <option value="SMP Kelas VIII">SMP Kelas VIII</option>
+                        <option value="SMP Kelas IX">SMP Kelas IX</option>
+                        <option value="SMP Fase D (Umum)">SMP Fase D (Umum)</option>
+                        <option value="SMA / SMK">SMA / SMK</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                        Kesulitan
+                      </label>
+                      <select
+                        value={aiDifficulty}
+                        onChange={(e) => setAiDifficulty(e.target.value as any)}
+                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
+                      >
+                        <option value="Campuran">Campuran</option>
+                        <option value="Mudah">Mudah (C1–C2)</option>
+                        <option value="Sedang">Sedang (C3)</option>
+                        <option value="Sukar">Sukar / HOTS</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                      Tingkat Kesulitan
-                    </label>
-                    <select
-                      value={aiDifficulty}
-                      onChange={(e) => setAiDifficulty(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
-                    >
-                      <option value="Campuran">Campuran (Mudah–Sukar)</option>
-                      <option value="Mudah">Mudah (C1–C2)</option>
-                      <option value="Sedang">Sedang (C3)</option>
-                      <option value="Sukar">Sukar / HOTS (C4–C5)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-                  <div className="flex-1">
                     <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
                       Instruksi Tambahan (Opsional)
                     </label>
@@ -3624,220 +3599,236 @@ export default function AdminSoal({
                       type="text"
                       value={aiInstructions}
                       onChange={(e) => setAiInstructions(e.target.value)}
-                      placeholder="Misal: Sertakan soal cerita sehari-hari, hindari soal hafalan definisi..."
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800"
+                      placeholder="Misal: Sertakan studi kasus sehari-hari..."
+                      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800"
                     />
                   </div>
-                  <button
-                    type="button"
-                    disabled={isGeneratingAi}
-                    onClick={handleGenerateAiQuestions}
-                    className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-xs md:text-sm shadow-md shadow-purple-600/20 disabled:opacity-60 flex items-center justify-center gap-2 shrink-0"
-                  >
-                    {isGeneratingAi ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" />
-                        AI Sedang Membuat {aiCount} Soal...
-                      </>
-                    ) : aiGeneratedList.length > 0 ? (
-                      <>
-                        <RefreshCw size={16} />
-                        Generate Ulang ({aiCount} Soal)
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={16} />
-                        Generate Soal dengan AI
-                      </>
-                    )}
-                  </button>
                 </div>
 
+                <button
+                  type="button"
+                  disabled={isGeneratingAi}
+                  onClick={handleGenerateAiQuestions}
+                  className="w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-xs md:text-sm shadow-md shadow-purple-600/20 disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {isGeneratingAi ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      AI Sedang Membuat {aiCount} Soal...
+                    </>
+                  ) : aiGeneratedList.length > 0 ? (
+                    <>
+                      <RefreshCw size={16} />
+                      Generate Ulang ({aiCount} Soal)
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} />
+                      Generate Soal dengan AI
+                    </>
+                  )}
+                </button>
+
                 {aiError && (
-                  <div className="p-3.5 bg-red-50 border border-red-300 rounded-xl text-red-800 text-xs font-bold flex items-start gap-2">
-                    <AlertTriangle size={16} className="shrink-0 mt-0.5 text-red-600" />
+                  <div className="p-3 bg-red-50 border border-red-300 rounded-xl text-red-800 text-xs font-bold flex items-start gap-2">
+                    <AlertTriangle size={15} className="shrink-0 mt-0.5 text-red-600" />
                     <span>{aiError}</span>
                   </div>
                 )}
               </div>
 
-              {/* Pratinjau & Edit Soal Hasil AI */}
-              {aiGeneratedList.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 bg-purple-50 border border-purple-200 px-4 py-2.5 rounded-xl">
-                    <span className="text-xs font-black text-purple-950">
-                      Hasil AI: {aiGeneratedList.length} Soal •{' '}
-                      <span className="text-emerald-700">
-                        {aiGeneratedList.filter((q) => q.selected).length} dipilih untuk disimpan
-                      </span>{' '}
-                      <span className="text-slate-500 font-semibold">(bisa diedit langsung di bawah)</span>
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setAiGeneratedList((prev) => prev.map((q) => ({ ...q, selected: true })))
-                        }
-                        className="px-3 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-black"
-                      >
-                        Pilih Semua
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setAiGeneratedList((prev) => prev.map((q) => ({ ...q, selected: false })))
-                        }
-                        className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 rounded-lg text-xs font-bold"
-                      >
-                        Kosongkan
-                      </button>
-                    </div>
-                  </div>
-
+              {/* Panel Kanan: Pratinjau & Edit Soal Hasil AI */}
+              <div className="lg:col-span-7 bg-slate-50 p-4 overflow-y-auto custom-scrollbar flex flex-col">
+                {aiGeneratedList.length > 0 ? (
                   <div className="space-y-3">
-                    {aiGeneratedList.map((item, idx) => (
-                      <div
-                        key={item.uid}
-                        className={`p-4 rounded-2xl border-2 transition-all space-y-3 ${
-                          item.selected
-                            ? 'bg-white border-purple-400 shadow-xs'
-                            : 'bg-slate-50 border-slate-300 opacity-70'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setAiGeneratedList((prev) =>
-                                  prev.map((q) =>
-                                    q.uid === item.uid ? { ...q, selected: !q.selected } : q
+                    <div className="flex flex-wrap items-center justify-between gap-2 bg-purple-50 border border-purple-200 px-3.5 py-2 rounded-xl sticky top-0 z-10">
+                      <span className="text-xs font-black text-purple-950 tabular-nums">
+                        Hasil: {aiGeneratedList.length} Soal ·{' '}
+                        <span className="text-emerald-700">
+                          {aiGeneratedList.filter((q) => q.selected).length} dipilih
+                        </span>
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setAiGeneratedList((prev) => prev.map((q) => ({ ...q, selected: true })))
+                          }
+                          className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-[11px] font-black"
+                        >
+                          Pilih Semua
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setAiGeneratedList((prev) => prev.map((q) => ({ ...q, selected: false })))
+                          }
+                          className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 rounded-lg text-[11px] font-bold"
+                        >
+                          Kosongkan
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {aiGeneratedList.map((item, idx) => (
+                        <div
+                          key={item.uid}
+                          className={`p-3.5 rounded-xl border transition-all space-y-2.5 ${
+                            item.selected
+                              ? 'bg-white border-purple-400 shadow-2xs'
+                              : 'bg-slate-100 border-slate-300 opacity-65'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAiGeneratedList((prev) =>
+                                    prev.map((q) =>
+                                      q.uid === item.uid ? { ...q, selected: !q.selected } : q
+                                    )
                                   )
-                                )
-                              }
-                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black ${
-                                item.selected
-                                  ? 'bg-purple-600 text-white'
-                                  : 'bg-slate-200 text-slate-600'
-                              }`}
-                            >
-                              {item.selected ? <CheckSquare size={14} /> : <Square size={14} />}
-                              Soal #{idx + 1}
-                            </button>
-                            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-black">
-                              {item.cognitiveLevel}
-                            </span>
-                          </div>
-                          <span className="text-[11px] font-bold text-slate-500">
-                            Kunci saat ini: <strong className="text-emerald-700">{OPTION_LABELS[item.correctAnswer]}</strong>
-                          </span>
-                        </div>
-
-                        <textarea
-                          rows={2}
-                          value={item.questionText}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setAiGeneratedList((prev) =>
-                              prev.map((q) =>
-                                q.uid === item.uid ? { ...q, questionText: val } : q
-                              )
-                            );
-                          }}
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-                        />
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {item.options.map((optText, oIdx) => {
-                            const isKey = item.correctAnswer === oIdx;
-                            return (
-                              <div
-                                key={oIdx}
-                                className={`flex items-center gap-2 p-2 rounded-xl border ${
-                                  isKey
-                                    ? 'bg-emerald-50 border-emerald-400'
-                                    : 'bg-slate-50 border-slate-200'
+                                }
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-black ${
+                                  item.selected
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-slate-200 text-slate-600'
                                 }`}
                               >
-                                <button
-                                  type="button"
-                                  title="Klik untuk jadikan kunci jawaban"
-                                  onClick={() =>
-                                    setAiGeneratedList((prev) =>
-                                      prev.map((q) =>
-                                        q.uid === item.uid
-                                          ? { ...q, correctAnswer: oIdx as 0 | 1 | 2 | 3 }
-                                          : q
-                                      )
-                                    )
-                                  }
-                                  className={`w-7 h-7 rounded-lg text-xs font-black shrink-0 flex items-center justify-center transition-all ${
+                                {item.selected ? <CheckSquare size={13} /> : <Square size={13} />}
+                                Soal #{idx + 1}
+                              </button>
+                              <span className="text-[11px] font-bold text-slate-500">
+                                {item.cognitiveLevel}
+                              </span>
+                            </div>
+                            <span className="text-[11px] font-bold text-slate-500">
+                              Kunci: <strong className="text-emerald-700">{OPTION_LABELS[item.correctAnswer]}</strong>
+                            </span>
+                          </div>
+
+                          <textarea
+                            rows={2}
+                            value={item.questionText}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setAiGeneratedList((prev) =>
+                                prev.map((q) =>
+                                  q.uid === item.uid ? { ...q, questionText: val } : q
+                                )
+                              );
+                            }}
+                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                          />
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {item.options.map((optText, oIdx) => {
+                              const isKey = item.correctAnswer === oIdx;
+                              return (
+                                <div
+                                  key={oIdx}
+                                  className={`flex items-center gap-1.5 p-1.5 rounded-lg border ${
                                     isKey
-                                      ? 'bg-emerald-600 text-white'
-                                      : 'bg-slate-200 text-slate-700 hover:bg-emerald-100'
+                                      ? 'bg-emerald-50 border-emerald-400'
+                                      : 'bg-slate-50 border-slate-200'
                                   }`}
                                 >
-                                  {OPTION_LABELS[oIdx]}
-                                </button>
-                                <input
-                                  type="text"
-                                  value={optText}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    setAiGeneratedList((prev) =>
-                                      prev.map((q) => {
-                                        if (q.uid !== item.uid) return q;
-                                        const nextOpts = [...q.options] as [
-                                          string,
-                                          string,
-                                          string,
-                                          string,
-                                        ];
-                                        nextOpts[oIdx] = val;
-                                        return { ...q, options: nextOpts };
-                                      })
-                                    );
-                                  }}
-                                  className="flex-1 min-w-0 bg-transparent text-xs font-semibold text-slate-800 focus:outline-none"
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
+                                  <button
+                                    type="button"
+                                    title="Klik untuk jadikan kunci jawaban"
+                                    onClick={() =>
+                                      setAiGeneratedList((prev) =>
+                                        prev.map((q) =>
+                                          q.uid === item.uid
+                                            ? { ...q, correctAnswer: oIdx as 0 | 1 | 2 | 3 }
+                                            : q
+                                        )
+                                      )
+                                    }
+                                    className={`w-6 h-6 rounded-md text-[11px] font-black shrink-0 flex items-center justify-center transition-all ${
+                                      isKey
+                                        ? 'bg-emerald-600 text-white'
+                                        : 'bg-slate-200 text-slate-700 hover:bg-emerald-100'
+                                    }`}
+                                  >
+                                    {OPTION_LABELS[oIdx]}
+                                  </button>
+                                  <input
+                                    type="text"
+                                    value={optText}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setAiGeneratedList((prev) =>
+                                        prev.map((q) => {
+                                          if (q.uid !== item.uid) return q;
+                                          const nextOpts = [...q.options] as [
+                                            string,
+                                            string,
+                                            string,
+                                            string,
+                                          ];
+                                          nextOpts[oIdx] = val;
+                                          return { ...q, options: nextOpts };
+                                        })
+                                      );
+                                    }}
+                                    className="flex-1 min-w-0 bg-transparent text-xs font-semibold text-slate-800 focus:outline-none"
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
 
-                        <input
-                          type="text"
-                          value={item.explanation}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setAiGeneratedList((prev) =>
-                              prev.map((q) =>
-                                q.uid === item.uid ? { ...q, explanation: val } : q
-                              )
-                            );
-                          }}
-                          placeholder="Pembahasan singkat..."
-                          className="w-full px-3 py-1.5 bg-blue-50/70 border border-blue-200 rounded-lg text-xs font-medium text-blue-950 focus:outline-none"
-                        />
-                      </div>
-                    ))}
+                          <input
+                            type="text"
+                            value={item.explanation}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setAiGeneratedList((prev) =>
+                                prev.map((q) =>
+                                  q.uid === item.uid ? { ...q, explanation: val } : q
+                                )
+                              );
+                            }}
+                            placeholder="Pembahasan singkat..."
+                            className="w-full px-2.5 py-1 bg-blue-50/70 border border-blue-200 rounded-lg text-[11px] font-medium text-blue-950 focus:outline-none"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-300 rounded-2xl bg-white/70">
+                    <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center mb-3">
+                      {isGeneratingAi ? <Loader2 size={24} className="animate-spin" /> : <Wand2 size={24} />}
+                    </div>
+                    <h4 className="text-sm font-black text-slate-800 mb-1">
+                      {isGeneratingAi ? `Sedang Menyusun ${aiCount} Soal...` : 'Pratinjau Soal AI'}
+                    </h4>
+                    <p className="text-xs text-slate-500 max-w-sm">
+                      {isGeneratingAi
+                        ? 'AI sedang membuat pertanyaan, 4 pilihan jawaban, kunci, dan pembahasan.'
+                        : 'Isi topik atau pilih materi di kolom sebelah kiri, lalu klik "Generate Soal dengan AI". Hasil soal dapat langsung Anda edit di sini sebelum disimpan.'}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Footer */}
-            <div className="p-5 bg-slate-200 border-t border-slate-300 flex flex-wrap items-center justify-between gap-3 shrink-0">
-              <span className="text-xs font-bold text-slate-600">
+            <div className="px-4 py-3 md:px-5 bg-slate-200 border-t border-slate-300 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <span className="text-xs font-bold text-slate-600 tabular-nums">
                 {aiGeneratedList.length > 0
                   ? `${aiGeneratedList.filter((q) => q.selected).length} soal dipilih siap disimpan`
-                  : 'Atur parameter di atas lalu klik Generate Soal dengan AI'}
+                  : 'Belum ada soal yang dibuat'}
               </span>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAiModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-300/60"
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs md:text-sm hover:bg-slate-300/60"
                 >
                   Batal
                 </button>
@@ -3851,9 +3842,9 @@ export default function AdminSoal({
                     (aiTargetMode === 'existing' && !aiTargetSetId)
                   }
                   onClick={handleSaveAiQuestions}
-                  className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-sm shadow-lg shadow-purple-600/20 disabled:opacity-40 flex items-center gap-2"
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-xs md:text-sm shadow-md shadow-purple-600/20 disabled:opacity-40 flex items-center gap-2"
                 >
-                  <Sparkles size={17} />
+                  <Sparkles size={15} />
                   {isSavingAi
                     ? 'Menyimpan...'
                     : `Simpan ${aiGeneratedList.filter((q) => q.selected).length} Soal AI`}
@@ -3861,7 +3852,8 @@ export default function AdminSoal({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ================== LIGHTBOX IMAGE PREVIEW ================== */}

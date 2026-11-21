@@ -723,76 +723,117 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
   const uniqueClasses = Array.from(new Set(studentsList.map(s => s.kelas).concat(gameScores.map(s => s.studentKelas)))).filter(Boolean).sort();
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className={cn("font-sans", isAdmin ? "space-y-4" : "space-y-6")}>
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-100 p-6 md:p-8 rounded-[2.5rem] border border-slate-300 shadow-xs">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg shadow-brand/20 shrink-0">
-            <Gamepad2 size={32} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-widest text-brand bg-brand/10 border border-brand/20 px-2.5 py-0.5 rounded-full">
-                Permainan Edukatif
-              </span>
-              <span className="text-xs text-slate-500 font-bold">• {GAMES_LIST.length} Game Interaktif</span>
+      {isAdmin ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 bg-brand text-white rounded-lg flex items-center justify-center shrink-0">
+              <Gamepad2 size={17} />
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight">
-              {isAdmin ? "Kelola Permainan & Game Edukasi" : "Game Edukasi Informatika"}
-            </h1>
-            <p className="text-xs md:text-sm text-slate-600 font-medium mt-0.5">
-              {isAdmin 
-                ? "Aktifkan game, ubah urutan posisi kartu (Drag & Drop), dan pantau papan skor."
-                : "Asah kemampuan logika, berpikir komputasi, dan matematika melalui permainan seru!"}
-            </p>
+            <div className="flex items-baseline gap-2 min-w-0">
+              <h2 className="text-sm md:text-base font-extrabold text-slate-900 tracking-tight truncate">
+                Daftar Game Edukasi
+              </h2>
+              <span className="text-xs text-slate-500 font-semibold whitespace-nowrap tabular-nums">
+                · {GAMES_LIST.length} Game
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 p-1 bg-slate-200/80 rounded-xl border border-slate-300/80 shrink-0 self-start sm:self-auto">
+            <button
+              onClick={() => setActiveTab('manage')}
+              className={cn(
+                "px-3 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap",
+                activeTab === 'manage'
+                  ? "bg-white text-slate-900 shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              <Settings size={13} />
+              Daftar Game
+            </button>
+            <button
+              onClick={() => setActiveTab('leaderboard')}
+              className={cn(
+                "px-3 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap tabular-nums",
+                activeTab === 'leaderboard'
+                  ? "bg-white text-slate-900 shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              <Trophy size={13} className="text-amber-500" />
+              Papan Skor ({bestScoresAll.length})
+            </button>
           </div>
         </div>
+      ) : (
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-100 p-6 md:p-8 rounded-[2.5rem] border border-slate-300 shadow-xs">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg shadow-brand/20 shrink-0">
+              <Gamepad2 size={32} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black uppercase tracking-widest text-brand bg-brand/10 border border-brand/20 px-2.5 py-0.5 rounded-full">
+                  Permainan Edukatif
+                </span>
+                <span className="text-xs text-slate-500 font-bold">• {GAMES_LIST.length} Game Interaktif</span>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                Game Edukasi Informatika
+              </h1>
+              <p className="text-xs md:text-sm text-slate-600 font-medium mt-0.5">
+                Asah kemampuan logika, berpikir komputasi, dan matematika melalui permainan seru!
+              </p>
+            </div>
+          </div>
 
-        {/* Tab Switcher */}
-        <div className="flex items-center gap-1.5 p-1.5 bg-slate-200/80 rounded-2xl border border-slate-300 shrink-0">
-          <button
-            onClick={() => setActiveTab('manage')}
-            className={cn(
-              "px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-2",
-              activeTab === 'manage' 
-                ? "bg-white text-slate-900 shadow-md" 
-                : "text-slate-600 hover:text-slate-900"
-            )}
-          >
-            <Settings size={14} />
-            Daftar Game
-          </button>
-          <button
-            onClick={() => setActiveTab('leaderboard')}
-            className={cn(
-              "px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-2",
-              activeTab === 'leaderboard' 
-                ? "bg-white text-slate-900 shadow-md" 
-                : "text-slate-600 hover:text-slate-900"
-            )}
-          >
-            <Trophy size={14} className="text-amber-500" />
-            Papan Skor ({bestScoresAll.length})
-          </button>
+          {/* Tab Switcher */}
+          <div className="flex items-center gap-1.5 p-1.5 bg-slate-200/80 rounded-2xl border border-slate-300 shrink-0">
+            <button
+              onClick={() => setActiveTab('manage')}
+              className={cn(
+                "px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-2",
+                activeTab === 'manage' 
+                  ? "bg-white text-slate-900 shadow-md" 
+                  : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              <Settings size={14} />
+              Daftar Game
+            </button>
+            <button
+              onClick={() => setActiveTab('leaderboard')}
+              className={cn(
+                "px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-2",
+                activeTab === 'leaderboard' 
+                  ? "bg-white text-slate-900 shadow-md" 
+                  : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              <Trophy size={14} className="text-amber-500" />
+              Papan Skor ({bestScoresAll.length})
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Tab 1: Manage / List Games */}
       {activeTab === 'manage' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {isAdmin && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs font-semibold text-amber-900 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <GripVertical size={18} className="text-amber-600 shrink-0" />
-                <span><strong>Petunjuk Admin:</strong> Klik dan seret (Drag & Drop) ikon <strong className="text-amber-950 font-black">⠿</strong> pada kartu game untuk mengatur ulang posisinya.</span>
-              </div>
-              <span className="text-[10px] bg-amber-200 text-amber-950 font-black px-2 py-0.5 rounded-full shrink-0">
-                Auto-Saved
-              </span>
-            </div>
+            <p className="text-[11px] font-medium text-slate-500 flex items-center gap-1.5 px-1">
+              <GripVertical size={13} className="text-slate-400 shrink-0" />
+              <span>Seret kartu atau gunakan tombol panah untuk mengatur urutan tampil ke siswa (tersimpan otomatis).</span>
+            </p>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className={cn(
+            "grid gap-3.5",
+            isAdmin ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1 md:grid-cols-2 gap-6"
+          )}>
             {orderedGames
               .filter(game => isAdmin || (gameConfigs[game.id]?.isActive ?? true))
               .map((game, idx) => {
@@ -810,19 +851,203 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                 const isDragging = draggedIndex === idx;
                 const isDragOver = dragOverIndex === idx;
 
+                if (isAdmin) {
+                  return (
+                    <div
+                      key={game.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDrop={(e) => handleDrop(e, idx)}
+                      onDragEnd={handleDragEnd}
+                      className={cn(
+                        "p-3.5 rounded-xl border transition-all flex flex-col justify-between gap-2.5 bg-slate-50 hover:bg-white hover:border-slate-300",
+                        isGameActive ? "border-slate-200" : "border-slate-200 opacity-75 bg-slate-100/80",
+                        isDragging && "opacity-40 scale-95 border-dashed border-amber-500",
+                        isDragOver && "ring-2 ring-brand/40 border-brand"
+                      )}
+                    >
+                      <div className="space-y-2">
+                        {/* Baris Judul Sederhana */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              className="p-1 text-slate-400 hover:text-slate-700 rounded cursor-grab active:cursor-grabbing shrink-0"
+                              title="Seret untuk ubah urutan"
+                            >
+                              <GripVertical size={15} />
+                            </div>
+                            <div
+                              className={cn(
+                                "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white shrink-0",
+                                game.id === 'contra-snes' ? "bg-gradient-to-br from-red-600 to-orange-600" :
+                                game.id === 'infokombat' ? "bg-gradient-to-br from-red-800 to-purple-800" :
+                                game.id === 'petualangan-smp' ? "bg-gradient-to-br from-blue-600 to-indigo-600" :
+                                game.id === 'pattern-master' ? "bg-indigo-600" :
+                                game.id === 'scratch-blocks' ? "bg-amber-500" :
+                                game.id === 'dekomposisi-puzzle' ? "bg-emerald-600" : "bg-purple-600"
+                              )}
+                            >
+                              {game.iconName === 'Calculator' && <Calculator size={15} />}
+                              {game.iconName === 'Code' && <Code size={15} />}
+                              {game.iconName === 'Puzzle' && <Puzzle size={15} />}
+                              {game.iconName === 'Gamepad2' && <Gamepad2 size={15} />}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-bold text-slate-900 leading-tight truncate">
+                                {game.title}
+                              </h3>
+                              <p className="text-[11px] font-medium text-slate-500 truncate tabular-nums">
+                                #{idx + 1} · {game.category} · Skor {gameHighScore} pts
+                              </p>
+                            </div>
+                          </div>
+
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-md border",
+                              isGameActive
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-slate-200 text-slate-600 border-slate-300"
+                            )}
+                          >
+                            {isGameActive ? 'Aktif' : 'Nonaktif'}
+                          </span>
+                        </div>
+
+                        {game.id === 'contra-snes' && (
+                          <details className="group bg-white rounded-lg border border-slate-200 overflow-hidden">
+                            <summary className="cursor-pointer list-none px-2.5 py-1.5 flex items-center justify-between text-[11px] font-bold text-slate-700 select-none">
+                              <span>Sumber Kuis Peluru Spesial</span>
+                              <ChevronDown size={13} className="text-slate-400 group-open:rotate-180 transition-transform" />
+                            </summary>
+                            <div className="p-2 pt-1.5 border-t border-slate-200">
+                              <select
+                                value={gameConfigs['contra-snes']?.materiId ?? 'all'}
+                                onChange={(e) => updateContraMateri(e.target.value)}
+                                className="bg-slate-50 border border-slate-300 text-[11px] font-semibold rounded-md p-1.5 text-slate-800 cursor-pointer w-full"
+                              >
+                                <option value="all">Semua Materi Informatika (Campuran)</option>
+                                {COURSES.map(c => (
+                                  <option key={c.id} value={c.id}>{c.title}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </details>
+                        )}
+
+                        {game.id === 'petualangan-smp' && (
+                          <details className="group bg-white rounded-lg border border-slate-200 overflow-hidden">
+                            <summary className="cursor-pointer list-none px-2.5 py-1.5 flex items-center justify-between text-[11px] font-bold text-slate-700 select-none">
+                              <span>Atur Materi 4 Stage</span>
+                              <ChevronDown size={13} className="text-slate-400 group-open:rotate-180 transition-transform" />
+                            </summary>
+                            <div className="p-2 pt-1.5 border-t border-slate-200 grid grid-cols-2 gap-1.5 text-[10px]">
+                              <div>
+                                <span className="font-bold text-slate-600 block mb-0.5">Stage 1: Sekolah</span>
+                                <select
+                                  value={gameConfigs['petualangan-smp']?.stage1MateriId ?? 'bk-dekomposisi'}
+                                  onChange={(e) => updateStageMateri('stage1MateriId', e.target.value)}
+                                  className="bg-slate-50 border border-slate-300 text-[10px] font-semibold rounded p-1 text-slate-800 w-full"
+                                >
+                                  {COURSES.map(c => (
+                                    <option key={c.id} value={c.id}>{c.title}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <span className="font-bold text-slate-600 block mb-0.5">Stage 2: Pramuka</span>
+                                <select
+                                  value={gameConfigs['petualangan-smp']?.stage2MateriId ?? 'bk-pengenalan-pola'}
+                                  onChange={(e) => updateStageMateri('stage2MateriId', e.target.value)}
+                                  className="bg-slate-50 border border-slate-300 text-[10px] font-semibold rounded p-1 text-slate-800 w-full"
+                                >
+                                  {COURSES.map(c => (
+                                    <option key={c.id} value={c.id}>{c.title}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <span className="font-bold text-slate-600 block mb-0.5">Stage 3: Study Tour</span>
+                                <select
+                                  value={gameConfigs['petualangan-smp']?.stage3MateriId ?? 'scratch'}
+                                  onChange={(e) => updateStageMateri('stage3MateriId', e.target.value)}
+                                  className="bg-slate-50 border border-slate-300 text-[10px] font-semibold rounded p-1 text-slate-800 w-full"
+                                >
+                                  {COURSES.map(c => (
+                                    <option key={c.id} value={c.id}>{c.title}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <span className="font-bold text-slate-600 block mb-0.5">Stage 4: Ciamis</span>
+                                <select
+                                  value={gameConfigs['petualangan-smp']?.stage4MateriId ?? 'bk-algoritma'}
+                                  onChange={(e) => updateStageMateri('stage4MateriId', e.target.value)}
+                                  className="bg-slate-50 border border-slate-300 text-[10px] font-semibold rounded p-1 text-slate-800 w-full"
+                                >
+                                  {COURSES.map(c => (
+                                    <option key={c.id} value={c.id}>{c.title}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </details>
+                        )}
+                      </div>
+
+                      {/* Bottom Actions */}
+                      <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-200">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => toggleGameStatus(game.id)}
+                            className={cn(
+                              "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1 whitespace-nowrap",
+                              isGameActive
+                                ? "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
+                                : "bg-emerald-600 text-white hover:bg-emerald-700"
+                            )}
+                          >
+                            {isGameActive ? 'Nonaktifkan' : 'Aktifkan'}
+                          </button>
+
+                          <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 border border-slate-200">
+                            <button
+                              onClick={() => moveGame(idx, 'up')}
+                              disabled={idx === 0}
+                              className="p-1 hover:bg-white rounded text-slate-600 disabled:opacity-30"
+                              title="Naikkan Urutan"
+                            >
+                              <MoveUp size={12} />
+                            </button>
+                            <button
+                              onClick={() => moveGame(idx, 'down')}
+                              disabled={idx === orderedGames.length - 1}
+                              className="p-1 hover:bg-white rounded text-slate-600 disabled:opacity-30"
+                              title="Turunkan Urutan"
+                            >
+                              <MoveDown size={12} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => setActivePlayGameId(game.id)}
+                          className="px-3 py-1 bg-brand text-white rounded-lg text-[11px] font-bold hover:bg-brand/90 transition-colors flex items-center gap-1 whitespace-nowrap"
+                        >
+                          <Play size={12} /> Pratinjau
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div 
                     key={game.id}
-                    draggable={isAdmin}
-                    onDragStart={(e) => handleDragStart(e, idx)}
-                    onDragOver={(e) => handleDragOver(e, idx)}
-                    onDrop={(e) => handleDrop(e, idx)}
-                    onDragEnd={handleDragEnd}
                     className={cn(
                       "p-4 md:p-5 rounded-2xl border transition-all flex flex-col justify-between relative overflow-hidden bg-slate-100 shadow-sm hover:shadow-md",
-                      isGameActive ? "border-slate-300" : "border-slate-200 opacity-80",
-                      isDragging && "opacity-40 scale-95 border-dashed border-amber-500",
-                      isDragOver && "ring-4 ring-brand/40 border-brand scale-[1.01]"
+                      isGameActive ? "border-slate-300" : "border-slate-200 opacity-80"
                     )}
                   >
                     <div>
@@ -831,14 +1056,6 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
                       <div className="flex items-start justify-between gap-3 mb-2.5">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          {isAdmin && (
-                            <div 
-                              className="p-1 text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded-lg cursor-grab active:cursor-grabbing transition-colors shrink-0"
-                              title="Seret untuk mengubah urutan"
-                            >
-                              <GripVertical size={16} />
-                            </div>
-                          )}
                           <div className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white shadow-xs shrink-0",
                             game.id === 'contra-snes' ? "bg-gradient-to-br from-red-600 to-orange-600" :
@@ -866,17 +1083,6 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                             </h3>
                           </div>
                         </div>
-
-                        {isAdmin && (
-                          <div className={cn(
-                            "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border shrink-0",
-                            isGameActive 
-                              ? "bg-emerald-100 text-emerald-800 border-emerald-300" 
-                              : "bg-slate-200 text-slate-500 border-slate-300"
-                          )}>
-                            {isGameActive ? '✓ Terbit' : '✕ Nonaktif'}
-                          </div>
-                        )}
                       </div>
 
                       <p className="text-xs text-slate-600 leading-relaxed mb-3 font-medium line-clamp-2">
@@ -888,17 +1094,10 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                           <Flame size={12} className="text-amber-500" />
                           <span>{game.difficulty}</span>
                         </div>
-                        {isAdmin ? (
-                          <div className="bg-slate-200/80 px-2.5 py-1 rounded-lg border border-slate-300/80 flex items-center gap-1 text-[11px] font-bold text-emerald-800">
-                            <Trophy size={12} className="text-amber-500" />
-                            <span>{gameHighScore > 0 ? `${gameHighScore} Pts` : '0 Pts'}</span>
-                          </div>
-                        ) : (
-                          <div className="bg-emerald-100/90 px-2.5 py-1 rounded-lg border border-emerald-300 flex items-center gap-1 text-[11px] font-bold text-emerald-950">
-                            <Trophy size={12} className="text-amber-500 fill-amber-400" />
-                            <span>{myStudentHighScore > 0 ? `${myStudentHighScore} Poin` : 'Belum Ada Skor'}</span>
-                          </div>
-                        )}
+                        <div className="bg-emerald-100/90 px-2.5 py-1 rounded-lg border border-emerald-300 flex items-center gap-1 text-[11px] font-bold text-emerald-950">
+                          <Trophy size={12} className="text-amber-500 fill-amber-400" />
+                          <span>{myStudentHighScore > 0 ? `${myStudentHighScore} Poin` : 'Belum Ada Skor'}</span>
+                        </div>
                         {game.id === 'petualangan-smp' && (
                           <div className="bg-blue-100/80 px-2.5 py-1 rounded-lg border border-blue-200 flex items-center gap-1 text-[11px] font-bold text-blue-800">
                             <span>⚔️ 4 Stage • 2 Bos Battle</span>
@@ -911,7 +1110,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                         )}
                       </div>
 
-                      {!isAdmin && game.id === 'contra-snes' && Object.keys(currentStudentContraHighScores).length > 0 && (
+                      {game.id === 'contra-snes' && Object.keys(currentStudentContraHighScores).length > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 mb-3">
                           {[1, 2, 3].map(st => {
                             const stScore = currentStudentContraHighScores[st];
@@ -925,33 +1124,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                         </div>
                       )}
 
-                      {isAdmin && game.id === 'contra-snes' && (
-                        <details className="group mt-1.5 mb-3 bg-slate-200/80 hover:bg-slate-200 rounded-xl border border-slate-300 transition-all overflow-hidden">
-                          <summary className="cursor-pointer list-none p-2.5 px-3 flex items-center justify-between text-xs font-black text-slate-800 select-none">
-                            <span className="flex items-center gap-1.5">
-                              <span>🔐</span> Atur Sumber Kuis Peluru Spesial
-                            </span>
-                            <ChevronDown size={14} className="text-slate-500 group-open:rotate-180 transition-transform" />
-                          </summary>
-                          <div className="p-2.5 pt-1 border-t border-slate-300 space-y-1.5 text-[11px]">
-                            <span className="text-[10px] text-slate-600 font-bold block">
-                              Materi Informatika untuk membuka Peluru Spesial (S / L / F / M):
-                            </span>
-                            <select
-                              value={gameConfigs['contra-snes']?.materiId ?? 'all'}
-                              onChange={(e) => updateContraMateri(e.target.value)}
-                              className="bg-white border border-slate-300 text-[11px] font-bold rounded-lg p-1.5 text-slate-800 cursor-pointer w-full"
-                            >
-                              <option value="all">Semua Materi Informatika (Campuran)</option>
-                              {COURSES.map(c => (
-                                <option key={c.id} value={c.id}>{c.title}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </details>
-                      )}
-
-                      {!isAdmin && game.id === 'petualangan-smp' && Object.keys(currentStudentStageHighScores).length > 0 && (
+                      {game.id === 'petualangan-smp' && Object.keys(currentStudentStageHighScores).length > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 mb-3">
                           {[1, 2, 3, 4].map(st => {
                             const stScore = currentStudentStageHighScores[st];
@@ -964,147 +1137,19 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                           })}
                         </div>
                       )}
-
-                      {/* Admin Stage Materi Configurator (Collapsible for compact neatness) */}
-                      {isAdmin && game.id === 'petualangan-smp' && (
-                        <details className="group mt-1.5 mb-3 bg-slate-200/80 hover:bg-slate-200 rounded-xl border border-slate-300 transition-all overflow-hidden">
-                          <summary className="cursor-pointer list-none p-2.5 px-3 flex items-center justify-between text-xs font-black text-slate-800 select-none">
-                            <span className="flex items-center gap-1.5">
-                              <span>⚙️</span> Atur Materi Kuis Kotak Emas
-                              <span className="text-[9px] font-bold text-brand bg-brand/10 border border-brand/20 px-1.5 py-0.5 rounded-full ml-1">
-                                4 Stage
-                              </span>
-                            </span>
-                            <ChevronDown size={14} className="text-slate-500 group-open:rotate-180 transition-transform" />
-                          </summary>
-
-                          <div className="p-2.5 pt-1 border-t border-slate-300 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                            {/* Stage 1 */}
-                            <div className="p-2 bg-white rounded-lg border border-slate-300 flex flex-col justify-between gap-1">
-                              <div>
-                                <span className="font-bold text-slate-900 block text-[11px] leading-tight">Stage 1: Ke Sekolah (175m)</span>
-                                <span className="text-[10px] text-slate-500">Bos: Komputer Jahat</span>
-                              </div>
-                              <select
-                                value={gameConfigs['petualangan-smp']?.stage1MateriId ?? 'bk-dekomposisi'}
-                                onChange={(e) => updateStageMateri('stage1MateriId', e.target.value)}
-                                className="bg-slate-100 border border-slate-300 text-[11px] font-bold rounded p-1 text-slate-800 cursor-pointer w-full mt-1"
-                              >
-                                {COURSES.map(c => (
-                                  <option key={c.id} value={c.id}>{c.title}</option>
-                                ))}
-                              </select>
-                            </div>
-
-                            {/* Stage 2 */}
-                            <div className="p-2 bg-white rounded-lg border border-slate-300 flex flex-col justify-between gap-1">
-                              <div>
-                                <span className="font-bold text-amber-900 block text-[11px] leading-tight">Stage 2: Pramuka (190m)</span>
-                                <span className="text-[10px] text-slate-500">Bos: Telepon Jahat (Lompat)</span>
-                              </div>
-                              <select
-                                value={gameConfigs['petualangan-smp']?.stage2MateriId ?? 'bk-pengenalan-pola'}
-                                onChange={(e) => updateStageMateri('stage2MateriId', e.target.value)}
-                                className="bg-slate-100 border border-slate-300 text-[11px] font-bold rounded p-1 text-slate-800 cursor-pointer w-full mt-1"
-                              >
-                                {COURSES.map(c => (
-                                  <option key={c.id} value={c.id}>{c.title}</option>
-                                ))}
-                              </select>
-                            </div>
-
-                            {/* Stage 3 */}
-                            <div className="p-2 bg-white rounded-lg border border-slate-300 flex flex-col justify-between gap-1">
-                              <div>
-                                <span className="font-bold text-indigo-900 block text-[11px] leading-tight">Stage 3: Study Tour (200m)</span>
-                                <span className="text-[10px] text-slate-500">Musuh: Keyboard Terbakar</span>
-                              </div>
-                              <select
-                                value={gameConfigs['petualangan-smp']?.stage3MateriId ?? 'scratch'}
-                                onChange={(e) => updateStageMateri('stage3MateriId', e.target.value)}
-                                className="bg-slate-100 border border-slate-300 text-[11px] font-bold rounded p-1 text-slate-800 cursor-pointer w-full mt-1"
-                              >
-                                {COURSES.map(c => (
-                                  <option key={c.id} value={c.id}>{c.title}</option>
-                                ))}
-                              </select>
-                            </div>
-
-                            {/* Stage 4 */}
-                            <div className="p-2 bg-white rounded-lg border border-slate-300 flex flex-col justify-between gap-1">
-                              <div>
-                                <span className="font-bold text-emerald-900 block text-[11px] leading-tight">Stage 4: Alun-Alun Ciamis (220m)</span>
-                                <span className="text-[10px] text-slate-500">Destinasi: Monumen Rafflesia</span>
-                              </div>
-                              <select
-                                value={gameConfigs['petualangan-smp']?.stage4MateriId ?? 'bk-algoritma'}
-                                onChange={(e) => updateStageMateri('stage4MateriId', e.target.value)}
-                                className="bg-slate-100 border border-slate-300 text-[11px] font-bold rounded p-1 text-slate-800 cursor-pointer w-full mt-1"
-                              >
-                                {COURSES.map(c => (
-                                  <option key={c.id} value={c.id}>{c.title}</option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                        </details>
-                      )}
                     </div>
 
                     {/* Bottom Actions */}
                     <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-300/80">
-                      {isAdmin && (
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => toggleGameStatus(game.id)}
-                            className={cn(
-                              "px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95",
-                              isGameActive
-                                ? "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
-                                : "bg-emerald-600 text-white hover:bg-emerald-700"
-                            )}
-                          >
-                            {isGameActive ? (
-                              <>
-                                <X size={13} /> Nonaktif
-                              </>
-                            ) : (
-                              <>
-                                <Check size={13} /> Aktifkan
-                              </>
-                            )}
-                          </button>
-
-                          <div className="flex items-center gap-0.5 bg-slate-200 rounded-lg p-0.5 border border-slate-300">
-                            <button
-                              onClick={() => moveGame(idx, 'up')}
-                              disabled={idx === 0}
-                              className="p-1 hover:bg-white rounded text-slate-700 disabled:opacity-30"
-                              title="Naikkan Urutan"
-                            >
-                              <MoveUp size={13} />
-                            </button>
-                            <button
-                              onClick={() => moveGame(idx, 'down')}
-                              disabled={idx === orderedGames.length - 1}
-                              className="p-1 hover:bg-white rounded text-slate-700 disabled:opacity-30"
-                              title="Turunkan Urutan"
-                            >
-                              <MoveDown size={13} />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
                       <button
                         onClick={() => setActivePlayGameId(game.id)}
                         className="px-3.5 py-1.5 bg-brand text-white rounded-lg text-xs font-black hover:bg-brand/90 transition-all shadow-sm active:scale-95 flex items-center gap-1.5 ml-auto"
                       >
-                        <Play size={13} /> {isAdmin ? "Pratinjau" : "Mainkan"}
+                        <Play size={13} /> Mainkan
                       </button>
                     </div>
                   </div>
-              );
+                );
             })}
           </div>
         </div>

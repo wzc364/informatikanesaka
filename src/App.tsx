@@ -2142,18 +2142,18 @@ export default function App() {
         (printingMaterialCourseId || (adminTab === 'materials' && materialSubTab === 'analisis_soal' && hasPrintableQuestionAnalysis)) && "print:hidden"
       )}>
         {/* Mobile Header */}
-        <div className="md:hidden fixed top-3 left-3 right-3 h-14 bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-2xl shadow-lg shadow-slate-900/5 z-50 flex items-center justify-between px-3.5 transition-all duration-300">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-slate-100 w-9 h-9 rounded-xl flex items-center justify-center shadow-xs overflow-hidden relative border border-slate-200/80 ring-1 ring-black/5">
+        <div className="md:hidden fixed top-2 left-2 right-2 h-12 bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-xl shadow-sm z-50 flex items-center justify-between px-3 transition-all duration-200">
+          <div className="flex items-center gap-2">
+            <div className="bg-slate-100 w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden relative border border-slate-200/80">
               <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
             </div>
-            <h2 className="text-sm font-extrabold text-slate-900 tracking-tight">SMPN 1 Kawali</h2>
+            <h2 className="text-xs font-extrabold text-slate-900 tracking-tight whitespace-nowrap">SMPN 1 Kawali</h2>
           </div>
           <button 
             onClick={() => setIsAdminSidebarOpen(true)}
-            className="p-2 text-slate-700 hover:text-brand hover:bg-slate-100/80 rounded-xl transition-all duration-300 active:scale-95"
+            className="p-1.5 text-slate-700 hover:text-brand hover:bg-slate-100 rounded-lg transition-all active:scale-95"
           >
-            <Menu size={22} />
+            <Menu size={19} />
           </button>
         </div>
 
@@ -2234,41 +2234,41 @@ export default function App() {
           </div>
         </aside>
 
-        <main className="flex-1 p-4 md:p-6 lg:p-8 pt-20 md:pt-5 overflow-y-auto w-full custom-scrollbar">
-          <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-2xl px-4 py-3.5 md:px-6 md:py-4 shadow-sm shadow-slate-900/[0.03] flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8 transition-all duration-300">
-            <div className="flex items-center gap-3.5">
+        <main className="flex-1 p-3 md:p-5 lg:p-6 pt-16 md:pt-4 overflow-y-auto w-full custom-scrollbar">
+          <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-3.5 py-2 md:px-4 md:py-2 shadow-xs flex items-center justify-between gap-3 mb-4 transition-all duration-200">
+            <div className="flex items-center gap-2.5 min-w-0">
               <div className={cn(
-                "w-11 h-11 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shadow-xs border border-brand/15 transition-all duration-300 shrink-0",
+                "w-8 h-8 rounded-lg flex items-center justify-center border border-brand/15 shrink-0",
                 menuItems.find(i => i.id === adminTab)?.color
               )}>
                 {(() => {
                   const Icon = menuItems.find(i => i.id === adminTab)?.icon;
-                  return Icon ? <Icon size={22} className="md:w-6 md:h-6" /> : null;
+                  return Icon ? <Icon size={16} /> : null;
                 })()}
               </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight lowercase first-letter:uppercase">
+              <div className="flex items-baseline gap-2 min-w-0">
+                <h1 className="text-base md:text-lg font-extrabold text-slate-900 tracking-tight truncate">
                   {adminTab === 'history' ? 'Aktivitas' : adminTab === 'student_management' ? 'Siswa & Kelas' : 
                    adminTab === 'materials' ? 'Kelola Materi' : adminTab === 'questions' ? 'Kelola Soal' : adminTab === 'assessments' ? 'Hasil Asesmen' :
-                   adminTab === 'games' ? 'Kelola Permainan / Game Edukasi' :
-                   adminTab === 'announcements' ? 'Pengumuman' : adminTab === 'settings' ? 'Pengaturan' : adminTab}
+                   adminTab === 'games' ? 'Kelola Game' :
+                   adminTab === 'announcements' ? 'Pengumuman' : adminTab === 'settings' ? 'Pengaturan' : 'Dashboard'}
                 </h1>
-                <p className="text-slate-500 font-semibold text-xs md:text-sm tracking-tight capitalize">
-                  Manajer sistem &bull; {adminTab}
-                </p>
+                <span className="hidden sm:inline text-slate-400 text-xs font-medium whitespace-nowrap">
+                  · Admin Panel
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 self-end md:self-auto">
+            <div className="flex items-center gap-2 shrink-0">
               {/* Notification Bell */}
               <div className="relative">
                 <button 
                   onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                  className="w-10 h-10 md:w-11 md:h-11 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl flex items-center justify-center text-slate-600 shadow-xs hover:shadow-sm transition-all duration-300 relative group"
+                  className="w-8 h-8 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-lg flex items-center justify-center text-slate-600 shadow-2xs transition-all duration-200 relative group"
                 >
-                  <Bell size={20} className="md:w-5 md:h-5 group-hover:rotate-12 transition-transform duration-300 text-brand" />
+                  <Bell size={16} className="group-hover:rotate-12 transition-transform duration-200 text-brand" />
                   {notifications.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 bg-rose-500 text-white text-[10px] font-extrabold rounded-full flex items-center justify-center border-2 border-white ring-2 ring-rose-500/20 px-1 tabular-nums">
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-rose-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center border border-white px-1 tabular-nums">
                       {notifications.length}
                     </span>
                   )}
@@ -2369,16 +2369,16 @@ export default function App() {
                 <div className="flex gap-2">
                 <button 
                   onClick={() => setIsImportModalOpen(true)}
-                  className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-brand to-blue-600 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-bold text-sm shadow-md shadow-brand/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-300"
+                  className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-brand to-blue-600 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-bold text-xs shadow-xs active:scale-95 transition-all whitespace-nowrap"
                 >
-                  <Plus size={18} /> <span className="hidden sm:inline">Tambah Siswa</span>
+                  <Plus size={15} /> <span className="hidden sm:inline">Tambah Siswa</span>
                 </button>
                 {selectedStudentIds.length > 0 && (
                   <button 
                     onClick={() => { setDeleteType('student'); setDeleteTarget('selected'); setIsDeleteModalOpen(true); }}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-50 text-rose-600 border border-rose-200/80 rounded-xl font-bold text-sm hover:bg-rose-100 transition-all duration-300"
+                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-600 border border-rose-200/80 rounded-lg font-bold text-xs hover:bg-rose-100 transition-all whitespace-nowrap"
                   >
-                    <Trash2 size={18} /> <span className="hidden sm:inline">Hapus ({selectedStudentIds.length})</span>
+                    <Trash2 size={15} /> <span className="hidden sm:inline">Hapus ({selectedStudentIds.length})</span>
                   </button>
                 )}
               </div>
@@ -2386,8 +2386,8 @@ export default function App() {
           </header>
           
           <div className={cn(
-            "rounded-3xl transition-all duration-300",
-            adminTab === 'dashboard' ? "" : "bg-white/95 backdrop-blur-sm p-5 md:p-7 shadow-sm shadow-slate-900/[0.03] border border-slate-200/80"
+            "rounded-2xl transition-colors duration-200",
+            adminTab === 'dashboard' ? "" : "bg-white p-4 md:p-6 shadow-xs border border-slate-200/80"
           )}>
             {adminTab === 'dashboard' && (() => {
               const activeSessionList = activeSessions.filter(s => {
@@ -2407,71 +2407,62 @@ export default function App() {
 
               return (
                 <div className="space-y-6 animate-in fade-in duration-500">
-                  {/* Kartu Kelola Game, Kelola Materi & Kelola Soal (Ringkas, Kompak, Warna-Warni & Modern di Bagian Atas) */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Kartu 1: Kelola Game Edukasi */}
-                    <div className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl p-4 shadow-md transition-all duration-300 flex items-center justify-between gap-3 group">
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
-                          <Gamepad2 size={26} className="text-amber-300" />
+                  {/* Kartu Kelola Game, Kelola Materi & Kelola Soal */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                    <div className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl p-3.5 shadow-sm transition-colors flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                          <Gamepad2 size={20} className="text-amber-300" />
                         </div>
                         <div className="min-w-0">
-                          <span className="text-[10px] font-black uppercase tracking-wider bg-white/25 px-2.5 py-0.5 rounded-full text-white">
-                            Kelola Game Edukasi
-                          </span>
-                          <p className="text-xs font-bold text-indigo-100 mt-1 tabular-nums">7 Game Aktif & Arena</p>
+                          <h3 className="text-sm font-extrabold text-white truncate">Kelola Game</h3>
+                          <p className="text-xs font-medium text-indigo-100 tabular-nums">7 Game Edukasi</p>
                         </div>
                       </div>
                       <button
                         onClick={() => setAdminTab('games')}
-                        className="px-4 py-2.5 bg-white text-indigo-900 hover:bg-indigo-50 text-xs font-black rounded-xl shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
+                        className="px-3 py-1.5 bg-white text-indigo-900 hover:bg-indigo-50 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
                       >
                         <span>Kelola</span>
-                        <ArrowRight size={14} />
+                        <ArrowRight size={13} />
                       </button>
                     </div>
 
-                    {/* Kartu 2: Kelola Materi Pembelajaran */}
-                    <div className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl p-4 shadow-md transition-all duration-300 flex items-center justify-between gap-3 group">
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
-                          <GraduationCap size={26} className="text-yellow-300" />
+                    <div className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl p-3.5 shadow-sm transition-colors flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                          <GraduationCap size={20} className="text-yellow-300" />
                         </div>
                         <div className="min-w-0">
-                          <span className="text-[10px] font-black uppercase tracking-wider bg-white/25 px-2.5 py-0.5 rounded-full text-white">
-                            Kelola Materi Belajar
-                          </span>
-                          <p className="text-xs font-bold text-emerald-100 mt-1 tabular-nums">{activeCourseCount} Modul Siap</p>
+                          <h3 className="text-sm font-extrabold text-white truncate">Kelola Materi</h3>
+                          <p className="text-xs font-medium text-emerald-100 tabular-nums">{activeCourseCount} Modul Siap</p>
                         </div>
                       </div>
                       <button
                         onClick={() => setAdminTab('materials')}
-                        className="px-4 py-2.5 bg-white text-emerald-950 hover:bg-emerald-50 text-xs font-black rounded-xl shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
+                        className="px-3 py-1.5 bg-white text-emerald-950 hover:bg-emerald-50 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
                       >
                         <span>Kelola</span>
-                        <ArrowRight size={14} />
+                        <ArrowRight size={13} />
                       </button>
                     </div>
 
-                    {/* Kartu 3: Kelola Soal & Ujian */}
-                    <div className="bg-amber-600 hover:bg-amber-700 text-white rounded-2xl p-4 shadow-md transition-all duration-300 flex items-center justify-between gap-3 group">
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
-                          <ClipboardList size={26} className="text-yellow-200" />
+                    <div className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl p-3.5 shadow-sm transition-colors flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                          <ClipboardList size={20} className="text-yellow-200" />
                         </div>
                         <div className="min-w-0">
-                          <span className="text-[10px] font-black uppercase tracking-wider bg-white/25 px-2.5 py-0.5 rounded-full text-white">
-                            Kelola Soal & Ujian
-                          </span>
-                          <p className="text-xs font-bold text-amber-100 mt-1 tabular-nums">{soalSets.filter(s => s.isActive).length} Paket Soal Aktif</p>
+                          <h3 className="text-sm font-extrabold text-white truncate">Kelola Soal</h3>
+                          <p className="text-xs font-medium text-amber-100 tabular-nums">{soalSets.filter(s => s.isActive).length} Paket Aktif</p>
                         </div>
                       </div>
                       <button
                         onClick={() => setAdminTab('questions')}
-                        className="px-4 py-2.5 bg-white text-amber-950 hover:bg-amber-50 text-xs font-black rounded-xl shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
+                        className="px-3 py-1.5 bg-white text-amber-950 hover:bg-amber-50 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
                       >
                         <span>Kelola</span>
-                        <ArrowRight size={14} />
+                        <ArrowRight size={13} />
                       </button>
                     </div>
                   </div>
