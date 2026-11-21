@@ -43,6 +43,58 @@ import { db } from '../firebase';
 import { COURSES } from '../constants';
 import ContraSnesGame from './ContraSnesGame';
 import FightingGame from './FightingGame';
+import infokombatBg from '../assets/images/game_infokombat_bg_1795243068344.jpg';
+import contraSnesBg from '../assets/images/game_infowar_bg_1795243067848.jpg';
+import petualanganSmpBg from '../assets/images/game_petualangan_bg_1795243067941.jpg';
+import patternMasterBg from '../assets/images/game_pattern_bg_1795243068059.jpg';
+import scratchBlocksBg from '../assets/images/game_koding_bg_1795243068875.jpg';
+import dekomposisiBg from '../assets/images/game_dekomposisi_bg_1795243068709.jpg';
+import starCatcherBg from '../assets/images/game_starcatcher_bg_1795243067534.jpg';
+
+const GAME_ART_MAP: Record<string, { image: string; fallbackGradient: string; accentClass: string; badgeText: string }> = {
+  'infokombat': {
+    image: infokombatBg,
+    fallbackGradient: 'from-rose-900 via-red-900 to-slate-950',
+    accentClass: 'bg-rose-600',
+    badgeText: '16-Bit Fighting'
+  },
+  'contra-snes': {
+    image: contraSnesBg,
+    fallbackGradient: 'from-orange-900 via-rose-900 to-slate-950',
+    accentClass: 'bg-orange-600',
+    badgeText: 'SNES Run & Gun'
+  },
+  'petualangan-smp': {
+    image: petualanganSmpBg,
+    fallbackGradient: 'from-blue-800 via-indigo-900 to-slate-950',
+    accentClass: 'bg-blue-600',
+    badgeText: 'Platformer 4 Stage'
+  },
+  'pattern-master': {
+    image: patternMasterBg,
+    fallbackGradient: 'from-indigo-900 via-violet-900 to-slate-950',
+    accentClass: 'bg-indigo-600',
+    badgeText: 'Logika Bilangan'
+  },
+  'scratch-blocks': {
+    image: scratchBlocksBg,
+    fallbackGradient: 'from-amber-800 via-orange-900 to-slate-950',
+    accentClass: 'bg-amber-600',
+    badgeText: 'Algoritma Labirin'
+  },
+  'dekomposisi-puzzle': {
+    image: dekomposisiBg,
+    fallbackGradient: 'from-emerald-900 via-teal-900 to-slate-950',
+    accentClass: 'bg-emerald-600',
+    badgeText: 'Modular System'
+  },
+  'star-catcher': {
+    image: starCatcherBg,
+    fallbackGradient: 'from-violet-900 via-fuchsia-900 to-slate-950',
+    accentClass: 'bg-violet-600',
+    badgeText: 'Arcade Visual'
+  }
+};
 
 export interface GameItem {
   id: string;
@@ -54,201 +106,34 @@ export interface GameItem {
   defaultTimerSec: number;
 }
 
-function GameCardBanner({ gameId }: { gameId: string }) {
-  if (gameId === 'infokombat') {
-    return (
-      <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-red-900 via-purple-900 to-slate-950 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-red-500/40">
-        <div className="space-y-1 z-10 max-w-[78%]">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[9px] font-black uppercase tracking-wider bg-red-600 text-white px-2 py-0.5 rounded-full border border-red-400 shadow-xs">
-              ⚔️ 16-BIT FIGHTING
-            </span>
-            <span className="text-[9px] font-bold text-red-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
-              Mortal Kombat Style
-            </span>
-          </div>
-          <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
-            Informatika Kombat
-          </h4>
-          <div className="flex items-center gap-1 text-[9px] font-mono font-black">
-            <span className="bg-blue-600 px-1.5 py-0.5 rounded">Punch</span>
-            <span className="bg-amber-600 px-1.5 py-0.5 rounded">Kick</span>
-            <span className="bg-emerald-600 px-1.5 py-0.5 rounded">Block</span>
-            <span className="bg-red-600 px-1.5 py-0.5 rounded text-amber-300">Fatality</span>
-          </div>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-red-300/30 flex items-center justify-center text-2xl shadow-md shrink-0">
-          ⚔️
-        </div>
-      </div>
-    );
-  }
+function GameCardBanner({ gameId, title, category }: { gameId: string; title?: string; category?: string }) {
+  const art = GAME_ART_MAP[gameId] || {
+    image: starCatcherBg,
+    fallbackGradient: 'from-slate-800 to-slate-950',
+    accentClass: 'bg-brand',
+    badgeText: 'Game Edukasi'
+  };
 
-  if (gameId === 'contra-snes') {
-    return (
-      <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-red-800 via-rose-800 to-slate-950 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-red-400/40">
-        <div className="space-y-1 z-10 max-w-[78%]">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[9px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full border border-amber-300 shadow-xs">
-              🕹️ 16-BIT SNES ACTION
-            </span>
-            <span className="text-[9px] font-bold text-red-100 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
-              3 Stage • Kuis Peluru
-            </span>
-          </div>
-          <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
-            Informatika War
-          </h4>
-          <div className="flex items-center gap-1 text-[9px] font-mono font-black">
-            <span className="bg-red-600 px-1.5 py-0.5 rounded border border-red-300/60">[S] Spread</span>
-            <span className="bg-sky-600 px-1.5 py-0.5 rounded border border-sky-300/60">[L] Laser</span>
-            <span className="bg-orange-600 px-1.5 py-0.5 rounded border border-orange-300/60">[F] Flame</span>
-            <span className="text-amber-300 ml-1">🔐 Kuis Informatika</span>
-          </div>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-red-300/30 flex items-center justify-center text-2xl shadow-md shrink-0">
-          🔫
-        </div>
-      </div>
-    );
-  }
-
-  if (gameId === 'petualangan-smp') {
-    return (
-      <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-900 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-indigo-400/30">
-        <div className="space-y-1 z-10 max-w-[75%]">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[9px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full border border-amber-300 shadow-xs flex items-center gap-1">
-              ⭐ Game Utama SMP
-            </span>
-            <span className="text-[9px] font-bold text-sky-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
-              4 Stage + Bos Battle
-            </span>
-          </div>
-          <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
-            Petualangan Ke Sekolah & Wisata
-          </h4>
-          <div className="flex items-center gap-1 text-[9px] font-bold text-sky-100 flex-wrap">
-            <span className="bg-sky-950/80 px-1.5 py-0.2 rounded">🏠 Rumah</span>➔
-            <span className="bg-blue-950/80 px-1.5 py-0.2 rounded">🏫 SMPN 1</span>➔
-            <span className="bg-emerald-950/80 px-1.5 py-0.2 rounded">🏕️ Kemah</span>➔
-            <span className="bg-purple-950/80 px-1.5 py-0.2 rounded">🏛️ Ciamis</span>
-          </div>
-        </div>
-        <div className="relative shrink-0 flex items-center justify-center pr-1">
-          <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-md">
-            🏃
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (gameId === 'pattern-master') {
-    return (
-      <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-indigo-700 via-purple-700 to-slate-900 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-purple-400/30">
-        <div className="space-y-1 z-10">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-black uppercase tracking-wider bg-purple-400 text-purple-950 px-2 py-0.5 rounded-full border border-purple-300 shadow-xs">
-              🔍 Detektif Pola
-            </span>
-            <span className="text-[9px] font-bold text-purple-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
-              Matematika
-            </span>
-          </div>
-          <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
-            Detektif Pola Bilangan
-          </h4>
-          <div className="flex items-center gap-1 text-[10px] font-mono font-black text-amber-300">
-            <span className="bg-white/10 px-1.5 py-0.5 rounded">3</span>➔
-            <span className="bg-white/10 px-1.5 py-0.5 rounded">7</span>➔
-            <span className="bg-white/10 px-1.5 py-0.5 rounded">11</span>➔
-            <span className="bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded animate-pulse">?</span>
-          </div>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-md shrink-0">
-          🔎
-        </div>
-      </div>
-    );
-  }
-
-  if (gameId === 'scratch-blocks') {
-    return (
-      <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-amber-600 via-orange-600 to-slate-900 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-amber-400/30">
-        <div className="space-y-1 z-10">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-black uppercase tracking-wider bg-amber-300 text-amber-950 px-2 py-0.5 rounded-full border border-amber-200 shadow-xs">
-              🧩 Algoritma Visual
-            </span>
-            <span className="text-[9px] font-bold text-amber-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
-              Scratch
-            </span>
-          </div>
-          <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
-            Scratch Block Builder
-          </h4>
-          <div className="flex items-center gap-1.5 text-[9px] font-mono font-bold">
-            <span className="bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded">when 🚩 clicked</span>
-            <span className="bg-blue-500 text-white px-1.5 py-0.5 rounded">move 10 steps</span>
-          </div>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-md shrink-0">
-          🐱
-        </div>
-      </div>
-    );
-  }
-
-  if (gameId === 'dekomposisi-puzzle') {
-    return (
-      <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-emerald-600 via-teal-700 to-slate-900 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-emerald-400/30">
-        <div className="space-y-1 z-10">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-300 text-emerald-950 px-2 py-0.5 rounded-full border border-emerald-200 shadow-xs">
-              🧩 Modular System
-            </span>
-            <span className="text-[9px] font-bold text-emerald-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
-              Berpikir Komputasional
-            </span>
-          </div>
-          <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
-            Dekomposisi Master
-          </h4>
-          <div className="flex items-center gap-1 text-[9px] font-bold text-emerald-100">
-            <span className="bg-emerald-900/80 px-1.5 py-0.5 rounded">Stok</span>➔
-            <span className="bg-emerald-900/80 px-1.5 py-0.5 rounded">Transaksi</span>➔
-            <span className="bg-emerald-900/80 px-1.5 py-0.5 rounded">Laporan</span>
-          </div>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-md shrink-0">
-          🧩
-        </div>
-      </div>
-    );
-  }
-
-  // star-catcher
   return (
-    <div className="h-20 md:h-22 w-full rounded-xl overflow-hidden bg-gradient-to-r from-violet-600 via-fuchsia-700 to-slate-900 relative p-3 flex items-center justify-between text-white shadow-inner mb-3 border border-fuchsia-400/30">
-      <div className="space-y-1 z-10">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[9px] font-black uppercase tracking-wider bg-fuchsia-300 text-fuchsia-950 px-2 py-0.5 rounded-full border border-fuchsia-200 shadow-xs">
-            ⭐ Game Arcade
+    <div className={cn("h-32 w-full rounded-xl overflow-hidden relative bg-gradient-to-br flex flex-col justify-end p-4 text-white mb-4 group/banner", art.fallbackGradient)}>
+      <img
+        src={art.image}
+        alt={title ? `Ilustrasi ${title}` : 'Ilustrasi Game Edukasi'}
+        referrerPolicy="no-referrer"
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover/banner:scale-105"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-slate-900/20" />
+      <div className="relative z-10 flex items-end justify-between gap-2">
+        <div className="min-w-0">
+          <span className="text-[11px] font-semibold text-white/85 tracking-wide block truncate">
+            {art.badgeText}{category ? ` · ${category}` : ''}
           </span>
-          <span className="text-[9px] font-bold text-fuchsia-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
-            Scratch Visual
-          </span>
+          {title && (
+            <h4 className="text-base font-extrabold tracking-tight text-white leading-snug truncate mt-0.5">
+              {title}
+            </h4>
+          )}
         </div>
-        <h4 className="text-sm md:text-base font-black tracking-tight drop-shadow-sm leading-tight">
-          Star Catcher Arcade
-        </h4>
-        <div className="flex items-center gap-1 text-amber-300 text-xs animate-pulse">
-          ⭐⭐⭐⭐⭐
-        </div>
-      </div>
-      <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl shadow-md shrink-0">
-        🚀
       </div>
     </div>
   );
@@ -769,47 +654,43 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
           </div>
         </div>
       ) : (
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-100 p-6 md:p-8 rounded-[2.5rem] border border-slate-300 shadow-xs">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg shadow-brand/20 shrink-0">
-              <Gamepad2 size={32} />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white px-5 py-4 rounded-2xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-11 h-11 bg-indigo-600 text-white rounded-xl flex items-center justify-center shrink-0">
+              <Gamepad2 size={22} />
             </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-widest text-brand bg-brand/10 border border-brand/20 px-2.5 py-0.5 rounded-full">
-                  Permainan Edukatif
-                </span>
-                <span className="text-xs text-slate-500 font-bold">• {GAMES_LIST.length} Game Interaktif</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                <span>Permainan Edukatif</span>
+                <span aria-hidden="true">·</span>
+                <span className="tabular-nums">{orderedGames.filter(g => gameConfigs[g.id]?.isActive ?? true).length} Game Tersedia</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight">
-                Game Edukasi Informatika
-              </h1>
-              <p className="text-xs md:text-sm text-slate-600 font-medium mt-0.5">
-                Asah kemampuan logika, berpikir komputasi, dan matematika melalui permainan seru!
-              </p>
+              <h2 className="text-lg md:text-xl font-extrabold text-slate-900 tracking-tight truncate">
+                Arena Game Informatika
+              </h2>
             </div>
           </div>
 
           {/* Tab Switcher */}
-          <div className="flex items-center gap-1.5 p-1.5 bg-slate-200/80 rounded-2xl border border-slate-300 shrink-0">
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0 self-start sm:self-auto">
             <button
               onClick={() => setActiveTab('manage')}
               className={cn(
-                "px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-2",
+                "px-3.5 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer",
                 activeTab === 'manage' 
-                  ? "bg-white text-slate-900 shadow-md" 
+                  ? "bg-white text-slate-900 shadow-xs" 
                   : "text-slate-600 hover:text-slate-900"
               )}
             >
-              <Settings size={14} />
+              <Gamepad2 size={14} />
               Daftar Game
             </button>
             <button
               onClick={() => setActiveTab('leaderboard')}
               className={cn(
-                "px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-2",
+                "px-3.5 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap tabular-nums cursor-pointer",
                 activeTab === 'leaderboard' 
-                  ? "bg-white text-slate-900 shadow-md" 
+                  ? "bg-white text-slate-900 shadow-xs" 
                   : "text-slate-600 hover:text-slate-900"
               )}
             >
@@ -831,8 +712,8 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
           )}
 
           <div className={cn(
-            "grid gap-3.5",
-            isAdmin ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1 md:grid-cols-2 gap-6"
+            "grid gap-4",
+            isAdmin ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
           )}>
             {orderedGames
               .filter(game => isAdmin || (gameConfigs[game.id]?.isActive ?? true))
@@ -850,6 +731,12 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
                 const isDragging = draggedIndex === idx;
                 const isDragOver = dragOverIndex === idx;
+                const art = GAME_ART_MAP[game.id] || {
+                  image: starCatcherBg,
+                  fallbackGradient: 'from-slate-800 to-slate-950',
+                  accentClass: 'bg-brand',
+                  badgeText: 'Game Edukasi'
+                };
 
                 if (isAdmin) {
                   return (
@@ -861,43 +748,54 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                       onDrop={(e) => handleDrop(e, idx)}
                       onDragEnd={handleDragEnd}
                       className={cn(
-                        "p-3.5 rounded-xl border transition-all flex flex-col justify-between gap-2.5 bg-slate-50 hover:bg-white hover:border-slate-300",
-                        isGameActive ? "border-slate-200" : "border-slate-200 opacity-75 bg-slate-100/80",
-                        isDragging && "opacity-40 scale-95 border-dashed border-amber-500",
-                        isDragOver && "ring-2 ring-brand/40 border-brand"
+                        "group relative overflow-hidden p-4 rounded-2xl transition-all duration-200 flex flex-col justify-between gap-3 text-white shadow-sm hover:shadow-md border border-slate-800/40 bg-gradient-to-br",
+                        art.fallbackGradient,
+                        !isGameActive && "opacity-90",
+                        isDragging && "opacity-40 scale-95 border-dashed border-amber-300",
+                        isDragOver && "ring-3 ring-amber-300 scale-[1.01]"
                       )}
                     >
-                      <div className="space-y-2">
-                        {/* Baris Judul Sederhana */}
+                      {/* Thematic AI Background Artwork */}
+                      <img
+                        src={art.image}
+                        alt={`Tema latar ${game.title}`}
+                        referrerPolicy="no-referrer"
+                        className={cn(
+                          "absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105",
+                          !isGameActive && "grayscale opacity-55"
+                        )}
+                      />
+                      {/* Measured Dark Scrim for WCAG AA Contrast */}
+                      <div
+                        className={cn(
+                          "absolute inset-0 transition-opacity",
+                          isGameActive
+                            ? "bg-gradient-to-t from-slate-950/92 via-slate-950/75 to-slate-900/55"
+                            : "bg-slate-950/80"
+                        )}
+                      />
+
+                      <div className="relative z-10 space-y-2.5">
+                        {/* Baris Judul Bersih */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <div
-                              className="p-1 text-slate-400 hover:text-slate-700 rounded cursor-grab active:cursor-grabbing shrink-0"
+                              className="p-1 text-white/75 hover:text-white hover:bg-white/15 rounded-md cursor-grab active:cursor-grabbing shrink-0 transition-colors"
                               title="Seret untuk ubah urutan"
                             >
                               <GripVertical size={15} />
                             </div>
-                            <div
-                              className={cn(
-                                "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white shrink-0",
-                                game.id === 'contra-snes' ? "bg-gradient-to-br from-red-600 to-orange-600" :
-                                game.id === 'infokombat' ? "bg-gradient-to-br from-red-800 to-purple-800" :
-                                game.id === 'petualangan-smp' ? "bg-gradient-to-br from-blue-600 to-indigo-600" :
-                                game.id === 'pattern-master' ? "bg-indigo-600" :
-                                game.id === 'scratch-blocks' ? "bg-amber-500" :
-                                game.id === 'dekomposisi-puzzle' ? "bg-emerald-600" : "bg-purple-600"
-                              )}
-                            >
-                              {game.iconName === 'Calculator' && <Calculator size={15} />}
-                              {game.iconName === 'Code' && <Code size={15} />}
-                              {game.iconName === 'Puzzle' && <Puzzle size={15} />}
-                              {game.iconName === 'Gamepad2' && <Gamepad2 size={15} />}
+                            <div className={cn("w-9 h-9 rounded-xl border border-white/25 flex items-center justify-center text-white shrink-0 shadow-xs", art.accentClass)}>
+                              {game.iconName === 'Calculator' && <Calculator size={17} />}
+                              {game.iconName === 'Code' && <Code size={17} />}
+                              {game.iconName === 'Puzzle' && <Puzzle size={17} />}
+                              {game.iconName === 'Gamepad2' && <Gamepad2 size={17} />}
                             </div>
                             <div className="min-w-0">
-                              <h3 className="text-sm font-bold text-slate-900 leading-tight truncate">
+                              <h3 className="text-sm font-extrabold text-white leading-tight truncate drop-shadow-2xs">
                                 {game.title}
                               </h3>
-                              <p className="text-[11px] font-medium text-slate-500 truncate tabular-nums">
+                              <p className="text-[11px] font-medium text-white/85 truncate tabular-nums mt-0.5">
                                 #{idx + 1} · {game.category} · Skor {gameHighScore} pts
                               </p>
                             </div>
@@ -905,27 +803,32 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
                           <span
                             className={cn(
-                              "text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-md border",
+                              "text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap backdrop-blur-xs",
                               isGameActive
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-slate-200 text-slate-600 border-slate-300"
+                                ? "bg-emerald-500/85 text-white border border-emerald-300/40"
+                                : "bg-slate-800/85 text-slate-200 border border-white/20"
                             )}
                           >
+                            {isGameActive ? <Check size={10} /> : <X size={10} />}
                             {isGameActive ? 'Aktif' : 'Nonaktif'}
                           </span>
                         </div>
 
+                        <p className="text-xs text-white/90 line-clamp-1 leading-snug drop-shadow-2xs">
+                          {game.description}
+                        </p>
+
                         {game.id === 'contra-snes' && (
-                          <details className="group bg-white rounded-lg border border-slate-200 overflow-hidden">
-                            <summary className="cursor-pointer list-none px-2.5 py-1.5 flex items-center justify-between text-[11px] font-bold text-slate-700 select-none">
+                          <details className="group/det bg-slate-950/65 backdrop-blur-xs rounded-xl border border-white/20 overflow-hidden">
+                            <summary className="cursor-pointer list-none px-3 py-1.5 flex items-center justify-between text-[11px] font-bold text-white select-none">
                               <span>Sumber Kuis Peluru Spesial</span>
-                              <ChevronDown size={13} className="text-slate-400 group-open:rotate-180 transition-transform" />
+                              <ChevronDown size={13} className="text-white/80 group-open/det:rotate-180 transition-transform" />
                             </summary>
-                            <div className="p-2 pt-1.5 border-t border-slate-200">
+                            <div className="p-2 pt-1.5 border-t border-white/15">
                               <select
                                 value={gameConfigs['contra-snes']?.materiId ?? 'all'}
                                 onChange={(e) => updateContraMateri(e.target.value)}
-                                className="bg-slate-50 border border-slate-300 text-[11px] font-semibold rounded-md p-1.5 text-slate-800 cursor-pointer w-full"
+                                className="bg-white border border-slate-200 text-[11px] font-semibold rounded-lg p-1.5 text-slate-900 cursor-pointer w-full"
                               >
                                 <option value="all">Semua Materi Informatika (Campuran)</option>
                                 {COURSES.map(c => (
@@ -937,18 +840,18 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                         )}
 
                         {game.id === 'petualangan-smp' && (
-                          <details className="group bg-white rounded-lg border border-slate-200 overflow-hidden">
-                            <summary className="cursor-pointer list-none px-2.5 py-1.5 flex items-center justify-between text-[11px] font-bold text-slate-700 select-none">
+                          <details className="group/det bg-slate-950/65 backdrop-blur-xs rounded-xl border border-white/20 overflow-hidden">
+                            <summary className="cursor-pointer list-none px-3 py-1.5 flex items-center justify-between text-[11px] font-bold text-white select-none">
                               <span>Atur Materi 4 Stage</span>
-                              <ChevronDown size={13} className="text-slate-400 group-open:rotate-180 transition-transform" />
+                              <ChevronDown size={13} className="text-white/80 group-open/det:rotate-180 transition-transform" />
                             </summary>
-                            <div className="p-2 pt-1.5 border-t border-slate-200 grid grid-cols-2 gap-1.5 text-[10px]">
+                            <div className="p-2 pt-1.5 border-t border-white/15 grid grid-cols-2 gap-1.5 text-[10px]">
                               <div>
-                                <span className="font-bold text-slate-600 block mb-0.5">Stage 1: Sekolah</span>
+                                <span className="font-bold text-white/90 block mb-0.5">Stage 1: Sekolah</span>
                                 <select
                                   value={gameConfigs['petualangan-smp']?.stage1MateriId ?? 'bk-dekomposisi'}
                                   onChange={(e) => updateStageMateri('stage1MateriId', e.target.value)}
-                                  className="bg-slate-50 border border-slate-300 text-[10px] font-semibold rounded p-1 text-slate-800 w-full"
+                                  className="bg-white border border-slate-200 text-[10px] font-semibold rounded-md p-1 text-slate-900 w-full"
                                 >
                                   {COURSES.map(c => (
                                     <option key={c.id} value={c.id}>{c.title}</option>
@@ -956,11 +859,11 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                                 </select>
                               </div>
                               <div>
-                                <span className="font-bold text-slate-600 block mb-0.5">Stage 2: Pramuka</span>
+                                <span className="font-bold text-white/90 block mb-0.5">Stage 2: Pramuka</span>
                                 <select
                                   value={gameConfigs['petualangan-smp']?.stage2MateriId ?? 'bk-pengenalan-pola'}
                                   onChange={(e) => updateStageMateri('stage2MateriId', e.target.value)}
-                                  className="bg-slate-50 border border-slate-300 text-[10px] font-semibold rounded p-1 text-slate-800 w-full"
+                                  className="bg-white border border-slate-200 text-[10px] font-semibold rounded-md p-1 text-slate-900 w-full"
                                 >
                                   {COURSES.map(c => (
                                     <option key={c.id} value={c.id}>{c.title}</option>
@@ -968,11 +871,11 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                                 </select>
                               </div>
                               <div>
-                                <span className="font-bold text-slate-600 block mb-0.5">Stage 3: Study Tour</span>
+                                <span className="font-bold text-white/90 block mb-0.5">Stage 3: Study Tour</span>
                                 <select
                                   value={gameConfigs['petualangan-smp']?.stage3MateriId ?? 'scratch'}
                                   onChange={(e) => updateStageMateri('stage3MateriId', e.target.value)}
-                                  className="bg-slate-50 border border-slate-300 text-[10px] font-semibold rounded p-1 text-slate-800 w-full"
+                                  className="bg-white border border-slate-200 text-[10px] font-semibold rounded-md p-1 text-slate-900 w-full"
                                 >
                                   {COURSES.map(c => (
                                     <option key={c.id} value={c.id}>{c.title}</option>
@@ -980,11 +883,11 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                                 </select>
                               </div>
                               <div>
-                                <span className="font-bold text-slate-600 block mb-0.5">Stage 4: Ciamis</span>
+                                <span className="font-bold text-white/90 block mb-0.5">Stage 4: Ciamis</span>
                                 <select
                                   value={gameConfigs['petualangan-smp']?.stage4MateriId ?? 'bk-algoritma'}
                                   onChange={(e) => updateStageMateri('stage4MateriId', e.target.value)}
-                                  className="bg-slate-50 border border-slate-300 text-[10px] font-semibold rounded p-1 text-slate-800 w-full"
+                                  className="bg-white border border-slate-200 text-[10px] font-semibold rounded-md p-1 text-slate-900 w-full"
                                 >
                                   {COURSES.map(c => (
                                     <option key={c.id} value={c.id}>{c.title}</option>
@@ -997,25 +900,25 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                       </div>
 
                       {/* Bottom Actions */}
-                      <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-200">
-                        <div className="flex items-center gap-1">
+                      <div className="relative z-10 flex items-center justify-between gap-1.5 pt-2.5 border-t border-white/20">
+                        <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => toggleGameStatus(game.id)}
                             className={cn(
-                              "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1 whitespace-nowrap",
+                              "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1 whitespace-nowrap cursor-pointer",
                               isGameActive
-                                ? "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
-                                : "bg-emerald-600 text-white hover:bg-emerald-700"
+                                ? "bg-slate-950/65 hover:bg-slate-950/85 text-white border border-white/25"
+                                : "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-2xs"
                             )}
                           >
                             {isGameActive ? 'Nonaktifkan' : 'Aktifkan'}
                           </button>
 
-                          <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 border border-slate-200">
+                          <div className="flex items-center gap-0.5 bg-slate-950/65 rounded-lg p-0.5 border border-white/20">
                             <button
                               onClick={() => moveGame(idx, 'up')}
                               disabled={idx === 0}
-                              className="p-1 hover:bg-white rounded text-slate-600 disabled:opacity-30"
+                              className="p-1 hover:bg-white/20 rounded text-white disabled:opacity-35 transition-colors cursor-pointer"
                               title="Naikkan Urutan"
                             >
                               <MoveUp size={12} />
@@ -1023,7 +926,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                             <button
                               onClick={() => moveGame(idx, 'down')}
                               disabled={idx === orderedGames.length - 1}
-                              className="p-1 hover:bg-white rounded text-slate-600 disabled:opacity-30"
+                              className="p-1 hover:bg-white/20 rounded text-white disabled:opacity-35 transition-colors cursor-pointer"
                               title="Turunkan Urutan"
                             >
                               <MoveDown size={12} />
@@ -1033,7 +936,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
                         <button
                           onClick={() => setActivePlayGameId(game.id)}
-                          className="px-3 py-1 bg-brand text-white rounded-lg text-[11px] font-bold hover:bg-brand/90 transition-colors flex items-center gap-1 whitespace-nowrap"
+                          className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-900 rounded-lg text-[11px] font-extrabold transition-colors flex items-center gap-1 whitespace-nowrap shadow-xs active:scale-95 cursor-pointer"
                         >
                           <Play size={12} /> Pratinjau
                         </button>
@@ -1045,79 +948,48 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                 return (
                   <div 
                     key={game.id}
-                    className={cn(
-                      "p-4 md:p-5 rounded-2xl border transition-all flex flex-col justify-between relative overflow-hidden bg-slate-100 shadow-sm hover:shadow-md",
-                      isGameActive ? "border-slate-300" : "border-slate-200 opacity-80"
-                    )}
+                    className="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between"
                   >
                     <div>
-                      {/* Visual Card Illustration Banner */}
-                      <GameCardBanner gameId={game.id} />
+                      <GameCardBanner gameId={game.id} title={game.title} category={game.category} />
 
-                      <div className="flex items-start justify-between gap-3 mb-2.5">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white shadow-xs shrink-0",
-                            game.id === 'contra-snes' ? "bg-gradient-to-br from-red-600 to-orange-600" :
-                            game.id === 'petualangan-smp' ? "bg-gradient-to-br from-blue-600 to-indigo-600" :
-                            game.id === 'pattern-master' ? "bg-indigo-600" :
-                            game.id === 'scratch-blocks' ? "bg-amber-500" :
-                            game.id === 'dekomposisi-puzzle' ? "bg-emerald-600" : "bg-purple-600"
-                          )}>
-                            {game.iconName === 'Calculator' && <Calculator size={16} />}
-                            {game.iconName === 'Code' && <Code size={16} />}
-                            {game.iconName === 'Puzzle' && <Puzzle size={16} />}
-                            {game.iconName === 'Gamepad2' && <Gamepad2 size={16} />}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[9px] font-black text-slate-600 bg-slate-200 px-1.5 py-0.5 rounded-md">
-                                #{idx + 1}
-                              </span>
-                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider truncate">
-                                {game.category}
-                              </span>
-                            </div>
-                            <h3 className="text-sm md:text-base font-black text-slate-900 leading-tight mt-0.5 truncate">
-                              {game.title}
-                            </h3>
-                          </div>
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-slate-600 leading-relaxed mb-3 font-medium line-clamp-2">
+                      <p className="text-xs text-slate-600 leading-relaxed mb-3.5 line-clamp-2">
                         {game.description}
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <div className="bg-slate-200/80 px-2.5 py-1 rounded-lg border border-slate-300/80 flex items-center gap-1 text-[11px] font-bold text-slate-700">
-                          <Flame size={12} className="text-amber-500" />
-                          <span>{game.difficulty}</span>
-                        </div>
-                        <div className="bg-emerald-100/90 px-2.5 py-1 rounded-lg border border-emerald-300 flex items-center gap-1 text-[11px] font-bold text-emerald-950">
-                          <Trophy size={12} className="text-amber-500 fill-amber-400" />
-                          <span>{myStudentHighScore > 0 ? `${myStudentHighScore} Poin` : 'Belum Ada Skor'}</span>
-                        </div>
+                      {/* Clean unboxed metadata row */}
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs font-semibold text-slate-600 mb-3 tabular-nums">
+                        <span className="inline-flex items-center gap-1 text-slate-700">
+                          <Flame size={13} className="text-amber-500" />
+                          {game.difficulty}
+                        </span>
+                        <span aria-hidden="true" className="text-slate-300">·</span>
+                        <span className={cn("inline-flex items-center gap-1 font-bold", myStudentHighScore > 0 ? "text-emerald-700" : "text-slate-500")}>
+                          <Trophy size={13} className={myStudentHighScore > 0 ? "text-amber-500" : "text-slate-400"} />
+                          {myStudentHighScore > 0 ? `Skor Terbaik: ${myStudentHighScore}` : 'Belum Ada Skor'}
+                        </span>
                         {game.id === 'petualangan-smp' && (
-                          <div className="bg-blue-100/80 px-2.5 py-1 rounded-lg border border-blue-200 flex items-center gap-1 text-[11px] font-bold text-blue-800">
-                            <span>⚔️ 4 Stage • 2 Bos Battle</span>
-                          </div>
+                          <>
+                            <span aria-hidden="true" className="text-slate-300">·</span>
+                            <span className="text-blue-700">4 Stage</span>
+                          </>
                         )}
                         {game.id === 'contra-snes' && (
-                          <div className="bg-red-100/80 px-2.5 py-1 rounded-lg border border-red-200 flex items-center gap-1 text-[11px] font-bold text-red-800">
-                            <span>🕹️ 3 Stage SNES • Boss Cyber</span>
-                          </div>
+                          <>
+                            <span aria-hidden="true" className="text-slate-300">·</span>
+                            <span className="text-orange-700">3 Stage</span>
+                          </>
                         )}
                       </div>
 
                       {game.id === 'contra-snes' && Object.keys(currentStudentContraHighScores).length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-600 mb-3 tabular-nums">
                           {[1, 2, 3].map(st => {
                             const stScore = currentStudentContraHighScores[st];
                             if (!stScore) return null;
                             return (
-                              <span key={st} className="px-2 py-0.5 bg-red-100/90 border border-red-300 text-red-950 rounded-md text-[10px] font-black">
-                                Stage {st}: {stScore} Poin
+                              <span key={st} className="px-2 py-0.5 bg-slate-100 rounded-md text-slate-700">
+                                Stage {st}: {stScore}
                               </span>
                             );
                           })}
@@ -1125,13 +997,13 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                       )}
 
                       {game.id === 'petualangan-smp' && Object.keys(currentStudentStageHighScores).length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-600 mb-3 tabular-nums">
                           {[1, 2, 3, 4].map(st => {
                             const stScore = currentStudentStageHighScores[st];
                             if (!stScore) return null;
                             return (
-                              <span key={st} className="px-2 py-0.5 bg-amber-100/90 border border-amber-300 text-amber-950 rounded-md text-[10px] font-black">
-                                Stage {st}: {stScore} Poin
+                              <span key={st} className="px-2 py-0.5 bg-slate-100 rounded-md text-slate-700">
+                                Stage {st}: {stScore}
                               </span>
                             );
                           })}
@@ -1140,10 +1012,13 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                     </div>
 
                     {/* Bottom Actions */}
-                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-300/80">
+                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
+                      <span className="text-[11px] font-medium text-slate-400 tabular-nums">
+                        Rekor Tertinggi: {gameHighScore > 0 ? `${gameHighScore} pts` : '-'}
+                      </span>
                       <button
                         onClick={() => setActivePlayGameId(game.id)}
-                        className="px-3.5 py-1.5 bg-brand text-white rounded-lg text-xs font-black hover:bg-brand/90 transition-all shadow-sm active:scale-95 flex items-center gap-1.5 ml-auto"
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
                       >
                         <Play size={13} /> Mainkan
                       </button>
@@ -1157,28 +1032,28 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
       {/* Main Tab 2: Leaderboard */}
       {activeTab === 'leaderboard' && (
-        <div className="bg-slate-100 rounded-[2.5rem] border border-slate-300 shadow-sm p-6 md:p-8 space-y-6">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 md:p-6 space-y-5">
           {/* Controls Header */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-300 pb-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
             <div>
-              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                <Trophy className="text-amber-500" size={24} /> Papan Skor & Peringkat Siswa
+              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <Trophy className="text-amber-500" size={20} /> Papan Skor & Peringkat Siswa
               </h2>
-              <p className="text-xs text-slate-500 font-bold mt-0.5">
-                Menampilkan hanya 1 skor tertinggi setiap siswa per stagenya.
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Menampilkan 1 skor tertinggi setiap siswa per stage permainan.
               </p>
             </div>
 
-            <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
+            <div className="flex items-center gap-2.5 w-full md:w-auto flex-wrap">
               {/* Search input */}
-              <div className="relative flex-1 md:w-60">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <div className="relative flex-1 md:w-56 min-w-[160px]">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input 
                   type="text" 
                   placeholder="Cari siswa / kelas..." 
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-200 border border-slate-300 rounded-xl py-2 pl-9 pr-3 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                 />
               </div>
 
@@ -1186,7 +1061,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
               <select
                 value={filterKelas}
                 onChange={e => setFilterKelas(e.target.value)}
-                className="bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold rounded-xl p-2 cursor-pointer"
+                className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2 cursor-pointer"
               >
                 <option value="all">Semua Kelas</option>
                 {uniqueClasses.map(k => (
@@ -1201,7 +1076,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                   setFilterGame(e.target.value);
                   setFilterStage('all');
                 }}
-                className="bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold rounded-xl p-2 cursor-pointer"
+                className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2 cursor-pointer"
               >
                 <option value="all">Semua Game</option>
                 {GAMES_LIST.map(g => (
@@ -1214,7 +1089,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                 <select
                   value={filterStage}
                   onChange={e => setFilterStage(e.target.value)}
-                  className="bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold rounded-xl p-2 cursor-pointer animate-in fade-in slide-in-from-right-2"
+                  className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2 cursor-pointer"
                 >
                   <option value="all">Semua Stage</option>
                   <option value="1">Stage 1</option>
@@ -1228,10 +1103,10 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
           {/* Scores Table */}
           {filteredScores.length > 0 ? (
-            <div className="overflow-x-auto rounded-2xl border border-slate-300 bg-white">
-              <table className="w-full text-left border-collapse text-xs md:text-sm">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <table className="w-full text-left border-collapse text-xs md:text-sm tabular-nums">
                 <thead>
-                  <tr className="bg-slate-200/80 border-b border-slate-300 text-[11px] font-black uppercase tracking-wider text-slate-700">
+                  <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
                     <th className="px-4 py-3 text-center w-12">#</th>
                     <th className="px-4 py-3">Siswa</th>
                     <th className="px-4 py-3">Kelas</th>
@@ -1242,7 +1117,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                     {isAdmin && <th className="px-4 py-3 text-center">Aksi</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 font-medium text-slate-800">
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
                   {filteredScores.map((score, idx) => {
                     const isTop1 = idx === 0;
                     const isTop2 = idx === 1;
@@ -1251,22 +1126,22 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                     return (
                       <tr key={score.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-4 py-3 text-center font-black">
-                          {isTop1 ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-400 text-amber-950 font-black shadow-sm">1</span> :
-                           isTop2 ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-300 text-slate-800 font-black shadow-sm">2</span> :
-                           isTop3 ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-700 text-amber-100 font-black shadow-sm">3</span> :
+                          {isTop1 ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-400 text-amber-950 font-black">1</span> :
+                           isTop2 ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 text-slate-800 font-black">2</span> :
+                           isTop3 ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-700 text-amber-100 font-black">3</span> :
                            idx + 1}
                         </td>
                         <td className="px-4 py-3 font-bold text-slate-900">
                           {score.studentName || 'Siswa'}
-                          {score.studentNis && <span className="block text-[10px] font-normal text-slate-500">NISN: {score.studentNis}</span>}
+                          {score.studentNis && <span className="block text-[11px] font-mono font-normal text-slate-500">NISN: {score.studentNis}</span>}
                         </td>
-                        <td className="px-4 py-3 font-bold text-slate-700">
+                        <td className="px-4 py-3 font-semibold text-slate-700">
                           {score.studentKelas || '-'}
                         </td>
-                        <td className="px-4 py-3 font-bold text-brand">
+                        <td className="px-4 py-3 font-semibold text-indigo-700">
                           {score.gameTitle || 'Game'}
                         </td>
-                        <td className="px-4 py-3 text-center font-black text-emerald-700 text-base">
+                        <td className="px-4 py-3 text-center font-extrabold text-emerald-700 text-base font-mono">
                           {score.score || 0}
                         </td>
                         <td className="px-4 py-3 text-center font-mono text-slate-600">
@@ -1293,9 +1168,9 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
               </table>
             </div>
           ) : (
-            <div className="p-12 text-center bg-slate-50 border border-dashed border-slate-300 rounded-3xl">
-              <Gamepad2 size={40} className="mx-auto text-slate-400 mb-3" />
-              <h3 className="font-bold text-slate-700 text-base mb-1">Belum Ada Catatan Skor Permainan</h3>
+            <div className="p-12 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl">
+              <Gamepad2 size={36} className="mx-auto text-slate-400 mb-3" />
+              <h3 className="font-bold text-slate-800 text-base mb-1">Belum Ada Catatan Skor Permainan</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
                 Siswa yang menyelesaikan tantangan game edukasi akan muncul di papan skor ini secara otomatis.
               </p>

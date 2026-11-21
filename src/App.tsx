@@ -292,6 +292,8 @@ export default function App() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [studentTab, setStudentTab] = useState<'materi' | 'soal' | 'games'>('materi');
+  const [studentCatalogSearch, setStudentCatalogSearch] = useState('');
+  const [studentCatalogFilter, setStudentCatalogFilter] = useState<'all' | 'todo' | 'done'>('all');
   const [soalSets, setSoalSets] = useState<SoalSet[]>([]);
   const [soalQuestions, setSoalQuestions] = useState<SoalQuestion[]>([]);
   const [activeSoalSetId, setActiveSoalSetId] = useState<string | null>(() => sessionStorage.getItem('activeSoalSetId'));
@@ -1363,432 +1365,648 @@ export default function App() {
 
   if (currentPage === 'student_dashboard') {
     const activeCoursesList = COURSES.filter(c => (materialConfigs[c.id]?.isActive ?? true));
-    
+    const activeSoalSets = soalSets.filter(s => {
+      if (!s.isActive) return false;
+      const activeQCount = soalQuestions.filter(q => q.setId === s.id && q.isActive !== false).length;
+      return activeQCount > 0;
+    });
+
+    const filteredAnnouncements = announcements
+      .filter(msg => {
+        if (msg.isVisible === false) return false;
+        if (msg.targetType === 'all') return true;
+        if (msg.targetType === 'class' && msg.targetValue === currentStudent?.student_management?.kelas) return true;
+        if (msg.targetType === 'class' && !currentStudent?.student_management?.kelas && msg.targetValue === currentStudent?.kelas) return true;
+        if (msg.targetType === 'student' && msg.targetValue === currentStudent?.id) return true;
+        return false;
+      })
+      .sort((a, b) => {
+        const dateA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.timestamp?.seconds * 1000 || 0);
+        const dateB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp?.seconds * 1000 || 0);
+        return dateB - dateA;
+      });
+
+    const completedCourseCount = activeCoursesList.filter(c =>
+      studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === c.id)
+    ).length;
+
+    const completedSoalCount = activeSoalSets.filter(s =>
+      studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === `soal_${s.id}`)
+    ).length;
+
+    const myStudentScores = studentAssessments
+      .filter(a => a.studentId === currentStudent?.id)
+      .map(a => Number(a.score))
+      .filter(n => !Number.isNaN(n));
+
+    const avgStudentScore = myStudentScores.length > 0
+      ? Math.round(myStudentScores.reduce((acc, s) => acc + s, 0) / myStudentScores.length)
+      : null;
+
+    const courseProgressPct = activeCoursesList.length > 0
+      ? Math.round((completedCourseCount / activeCoursesList.length) * 100)
+      : 0;
+
+    const soalProgressPct = activeSoalSets.length > 0
+      ? Math.round((completedSoalCount / activeSoalSets.length) * 100)
+      : 0;
+
+    const studentInitials = (currentStudent?.nama || 'S')
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part: string) => part[0]?.toUpperCase() || '')
+      .join('');
+
+    const normalizedSearch = studentCatalogSearch.trim().toLowerCase();
+
+    const displayedCourses = activeCoursesList.filter(course => {
+      const done = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === course.id);
+      if (studentCatalogFilter === 'done' && !done) return false;
+      if (studentCatalogFilter === 'todo' && done) return false;
+      if (normalizedSearch && !course.title.toLowerCase().includes(normalizedSearch) && !course.level.toLowerCase().includes(normalizedSearch)) {
+        return false;
+      }
+      return true;
+    });
+
+    const displayedSoalSets = activeSoalSets.filter(set => {
+      const done = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === `soal_${set.id}`);
+      if (studentCatalogFilter === 'done' && !done) return false;
+      if (studentCatalogFilter === 'todo' && done) return false;
+      if (
+        normalizedSearch &&
+        !set.title.toLowerCase().includes(normalizedSearch) &&
+        !(set.description || '').toLowerCase().includes(normalizedSearch)
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    const handleStudentLogout = async () => {
+      if (currentStudent) {
+        setCurrentPage('login');
+        setLocalCheatingAttempts(0);
+        setLocalCheatingDetails([]);
+        try {
+          for (const c of COURSES) {
+            await deleteDoc(doc(db, 'active_sessions', `${currentStudent.id}_${c.id}`)).catch(() => {});
+          }
+          for (const s of soalSets) {
+            await deleteDoc(doc(db, 'active_sessions', `${currentStudent.id}_soal_${s.id}`)).catch(() => {});
+          }
+        } catch (e) {}
+      }
+      setCurrentStudent(null);
+    };
+
     return (
-      <div className="flex h-screen bg-slate-300 text-slate-900 flex-col overflow-hidden" style={{ fontFamily: 'Calibri, sans-serif' }}>
-        {/* Mobile-friendly fixed header */}
-        <header className="w-full bg-slate-100 px-4 md:px-8 py-4 border-b border-slate-300 flex items-center justify-between z-10 shrink-0">
-          <div className="flex items-center gap-3">
-             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center border border-slate-300 overflow-hidden bg-slate-200">
-                {currentStudent?.jenisKelamin === 'P' ? <UserCircle className="text-pink-500" size={24}/> : <User className="text-blue-500" size={24}/>}
-             </div>
-             <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hidden sm:block">Profil Siswa</p>
-                <h2 className="text-sm md:text-lg font-black text-slate-900 leading-none">{currentStudent?.nama}</h2>
-             </div>
-          </div>
-          <button 
-             onClick={async () => { 
-                if (currentStudent) {
-                  setCurrentPage('login');
-                  setLocalCheatingAttempts(0);
-                  setLocalCheatingDetails([]);
-                  try {
-                    for (const c of COURSES) {
-                      await deleteDoc(doc(db, 'active_sessions', `${currentStudent.id}_${c.id}`)).catch(()=> {});
-                    }
-                    for (const s of soalSets) {
-                      await deleteDoc(doc(db, 'active_sessions', `${currentStudent.id}_soal_${s.id}`)).catch(()=> {});
-                    }
-                  } catch(e) {}
-                }
-
-                setCurrentStudent(null); 
-             }}
-             className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-bold text-xs flex items-center gap-2 transition-all active:scale-95 border border-red-200"
-          >
-            <LogOut size={16} />
-            <span className="hidden sm:inline">Keluar</span>
-          </button>
-        </header>
-
-        <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 space-y-6 md:space-y-8 w-full max-w-5xl mx-auto custom-scrollbar">
-          <div className="bg-slate-100 p-6 md:p-10 rounded-[2rem] shadow-sm border border-slate-300 flex flex-col md:flex-row gap-6 md:gap-10 items-center md:items-start text-center md:text-left">
-            <div className="relative shrink-0">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-200 rounded-3xl flex items-center justify-center p-2 shadow-md relative overflow-hidden border border-slate-300">
-                <User className="text-slate-500" size={64}/>
-              </div>
-              <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl border-[3px] border-slate-100 shadow-sm">
-                <CheckCircle size={16} />
-              </div>
+      <div className="flex h-screen bg-slate-50 text-slate-900 flex-col overflow-hidden font-sans">
+        {/* Clean 3-Zone Top Bar */}
+        <header className="w-full bg-white/95 backdrop-blur-md px-4 md:px-8 h-16 border-b border-slate-200 flex items-center justify-between gap-4 md:gap-8 z-20 shrink-0">
+          {/* Zone 1: Single-line Brand Title */}
+          <div className="flex items-center gap-2.5 min-w-0 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center font-extrabold text-sm shrink-0">
+              IK
             </div>
-
-            <div className="flex-1 w-full flex flex-col gap-4">
-              <div>
-                <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mb-4 leading-tight">{currentStudent?.nama}</h1>
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                  <div className="bg-slate-200 px-5 py-2 rounded-2xl text-sm md:text-base font-bold text-slate-700 tracking-wide border border-slate-300">NISN: <span className="text-slate-900">{currentStudent?.nis}</span></div>
-                  <div className="bg-slate-200 px-5 py-2 rounded-2xl text-sm md:text-base font-bold text-slate-700 tracking-wide border border-slate-300">Kelas: <span className="text-slate-900">{currentStudent?.kelas}</span></div>
-                  <div className={cn(
-                    "px-5 py-2 rounded-2xl text-sm md:text-base font-black uppercase tracking-widest border",
-                    currentStudent?.jenisKelamin === 'L' 
-                      ? 'bg-blue-100 text-brand border-blue-200' 
-                      : 'bg-pink-100 text-pink-700 border-pink-200'
-                  )}>
-                    {currentStudent?.jenisKelamin === 'L' ? 'Laki-laki' : 'Perempuan'}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4 p-5 bg-blue-100/70 text-blue-900 rounded-[1.5rem] border border-blue-200 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-400/20 rounded-bl-full pointer-events-none" />
-                <div className="w-12 h-12 bg-slate-200 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-slate-300 text-brand">
-                  <Brain size={24} />
-                </div>
-                <p className="text-base md:text-xl font-bold tracking-tight leading-snug">Selamat datang kembali! Mari lanjutkan petualangan belajarmu hari ini.</p>
-              </div>
-
-              {announcements.filter(msg => {
-                if (msg.isVisible === false) return false;
-                if (msg.targetType === 'all') return true;
-                if (msg.targetType === 'class' && msg.targetValue === currentStudent?.student_management?.kelas) return true;
-                if (msg.targetType === 'class' && !currentStudent?.student_management?.kelas && msg.targetValue === currentStudent?.kelas) return true;
-                if (msg.targetType === 'student' && msg.targetValue === currentStudent?.id) return true;
-                return false;
-              }).length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 px-1">
-                    <Megaphone size={14} className="text-brand" />
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Pengumuman Terbaru</h3>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {announcements
-                      .filter(msg => {
-                        if (msg.isVisible === false) return false;
-                        if (msg.targetType === 'all') return true;
-                        if (msg.targetType === 'class' && msg.targetValue === currentStudent?.student_management?.kelas) return true;
-                        if (msg.targetType === 'class' && !currentStudent?.student_management?.kelas && msg.targetValue === currentStudent?.kelas) return true;
-                        if (msg.targetType === 'student' && msg.targetValue === currentStudent?.id) return true;
-                        return false;
-                      })
-                      .sort((a, b) => {
-                        const dateA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.timestamp?.seconds * 1000 || 0);
-                        const dateB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp?.seconds * 1000 || 0);
-                        return dateB - dateA;
-                      })
-                      .map((msg) => (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          key={msg.id} 
-                          className="bg-slate-100 p-4 rounded-2xl border border-slate-300 shadow-sm flex items-start gap-4 relative overflow-hidden group"
-                        >
-                          <div className="absolute top-0 left-0 w-1.5 h-full bg-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-300 text-brand">
-                            <Bell size={18} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                              <span className="text-[10px] md:text-xs font-black text-brand uppercase tracking-widest px-2 py-0.5 bg-brand/10 rounded-md">
-                                {msg.targetType === 'all' ? '📢 Pengumuman' : msg.targetType === 'class' ? `🏫 Kelas ${msg.targetValue}` : '👤 Privat'}
-                              </span>
-                              <span className="text-[10px] md:text-xs font-bold text-slate-500">
-                                {msg.timestamp?.toDate() ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(msg.timestamp.toDate()) : ''}
-                              </span>
-                            </div>
-                            <p className="text-base md:text-lg font-bold text-slate-800 leading-relaxed break-words">{msg.content}</p>
-                            {msg.link && (
-                              <a 
-                                href={msg.link} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-brand text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-brand-hover transition-colors shadow-md shadow-brand/20"
-                              >
-                                {msg.link} <ExternalLink size={12} />
-                              </a>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <span className="text-base md:text-lg font-extrabold tracking-tight text-slate-900 whitespace-nowrap">
+              Ruang Informatika
+            </span>
           </div>
 
-          {/* Student Tab Navigation Header */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 p-2 bg-slate-100 rounded-3xl border border-slate-300 shadow-sm mb-6">
+          {/* Zone 2: Clean Desktop Tab Navigation */}
+          <nav className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
               onClick={() => setStudentTab('materi')}
               className={cn(
-                "flex-1 py-3 px-4 rounded-2xl font-black text-sm md:text-base transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer",
+                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer",
                 studentTab === 'materi'
-                  ? "bg-brand text-white shadow-md shadow-brand/20 scale-[1.01]"
-                  : "bg-slate-200/80 text-slate-700 hover:bg-slate-200"
+                  ? "bg-white text-brand shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
               )}
             >
-              <BookOpen size={19} />
-              <span>📚 Materi Pembelajaran</span>
+              <BookOpen size={14} />
+              <span>Materi</span>
             </button>
             <button
               onClick={() => setStudentTab('soal')}
               className={cn(
-                "flex-1 py-3 px-4 rounded-2xl font-black text-sm md:text-base transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer",
+                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer",
                 studentTab === 'soal'
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20 scale-[1.01]"
-                  : "bg-slate-200/80 text-slate-700 hover:bg-slate-200"
+                  ? "bg-white text-emerald-700 shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
               )}
             >
-              <ClipboardList size={19} />
-              <span>📝 Latihan & Ujian Soal</span>
+              <ClipboardList size={14} />
+              <span>Latihan Soal</span>
             </button>
             <button
               onClick={() => setStudentTab('games')}
               className={cn(
-                "flex-1 py-3 px-4 rounded-2xl font-black text-sm md:text-base transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer",
+                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer",
                 studentTab === 'games'
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20 scale-[1.01]"
-                  : "bg-slate-200/80 text-slate-700 hover:bg-slate-200"
+                  ? "bg-white text-indigo-700 shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
               )}
             >
-              <Gamepad2 size={19} />
-              <span>🎮 Game Edukasi</span>
+              <Gamepad2 size={14} />
+              <span>Game Edukasi</span>
+            </button>
+          </nav>
+
+          {/* Zone 3: Student Account & Logout */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="hidden sm:flex items-center gap-2 text-right">
+              <span className="text-xs font-bold text-slate-800 max-w-[160px] truncate">
+                {currentStudent?.nama}
+              </span>
+              <span className="text-[11px] font-semibold text-slate-500 whitespace-nowrap">
+                · {currentStudent?.kelas}
+              </span>
+            </div>
+            <button
+              onClick={handleStudentLogout}
+              className="px-3.5 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors border border-rose-200 whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <LogOut size={14} />
+              <span>Keluar</span>
             </button>
           </div>
+        </header>
 
-          {studentTab === 'games' ? (
-            <AdminGames isAdmin={false} currentStudent={currentStudent} studentsList={students} />
-          ) : studentTab === 'soal' ? (
-            (() => {
-              const activeSoalSets = soalSets.filter(s => {
-                if (!s.isActive) return false;
-                const activeQCount = soalQuestions.filter(q => q.setId === s.id && q.isActive !== false).length;
-                return activeQCount > 0;
-              });
+        {/* Mobile Segmented Sub-Nav (kept compact within mobile sticky cap) */}
+        <div className="md:hidden bg-white border-b border-slate-200 px-3 py-1.5 flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => setStudentTab('materi')}
+            className={cn(
+              "flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors",
+              studentTab === 'materi' ? "bg-brand text-white" : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            <BookOpen size={13} />
+            <span>Materi</span>
+          </button>
+          <button
+            onClick={() => setStudentTab('soal')}
+            className={cn(
+              "flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors",
+              studentTab === 'soal' ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            <ClipboardList size={13} />
+            <span>Soal</span>
+          </button>
+          <button
+            onClick={() => setStudentTab('games')}
+            className={cn(
+              "flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors",
+              studentTab === 'games' ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            <Gamepad2 size={13} />
+            <span>Game</span>
+          </button>
+        </div>
 
-              return (
-                <>
-                  <section className="pb-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-100 border border-emerald-200 shadow-sm rounded-xl flex items-center justify-center text-emerald-700">
-                          <ClipboardList size={20} />
-                        </div>
-                        <div>
-                          <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Daftar Paket Soal</h2>
-                          <p className="text-slate-600 font-bold text-sm md:text-base mt-1">Pilih kartu soal sesuai judul yang aktif</p>
-                        </div>
-                      </div>
-                      <div className="bg-slate-200 border border-slate-300 px-5 py-2.5 rounded-2xl text-xs md:text-sm font-black text-slate-700 hidden md:block tracking-widest uppercase">
-                        {activeSoalSets.length} Paket Soal Aktif
-                      </div>
-                    </div>
-
-                    {activeSoalSets.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-                        {activeSoalSets.map((set, index) => {
-                          const courseKey = `soal_${set.id}`;
-                          const hasCompleted = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
-                          const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
-                          const activeQs = soalQuestions.filter(q => q.setId === set.id && q.isActive !== false);
-                          const colors = [
-                            { bg: "bg-emerald-600", border: "border-emerald-700", icon: "text-emerald-600" },
-                            { bg: "bg-blue-600", border: "border-blue-700", icon: "text-blue-600" },
-                            { bg: "bg-indigo-600", border: "border-indigo-700", icon: "text-indigo-600" },
-                            { bg: "bg-teal-600", border: "border-teal-700", icon: "text-teal-600" },
-                          ];
-                          const color = colors[index % colors.length];
-
-                          return (
-                            <motion.div
-                              whileHover={{ y: -6 }}
-                              whileTap={{ scale: 0.98 }}
-                              key={set.id}
-                              onClick={() => {
-                                setActiveSoalSetId(set.id);
-                                sessionStorage.setItem('activeSoalSetId', set.id);
-                                setIsPreviewingSoal(false);
-                                setCurrentPage('soal_confirm');
-                              }}
-                              className={cn(
-                                "group p-1 rounded-[2rem] border shadow-sm transition-all flex flex-col cursor-pointer",
-                                hasCompleted ? "bg-slate-200 border-slate-300 opacity-90" : cn(color.bg, color.border, "shadow-xl shadow-black/5")
-                              )}
-                            >
-                              <div className={cn("flex-1 rounded-[1.8rem] p-6 transition-colors flex flex-col h-full", hasCompleted ? "bg-slate-100" : "bg-white/10 group-hover:bg-white/20")}>
-                                <div className="flex items-start justify-between gap-2 mb-4">
-                                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-md", hasCompleted ? "bg-slate-200 border border-slate-300" : "bg-slate-100")}>
-                                    <ClipboardList size={24} className={hasCompleted ? "text-emerald-600" : color.icon} />
-                                  </div>
-                                  <span className={cn("px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider", hasCompleted ? "bg-slate-200 text-slate-700" : "bg-white/20 text-white")}>
-                                    {activeQs.length} Soal PG
-                                  </span>
-                                </div>
-
-                                <h3 className={cn("font-black text-lg md:text-xl leading-tight mb-2", hasCompleted ? "text-slate-900" : "text-white")}>{set.title}</h3>
-                                {set.description && (
-                                  <p className={cn("text-xs font-medium line-clamp-2 mb-4", hasCompleted ? "text-slate-600" : "text-white/85")}>{set.description}</p>
-                                )}
-
-                                <div className="flex flex-wrap items-center gap-1.5 mb-5">
-                                  <span className={cn("px-2.5 py-0.5 rounded-lg text-[10px] font-black", hasCompleted ? "bg-amber-100 text-amber-800" : "bg-black/20 text-white")}>
-                                    {set.timerMode === 'per_soal' ? '⏱️ Timer Per Soal' : set.titleTimerSeconds > 0 ? `⏱️ ${Math.ceil(set.titleTimerSeconds / 60)} Menit` : '⏱️ Tanpa Batas'}
-                                  </span>
-                                  {set.isFullScreen && (
-                                    <span className={cn("px-2.5 py-0.5 rounded-lg text-[10px] font-black", hasCompleted ? "bg-rose-100 text-rose-700" : "bg-black/20 text-white")}>
-                                      🔒 Fullscreen
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div className={cn("mt-auto flex items-center justify-between gap-2 font-black text-sm uppercase tracking-widest pt-4 border-t", hasCompleted ? "border-slate-300" : "border-white/20")}>
-                                  {hasCompleted ? (
-                                    <div className="flex flex-col gap-2 w-full">
-                                      <span className="text-emerald-700 flex items-center gap-2 font-black"><CheckCircle size={18} /> SUDAH DIKERJAKAN</span>
-                                      {(set.isScoreVisible ?? true) && (
-                                        <span className={cn("px-4 py-1.5 rounded-xl text-xs md:text-sm font-black border", (studentAssessment?.score ?? 0) >= 80 ? "text-emerald-800 bg-emerald-100 border-emerald-200" : (studentAssessment?.score ?? 0) >= 60 ? "text-amber-800 bg-amber-100 border-amber-200" : "text-rose-800 bg-rose-100 border-rose-200")}>
-                                          SKOR: {studentAssessment?.score}
-                                        </span>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span className="text-white flex items-center gap-2 group-hover:gap-3 transition-all">
-                                      KERJAKAN SOAL <ArrowRight size={18} className="text-yellow-400 group-hover:translate-x-1 transition-transform" />
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </motion.div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="bg-slate-100 py-20 rounded-[2rem] border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-8">
-                        <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center text-slate-400 mb-6">
-                          <Lock size={48} />
-                        </div>
-                        <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">Belum Ada Paket Soal Aktif</h3>
-                        <p className="text-slate-600 font-semibold max-w-sm">Paket soal akan tampil di sini setelah guru mengaktifkan kartu soal.</p>
-                      </div>
-                    )}
-                  </section>
-                </>
-              );
-            })()
-          ) : (
-            <>
-              <section className="pb-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-200 border border-slate-300 shadow-sm rounded-xl flex items-center justify-center text-brand">
-                      <LayoutGrid size={20} />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Pilih Materi</h2>
-                      <p className="text-slate-600 font-bold text-sm md:text-base mt-1">Lanjutkan progres belajar Anda</p>
-                    </div>
+        <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 w-full max-w-6xl mx-auto custom-scrollbar">
+          {/* Top Overview Bento Split: Profile + Progress | Announcements */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            {/* Left: Student Welcome & Real Progress Summary */}
+            <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 md:p-6 shadow-2xs flex flex-col justify-between gap-5">
+              <div className="flex items-start gap-4">
+                <div className={cn(
+                  "w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-lg text-white shrink-0 shadow-xs",
+                  currentStudent?.jenisKelamin === 'P' ? "bg-rose-600" : "bg-brand"
+                )}>
+                  {studentInitials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-slate-500 mb-0.5">
+                    Selamat datang kembali
+                  </p>
+                  <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight truncate">
+                    {currentStudent?.nama}
+                  </h1>
+                  {/* Zero-pill metadata strip */}
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs font-medium text-slate-600 mt-1 tabular-nums">
+                    <span className="font-mono">NISN {currentStudent?.nis}</span>
+                    <span aria-hidden="true" className="text-slate-300">·</span>
+                    <span>Kelas {currentStudent?.kelas}</span>
+                    <span aria-hidden="true" className="text-slate-300">·</span>
+                    <span>{currentStudent?.jenisKelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</span>
                   </div>
-                  <div className="bg-slate-200 border border-slate-300 px-5 py-2.5 rounded-2xl text-xs md:text-sm font-black text-slate-700 hidden md:block tracking-widest uppercase">
-                    {activeCoursesList.length} Materi Aktif
+                </div>
+              </div>
+
+              {/* 3 Real Computed Progress Metrics */}
+              <div className="grid grid-cols-3 gap-3 md:gap-4 pt-4 border-t border-slate-100 tabular-nums">
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-semibold text-slate-500">Materi Selesai</div>
+                  <div className="text-lg md:text-2xl font-extrabold text-slate-900 font-mono">
+                    {completedCourseCount}<span className="text-slate-400 text-sm font-semibold">/{activeCoursesList.length}</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-brand rounded-full transition-all duration-300" style={{ width: `${courseProgressPct}%` }} />
                   </div>
                 </div>
 
-                {activeCoursesList.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-                    {activeCoursesList.map((course, index) => {
-                      const hasCompleted = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === course.id);
-                      const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
-                      const colors = [
-                        { bg: "bg-brand", border: "border-blue-700", icon: "text-brand" },
-                        { bg: "bg-brand", border: "border-blue-700", icon: "text-brand" },
-                        { bg: "bg-blue-600", border: "border-brand", icon: "text-blue-600" },
-                        { bg: "bg-brand", border: "border-indigo-700", icon: "text-brand" },
-                        { bg: "bg-sky-600", border: "border-sky-700", icon: "text-sky-600" },
-                        { bg: "bg-blue-700", border: "border-blue-800", icon: "text-blue-700" }
-                      ];
-                      const color = colors[index % colors.length];
-
-                      return (
-                      <motion.div 
-                        whileHover={{ y: -6 }}
-                        whileTap={{ scale: 0.98 }}
-                        key={course.id} 
-                        className={cn("group p-1 rounded-[2rem] border shadow-sm transition-all flex flex-col cursor-pointer",
-                          hasCompleted ? "bg-slate-200 border-slate-300 opacity-90" : cn(color.bg, color.border, "shadow-xl shadow-black/5")
-                        )}
-                        onClick={() => { 
-                          setActiveCourseId(course.id);
-                          setCurrentPage('course_confirm');
-                        }}
-                      >
-                        <div className={cn("flex-1 rounded-[1.8rem] p-6 transition-colors flex flex-col h-full",
-                          hasCompleted ? "bg-slate-100" : "bg-white/10 group-hover:bg-white/20"
-                        )}>
-                          <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-md mb-4 transition-transform", hasCompleted ? "bg-slate-200 border border-slate-300 shadow-slate-300/30" : "bg-slate-100 shadow-black/10 group-hover:scale-105")}>
-                            <BookOpen size={24} className={hasCompleted ? "text-emerald-600" : color.icon} />
-                          </div>
-                          
-                          <h3 className={cn("font-black text-lg md:text-xl leading-tight mb-2 transition-colors", hasCompleted ? "text-slate-900" : "text-white")}>{course.title}</h3>
-                          <div className="flex items-center gap-2 mb-6">
-                            <span className={cn("w-2 h-2 rounded-full", hasCompleted ? "bg-emerald-500" : "bg-yellow-400 animate-pulse")}></span>
-                            <p className={cn("text-xs md:text-sm font-black uppercase tracking-widest", hasCompleted ? "text-slate-600" : "text-white/90")}>{course.level}</p>
-                          </div>
-
-                          <div className={cn("mt-auto flex items-center justify-between gap-2 font-black text-sm uppercase tracking-widest pt-5 border-t",
-                            hasCompleted ? "border-slate-300" : "border-white/20"
-                          )}>
-                            {hasCompleted ? (
-                               <div className="flex flex-col gap-2 w-full">
-                                  <span className="text-emerald-700 flex items-center gap-2 font-black"><CheckCircle size={18}/> SELESAI</span>
-                                  <span className={cn("px-4 py-1.5 rounded-xl text-xs md:text-sm font-black border", studentAssessment?.score >= 80 ? "text-emerald-800 bg-emerald-100 border-emerald-200" : studentAssessment?.score >= 60 ? "text-amber-800 bg-amber-100 border-amber-200" : "text-rose-800 bg-rose-100 border-rose-200")}>SKOR: {studentAssessment?.score}</span>
-                               </div>
-                            ) : (
-                               <span className="text-white flex items-center gap-2 group-hover:gap-3 transition-all">MULAI BELAJAR <ArrowRight size={18} className="text-yellow-400 group-hover:translate-x-1 transition-transform" /></span>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )})}
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-semibold text-slate-500">Paket Soal</div>
+                  <div className="text-lg md:text-2xl font-extrabold text-slate-900 font-mono">
+                    {completedSoalCount}<span className="text-slate-400 text-sm font-semibold">/{activeSoalSets.length}</span>
                   </div>
-                ) : (
-                  <div className="bg-slate-100 py-20 rounded-[2rem] border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-8">
-                    <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center text-slate-400 mb-6">
-                      <Lock size={48} />
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-600 rounded-full transition-all duration-300" style={{ width: `${soalProgressPct}%` }} />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[11px] font-semibold text-slate-500">Rata-Rata Skor</div>
+                  <div className={cn(
+                    "text-lg md:text-2xl font-extrabold font-mono",
+                    avgStudentScore === null ? "text-slate-400" :
+                    avgStudentScore >= 80 ? "text-emerald-600" :
+                    avgStudentScore >= 60 ? "text-amber-600" : "text-rose-600"
+                  )}>
+                    {avgStudentScore !== null ? avgStudentScore : '-'}
+                  </div>
+                  <div className="text-[11px] font-semibold text-slate-500">
+                    {avgStudentScore === null ? 'Belum ada nilai' :
+                     avgStudentScore >= 80 ? 'Sangat Baik' :
+                     avgStudentScore >= 60 ? 'Cukup Baik' : 'Perlu Latihan'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Announcements Panel */}
+            <div className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-5 md:p-6 shadow-2xs flex flex-col">
+              <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 mb-3">
+                <div className="flex items-center gap-2">
+                  <Megaphone size={16} className="text-brand shrink-0" />
+                  <h2 className="text-sm font-extrabold text-slate-900">Pengumuman Guru</h2>
+                </div>
+                <span className="text-xs font-semibold text-slate-500 tabular-nums">
+                  {filteredAnnouncements.length} info
+                </span>
+              </div>
+
+              {filteredAnnouncements.length > 0 ? (
+                <div className="flex-1 max-h-44 overflow-y-auto divide-y divide-slate-100 pr-1 custom-scrollbar">
+                  {filteredAnnouncements.map(msg => (
+                    <div key={msg.id} className="py-2.5 first:pt-0 last:pb-0 space-y-1">
+                      <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-slate-500 tabular-nums">
+                        <span className="text-brand font-bold">
+                          {msg.targetType === 'all' ? 'Semua Siswa' : msg.targetType === 'class' ? `Kelas ${msg.targetValue}` : 'Pesan Pribadi'}
+                        </span>
+                        <span>
+                          {msg.timestamp?.toDate()
+                            ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(msg.timestamp.toDate())
+                            : ''}
+                        </span>
+                      </div>
+                      <p className="text-xs md:text-sm font-medium text-slate-800 leading-relaxed break-words">
+                        {msg.content}
+                      </p>
+                      {msg.link && (
+                        <a
+                          href={msg.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-brand hover:underline pt-0.5"
+                        >
+                          <span>Buka Tautan</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      )}
                     </div>
-                    <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">Belum Ada Materi Aktif</h3>
-                    <p className="text-slate-600 font-semibold max-w-sm">Materi akan muncul di sini setelah administrator mengaktifkannya untuk Anda.</p>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center py-6 text-slate-400">
+                  <Bell size={24} className="mb-2 text-slate-300" />
+                  <p className="text-xs font-semibold text-slate-500">Belum ada pengumuman terbaru</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Info tugas atau jadwal ujian akan tampil di sini.</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Main Tab Content */}
+          {studentTab === 'games' ? (
+            <AdminGames isAdmin={false} currentStudent={currentStudent} studentsList={students} />
+          ) : (
+            <>
+              {/* Workspace Filter & Search Toolbar */}
+              <section className="space-y-5">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-white",
+                      studentTab === 'soal' ? "bg-emerald-600" : "bg-brand"
+                    )}>
+                      {studentTab === 'soal' ? <ClipboardList size={19} /> : <BookOpen size={19} />}
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-base md:text-lg font-extrabold text-slate-900 tracking-tight truncate">
+                        {studentTab === 'soal' ? 'Latihan & Ujian Soal' : 'Materi Pembelajaran'}
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium tabular-nums">
+                        {studentTab === 'soal'
+                          ? `${displayedSoalSets.length} dari ${activeSoalSets.length} paket soal ditampilkan`
+                          : `${displayedCourses.length} dari ${activeCoursesList.length} materi ditampilkan`}
+                      </p>
+                    </div>
                   </div>
+
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                    <div className="relative flex-1 sm:w-56">
+                      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder={studentTab === 'soal' ? 'Cari paket soal...' : 'Cari materi...'}
+                        value={studentCatalogSearch}
+                        onChange={(e) => setStudentCatalogSearch(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0">
+                      {([
+                        { id: 'all', label: 'Semua' },
+                        { id: 'todo', label: 'Belum' },
+                        { id: 'done', label: 'Selesai' },
+                      ] as const).map(opt => (
+                        <button
+                          key={opt.id}
+                          onClick={() => setStudentCatalogFilter(opt.id)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer",
+                            studentCatalogFilter === opt.id
+                              ? "bg-white text-slate-900 shadow-2xs"
+                              : "text-slate-600 hover:text-slate-900"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grid Content */}
+                {studentTab === 'soal' ? (
+                  displayedSoalSets.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {displayedSoalSets.map((set, index) => {
+                        const courseKey = `soal_${set.id}`;
+                        const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
+                        const hasCompleted = !!studentAssessment;
+                        const activeQs = soalQuestions.filter(q => q.setId === set.id && q.isActive !== false);
+                        const accentBars = ['bg-emerald-600', 'bg-teal-600', 'bg-blue-600', 'bg-indigo-600'];
+                        const topBarClass = hasCompleted ? 'bg-emerald-600' : accentBars[index % accentBars.length];
+                        const timerText = set.timerMode === 'per_soal'
+                          ? `${set.defaultQuestionTimerSeconds || 30}d / soal`
+                          : set.titleTimerSeconds > 0
+                          ? `${Math.ceil(set.titleTimerSeconds / 60)} Menit`
+                          : 'Tanpa Batas';
+
+                        return (
+                          <motion.div
+                            whileHover={{ y: -3 }}
+                            whileTap={{ scale: 0.99 }}
+                            key={set.id}
+                            onClick={() => {
+                              setActiveSoalSetId(set.id);
+                              sessionStorage.setItem('activeSoalSetId', set.id);
+                              setIsPreviewingSoal(false);
+                              setCurrentPage('soal_confirm');
+                            }}
+                            className="group bg-white border border-slate-200 hover:border-slate-300 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col cursor-pointer"
+                          >
+                            <div className={cn("h-2 w-full", topBarClass)} />
+                            <div className="p-5 flex-1 flex flex-col">
+                              {/* Quiet unboxed metadata line */}
+                              <div className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-500 mb-2 tabular-nums">
+                                <span className="truncate">
+                                  {activeQs.length} Soal PG · {timerText}{set.isFullScreen ? ' · Layar Penuh' : ''}
+                                </span>
+                                {hasCompleted && (
+                                  <span className="inline-flex items-center gap-1 text-emerald-700 font-bold shrink-0">
+                                    <CheckCircle size={13} /> Selesai
+                                  </span>
+                                )}
+                              </div>
+
+                              <h3 className="font-extrabold text-base md:text-lg text-slate-900 leading-snug mb-1.5 group-hover:text-emerald-700 transition-colors">
+                                {set.title}
+                              </h3>
+                              {set.description && (
+                                <p className="text-xs text-slate-600 leading-relaxed line-clamp-2 mb-4">
+                                  {set.description}
+                                </p>
+                              )}
+
+                              <div className="mt-auto pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                                {hasCompleted ? (
+                                  <>
+                                    {(set.isScoreVisible ?? true) ? (
+                                      <span className={cn(
+                                        "text-xs font-extrabold font-mono tabular-nums",
+                                        (studentAssessment?.score ?? 0) >= 80 ? "text-emerald-700" :
+                                        (studentAssessment?.score ?? 0) >= 60 ? "text-amber-700" : "text-rose-700"
+                                      )}>
+                                        Skor: {studentAssessment?.score}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs font-semibold text-slate-500">Tersimpan</span>
+                                    )}
+                                    <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-700 inline-flex items-center gap-1 whitespace-nowrap">
+                                      Buka Detail <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="text-xs font-medium text-slate-400">
+                                      {set.kelas || 'Semua Kelas'}
+                                    </span>
+                                    <span className="text-xs font-extrabold text-emerald-700 inline-flex items-center gap-1 whitespace-nowrap">
+                                      Kerjakan Soal <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="bg-white py-14 rounded-2xl border border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-6">
+                      <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-3">
+                        <ClipboardList size={26} />
+                      </div>
+                      <h3 className="text-base font-extrabold text-slate-900 mb-1">
+                        {activeSoalSets.length === 0 ? 'Belum Ada Paket Soal Aktif' : 'Tidak Ada Paket Soal Cocok'}
+                      </h3>
+                      <p className="text-xs text-slate-500 max-w-sm">
+                        {activeSoalSets.length === 0
+                          ? 'Paket soal akan tampil di sini setelah guru mengaktifkan kartu soal.'
+                          : 'Coba ubah kata kunci pencarian atau pilih filter "Semua".'}
+                      </p>
+                    </div>
+                  )
+                ) : (
+                  displayedCourses.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {displayedCourses.map((course, index) => {
+                        const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
+                        const hasCompleted = !!studentAssessment;
+                        const accentBars = ['bg-blue-600', 'bg-indigo-600', 'bg-cyan-600', 'bg-violet-600', 'bg-sky-600', 'bg-teal-600'];
+                        const topBarClass = hasCompleted ? 'bg-emerald-600' : accentBars[index % accentBars.length];
+                        const isFullScreenMode = materialConfigs[course.id]?.isFullScreen;
+
+                        return (
+                          <motion.div
+                            whileHover={{ y: -3 }}
+                            whileTap={{ scale: 0.99 }}
+                            key={course.id}
+                            onClick={() => {
+                              setActiveCourseId(course.id);
+                              setCurrentPage('course_confirm');
+                            }}
+                            className="group bg-white border border-slate-200 hover:border-slate-300 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col cursor-pointer"
+                          >
+                            <div className={cn("h-2 w-full", topBarClass)} />
+                            <div className="p-5 flex-1 flex flex-col">
+                              <div className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-500 mb-2 tabular-nums">
+                                <span className="truncate">
+                                  {course.level} · {course.topics.length} Topik{isFullScreenMode ? ' · Mode Ujian' : ''}
+                                </span>
+                                {hasCompleted && (
+                                  <span className="inline-flex items-center gap-1 text-emerald-700 font-bold shrink-0">
+                                    <CheckCircle size={13} /> Selesai
+                                  </span>
+                                )}
+                              </div>
+
+                              <h3 className="font-extrabold text-base md:text-lg text-slate-900 leading-snug mb-1.5 group-hover:text-brand transition-colors">
+                                {course.title}
+                              </h3>
+                              <p className="text-xs text-slate-600 leading-relaxed line-clamp-2 mb-4">
+                                {course.description || `Pelajari ${course.topics.length} topik terstruktur beserta evaluasi kuis interaktif.`}
+                              </p>
+
+                              <div className="mt-auto pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                                {hasCompleted ? (
+                                  <>
+                                    <span className={cn(
+                                      "text-xs font-extrabold font-mono tabular-nums",
+                                      (studentAssessment?.score ?? 0) >= 80 ? "text-emerald-700" :
+                                      (studentAssessment?.score ?? 0) >= 60 ? "text-amber-700" : "text-rose-700"
+                                    )}>
+                                      Skor: {studentAssessment?.score}
+                                    </span>
+                                    <span className="text-xs font-bold text-slate-700 group-hover:text-brand inline-flex items-center gap-1 whitespace-nowrap">
+                                      Pelajari Ulang <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="text-xs font-medium text-slate-400">Belum dimulai</span>
+                                    <span className="text-xs font-extrabold text-brand inline-flex items-center gap-1 whitespace-nowrap">
+                                      Mulai Belajar <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="bg-white py-14 rounded-2xl border border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-6">
+                      <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-3">
+                        <Lock size={26} />
+                      </div>
+                      <h3 className="text-base font-extrabold text-slate-900 mb-1">
+                        {activeCoursesList.length === 0 ? 'Belum Ada Materi Aktif' : 'Tidak Ada Materi Cocok'}
+                      </h3>
+                      <p className="text-xs text-slate-500 max-w-sm">
+                        {activeCoursesList.length === 0
+                          ? 'Materi akan muncul di sini setelah guru mengaktifkannya.'
+                          : 'Coba ubah kata kunci pencarian atau pilih filter "Semua".'}
+                      </p>
+                    </div>
+                  )
                 )}
               </section>
 
-              <section>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-14 h-14 bg-blue-100 border border-blue-200 rounded-2xl flex items-center justify-center text-brand shadow-sm">
-                    <TrendingUp size={28} />
+              {/* Riwayat Skor */}
+              <section className="pb-6">
+                <div className="flex items-center justify-between gap-3 mb-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-center text-brand">
+                      <TrendingUp size={18} />
+                    </div>
+                    <div>
+                      <h2 className="text-base md:text-lg font-extrabold text-slate-900 tracking-tight">Riwayat Skor Belajar</h2>
+                      <p className="text-xs text-slate-500 font-medium tabular-nums">
+                        {studentAssessments.length} catatan penyelesaian materi dan soal
+                      </p>
+                    </div>
                   </div>
-                  <h2 className="text-xl md:text-3xl font-black text-slate-900 uppercase tracking-tight">Riwayat Skor</h2>
                 </div>
 
                 {/* Desktop Table */}
-                <div className="hidden md:block bg-slate-100 border border-slate-300 rounded-[2.5rem] overflow-hidden shadow-sm">
+                <div className="hidden md:block bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left min-w-[600px] border-collapse">
-                      <thead className="bg-slate-200 border-b-2 border-slate-300">
-                        <tr className="text-sm font-black text-slate-700 uppercase tracking-widest text-left">
-                          <th className="px-8 py-6">Materi Pembelajaran</th>
-                          <th className="px-8 py-6 text-center">Hasil Skor</th>
-                          <th className="px-8 py-6 text-right">Tanggal Selesai</th>
+                    <table className="w-full text-left border-collapse tabular-nums">
+                      <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr className="text-xs font-bold text-slate-600">
+                          <th className="px-6 py-3.5">Judul Materi / Paket Soal</th>
+                          <th className="px-6 py-3.5 text-center">Kategori</th>
+                          <th className="px-6 py-3.5 text-center">Skor</th>
+                          <th className="px-6 py-3.5 text-right">Tanggal Selesai</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-200">
-                        {studentAssessments.length > 0 ? [...studentAssessments].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map((a) => (
-                          <tr key={a.id} className="hover:bg-slate-200/80 transition-colors">
-                            <td className="px-8 py-6 font-black text-slate-900 text-base md:text-lg">{a.courseTitle}</td>
-                            <td className="px-8 py-6 text-center">
-                              <span className={cn(
-                                "px-5 py-2 rounded-2xl font-black text-base md:text-lg border shadow-sm inline-block min-w-[70px]",
-                                a.score >= 80 ? "bg-emerald-100 text-emerald-800 border-emerald-200" : a.score >= 60 ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-rose-100 text-rose-800 border-rose-200"
-                              )}>
-                                {a.score}
-                              </span>
-                            </td>
-                            <td className="px-8 py-6 text-right text-slate-600 text-sm md:text-base font-bold">
-                              {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                            </td>
-                          </tr>
-                        )) : (
+                      <tbody className="divide-y divide-slate-100 text-sm">
+                        {studentAssessments.length > 0 ? [...studentAssessments]
+                          .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+                          .map((a) => {
+                            const isSoal = String(a.courseId || '').startsWith('soal_');
+                            const matchedSoal = isSoal ? soalSets.find(s => `soal_${s.id}` === a.courseId) : null;
+                            const showScore = !isSoal || (matchedSoal?.isScoreVisible ?? true);
+                            return (
+                              <tr key={a.id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-6 py-3.5 font-bold text-slate-900">{a.courseTitle}</td>
+                                <td className="px-6 py-3.5 text-center text-xs font-semibold text-slate-600">
+                                  {isSoal ? 'Paket Soal' : 'Materi'}
+                                </td>
+                                <td className="px-6 py-3.5 text-center">
+                                  {showScore ? (
+                                    <span className={cn(
+                                      "font-mono font-extrabold text-sm",
+                                      a.score >= 80 ? "text-emerald-700" : a.score >= 60 ? "text-amber-700" : "text-rose-700"
+                                    )}>
+                                      {a.score}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs font-semibold text-slate-400">Disembunyikan</span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-3.5 text-right text-slate-500 text-xs font-medium">
+                                  {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                </td>
+                              </tr>
+                            );
+                          }) : (
                           <tr>
-                            <td colSpan={3} className="px-8 py-20 text-center text-slate-500 font-bold text-lg italic">Belum ada riwayat pengerjaan materi.</td>
+                            <td colSpan={4} className="px-6 py-12 text-center text-slate-400 font-medium text-sm">
+                              Belum ada riwayat pengerjaan materi atau paket soal.
+                            </td>
                           </tr>
                         )}
                       </tbody>
@@ -1797,28 +2015,33 @@ export default function App() {
                 </div>
 
                 {/* Mobile Cards */}
-                <div className="md:hidden space-y-4">
-                  {studentAssessments.length > 0 ? [...studentAssessments].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map((a) => (
-                    <div key={a.id} className="bg-slate-100 p-5 rounded-3xl border border-slate-300 shadow-sm flex flex-col gap-4">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="flex-1">
-                          <h3 className="font-black text-slate-900 text-base leading-snug mb-1">{a.courseTitle}</h3>
-                          <div className="flex items-center gap-1.5 text-slate-500 font-bold text-[10px] uppercase tracking-wider">
-                            <Calendar size={12} />
-                            {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                <div className="md:hidden space-y-3">
+                  {studentAssessments.length > 0 ? [...studentAssessments]
+                    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+                    .map((a) => {
+                      const isSoal = String(a.courseId || '').startsWith('soal_');
+                      const matchedSoal = isSoal ? soalSets.find(s => `soal_${s.id}` === a.courseId) : null;
+                      const showScore = !isSoal || (matchedSoal?.isScoreVisible ?? true);
+                      return (
+                        <div key={a.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between gap-3 tabular-nums">
+                          <div className="min-w-0">
+                            <h3 className="font-bold text-slate-900 text-sm truncate">{a.courseTitle}</h3>
+                            <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                              {isSoal ? 'Paket Soal' : 'Materi'} · {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </p>
+                          </div>
+                          <div className={cn(
+                            "font-mono font-extrabold text-base shrink-0",
+                            !showScore ? "text-xs text-slate-400 font-sans" :
+                            a.score >= 80 ? "text-emerald-700" : a.score >= 60 ? "text-amber-700" : "text-rose-700"
+                          )}>
+                            {showScore ? a.score : 'Tersimpan'}
                           </div>
                         </div>
-                        <div className={cn(
-                          "px-4 py-2 rounded-2xl font-black text-lg border shadow-sm shrink-0",
-                          a.score >= 80 ? "bg-emerald-100 text-emerald-800 border-emerald-200" : a.score >= 60 ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-rose-100 text-rose-800 border-rose-200"
-                        )}>
-                          {a.score}
-                        </div>
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="bg-slate-100 py-12 rounded-3xl border border-dashed border-slate-300 text-center text-slate-500 font-bold text-sm italic">
-                      Belum ada riwayat pengerjaan materi.
+                      );
+                    }) : (
+                    <div className="bg-white py-10 rounded-xl border border-dashed border-slate-300 text-center text-slate-400 font-medium text-xs">
+                      Belum ada riwayat pengerjaan materi atau paket soal.
                     </div>
                   )}
                 </div>
@@ -1838,95 +2061,94 @@ export default function App() {
     const isScoreVisible = materialConfigs[course.id]?.isScoreVisible ?? true;
 
     return (
-      <div className="min-h-screen bg-slate-300 text-slate-900 flex flex-col p-4 md:p-8 items-center justify-center overflow-y-auto custom-scrollbar">
-        <motion.div 
-          initial={{ scale: 0.95, opacity: 0, y: 20 }}
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col p-4 md:p-8 items-center justify-center overflow-y-auto custom-scrollbar font-sans">
+        <motion.div
+          initial={{ scale: 0.97, opacity: 0, y: 12 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-2xl overflow-hidden shadow-2xl my-4 md:my-auto"
+          className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl overflow-hidden shadow-md my-4 md:my-auto"
         >
           {/* Banner Header */}
-          <div className="bg-slate-900 p-6 md:p-8 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-brand/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+          <div className="bg-slate-900 p-6 md:p-7 text-white relative overflow-hidden">
             <div className="relative z-10 flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-brand/30 border border-brand/50 flex items-center justify-center text-yellow-400 font-bold shadow-md shrink-0 mt-0.5">
-                  <BookOpen size={28} />
+              <div className="flex items-start gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-brand/30 border border-blue-400/40 flex items-center justify-center text-blue-200 shrink-0">
+                  <BookOpen size={22} />
                 </div>
                 <div>
-                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 block mb-1">
+                  <span className="text-xs font-semibold text-slate-300 block mb-0.5">
                     Konfirmasi Pembelajaran
                   </span>
-                  <h2 className="text-xl md:text-2xl font-black text-white leading-snug">
+                  <h2 className="text-lg md:text-2xl font-extrabold text-white leading-snug">
                     {course.title}
                   </h2>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setCurrentPage('student_dashboard')}
-                className="p-2.5 hover:bg-white/10 rounded-2xl transition-colors text-slate-300 hover:text-white shrink-0"
+                className="p-2 hover:bg-white/10 rounded-xl transition-colors text-slate-300 hover:text-white shrink-0 cursor-pointer"
                 title="Kembali ke Dashboard"
               >
-                <X size={22} />
+                <X size={20} />
               </button>
             </div>
           </div>
 
           {/* Content Details */}
-          <div className="p-6 md:p-8 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Tingkat Kelas</span>
-                <span className="px-3 py-1 rounded-xl text-xs font-black bg-blue-100 text-blue-800 border border-blue-200 w-fit">
-                  {course.level}
+          <div className="p-6 md:p-7 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 tabular-nums">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-xs font-semibold text-slate-500 block">Tingkat Kelas</span>
+                <span className="font-bold text-slate-900 text-sm">{course.level}</span>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-xs font-semibold text-slate-500 block">Jumlah Topik</span>
+                <span className="font-bold text-slate-900 text-sm">{course.topics.length} Topik Pembelajaran</span>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-xs font-semibold text-slate-500 block">Mode Keamanan</span>
+                <span className={cn("font-bold text-sm inline-flex items-center gap-1.5", isFullScreen ? "text-amber-700" : "text-emerald-700")}>
+                  {isFullScreen ? <Maximize size={14} /> : <CheckCircle size={14} />}
+                  {isFullScreen ? "Layar Penuh (Mode Ujian)" : "Mode Normal"}
                 </span>
               </div>
 
-              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Jumlah Topik</span>
-                <span className="font-black text-slate-900 text-sm">{course.topics.length} Topik Pembelajaran</span>
-              </div>
-
-              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Mode Keamanan</span>
-                <span className={cn("font-black text-xs px-3 py-1 rounded-xl border w-fit", isFullScreen ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-emerald-100 text-emerald-800 border-emerald-200")}>
-                  {isFullScreen ? "🔒 Fullscreen (Mode Ujian)" : "🔓 Mode Normal"}
-                </span>
-              </div>
-
-              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Status Nilai</span>
-                <span className="font-black text-xs text-slate-900">
-                  {isScoreVisible ? "👁️ Terlihat Saat Belajar" : "👁️‍🗨️ Disembunyikan Saat Belajar"}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-xs font-semibold text-slate-500 block">Status Nilai</span>
+                <span className="font-bold text-sm text-slate-900 inline-flex items-center gap-1.5">
+                  {isScoreVisible ? <Eye size={14} className="text-brand" /> : <EyeOff size={14} className="text-slate-400" />}
+                  {isScoreVisible ? "Terlihat Saat Belajar" : "Disembunyikan Saat Belajar"}
                 </span>
               </div>
             </div>
 
             {hasCompleted ? (
-              <div className="bg-emerald-50 border border-emerald-200 p-5 md:p-6 rounded-2xl flex items-start gap-4 shadow-xs">
-                <CheckCircle size={24} className="text-emerald-600 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h4 className="font-black text-emerald-900 text-base md:text-lg mb-1">Materi Ini Sudah Anda Selesai!</h4>
-                  <p className="text-sm text-emerald-800 font-medium leading-relaxed">
-                    Anda telah memperoleh skor <span className="font-black text-emerald-950 underline">{studentAssessment?.score ?? 100}</span>. Anda dapat membuka kembali materi ini untuk belajar ulang kapan saja.
+              <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-start gap-3">
+                <CheckCircle size={20} className="text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-extrabold text-emerald-900 text-sm mb-0.5">Materi Ini Sudah Selesai</h4>
+                  <p className="text-xs md:text-sm text-emerald-800 leading-relaxed">
+                    Anda telah memperoleh skor <span className="font-extrabold font-mono tabular-nums">{studentAssessment?.score ?? 100}</span>. Anda dapat membuka kembali materi ini kapan saja.
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="bg-blue-50 border border-blue-200 p-5 md:p-6 rounded-2xl flex items-start gap-4 shadow-xs">
-                <Info size={24} className="text-brand shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h4 className="font-black text-slate-900 text-base md:text-lg mb-1">Konfirmasi Pembelajaran</h4>
-                  <p className="text-sm text-slate-700 font-medium leading-relaxed">
-                    Apakah Anda yakin ingin mulai mempelajari <span className="font-black text-brand underline">{course.title}</span> sekarang?
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3">
+                <Info size={20} className="text-brand shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-sm mb-0.5">Siap Memulai?</h4>
+                  <p className="text-xs md:text-sm text-slate-700 leading-relaxed">
+                    Pelajari setiap topik secara berurutan dan selesaikan kuis evaluasi pada <span className="font-bold text-brand">{course.title}</span>.
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-5 border-t border-slate-300">
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
               <button
                 onClick={() => setCurrentPage('student_dashboard')}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-200 transition-all text-sm text-center"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-700 hover:bg-slate-50 transition-colors text-xs md:text-sm whitespace-nowrap cursor-pointer"
               >
                 Kembali ke Dashboard
               </button>
@@ -1935,10 +2157,10 @@ export default function App() {
                   setCurrentPage('course');
                   updateSessionStatus(course.id, 'working').catch(console.error);
                 }}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-brand text-white font-extrabold shadow-xl shadow-brand/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-brand hover:bg-brand-hover text-white font-bold transition-colors flex items-center justify-center gap-2 text-xs md:text-sm whitespace-nowrap cursor-pointer"
               >
-                <CheckCircle size={20} />
-                {hasCompleted ? "Buka Pembelajaran Kembali" : "Ya, Mulai Pembelajaran"}
+                <CheckCircle size={17} />
+                {hasCompleted ? "Buka Materi Kembali" : "Ya, Mulai Pembelajaran"}
               </button>
             </div>
           </div>
@@ -1951,12 +2173,12 @@ export default function App() {
     const selectedSoalSet = soalSets.find(s => s.id === activeSoalSetId);
     if (!selectedSoalSet) {
       return (
-        <div className="min-h-screen bg-slate-300 flex items-center justify-center p-6">
-          <div className="bg-slate-100 p-8 rounded-3xl border border-slate-300 text-center space-y-4 max-w-md w-full shadow-xl">
-            <h3 className="font-black text-lg text-slate-900">Paket Soal Tidak Ditemukan</h3>
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
+          <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center space-y-4 max-w-md w-full shadow-md">
+            <h3 className="font-extrabold text-lg text-slate-900">Paket Soal Tidak Ditemukan</h3>
             <button
               onClick={() => setCurrentPage(isAdmin ? 'admin' : 'student_dashboard')}
-              className="px-6 py-3 bg-brand text-white rounded-xl font-bold text-sm"
+              className="px-5 py-2.5 bg-brand hover:bg-brand-hover text-white rounded-xl font-bold text-sm cursor-pointer"
             >
               Kembali ke Dashboard
             </button>
@@ -1973,106 +2195,107 @@ export default function App() {
     const isScoreVisible = selectedSoalSet.isScoreVisible ?? true;
 
     return (
-      <div className="min-h-screen bg-slate-300 text-slate-900 flex flex-col p-4 md:p-8 items-center justify-center overflow-y-auto custom-scrollbar">
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col p-4 md:p-8 items-center justify-center overflow-y-auto custom-scrollbar font-sans">
         <motion.div
-          initial={{ scale: 0.95, opacity: 0, y: 20 }}
+          initial={{ scale: 0.97, opacity: 0, y: 12 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-2xl overflow-hidden shadow-2xl my-4 md:my-auto"
+          className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl overflow-hidden shadow-md my-4 md:my-auto"
         >
-          <div className="bg-slate-900 p-6 md:p-8 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+          <div className="bg-slate-900 p-6 md:p-7 text-white relative overflow-hidden">
             <div className="relative z-10 flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-emerald-500/30 border border-emerald-400/50 flex items-center justify-center text-yellow-300 font-bold shadow-md shrink-0 mt-0.5">
-                  <ClipboardList size={28} />
+              <div className="flex items-start gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-emerald-500/25 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shrink-0">
+                  <ClipboardList size={22} />
                 </div>
                 <div>
-                  <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 block mb-1">
+                  <span className="text-xs font-semibold text-slate-300 block mb-0.5">
                     Konfirmasi Pengerjaan Soal
                   </span>
-                  <h2 className="text-xl md:text-2xl font-black text-white leading-snug">
+                  <h2 className="text-lg md:text-2xl font-extrabold text-white leading-snug">
                     {selectedSoalSet.title}
                   </h2>
                 </div>
               </div>
               <button
                 onClick={() => setCurrentPage('student_dashboard')}
-                className="p-2.5 hover:bg-white/10 rounded-2xl transition-colors text-slate-300 hover:text-white shrink-0"
+                className="p-2 hover:bg-white/10 rounded-xl transition-colors text-slate-300 hover:text-white shrink-0 cursor-pointer"
               >
-                <X size={22} />
+                <X size={20} />
               </button>
             </div>
           </div>
 
-          <div className="p-6 md:p-8 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Target Kelas</span>
-                <span className="px-3 py-1 rounded-xl text-xs font-black bg-blue-100 text-blue-800 border border-blue-200 w-fit">
+          <div className="p-6 md:p-7 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 tabular-nums">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-xs font-semibold text-slate-500 block">Target Kelas</span>
+                <span className="font-bold text-slate-900 text-sm">
                   {selectedSoalSet.kelas || 'Semua Kelas'}
                 </span>
               </div>
 
-              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Jumlah Soal PG</span>
-                <span className="font-black text-slate-900 text-sm">{activeQs.length} Butir Soal (4 Opsi)</span>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-xs font-semibold text-slate-500 block">Jumlah Soal PG</span>
+                <span className="font-bold text-slate-900 text-sm">{activeQs.length} Butir Soal (4 Opsi)</span>
               </div>
 
-              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Pengaturan Timer</span>
-                <span className="font-black text-xs text-amber-800 bg-amber-100 border border-amber-200 px-3 py-1 rounded-xl w-fit">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-xs font-semibold text-slate-500 block">Pengaturan Timer</span>
+                <span className="font-bold text-sm text-amber-700 inline-flex items-center gap-1.5">
+                  <Clock size={14} />
                   {selectedSoalSet.timerMode === 'per_soal'
-                    ? `⏱️ Per Soal (${selectedSoalSet.defaultQuestionTimerSeconds || 30}d default)`
+                    ? `Per Soal (${selectedSoalSet.defaultQuestionTimerSeconds || 30}d default)`
                     : selectedSoalSet.titleTimerSeconds > 0
-                    ? `⏱️ Per Judul (${Math.floor(selectedSoalSet.titleTimerSeconds / 60)}m ${selectedSoalSet.titleTimerSeconds % 60}d)`
-                    : '⏱️ Tanpa Batas Waktu'}
+                    ? `Per Judul (${Math.floor(selectedSoalSet.titleTimerSeconds / 60)}m ${selectedSoalSet.titleTimerSeconds % 60}d)`
+                    : 'Tanpa Batas Waktu'}
                 </span>
               </div>
 
-              <div className="bg-slate-200/90 p-4 rounded-2xl border border-slate-300 flex flex-col gap-1 justify-center">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Mode Keamanan</span>
-                <span className={cn("font-black text-xs px-3 py-1 rounded-xl border w-fit", isFullScreen ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-emerald-100 text-emerald-800 border-emerald-200")}>
-                  {isFullScreen ? "🔒 Fullscreen (Terpantau)" : "🔓 Mode Normal"}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-xs font-semibold text-slate-500 block">Mode Keamanan</span>
+                <span className={cn("font-bold text-sm inline-flex items-center gap-1.5", isFullScreen ? "text-amber-700" : "text-emerald-700")}>
+                  {isFullScreen ? <Maximize size={14} /> : <CheckCircle size={14} />}
+                  {isFullScreen ? "Fullscreen (Terpantau)" : "Mode Normal"}
                 </span>
               </div>
             </div>
 
             {hasCompleted ? (
-              <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-start gap-4">
-                <CheckCircle size={24} className="text-emerald-600 shrink-0 mt-0.5" />
+              <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-start gap-3">
+                <CheckCircle size={20} className="text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-black text-emerald-900 text-base mb-1">Paket Soal Ini Sudah Dikerjakan</h4>
-                  <p className="text-sm text-emerald-800 font-medium">
+                  <h4 className="font-extrabold text-emerald-900 text-sm mb-0.5">Paket Soal Ini Sudah Dikerjakan</h4>
+                  <p className="text-xs md:text-sm text-emerald-800">
                     {isScoreVisible
-                      ? <>Skor terakhir Anda: <span className="font-black underline">{studentAssessment?.score ?? 0}</span>. Anda dapat mengerjakan ulang jika diizinkan guru.</>
+                      ? <>Skor terakhir Anda: <span className="font-extrabold font-mono tabular-nums">{studentAssessment?.score ?? 0}</span>. Anda dapat mengerjakan ulang jika diizinkan guru.</>
                       : 'Jawaban Anda telah tersimpan di sistem guru.'}
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl flex items-start gap-4">
-                <Info size={24} className="text-brand shrink-0 mt-0.5" />
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3">
+                <Info size={20} className="text-brand shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-black text-slate-900 text-base mb-1">Siap Mengerjakan?</h4>
-                  <p className="text-sm text-slate-700 font-medium">
-                    Pastikan koneksi stabil. {isFullScreen && 'Dilarang keluar dari layar penuh atau membuka tab lain selama ujian berlangsung.'}
+                  <h4 className="font-extrabold text-slate-900 text-sm mb-0.5">Siap Mengerjakan?</h4>
+                  <p className="text-xs md:text-sm text-slate-700">
+                    Pastikan koneksi internet stabil. {isFullScreen && 'Dilarang keluar dari layar penuh atau membuka tab lain selama ujian berlangsung.'}
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-5 border-t border-slate-300">
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
               <button
                 onClick={() => setCurrentPage('student_dashboard')}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-200 text-sm"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-700 hover:bg-slate-50 text-xs md:text-sm whitespace-nowrap cursor-pointer"
               >
                 Kembali
               </button>
               <button
                 onClick={() => setCurrentPage('soal')}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-all"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center justify-center gap-2 text-xs md:text-sm whitespace-nowrap cursor-pointer transition-colors"
               >
-                <CheckCircle size={20} />
+                <CheckCircle size={17} />
                 {hasCompleted ? "Kerjakan Ulang Soal" : "Mulai Kerjakan Soal"}
               </button>
             </div>
@@ -4907,20 +5130,20 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-frame font-sans text-slate-900 overflow-hidden">
+    <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
       {!isAdmin && materialConfigs[activeCourse.id]?.isFullScreen && !isFullscreenActive && currentPage === 'course' && !showCompletionPopup && (
         <div className="fixed inset-0 bg-slate-900 z-[999] flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-8">
-            <Maximize size={48} className="text-white" />
+          <div className="w-20 h-20 bg-white/10 border border-white/15 rounded-2xl flex items-center justify-center mb-6">
+            <Maximize size={40} className="text-white" />
           </div>
-          <h2 className="text-3xl font-black text-white mb-4">Wajib Layar Penuh</h2>
-          <p className="text-slate-300 max-w-md mb-8 leading-relaxed">
-            Guru mewajibkan materi ini dikerjakan dalam mode layar penuh (Fullscreen) untuk menghindari gangguan. <br/><br/>
-            <strong>Peringatan!</strong> Jika kamu keluar dari mode layar penuh saat mengerjakan materi, aktivitas ini akan tercatat sebagai kecurangan di sistem guru.
+          <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-3">Wajib Layar Penuh</h2>
+          <p className="text-slate-300 max-w-md mb-8 leading-relaxed text-sm">
+            Guru mewajibkan materi ini dikerjakan dalam mode layar penuh (Fullscreen) untuk menjaga fokus belajar. <br/><br/>
+            <strong>Peringatan!</strong> Jika kamu keluar dari mode layar penuh saat mengerjakan materi, aktivitas ini akan tercatat di sistem guru.
           </p>
           <button 
             onClick={() => document.documentElement.requestFullscreen().catch(err => console.error(err))}
-            className="px-8 py-4 bg-brand text-white rounded-2xl font-bold shadow-lg hover:scale-105 transition-transform"
+            className="px-7 py-3.5 bg-brand hover:bg-brand-hover text-white rounded-xl font-bold shadow-lg transition-colors cursor-pointer"
           >
             Masuk Layar Penuh Sekarang
           </button>
@@ -4933,7 +5156,7 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 z-20 md:hidden"
+            className="fixed inset-0 bg-slate-900/30 z-20 md:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
@@ -4943,87 +5166,79 @@ export default function App() {
       <motion.aside 
         initial={false}
         animate={{ 
-          width: isSidebarOpen ? 320 : 0,
+          width: isSidebarOpen ? 300 : 0,
           opacity: isSidebarOpen ? 1 : 0
         }}
         className={cn(
-          "bg-slate-100 border-r border-slate-300 flex flex-col z-30 transition-all duration-300",
+          "bg-white border-r border-slate-200 flex flex-col z-30 transition-all duration-300",
           !isSidebarOpen && "pointer-events-none overflow-hidden"
         )}
       >
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-brand rounded-lg flex items-center justify-center text-white font-bold text-xl">
+        <div className="p-5 border-b border-slate-200 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 bg-brand rounded-xl flex items-center justify-center text-white font-extrabold text-sm shrink-0">
               IK
             </div>
-            <div>
-              <h1 className="text-lg font-extrabold tracking-tight text-slate-900 leading-tight">
+            <div className="min-w-0">
+              <h1 className="text-sm font-extrabold tracking-tight text-slate-900 leading-tight truncate">
                 {activeCourse.title}
               </h1>
-              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Level: {activeCourse.level}</p>
+              <p className="text-[11px] font-medium text-slate-500 truncate">{activeCourse.level}</p>
             </div>
           </div>
           <button 
             onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden p-2 hover:bg-slate-200 rounded-lg text-slate-600"
+            className="md:hidden p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 cursor-pointer"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        <div className="px-6 py-4">
+        <div className="px-4 py-3.5">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand transition-colors" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand transition-colors" size={15} />
             <input 
               type="text" 
-              placeholder="Cari materi..." 
+              placeholder="Cari topik..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-200 border border-slate-300 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all font-sans"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all font-sans"
             />
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-4 pb-4 space-y-1 custom-scrollbar">
+        <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-1 custom-scrollbar">
           {isAdmin ? (
             <button 
               onClick={() => { setCurrentPage('admin'); setAdminTab('materials'); }} 
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-200 text-slate-600 mb-4 font-bold text-sm transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 mb-3 font-bold text-xs transition-colors cursor-pointer"
             >
-              <Home size={18} /> Kembali ke Dashboard
+              <Home size={16} /> Kembali ke Dashboard
             </button>
           ) : (
             <button 
-              onClick={async () => {
-                if (currentStudent) {
-                  setCurrentPage('login');
-                  setLocalCheatingAttempts(0);
-                  setLocalCheatingDetails([]);
-                  try {
-                    for (const c of COURSES) {
-                      await deleteDoc(doc(db, 'active_sessions', `${currentStudent.id}_${c.id}`)).catch(()=> {});
-                    }
-                    for (const s of soalSets) {
-                      await deleteDoc(doc(db, 'active_sessions', `${currentStudent.id}_soal_${s.id}`)).catch(()=> {});
-                    }
-                  } catch(e) {}
+              onClick={() => {
+                setLocalCheatingAttempts(0);
+                setLocalCheatingDetails([]);
+                if (document.fullscreenElement) {
+                  document.exitFullscreen().catch(() => {});
                 }
-                setCurrentStudent(null); 
+                setCurrentPage('student_dashboard');
               }} 
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-red-50 text-red-600 mb-4 font-bold text-sm transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 mb-3 font-bold text-xs transition-colors cursor-pointer"
             >
-              <LogOut size={18} /> Logout ({currentStudent?.nama})
+              <Home size={15} /> Kembali ke Beranda Siswa
             </button>
           )}
           
           {currentPage !== 'course' && (
             <>
-              <div className="mb-4 text-xs font-semibold text-slate-600 uppercase tracking-widest px-3">Modul Pembelajaran</div>
-              <div className="px-3 mb-6">
+              <div className="mb-3 text-xs font-semibold text-slate-600 px-3">Modul Pembelajaran</div>
+              <div className="px-3 mb-5">
                 <select 
                     value={activeCourseId} 
                     onChange={(e) => setActiveCourseId(e.target.value)}
-                    className="w-full bg-slate-200 border border-slate-300 text-slate-800 text-sm rounded-lg focus:ring-brand focus:border-brand block p-2.5 transition-colors cursor-pointer shadow-sm hover:border-slate-400"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl focus:ring-brand focus:border-brand block p-2.5 transition-colors cursor-pointer"
                   >
                     {COURSES.map(course => (
                       <option key={course.id} value={course.id}>{course.title} ({course.level})</option>
@@ -5033,7 +5248,7 @@ export default function App() {
             </>
           )}
             
-            <div className="text-[10px] font-bold text-slate-400 px-3 py-2 uppercase tracking-widest">Daftar Materi</div>
+            <div className="text-[11px] font-bold text-slate-400 px-3 py-1.5">Daftar Topik</div>
             {filteredTopics.map((topic, index) => {
               const Icon = ICON_MAP[topic.icon] || Code;
               const isActive = topic.id === activeTopicId;
@@ -5043,7 +5258,6 @@ export default function App() {
               const isGatekeepingEnabled = materialConfigs[activeCourse.id]?.isGatekeepingEnabled ?? true;
               let isLocked = false;
               if (isGatekeepingEnabled && !isAdmin) {
-                // Topic is locked if any previous topic is not completed
                 for (let i = 0; i < index; i++) {
                   if (!passedQuizzes[activeCourse.topics[i].id]) {
                     isLocked = true;
@@ -5063,23 +5277,23 @@ export default function App() {
                     if (window.innerWidth < 768) setIsSidebarOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 group text-left",
+                    "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-150 group text-left cursor-pointer",
                     isActive 
-                      ? "bg-indigo-50 text-brand font-semibold border-r-4 border-brand rounded-sm shadow-sm" 
+                      ? "bg-blue-50 text-brand font-bold border border-blue-200" 
                       : isCompleted
-                        ? "bg-emerald-50 text-emerald-600 font-medium"
-                        : "hover:bg-frame text-slate-500 hover:text-slate-900",
-                    isLocked && "opacity-50 grayscale cursor-not-allowed"
+                        ? "bg-emerald-50/70 text-emerald-700 font-semibold hover:bg-emerald-50"
+                        : "hover:bg-slate-50 text-slate-600 hover:text-slate-900",
+                    isLocked && "opacity-45 grayscale cursor-not-allowed"
                   )}
                 >
                   <div className={cn(
-                    "w-6 h-6 rounded flex items-center justify-center transition-colors text-[11px] font-bold",
-                    isActive ? "text-brand" : isCompleted ? "text-emerald-500" : "text-slate-400"
+                    "w-6 h-6 rounded-lg flex items-center justify-center transition-colors text-[11px] font-mono font-bold shrink-0 tabular-nums",
+                    isActive ? "bg-brand text-white" : isCompleted ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500"
                   )}>
-                    {isCompleted ? "✓" : isLocked ? <Lock size={12} /> : String(index + 1).padStart(2, '0') + "."}
+                    {isCompleted ? "✓" : isLocked ? <Lock size={11} /> : String(index + 1).padStart(2, '0')}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{topic.title}</p>
+                    <p className="text-xs truncate">{topic.title}</p>
                   </div>
                 </button>
               );
@@ -5087,65 +5301,62 @@ export default function App() {
           </nav>
 
           {/* Course Progress */}
-          <div className="p-6 bg-frame border-t border-slate-100">
-            <div className="flex justify-between text-[11px] mb-2 font-bold">
-              <span className="text-slate-400 uppercase tracking-tight">Course Progress</span>
-              <span className="text-brand">{progressPercent}%</span>
+          <div className="p-4 bg-slate-50 border-t border-slate-200 tabular-nums">
+            <div className="flex justify-between text-xs mb-2 font-bold">
+              <span className="text-slate-500">Progres Belajar</span>
+              <span className="text-brand font-mono">{progressPercent}%</span>
             </div>
-            <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+            <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPercent}%` }}
-                className="bg-brand h-full" 
+                className="bg-brand h-full rounded-full" 
               />
             </div>
           </div>
         </motion.aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full bg-slate-300 relative">
-        <header className="h-16 border-b border-slate-300 flex items-center justify-between px-3 md:px-8 bg-slate-100/95 backdrop-blur-md z-20 sticky top-0">
-            <div className="flex items-center gap-1.5 md:gap-4 shrink-0 overflow-hidden">
+      <main className="flex-1 flex flex-col h-full bg-slate-50 relative">
+        <header className="h-16 border-b border-slate-200 flex items-center justify-between px-3 md:px-8 bg-white/95 backdrop-blur-md z-20 sticky top-0 gap-3">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0">
               {!isSidebarOpen && (
                 <button 
                   onClick={() => setIsSidebarOpen(true)}
-                  className="p-1.5 md:p-2 hover:bg-slate-200 rounded-lg text-slate-600 shrink-0"
+                  className="p-2 hover:bg-slate-100 rounded-xl text-slate-600 shrink-0 cursor-pointer"
                 >
-                  <Menu size={18} className="md:w-5 md:h-5" />
+                  <Menu size={19} />
                 </button>
               )}
-              <div className="flex items-center gap-1.5 md:gap-3 text-[10px] md:text-sm overflow-hidden">
-                <span className="text-slate-500 hidden lg:block whitespace-nowrap">{activeCourse.title}</span>
-                <span className="text-slate-400 font-light hidden lg:block">/</span>
-                <span className="text-slate-900 font-bold truncate max-w-[100px] xs:max-w-[140px] md:max-w-none">{currentIndex + 1}. {activeTopic.title}</span>
+              <div className="flex items-center gap-2 text-xs md:text-sm min-w-0 tabular-nums">
+                <span className="text-slate-500 font-medium hidden lg:block whitespace-nowrap">{activeCourse.title}</span>
+                <span className="text-slate-300 hidden lg:block">/</span>
+                <span className="text-slate-900 font-extrabold truncate">{currentIndex + 1}. {activeTopic.title}</span>
               </div>
             </div>
             
-            <div className="flex items-center gap-1.5 md:gap-3">
-              <div className="flex items-center gap-1 md:gap-2">
+            <div className="flex items-center gap-2 md:gap-3 shrink-0 tabular-nums">
+              <div className="flex items-center gap-2">
                 {topicTimeRemaining !== null && topicTimeRemaining > 0 && !isAdmin && viewMode === 'material' && (
-                  <div className="px-1.5 md:px-3 py-1 bg-red-50 border border-red-200 rounded-lg flex items-center gap-1 text-red-600">
-                    <Clock size={10} className="md:w-[14px] md:h-[14px] animate-spin-slow" />
-                    <span className="text-[7px] md:text-[9px] font-bold text-red-500 uppercase tracking-widest block">Waktu Tunggu</span>
-                    <span className="font-mono font-bold text-[10px] md:text-lg tracking-tight">{topicTimeRemaining}s</span>
+                  <div className="px-2.5 py-1.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-1.5 text-rose-700">
+                    <Clock size={14} />
+                    <span className="text-[11px] font-semibold hidden sm:inline">Baca:</span>
+                    <span className="font-mono font-bold text-xs md:text-sm">{topicTimeRemaining}s</span>
                   </div>
                 )}
                 {quizTimeRemaining !== null && quizTimeRemaining > 0 && !isAdmin && viewMode === 'quiz' && (
-                  <div className="px-1.5 md:px-3 py-1 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-1 text-amber-700">
-                    <Clock size={10} className="md:w-[14px] md:h-[14px] animate-pulse" />
-                    <span className="text-[7px] md:text-[9px] font-bold text-amber-600 uppercase tracking-widest block">Waktu Kuis</span>
-                    <span className="font-mono font-bold text-[10px] md:text-lg tracking-tight">{quizTimeRemaining}s</span>
+                  <div className="px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-1.5 text-amber-800">
+                    <Clock size={14} />
+                    <span className="text-[11px] font-semibold hidden sm:inline">Waktu Kuis:</span>
+                    <span className="font-mono font-bold text-xs md:text-sm">{quizTimeRemaining}s</span>
                   </div>
                 )}
                 {(isAdmin || (materialConfigs[activeCourse.id]?.isScoreVisible ?? true)) && (
-                  <div className="px-2 md:px-4 py-1 bg-slate-200 border border-slate-300 rounded-lg flex items-center gap-1">
-                     <span className="text-[7px] md:text-[9px] font-bold text-slate-500 uppercase tracking-widest block">
-                       Skor sementara
-                       {isAdmin && materialConfigs[activeCourse.id]?.isScoreVisible === false && (
-                         <span className="ml-1 text-[8px] text-amber-600 font-normal">(Siswa: Tersembunyi)</span>
-                       )}
+                  <div className="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-xl flex items-center gap-1.5">
+                     <span className="text-[11px] font-semibold text-slate-500 hidden sm:inline">
+                       Skor{isAdmin && materialConfigs[activeCourse.id]?.isScoreVisible === false ? ' (Tersembunyi)' : ':'}
                      </span>
-                     <span className={cn("font-bold text-[11px] md:text-lg", currentScore >= 80 ? "text-emerald-600" : currentScore >= 60 ? "text-amber-600" : "text-red-600")}>
+                     <span className={cn("font-mono font-extrabold text-xs md:text-sm", currentScore >= 80 ? "text-emerald-700" : currentScore >= 60 ? "text-amber-700" : "text-rose-700")}>
                         {currentScore}
                      </span>
                   </div>
@@ -5165,7 +5376,7 @@ export default function App() {
                     (currentIndex === activeCourse.topics.length - 1 && passedQuizzes[activeTopicId]) || 
                     (!isAdmin && (materialConfigs[activeCourse.id]?.isGatekeepingEnabled ?? true) && !passedQuizzes[activeTopicId])
                   }
-                  className="hidden md:block px-5 py-1.5 text-xs font-semibold bg-brand text-white rounded-lg shadow-md hover:bg-brand-hover active:scale-95 transition-all disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
+                  className="hidden md:inline-flex px-4 py-2 text-xs font-bold bg-brand hover:bg-brand-hover text-white rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-45 disabled:grayscale disabled:pointer-events-none"
                 >
                   {passedQuizzes[activeTopicId] ? 'Lanjut Materi' : 'Selesaikan Kuis'}
                 </button>
@@ -5178,55 +5389,53 @@ export default function App() {
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           <div className={cn(
             "max-w-4xl mx-auto px-4 md:px-8 transition-all duration-300",
-            viewMode === 'quiz' ? "py-6 md:py-8" : "py-8 md:py-16"
+            viewMode === 'quiz' ? "py-6 md:py-8" : "py-6 md:py-10"
           )}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${activeTopicId}-${viewMode}`}
-                initial={{ opacity: 0, x: viewMode === 'quiz' ? 20 : -20 }}
+                initial={{ opacity: 0, x: viewMode === 'quiz' ? 16 : -16 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: viewMode === 'quiz' ? -20 : 20 }}
-                transition={{ duration: 0.3 }}
-                className="markdown-body bg-slate-100 border border-slate-300 p-6 sm:p-10 md:p-12 rounded-[2rem] shadow-sm"
+                exit={{ opacity: 0, x: viewMode === 'quiz' ? -16 : 16 }}
+                transition={{ duration: 0.2 }}
+                className="markdown-body bg-white border border-slate-200 p-6 sm:p-8 md:p-10 rounded-2xl shadow-2xs"
               >
                 {viewMode === 'material' ? (
                     <>
                       {courseCompleted ? (
                         <motion.div 
-                          initial={{ opacity: 0, scale: 0.95 }}
+                          initial={{ opacity: 0, scale: 0.97 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className="bg-slate-100 p-12 rounded-[2rem] shadow-xl border border-slate-300 text-center flex flex-col items-center"
+                          className="p-6 md:p-10 text-center flex flex-col items-center"
                         >
-                          <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-8 shadow-inner ring-8 ring-emerald-50">
-                            <CheckCircle size={48} />
+                          <div className="w-20 h-20 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-2xl flex items-center justify-center mb-6">
+                            <CheckCircle size={40} />
                           </div>
-                          <h2 className="text-4xl font-extrabold text-slate-900 mb-2 tracking-tight">Selamat!</h2>
-                          <p className="text-slate-600 text-xl mb-8">Anda telah menyelesaikan kurikulum ini.</p>
+                          <h2 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">Selamat!</h2>
+                          <p className="text-slate-600 text-base md:text-lg mb-7">Anda telah menyelesaikan seluruh topik pada materi ini.</p>
                           
-                          <div className="bg-slate-200 p-8 rounded-3xl border border-slate-300 mb-10 w-full max-w-sm">
-                            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Skor Akhir Anda</p>
+                          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 mb-8 w-full max-w-sm tabular-nums">
+                            <p className="text-xs font-bold text-slate-500 mb-1.5">Skor Akhir Anda</p>
                             <p className={cn(
-                              "text-7xl font-black mb-4",
-                              currentScore >= 80 ? "text-emerald-500" : currentScore >= 60 ? "text-amber-500" : "text-red-500"
+                              "text-6xl font-black font-mono mb-3",
+                              currentScore >= 80 ? "text-emerald-600" : currentScore >= 60 ? "text-amber-600" : "text-rose-600"
                             )}>
                               {currentScore}
                             </p>
                             
                             {startTime && completionTime && (
-                              <div className="pt-4 border-t border-slate-200/50 flex flex-col gap-1">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waktu Pengerjaan</p>
-                                <p className="text-xl font-black text-slate-700">
+                              <div className="pt-3 border-t border-slate-200 flex items-center justify-center gap-2 text-xs text-slate-600">
+                                <span className="font-semibold">Waktu Pengerjaan:</span>
+                                <span className="font-mono font-bold text-slate-900">
                                   {(() => {
                                     const totalSeconds = Math.floor((completionTime - startTime) / 1000);
                                     const minutes = Math.floor(totalSeconds / 60);
                                     const seconds = totalSeconds % 60;
                                     return `${minutes}m ${seconds}s`;
                                   })()}
-                                </p>
+                                </span>
                               </div>
                             )}
-                            
-                            <p className="text-[10px] font-bold text-slate-300 mt-4">Dimulai dari 100 poin</p>
                           </div>
 
                           <button 
@@ -5236,10 +5445,10 @@ export default function App() {
                               setLocalCheatingDetails([]);
                               setCurrentPage('student_dashboard');
                             }}
-                            className="bg-brand text-white px-10 py-4 rounded-2xl font-bold shadow-xl shadow-brand/20 hover:scale-[1.03] active:scale-[0.97] transition-all flex items-center gap-3"
+                            className="bg-brand hover:bg-brand-hover text-white px-8 py-3.5 rounded-xl font-bold transition-colors flex items-center gap-2.5 cursor-pointer"
                           >
-                            <Home size={20} />
-                            Kembali ke Profil
+                            <Home size={18} />
+                            Kembali ke Dashboard
                           </button>
                         </motion.div>
                       ) : (
@@ -5341,504 +5550,490 @@ export default function App() {
                                 const isOrdered = props.node?.parent?.tagName === 'ol' || props.ordered;
                                 const index = props.index !== undefined ? props.index : -1;
                                 
-                                return (
-                                  <div className="flex items-start gap-3 md:gap-4 bg-slate-200/80 p-3 md:p-4 rounded-xl border border-slate-300 transition-hover hover:border-slate-400">
-                                    <div className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-brand font-bold text-[10px] md:text-xs ring-4 ring-blue-50 mt-0.5">
-                                      {isOrdered ? (index + 1) : "✓"}
-                                    </div>
-                                    <div className="text-slate-800 text-sm md:text-base leading-relaxed">{children}</div>
-                                  </div>
-                                );
-                              },
-                              blockquote: ({ children }) => (
-                                <div className="mt-8 p-4 md:p-5 border border-indigo-100 bg-indigo-50/30 rounded-xl flex items-center gap-3 md:gap-4">
-                                  <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 bg-brand rounded-lg flex items-center justify-center text-white">
-                                    <Info size={18} />
-                                  </div>
-                                  <div className="text-xs text-slate-600 font-medium">
-                                    {children}
-                                  </div>
-                                </div>
-                              ),
-                              code({ node, inline, className, children, ...props }: any) {
-                                const match = /language-(\w+)/.exec(className || '');
-                                const lang = match ? match[1] : '';
-                                const isScratch = lang === 'scratch';
-                                return !inline && match ? (
-                                  <div className="my-6 md:my-10 rounded-xl md:rounded-2xl overflow-hidden shadow-xl flex flex-col bg-slate-900 mx-[-1rem] md:mx-0">
-                                    <div className="bg-slate-800 px-4 py-2 md:py-3 flex items-center justify-between border-b border-slate-700">
-                                      <div className="flex items-center gap-1.5">
-                                        <div className="w-2.5 h-2.5 md:w-3 h-3 rounded-full bg-[#FF5F56]" />
-                                        <div className="w-2.5 h-2.5 md:w-3 h-3 rounded-full bg-[#FFBD2E]" />
-                                        <div className="w-2.5 h-2.5 md:w-3 h-3 rounded-full bg-[#27C93F]" />
+                                  return (
+                                    <div className="flex items-start gap-3 md:gap-3.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200 transition-colors hover:border-slate-300">
+                                      <div className="w-7 h-7 flex-shrink-0 rounded-lg bg-blue-100 flex items-center justify-center text-brand font-bold text-xs mt-0.5 tabular-nums">
+                                        {isOrdered ? (index + 1) : "✓"}
                                       </div>
-                                      <span className="text-[9px] md:text-[10px] font-mono text-slate-400 uppercase tracking-widest">
-                                        {isScratch ? 'Scratch Blocks' : `${lang || 'editor'}.code`}
-                                      </span>
+                                      <div className="text-slate-800 text-sm md:text-base leading-relaxed">{children}</div>
                                     </div>
-                                    <div className="relative overflow-x-auto custom-scrollbar">
-                                      <SyntaxHighlighter
-                                        style={vscDarkPlus}
-                                        language={isScratch ? 'javascript' : lang}
-                                        PreTag="div"
-                                        customStyle={{
-                                          margin: 0,
-                                          padding: '1rem md:1.5rem',
-                                          fontSize: '13px md:14px',
-                                          lineHeight: '1.6',
-                                          background: 'transparent',
-                                          minWidth: '100%'
-                                        }}
-                                        {...props}
-                                      >
-                                        {String(children).replace(/\n$/, '')}
-                                      </SyntaxHighlighter>
+                                  );
+                                },
+                                blockquote: ({ children }) => (
+                                  <div className="mt-6 p-4 md:p-5 border border-blue-200 bg-blue-50/50 rounded-xl flex items-start gap-3.5">
+                                    <div className="w-8 h-8 flex-shrink-0 bg-brand rounded-lg flex items-center justify-center text-white mt-0.5">
+                                      <Info size={16} />
                                     </div>
-                                    <div className="bg-slate-950 p-3 md:p-4 border-t border-slate-800">
-                                      <div className="text-[9px] md:text-[10px] font-bold text-slate-600 uppercase mb-2">
-                                        {isScratch ? 'Eksekusi Balok Scratch' : 'Output Browser'}
-                                      </div>
-                                      <div className="text-xs md:text-sm font-mono text-emerald-400 bg-emerald-950/20 p-2 md:p-3 rounded border border-emerald-900/30">
-                                        {isScratch ? 'Balok terhubung dan aktif di Stage Scratch... ✓' : 'Data diproses... ✓'}
-                                      </div>
+                                    <div className="text-xs md:text-sm text-slate-700 font-medium leading-relaxed">
+                                      {children}
                                     </div>
                                   </div>
-                                ) : (
-                                  <code className="font-mono text-brand bg-indigo-100 px-1 py-0.5 rounded text-[13px] md:text-sm" {...props}>
-                                    {children}
-                                  </code>
-                                );
-                              },
-                            }}
-                          >
-                            {activeTopic.content}
-                          </ReactMarkdown>
+                                ),
+                                code({ node, inline, className, children, ...props }: any) {
+                                  const match = /language-(\w+)/.exec(className || '');
+                                  const lang = match ? match[1] : '';
+                                  const isScratch = lang === 'scratch';
+                                  return !inline && match ? (
+                                    <div className="my-6 md:my-8 rounded-2xl overflow-hidden shadow-md flex flex-col bg-slate-900">
+                                      <div className="bg-slate-800 px-4 py-2.5 flex items-center justify-between border-b border-slate-700">
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56]" />
+                                          <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
+                                          <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
+                                        </div>
+                                        <span className="text-[10px] font-mono text-slate-400 tracking-wider">
+                                          {isScratch ? 'Scratch Blocks' : `${lang || 'editor'}.code`}
+                                        </span>
+                                      </div>
+                                      <div className="relative overflow-x-auto custom-scrollbar">
+                                        <SyntaxHighlighter
+                                          style={vscDarkPlus}
+                                          language={isScratch ? 'javascript' : lang}
+                                          PreTag="div"
+                                          customStyle={{
+                                            margin: 0,
+                                            padding: '1rem 1.25rem',
+                                            fontSize: '13px',
+                                            lineHeight: '1.6',
+                                            background: 'transparent',
+                                            minWidth: '100%'
+                                          }}
+                                          {...props}
+                                        >
+                                          {String(children).replace(/\n$/, '')}
+                                        </SyntaxHighlighter>
+                                      </div>
+                                      <div className="bg-slate-950 p-3 md:p-4 border-t border-slate-800">
+                                        <div className="text-[10px] font-bold text-slate-500 uppercase mb-1.5">
+                                          {isScratch ? 'Eksekusi Balok Scratch' : 'Output Program'}
+                                        </div>
+                                        <div className="text-xs md:text-sm font-mono text-emerald-400 bg-emerald-950/30 p-2.5 rounded-lg border border-emerald-900/40">
+                                          {isScratch ? 'Balok terhubung dan aktif di Stage Scratch... ✓' : 'Data diproses... ✓'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <code className="font-mono text-brand bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded text-[13px] md:text-sm" {...props}>
+                                      {children}
+                                    </code>
+                                  );
+                                },
+                              }}
+                            >
+                              {activeTopic.content}
+                            </ReactMarkdown>
 
-                          <div className="mt-12 md:mt-16 flex flex-col items-center">
-                             <div className="bg-brand/5 border border-brand/10 p-6 md:p-10 rounded-3xl text-center w-full">
-                            {currentIndex === activeCourse.topics.length - 1 && passedQuizzes[activeTopicId] ? (
-                              <>
-                                <h3 className="text-2xl font-bold text-slate-800 mb-2">Kurikulum Selesai!</h3>
-                                <p className="text-slate-500 mb-8 max-w-md mx-auto">Kamu telah menyelesaikan semua materi dan kuis. Klik tombol di bawah untuk melihat skor akhirmu.</p>
-                                <button 
-                                  onClick={() => handleCourseCompletion()}
-                                  className="px-10 py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3 mx-auto"
-                                >
-                                  <CheckCircle size={20} />
-                                  Selesaikan & Lihat Skor
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <h3 className="text-2xl font-bold text-slate-800 mb-2">Siap untuk evaluasi?</h3>
-                                <p className="text-slate-500 mb-8 max-w-md mx-auto">Selesaikan quiz singkat untuk memastikan pemahamanmu dan membuka materi berikutnya.</p>
-                                <button 
-                                  onClick={() => setViewMode('quiz')}
-                                    disabled={
-                                    (() => {
+                            <div className="mt-10 md:mt-12 flex flex-col items-center">
+                               <div className="bg-slate-50 border border-slate-200 p-6 md:p-8 rounded-2xl text-center w-full">
+                              {currentIndex === activeCourse.topics.length - 1 && passedQuizzes[activeTopicId] ? (
+                                <>
+                                  <h3 className="text-xl font-extrabold text-slate-900 mb-1.5">Kurikulum Selesai!</h3>
+                                  <p className="text-slate-600 text-sm mb-6 max-w-md mx-auto">Kamu telah menyelesaikan semua materi dan kuis. Klik tombol di bawah untuk melihat skor akhirmu.</p>
+                                  <button 
+                                    onClick={() => handleCourseCompletion()}
+                                    className="px-7 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors flex items-center gap-2 mx-auto cursor-pointer text-sm"
+                                  >
+                                    <CheckCircle size={18} />
+                                    Selesaikan & Lihat Skor
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <h3 className="text-xl font-extrabold text-slate-900 mb-1.5">Siap untuk evaluasi?</h3>
+                                  <p className="text-slate-600 text-sm mb-6 max-w-md mx-auto">Selesaikan kuis singkat untuk memastikan pemahamanmu dan membuka topik berikutnya.</p>
+                                  <button 
+                                    onClick={() => setViewMode('quiz')}
+                                      disabled={
+                                      (() => {
+                                        const config = materialConfigs[activeCourse.id];
+                                        const waitTime = config?.useGlobalTimers ? (config?.defaultTopicTimer || 70) : (config?.topicTimers?.[activeTopicId] || 0);
+                                        const quizAvailableAt = config?.useGlobalTimers ? (config?.defaultQuizAvailableAt || 40) : (config?.quizAvailableAt?.[activeTopicId] || 0);
+                                        if (quizAvailableAt > 0 && quizAvailableAt < waitTime) {
+                                          return topicTimeRemaining !== null && topicTimeRemaining > (waitTime - quizAvailableAt);
+                                        }
+                                        return topicTimeRemaining !== null && topicTimeRemaining > 0;
+                                      })()
+                                    }
+                                    className="px-7 py-3 bg-brand hover:bg-brand-hover text-white rounded-xl font-bold transition-colors flex items-center gap-2 mx-auto cursor-pointer text-sm tabular-nums disabled:opacity-45 disabled:grayscale disabled:pointer-events-none"
+                                  >
+                                    <Code size={18} />
+                                    {(() => {
                                       const config = materialConfigs[activeCourse.id];
                                       const waitTime = config?.useGlobalTimers ? (config?.defaultTopicTimer || 70) : (config?.topicTimers?.[activeTopicId] || 0);
                                       const quizAvailableAt = config?.useGlobalTimers ? (config?.defaultQuizAvailableAt || 40) : (config?.quizAvailableAt?.[activeTopicId] || 0);
-                                      if (quizAvailableAt > 0 && quizAvailableAt < waitTime) {
-                                        return topicTimeRemaining !== null && topicTimeRemaining > (waitTime - quizAvailableAt);
+                                      const threshold = waitTime - quizAvailableAt;
+                                      
+                                      if (topicTimeRemaining !== null && topicTimeRemaining > threshold && threshold >= 0) {
+                                        return `Tunggu ${topicTimeRemaining - threshold}s`;
                                       }
-                                      return topicTimeRemaining !== null && topicTimeRemaining > 0;
-                                    })()
-                                  }
-                                  className="px-10 py-4 bg-brand text-white rounded-2xl font-bold shadow-lg shadow-brand/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3 mx-auto disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
-                                >
-                                  <Code size={20} />
-                                  {(() => {
-                                    const config = materialConfigs[activeCourse.id];
-                                    const waitTime = config?.useGlobalTimers ? (config?.defaultTopicTimer || 70) : (config?.topicTimers?.[activeTopicId] || 0);
-                                    const quizAvailableAt = config?.useGlobalTimers ? (config?.defaultQuizAvailableAt || 40) : (config?.quizAvailableAt?.[activeTopicId] || 0);
-                                    const threshold = waitTime - quizAvailableAt;
-                                    
-                                    if (topicTimeRemaining !== null && topicTimeRemaining > threshold && threshold >= 0) {
-                                      return `Tunggu ${topicTimeRemaining - threshold}s`;
-                                    }
-                                    return passedQuizzes[activeTopicId] ? 'Ulangi Quiz Materi' : 'Mulai Quiz Materi';
-                                  })()}
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </>
-                ) : (
-                    /* Quiz Section */
-                    <div className="quiz-container px-0 md:px-4 flex flex-col">
-                      <div className="bg-slate-100 rounded-none md:rounded-[2rem] border-x-0 md:border border-slate-300 shadow-xl flex flex-col">
-                        <div className="bg-slate-900 p-5 md:p-10 text-white shrink-0 z-10">
-                          <div className="flex items-center justify-between mb-4 md:mb-6">
-                            <button 
-                              onClick={() => {
-                                setViewMode('material');
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }}
-                              className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-[9px] md:text-[10px] font-bold text-slate-300 hover:text-white flex items-center gap-1.5 md:gap-2 uppercase tracking-widest transition-all backdrop-blur-sm shadow-inner"
-                            >
-                              <ChevronRight size={10} className="rotate-180 md:w-[12px] md:h-[12px]" />
-                              Materi
-                            </button>
-                            <div className="flex items-center gap-2">
-                              {quizTimeRemaining !== null && quizTimeRemaining > 0 && !isAdmin && (
-                                <span className="px-2.5 py-1 bg-amber-500/20 rounded-full text-[9px] md:text-[10px] font-bold text-amber-300 uppercase tracking-widest border border-amber-500/30 flex items-center gap-1">
-                                  <Clock size={12} />
-                                  {quizTimeRemaining}s
-                                </span>
+                                      return passedQuizzes[activeTopicId] ? 'Ulangi Kuis Materi' : 'Mulai Kuis Materi';
+                                    })()}
+                                  </button>
+                                </>
                               )}
-                              <span className="px-2.5 py-1 bg-slate-800/50 rounded-full text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest border border-slate-700/50">
-                                Quest {quizState.currentQuestionIndex + 1} / {activeTopic.quiz.length}
-                              </span>
                             </div>
                           </div>
-                          <h3 className="text-lg md:text-3xl font-extrabold leading-tight tracking-tight">
-                            {activeTopic.quiz[quizState.currentQuestionIndex].question}
-                          </h3>
-                        </div>
-                        
-                        <div className="p-4 md:p-10 space-y-4 md:space-y-8 flex flex-col">
-                          {/* ACTION BUTTONS & EXPLANATION (Positioned below question, above options) */}
-                          <AnimatePresence mode="wait">
-                            {quizState.selectedOption !== null && (
-                              <motion.div 
-                                initial={{ opacity: 0, scale: 0.98 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.98 }}
-                                className="space-y-4 md:space-y-6 pb-6 md:pb-8 border-b border-slate-100"
+                        </>
+                      )}
+                    </>
+                  ) : (
+                      /* Quiz Section */
+                      <div className="quiz-container flex flex-col">
+                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs flex flex-col">
+                          <div className="bg-slate-900 p-6 md:p-8 text-white shrink-0 z-10">
+                            <div className="flex items-center justify-between mb-4 tabular-nums">
+                              <button 
+                                onClick={() => {
+                                  setViewMode('material');
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold text-slate-200 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                               >
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                                  <div className={cn(
-                                    "flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-wider w-fit shadow-sm",
-                                    quizState.isCorrect ? "bg-emerald-100 text-emerald-700 border border-emerald-200" : "bg-red-100 text-red-700 border border-red-200"
-                                  )}>
-                                    <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", quizState.isCorrect ? "bg-emerald-500" : "bg-red-500")} />
-                                    {quizState.isCorrect ? "Benar Sekali!" : "Kurang Tepat"}
-                                  </div>
+                                <ChevronRight size={14} className="rotate-180" />
+                                Kembali ke Materi
+                              </button>
+                              <div className="flex items-center gap-2">
+                                {quizTimeRemaining !== null && quizTimeRemaining > 0 && !isAdmin && (
+                                  <span className="px-2.5 py-1 bg-amber-500/20 rounded-lg text-xs font-mono font-bold text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                    <Clock size={12} />
+                                    {quizTimeRemaining}s
+                                  </span>
+                                )}
+                                <span className="px-2.5 py-1 bg-slate-800 rounded-lg text-xs font-mono font-bold text-slate-300 border border-slate-700">
+                                  Soal {quizState.currentQuestionIndex + 1} / {activeTopic.quiz.length}
+                                </span>
+                              </div>
+                            </div>
+                            <h3 className="text-lg md:text-2xl font-extrabold leading-snug tracking-tight">
+                              {activeTopic.quiz[quizState.currentQuestionIndex].question}
+                            </h3>
+                          </div>
+                          
+                          <div className="p-5 md:p-8 space-y-5 flex flex-col">
+                            {/* Feedback & Action Section */}
+                            <AnimatePresence mode="wait">
+                              {quizState.selectedOption !== null && (
+                                <motion.div 
+                                  initial={{ opacity: 0, scale: 0.98 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.98 }}
+                                  className="space-y-4 pb-5 border-b border-slate-100"
+                                >
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className={cn(
+                                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold w-fit",
+                                      quizState.isCorrect ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
+                                    )}>
+                                      {quizState.isCorrect ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+                                      <span>{quizState.isCorrect ? "Jawaban Benar!" : "Kurang Tepat"}</span>
+                                    </div>
 
-                                  <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                                    {quizState.isCorrect ? (
-                                      quizState.currentQuestionIndex < activeTopic.quiz.length - 1 ? (
-                                        <button 
-                                          onClick={nextQuestion}
-                                          className="w-full sm:w-auto px-6 md:px-8 py-3 md:py-3.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 hover:translate-y-[-2px] active:translate-y-[0] transition-all flex items-center justify-center gap-2 text-sm md:text-base"
-                                        >
-                                          Lanjut
-                                          <ChevronRight size={16} />
-                                        </button>
-                                      ) : (
-                                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                      {quizState.isCorrect ? (
+                                        quizState.currentQuestionIndex < activeTopic.quiz.length - 1 ? (
+                                          <button 
+                                            onClick={nextQuestion}
+                                            className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 text-sm cursor-pointer"
+                                          >
+                                            Lanjut
+                                            <ChevronRight size={16} />
+                                          </button>
+                                        ) : (
                                           <button 
                                             onClick={() => handleNextTopic()}
-                                            className="w-full sm:px-6 md:px-8 py-3 md:py-3.5 bg-brand text-white rounded-xl font-bold shadow-lg shadow-brand/20 hover:translate-y-[-2px] active:translate-y-[0] transition-all flex items-center justify-center gap-2 text-sm md:text-base"
+                                            className="w-full sm:w-auto px-5 py-2.5 bg-brand hover:bg-brand-hover text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 text-sm cursor-pointer"
                                           >
                                             Materi Berikutnya
                                             <ChevronRight size={16} />
                                           </button>
-                                        </div>
-                                      )
-                                    ) : (
-                                      <button 
-                                        onClick={() => setQuizState({ ...quizState, selectedOption: null, isCorrect: null })}
-                                        className="w-full sm:w-auto px-6 md:px-8 py-3 md:py-3.5 bg-slate-800 text-white rounded-xl font-bold shadow-lg shadow-slate-200 hover:bg-slate-900 hover:translate-y-[-2px] active:translate-y-[0] transition-all flex items-center justify-center gap-2 text-sm md:text-base"
-                                      >
-                                        <RotateCcw size={16} />
-                                        Coba Lagi
-                                      </button>
-                                    )}
+                                        )
+                                      ) : (
+                                        <button 
+                                          onClick={() => setQuizState({ ...quizState, selectedOption: null, isCorrect: null })}
+                                          className="w-full sm:w-auto px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 text-sm cursor-pointer"
+                                        >
+                                          <RotateCcw size={15} />
+                                          Coba Lagi
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                                
-                                <div className={cn(
-                                  "p-4 md:p-6 rounded-2xl text-[13px] md:text-base leading-relaxed font-medium border-l-[4px] md:border-l-[6px]",
-                                  quizState.isCorrect 
-                                    ? "bg-emerald-50 border-emerald-500 text-emerald-900" 
-                                    : "bg-red-50 border-red-500 text-red-900"
-                                )}>
-                                  <span className="font-extrabold block mb-1 md:mb-2 uppercase text-[9px] md:text-[10px] tracking-widest opacity-60">
-                                    {quizState.isCorrect ? "Wawasan" : "Koreksi"}
-                                  </span>
-                                  {quizState.isCorrect 
-                                    ? activeTopic.quiz[quizState.currentQuestionIndex].explanation
-                                    : `Kunci Jawaban: ${String.fromCharCode(65 + activeTopic.quiz[quizState.currentQuestionIndex].correctAnswer)}. ${activeTopic.quiz[quizState.currentQuestionIndex].explanation}`
-                                  }
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-
-                          <div className="space-y-2.5 md:space-y-3 pb-8">
-                            {activeTopic.quiz[quizState.currentQuestionIndex].options.map((option, idx) => {
-                              const isSelected = quizState.selectedOption === idx;
-                              const isCorrect = idx === activeTopic.quiz[quizState.currentQuestionIndex].correctAnswer;
-                              const showResult = quizState.selectedOption !== null;
-
-                              return (
-                                <button
-                                  key={idx}
-                                  disabled={showResult}
-                                  onClick={() => handleAnswer(idx)}
-                                  className={cn(
-                                    "w-full text-left p-3 md:p-4 rounded-xl border transition-all flex items-center gap-3 md:gap-4",
-                                    !showResult 
-                                      ? "border-slate-100 hover:border-brand hover:bg-indigo-50/50 group" 
-                                      : isCorrect 
-                                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm" 
-                                        : isSelected 
-                                          ? "border-red-500 bg-red-50 text-red-700"
-                                          : "border-slate-100 opacity-50"
-                                  )}>
+                                  
                                   <div className={cn(
-                                    "w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center font-bold text-xs md:text-sm",
-                                    !showResult 
-                                      ? "bg-slate-100 text-slate-500 group-hover:bg-brand group-hover:text-white" 
-                                      : isCorrect 
-                                        ? "bg-emerald-500 text-white" 
-                                        : isSelected 
-                                          ? "bg-red-500 text-white" 
-                                          : "bg-slate-100 text-slate-300"
+                                    "p-4 rounded-xl text-xs md:text-sm leading-relaxed font-medium border",
+                                    quizState.isCorrect 
+                                      ? "bg-emerald-50 border-emerald-200 text-emerald-900" 
+                                      : "bg-rose-50 border-rose-200 text-rose-900"
                                   )}>
-                                    {String.fromCharCode(65 + idx)}
+                                    <span className="font-extrabold block mb-1 text-xs">
+                                      {quizState.isCorrect ? "Pembahasan" : "Kunci & Pembahasan"}
+                                    </span>
+                                    {quizState.isCorrect 
+                                      ? activeTopic.quiz[quizState.currentQuestionIndex].explanation
+                                      : `Kunci Jawaban: ${String.fromCharCode(65 + activeTopic.quiz[quizState.currentQuestionIndex].correctAnswer)}. ${activeTopic.quiz[quizState.currentQuestionIndex].explanation}`
+                                    }
                                   </div>
-                                  <span className="font-semibold text-sm md:text-base">{option}</span>
-                                </button>
-                              );
-                            })}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+
+                            <div className="space-y-2.5">
+                              {activeTopic.quiz[quizState.currentQuestionIndex].options.map((option, idx) => {
+                                const isSelected = quizState.selectedOption === idx;
+                                const isCorrect = idx === activeTopic.quiz[quizState.currentQuestionIndex].correctAnswer;
+                                const showResult = quizState.selectedOption !== null;
+
+                                return (
+                                  <button
+                                    key={idx}
+                                    disabled={showResult}
+                                    onClick={() => handleAnswer(idx)}
+                                    className={cn(
+                                      "w-full text-left p-3.5 md:p-4 rounded-xl border transition-all flex items-center gap-3.5 cursor-pointer",
+                                      !showResult 
+                                        ? "border-slate-200 hover:border-brand hover:bg-blue-50/50 group" 
+                                        : isCorrect 
+                                          ? "border-emerald-500 bg-emerald-50 text-emerald-800" 
+                                          : isSelected 
+                                            ? "border-rose-500 bg-rose-50 text-rose-800" 
+                                            : "border-slate-200 opacity-50"
+                                    )}>
+                                    <div className={cn(
+                                      "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs md:text-sm shrink-0",
+                                      !showResult 
+                                        ? "bg-slate-100 text-slate-600 group-hover:bg-brand group-hover:text-white" 
+                                        : isCorrect 
+                                          ? "bg-emerald-600 text-white" 
+                                          : isSelected 
+                                            ? "bg-rose-600 text-white" 
+                                            : "bg-slate-100 text-slate-400"
+                                    )}>
+                                      {String.fromCharCode(65 + idx)}
+                                    </div>
+                                    <span className="font-semibold text-sm md:text-base">{option}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    )}
+                      )}
 
-                    {viewMode === 'material' && (
-                      <div className="mt-20 pt-10 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6">
-                        <LessonNavButton 
-                          topics={activeCourse.topics} 
-                          currentId={activeTopicId} 
-                          direction="prev" 
-                          onClick={setActiveTopicId} 
-                        />
-                        <button
-                          onClick={() => {
-                            const nextTopic = activeCourse.topics[currentIndex + 1];
-                            const gatekeepingEnabled = materialConfigs[activeCourse.id]?.isGatekeepingEnabled ?? true;
-                            const canProceed = gatekeepingEnabled ? passedQuizzes[activeTopicId] : true;
-                            if (nextTopic && (canProceed || isAdmin)) {
-                              handleNextTopic(false);
-                            } else if (!nextTopic && (canProceed || isAdmin)) {
-                              handleCourseCompletion();
+                      {viewMode === 'material' && (
+                        <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                          <LessonNavButton 
+                            topics={activeCourse.topics} 
+                            currentId={activeTopicId} 
+                            direction="prev" 
+                            onClick={setActiveTopicId} 
+                          />
+                          <button
+                            onClick={() => {
+                              const nextTopic = activeCourse.topics[currentIndex + 1];
+                              const gatekeepingEnabled = materialConfigs[activeCourse.id]?.isGatekeepingEnabled ?? true;
+                              const canProceed = gatekeepingEnabled ? passedQuizzes[activeTopicId] : true;
+                              if (nextTopic && (canProceed || isAdmin)) {
+                                handleNextTopic(false);
+                              } else if (!nextTopic && (canProceed || isAdmin)) {
+                                handleCourseCompletion();
+                              }
+                            }}
+                            disabled={
+                              (!isAdmin && (materialConfigs[activeCourse.id]?.isGatekeepingEnabled ?? true) && !passedQuizzes[activeTopicId])
                             }
-                          }}
-                          disabled={
-                            (!isAdmin && (materialConfigs[activeCourse.id]?.isGatekeepingEnabled ?? true) && !passedQuizzes[activeTopicId])
-                          }
-                          className="flex-1 w-full sm:w-auto p-5 rounded-2xl border border-slate-100 transition-all group flex flex-col items-end text-right shadow-sm hover:border-brand/30 hover:bg-brand/[0.03] hover:shadow-md cursor-pointer disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
-                        >
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                            {currentIndex === activeCourse.topics.length - 1 
-                              ? (passedQuizzes[activeTopicId] ? 'Kurikulum Selesai' : 'Selesaikan Kuis Terakhir')
-                              : (passedQuizzes[activeTopicId] ? 'Buka Materi Selanjutnya' : 'Selesaikan Kuis')}
-                          </span>
-                          <span className="text-slate-800 font-bold group-hover:text-brand transition-colors text-lg">
-                            {currentIndex === activeCourse.topics.length - 1
-                              ? (passedQuizzes[activeTopicId] ? 'Klik untuk Selesaikan' : 'Kuis belum dikerjakan')
-                              : (passedQuizzes[activeTopicId] ? activeCourse.topics[currentIndex + 1].title : 'Kuis belum dikerjakan')}
-                          </span>
-                        </button>
-                      </div>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
+                            className="flex-1 w-full sm:w-auto p-4 rounded-xl border border-slate-200 transition-all group flex flex-col items-end text-right hover:border-brand/40 hover:bg-blue-50/30 cursor-pointer disabled:opacity-45 disabled:grayscale disabled:pointer-events-none"
+                          >
+                            <span className="text-[11px] font-bold text-slate-400 mb-1">
+                              {currentIndex === activeCourse.topics.length - 1 
+                                ? (passedQuizzes[activeTopicId] ? 'Kurikulum Selesai' : 'Selesaikan Kuis Terakhir')
+                                : (passedQuizzes[activeTopicId] ? 'Topik Selanjutnya' : 'Selesaikan Kuis')}
+                            </span>
+                            <span className="text-slate-900 font-extrabold group-hover:text-brand transition-colors text-base">
+                              {currentIndex === activeCourse.topics.length - 1
+                                ? (passedQuizzes[activeTopicId] ? 'Klik untuk Selesaikan' : 'Kuis belum dikerjakan')
+                                : (passedQuizzes[activeTopicId] ? activeCourse.topics[currentIndex + 1].title : 'Kuis belum dikerjakan')}
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+            </div>
           </div>
-        </div>
 
-        {/* Sticky Mobile Navigation Bar */}
-        {viewMode === 'material' && !courseCompleted && (
-          <div className="md:hidden sticky bottom-0 left-0 right-0 p-4 bg-slate-100/95 backdrop-blur-lg border-t border-slate-300 flex items-center justify-between gap-4 z-20">
-            <button 
-              onClick={() => {
-                const prevIndex = currentIndex - 1;
-                if (prevIndex >= 0) {
-                  const prevTopic = activeCourse.topics[prevIndex];
-                  setActiveTopicId(prevTopic.id);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              }}
-              disabled={currentIndex === 0}
-              className="p-3 bg-slate-100 text-slate-500 rounded-xl disabled:opacity-30"
-            >
-              <ChevronRight className="rotate-180" size={24} />
-            </button>
-
-            <button 
-              onClick={() => {
-                const nextTopic = activeCourse.topics[currentIndex + 1];
-                const gatekeepingEnabled = materialConfigs[activeCourse.id]?.isGatekeepingEnabled ?? true;
-                const canProceed = gatekeepingEnabled ? passedQuizzes[activeTopicId] : true;
-                
-                if (!canProceed && !isAdmin) {
-                  const config = materialConfigs[activeCourse.id];
-                  const waitTime = config?.useGlobalTimers ? (config?.defaultTopicTimer || 70) : (config?.topicTimers?.[activeTopicId] || 0);
-                  const quizAvailableAt = config?.useGlobalTimers ? (config?.defaultQuizAvailableAt || 40) : (config?.quizAvailableAt?.[activeTopicId] || 0);
-                  const threshold = waitTime - quizAvailableAt;
-                  const isAvailable = topicTimeRemaining === null || topicTimeRemaining <= Math.max(0, threshold);
-
-                  if (isAvailable) {
-                    setViewMode('quiz');
+          {/* Sticky Mobile Navigation Bar */}
+          {viewMode === 'material' && !courseCompleted && (
+            <div className="md:hidden sticky bottom-0 left-0 right-0 px-4 py-2.5 bg-white/95 backdrop-blur-lg border-t border-slate-200 flex items-center justify-between gap-3 z-20">
+              <button 
+                onClick={() => {
+                  const prevIndex = currentIndex - 1;
+                  if (prevIndex >= 0) {
+                    const prevTopic = activeCourse.topics[prevIndex];
+                    setActiveTopicId(prevTopic.id);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }
-                } else if (nextTopic && (canProceed || isAdmin)) {
-                  handleNextTopic(false);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                } else {
-                  handleCourseCompletion();
-                }
-              }}
-              disabled={
-                (currentIndex === activeCourse.topics.length - 1 && passedQuizzes[activeTopicId] && false) || 
-                (!isAdmin && (materialConfigs[activeCourse.id]?.isGatekeepingEnabled ?? true) && !passedQuizzes[activeTopicId] && (() => {
-                  const config = materialConfigs[activeCourse.id];
-                  const waitTime = config?.useGlobalTimers ? (config?.defaultTopicTimer || 70) : (config?.topicTimers?.[activeTopicId] || 0);
-                  const quizAvailableAt = config?.useGlobalTimers ? (config?.defaultQuizAvailableAt || 40) : (config?.quizAvailableAt?.[activeTopicId] || 0);
-                  const threshold = waitTime - quizAvailableAt;
-                  return topicTimeRemaining !== null && topicTimeRemaining > Math.max(0, threshold);
-                })())
-              }
-              className={cn(
-                "flex-1 py-3.5 px-6 rounded-2xl font-extrabold text-white shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95",
-                passedQuizzes[activeTopicId] ? "bg-brand shadow-brand/20" : "bg-brand shadow-brand/20"
-              )}
-            >
-              {passedQuizzes[activeTopicId] 
-                ? (currentIndex === activeCourse.topics.length - 1 ? 'Selesai' : 'Lanjut') 
-                : (() => {
+                }}
+                disabled={currentIndex === 0}
+                className="p-2.5 bg-slate-100 text-slate-600 rounded-xl disabled:opacity-35"
+              >
+                <ChevronRight className="rotate-180" size={20} />
+              </button>
+
+              <button 
+                onClick={() => {
+                  const nextTopic = activeCourse.topics[currentIndex + 1];
+                  const gatekeepingEnabled = materialConfigs[activeCourse.id]?.isGatekeepingEnabled ?? true;
+                  const canProceed = gatekeepingEnabled ? passedQuizzes[activeTopicId] : true;
+                  
+                  if (!canProceed && !isAdmin) {
                     const config = materialConfigs[activeCourse.id];
                     const waitTime = config?.useGlobalTimers ? (config?.defaultTopicTimer || 70) : (config?.topicTimers?.[activeTopicId] || 0);
                     const quizAvailableAt = config?.useGlobalTimers ? (config?.defaultQuizAvailableAt || 40) : (config?.quizAvailableAt?.[activeTopicId] || 0);
                     const threshold = waitTime - quizAvailableAt;
-                    const diff = topicTimeRemaining !== null ? (topicTimeRemaining - threshold) : 0;
-                    
-                    if (topicTimeRemaining !== null && diff > 0) {
-                      return `Tunggu ${diff}s`;
+                    const isAvailable = topicTimeRemaining === null || topicTimeRemaining <= Math.max(0, threshold);
+
+                    if (isAvailable) {
+                      setViewMode('quiz');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
                     }
-                    return 'Mulai Kuis';
-                  })()
-              }
-              <ArrowRight size={18} />
-            </button>
-          </div>
-        )}
-      </main>
+                  } else if (nextTopic && (canProceed || isAdmin)) {
+                    handleNextTopic(false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  } else {
+                    handleCourseCompletion();
+                  }
+                }}
+                disabled={
+                  (!isAdmin && (materialConfigs[activeCourse.id]?.isGatekeepingEnabled ?? true) && !passedQuizzes[activeTopicId] && (() => {
+                    const config = materialConfigs[activeCourse.id];
+                    const waitTime = config?.useGlobalTimers ? (config?.defaultTopicTimer || 70) : (config?.topicTimers?.[activeTopicId] || 0);
+                    const quizAvailableAt = config?.useGlobalTimers ? (config?.defaultQuizAvailableAt || 40) : (config?.quizAvailableAt?.[activeTopicId] || 0);
+                    const threshold = waitTime - quizAvailableAt;
+                    return topicTimeRemaining !== null && topicTimeRemaining > Math.max(0, threshold);
+                  })())
+                }
+                className="flex-1 py-2.5 px-4 rounded-xl font-bold text-sm text-white bg-brand flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {passedQuizzes[activeTopicId] 
+                  ? (currentIndex === activeCourse.topics.length - 1 ? 'Selesai' : 'Lanjut') 
+                  : (() => {
+                      const config = materialConfigs[activeCourse.id];
+                      const waitTime = config?.useGlobalTimers ? (config?.defaultTopicTimer || 70) : (config?.topicTimers?.[activeTopicId] || 0);
+                      const quizAvailableAt = config?.useGlobalTimers ? (config?.defaultQuizAvailableAt || 40) : (config?.quizAvailableAt?.[activeTopicId] || 0);
+                      const threshold = waitTime - quizAvailableAt;
+                      const diff = topicTimeRemaining !== null ? (topicTimeRemaining - threshold) : 0;
+                      
+                      if (topicTimeRemaining !== null && diff > 0) {
+                        return `Tunggu ${diff}s`;
+                      }
+                      return 'Mulai Kuis';
+                    })()
+                }
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          )}
+        </main>
 
 
-      <AnimatePresence>
-        {showCompletionPopup && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4"
-          >
+        <AnimatePresence>
+          {showCompletionPopup && (
             <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="bg-slate-100 rounded-[2.5rem] border border-slate-300 w-full max-w-md overflow-hidden shadow-2xl text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4"
             >
-              <div className="bg-brand p-12 text-white relative">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                <div className="relative z-10">
-                  <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm shadow-xl">
-                    <CheckCircle size={40} className="text-white" />
+              <motion.div 
+                initial={{ scale: 0.95, y: 16 }}
+                animate={{ scale: 1, y: 0 }}
+                className="bg-white rounded-2xl border border-slate-200 w-full max-w-md overflow-hidden shadow-2xl text-center"
+              >
+                <div className="bg-brand p-8 text-white">
+                  <div className="w-16 h-16 bg-white/15 border border-white/25 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle size={32} className="text-white" />
                   </div>
-                  <h3 className="text-3xl font-black tracking-tight mb-2">Luar Biasa!</h3>
-                  <p className="text-brand-foreground/80 font-medium tracking-wide border-t border-white/20 pt-4 mt-2">
-                    Kamu telah menyelesaikan materi Terakhir
+                  <h3 className="text-2xl font-extrabold tracking-tight mb-1">Luar Biasa!</h3>
+                  <p className="text-blue-100 text-sm font-medium">
+                    Kamu telah menyelesaikan seluruh materi
                   </p>
                 </div>
-              </div>
-              
-              <div className="p-10">
-                <div className="bg-slate-200/70 p-8 rounded-3xl border border-slate-300 mb-8">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Skor Akhir Kamu</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <span className={cn(
-                      "text-7xl font-black",
-                      currentScore >= 80 ? "text-emerald-500" : currentScore >= 60 ? "text-amber-500" : "text-red-500"
-                    )}>
-                      {currentScore}
-                    </span>
-                    <div className="text-left">
-                      <div className="text-sm font-bold text-slate-400">Poin</div>
-                      <div className="text-[10px] font-bold text-slate-500 uppercase">Terakumulasi</div>
+                
+                <div className="p-6 md:p-8">
+                  <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-6 tabular-nums">
+                    <p className="text-xs font-bold text-slate-500 mb-1.5">Skor Akhir Kamu</p>
+                    <div className="flex items-baseline justify-center gap-1.5">
+                      <span className={cn(
+                        "text-6xl font-black font-mono",
+                        currentScore >= 80 ? "text-emerald-600" : currentScore >= 60 ? "text-amber-600" : "text-rose-600"
+                      )}>
+                        {currentScore}
+                      </span>
+                      <span className="text-xs font-bold text-slate-500">Poin</span>
                     </div>
                   </div>
+
+                  <button 
+                    onClick={() => {
+                      updateSessionStatus(activeCourse.id, 'finished').catch(console.error);
+                      setLocalCheatingAttempts(0);
+                      setLocalCheatingDetails([]);
+                      setShowCompletionPopup(false);
+                      setCurrentPage('student_dashboard');
+                    }}
+                    className="w-full bg-brand hover:bg-brand-hover text-white py-3.5 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Home size={18} />
+                    Kembali ke Dashboard
+                  </button>
                 </div>
-
-                <button 
-                  onClick={() => {
-                    updateSessionStatus(activeCourse.id, 'finished').catch(console.error);
-                    setLocalCheatingAttempts(0);
-                    setLocalCheatingDetails([]);
-                    setShowCompletionPopup(false);
-                    setCurrentPage('student_dashboard');
-                  }}
-                  className="w-full bg-brand text-white py-4 rounded-2xl font-bold border border-transparent shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-                >
-                  <Home size={20} />
-                  Kembali ke Profil
-                </button>
-              </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
+          )}
+        </AnimatePresence>
+
+        <style>{`
+          .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+        `}</style>
+      </div>
+    );
+  }
+
+  function LessonNavButton({ 
+    topics, 
+    currentId, 
+    direction, 
+    onClick 
+  }: { 
+    topics: Topic[], 
+    currentId: string, 
+    direction: 'prev' | 'next',
+    onClick: (id: string) => void
+  }) {
+    const currentIndex = topics.findIndex(t => t.id === currentId);
+    const targetIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
+    const targetTopic = topics[targetIndex];
+
+    if (!targetTopic) return <div className="flex-1" />;
+
+    return (
+      <button
+        onClick={() => onClick(targetTopic.id)}
+        className={cn(
+          "flex-1 w-full sm:w-auto p-4 rounded-xl border border-slate-200 hover:border-brand/40 hover:bg-blue-50/30 transition-all group flex flex-col cursor-pointer",
+          direction === 'next' ? "items-end text-right" : "items-start text-left"
         )}
-      </AnimatePresence>
-
-
-
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
-      `}</style>
-    </div>
-  );
-}
-
-function LessonNavButton({ 
-  topics, 
-  currentId, 
-  direction, 
-  onClick 
-}: { 
-  topics: Topic[], 
-  currentId: string, 
-  direction: 'prev' | 'next',
-  onClick: (id: string) => void
-}) {
-  const currentIndex = topics.findIndex(t => t.id === currentId);
-  const targetIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
-  const targetTopic = topics[targetIndex];
-
-  if (!targetTopic) return <div className="flex-1" />;
-
-  return (
-    <button
-      onClick={() => onClick(targetTopic.id)}
-      className={cn(
-        "flex-1 w-full sm:w-auto p-5 rounded-2xl border border-slate-100 hover:border-brand/30 hover:bg-brand/[0.03] transition-all group flex flex-col shadow-sm hover:shadow-md",
-        direction === 'next' ? "items-end text-right" : "items-start text-left"
-      )}
-    >
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-        {direction === 'prev' ? 'Materi Sebelumnya' : 'Materi Selanjutnya'}
-      </span>
-      <span className="text-slate-800 font-bold group-hover:text-brand transition-colors text-lg">
-        {targetTopic.title}
-      </span>
-    </button>
-  );
-}
+      >
+        <span className="text-[11px] font-bold text-slate-400 mb-1">
+          {direction === 'prev' ? 'Topik Sebelumnya' : 'Topik Selanjutnya'}
+        </span>
+        <span className="text-slate-900 font-extrabold group-hover:text-brand transition-colors text-base">
+          {targetTopic.title}
+        </span>
+      </button>
+    );
+  }
