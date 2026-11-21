@@ -2874,7 +2874,7 @@ export default function ContraSnesGame({
       ref={containerRef}
       className={cn(
         'space-y-3 font-sans w-full flex flex-col',
-        isFullScreen ? 'fixed inset-0 z-[9999] bg-slate-950 p-2 md:p-4 h-screen overflow-hidden' : 'mx-auto max-w-6xl'
+        isFullScreen ? 'fixed inset-0 z-[9999] bg-slate-950 p-2 md:p-4 w-full h-full overflow-hidden' : 'mx-auto max-w-6xl'
       )}
     >
       {/* SNES Retro Arcade HUD Bar */}
@@ -3007,7 +3007,7 @@ export default function ContraSnesGame({
       </div>
 
       {/* Main SNES Game Viewport */}
-      <div className="relative rounded-3xl overflow-hidden border-4 border-slate-800 bg-slate-950 shadow-2xl w-full aspect-[16/9] flex items-center justify-center">
+      <div className="relative rounded-3xl overflow-hidden border-4 border-slate-800 bg-slate-950 shadow-2xl w-full flex-1 min-h-0 max-h-[76vh] aspect-[16/9] mx-auto flex items-center justify-center">
         <canvas
           ref={canvasRef}
           width={800}

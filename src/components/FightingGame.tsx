@@ -5186,7 +5186,10 @@ function StoryCutsceneVideoPlayer({
           tabIndex={0}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const rawRatio = rect.height > rect.width
+              ? (e.clientY - rect.top) / rect.height
+              : (e.clientX - rect.left) / rect.width;
+            const ratio = Math.max(0, Math.min(1, rawRatio));
             const nextMs = ratio * STORY_VIDEO_DURATION_MS;
             elapsedMsRef.current = nextMs;
             setElapsedMs(nextMs);

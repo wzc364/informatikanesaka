@@ -106,6 +106,46 @@ export interface GameItem {
   defaultTimerSec: number;
 }
 
+function detectMobileDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  const uaMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
+  const coarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+  const hasTouch = 'ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0;
+  const smallSide = Math.min(window.innerWidth, window.innerHeight) <= 900;
+  return uaMobile || coarsePointer || (hasTouch && smallSide);
+}
+
+async function lockMobileLandscape(targetEl?: HTMLElement | null) {
+  if (!detectMobileDevice()) return;
+  try {
+    const el = targetEl || document.documentElement;
+    if (el?.requestFullscreen && !document.fullscreenElement) {
+      await el.requestFullscreen();
+    }
+  } catch {
+    // Fullscreen may be disallowed in certain browsers/iframes
+  }
+  try {
+    const orientation = screen.orientation as ScreenOrientation & { lock?: (mode: string) => Promise<void> };
+    if (orientation?.lock) {
+      await orientation.lock('landscape');
+    }
+  } catch {
+    // Fallback CSS landscape rotation in InteractiveGameModal handles iOS/Safari & restricted iframes
+  }
+}
+
+function unlockMobileOrientation() {
+  try {
+    const orientation = screen.orientation as ScreenOrientation & { unlock?: () => void };
+    if (orientation?.unlock) {
+      orientation.unlock();
+    }
+  } catch {
+    // Ignore unlock errors
+  }
+}
+
 function GameCardBanner({ gameId, title, category }: { gameId: string; title?: string; category?: string }) {
   const art = GAME_ART_MAP[gameId] || {
     image: starCatcherBg,
@@ -430,6 +470,13 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
   // Preview Modal / Active Game State
   const [activePlayGameId, setActivePlayGameId] = useState<string | null>(null);
+
+  const handleLaunchGame = (gameId: string) => {
+    if (detectMobileDevice()) {
+      void lockMobileLandscape(document.documentElement);
+    }
+    setActivePlayGameId(gameId);
+  };
 
   // Firestore Subscriptions
   useEffect(() => {
@@ -935,7 +982,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                         </div>
 
                         <button
-                          onClick={() => setActivePlayGameId(game.id)}
+                          onClick={() => handleLaunchGame(game.id)}
                           className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-900 rounded-lg text-[11px] font-extrabold transition-colors flex items-center gap-1 whitespace-nowrap shadow-xs active:scale-95 cursor-pointer"
                         >
                           <Play size={12} /> Pratinjau
@@ -1017,7 +1064,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                         Rekor Tertinggi: {gameHighScore > 0 ? `${gameHighScore} pts` : '-'}
                       </span>
                       <button
-                        onClick={() => setActivePlayGameId(game.id)}
+                        onClick={() => handleLaunchGame(game.id)}
                         className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
                       >
                         <Play size={13} /> Mainkan
@@ -1210,15 +1257,29 @@ interface InteractiveGameModalProps {
 function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHighScores, contraStageHighScores, onClose }: InteractiveGameModalProps) {
   const currentGame = GAMES_LIST.find(g => g.id === gameId) || GAMES_LIST[0];
   const [isFullscreen, setIsFullscreen] = useState(true);
+  const [isMobile] = useState<boolean>(() => detectMobileDevice());
+  const [viewport, setViewport] = useState<{ width: number; height: number }>(() => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768
+  }));
   const modalContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const isPortrait = viewport.height > viewport.width;
+  const isCssLandscape = isMobile && isPortrait;
 
   const toggleBrowserFullscreen = () => {
     if (!document.fullscreenElement) {
-      if (modalContainerRef.current?.requestFullscreen) {
-        modalContainerRef.current.requestFullscreen().catch(() => {});
+      const target = modalContainerRef.current || document.documentElement;
+      if (target?.requestFullscreen) {
+        target.requestFullscreen().then(() => {
+          if (isMobile) {
+            void lockMobileLandscape(target);
+          }
+        }).catch(() => {});
       }
       setIsFullscreen(true);
     } else {
+      unlockMobileOrientation();
       if (document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
       }
@@ -1227,70 +1288,121 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHig
   };
 
   useEffect(() => {
-    // Attempt auto-fullscreen on mount if gesture allows
-    if (modalContainerRef.current && !document.fullscreenElement) {
+    const syncViewport = () => {
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+
+    syncViewport();
+    window.addEventListener('resize', syncViewport);
+    window.addEventListener('orientationchange', syncViewport);
+
+    // Attempt auto-fullscreen & landscape lock on mount for mobile
+    if (isMobile) {
+      void lockMobileLandscape(modalContainerRef.current || document.documentElement);
+    } else if (modalContainerRef.current && !document.fullscreenElement) {
       modalContainerRef.current.requestFullscreen().catch(() => {});
     }
 
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const active = !!document.fullscreenElement;
+      setIsFullscreen(active);
+      if (active && isMobile) {
+        const orientation = screen.orientation as ScreenOrientation & { lock?: (mode: string) => Promise<void> };
+        orientation?.lock?.('landscape').catch(() => {});
+      }
+      syncViewport();
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => {
+      window.removeEventListener('resize', syncViewport);
+      window.removeEventListener('orientationchange', syncViewport);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      unlockMobileOrientation();
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       }
     };
-  }, []);
+  }, [isMobile]);
+
+  const handleCloseModal = () => {
+    unlockMobileOrientation();
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+    onClose();
+  };
 
   return (
     <div 
       ref={modalContainerRef}
-      className="fixed inset-0 bg-slate-950 z-[9999] flex flex-col w-screen h-[100dvh] overflow-hidden select-none"
+      style={
+        isCssLandscape
+          ? {
+              position: 'fixed',
+              top: 0,
+              left: `${viewport.width}px`,
+              width: `${viewport.height}px`,
+              height: `${viewport.width}px`,
+              transform: 'rotate(90deg)',
+              transformOrigin: 'top left',
+            }
+          : undefined
+      }
+      className={cn(
+        "fixed bg-slate-950 z-[9999] flex flex-col overflow-hidden select-none",
+        !isCssLandscape && "inset-0 w-screen h-[100dvh]"
+      )}
     >
       {/* Modal Fullscreen Header */}
       <div
         className={cn(
-          "bg-slate-900/90 backdrop-blur-md text-white flex items-center justify-between border-b border-slate-800 shrink-0 shadow-lg",
-          gameId === 'infokombat' ? "px-3 md:px-5 py-1.5" : "px-6 py-3"
+          "bg-slate-900/95 backdrop-blur-md text-white flex items-center justify-between border-b border-slate-800 shrink-0 shadow-lg",
+          isMobile || gameId === 'infokombat' ? "px-3 md:px-5 py-1.5" : "px-6 py-2.5"
         )}
       >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-brand flex items-center justify-center text-white font-bold shadow-md shadow-brand/20">
-            <Gamepad2 size={18} />
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className={cn(
+            "rounded-xl bg-brand flex items-center justify-center text-white font-bold shadow-md shadow-brand/20 shrink-0",
+            isMobile ? "w-7 h-7" : "w-8 h-8"
+          )}>
+            <Gamepad2 size={isMobile ? 15 : 18} />
           </div>
-          <div>
-            <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest block">
-              {isAdmin ? "Mode Pratinjau Fullscreen" : "Game Edukasi Layar Penuh"}
-            </span>
-            <h3 className="text-sm md:text-base font-black text-white leading-tight">
+          <div className="min-w-0">
+            {!isMobile && (
+              <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest block">
+                {isAdmin ? "Mode Pratinjau Fullscreen" : "Game Edukasi Layar Penuh"}
+              </span>
+            )}
+            <h3 className={cn("font-black text-white leading-tight truncate", isMobile ? "text-xs sm:text-sm" : "text-sm md:text-base")}>
               {currentGame.title}
             </h3>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {isMobile && (
+            <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md inline-block">
+              Landscape
+            </span>
+          )}
           <button
             onClick={toggleBrowserFullscreen}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-colors shadow-xs"
+            className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-colors shadow-xs"
             title={isFullscreen ? "Keluar Layar Penuh" : "Masuk Layar Penuh"}
           >
-            {isFullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
+            {isFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
             <span className="hidden sm:inline">{isFullscreen ? "Kecilkan" : "Layar Penuh"}</span>
           </button>
           
           <button
-            onClick={() => {
-              if (document.fullscreenElement) {
-                document.exitFullscreen().catch(() => {});
-              }
-              onClose();
-            }}
-            className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black flex items-center gap-1.5 transition-colors shadow-sm"
+            onClick={handleCloseModal}
+            className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black flex items-center gap-1.5 transition-colors shadow-sm"
           >
-            <X size={15} />
+            <X size={14} />
             <span className="hidden sm:inline">Tutup Game</span>
           </button>
         </div>
@@ -1302,10 +1414,12 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHig
           "flex-1 w-full min-h-0 bg-slate-950 flex flex-col",
           gameId === 'infokombat'
             ? "p-0 overflow-hidden"
-            : "p-2 md:p-6 overflow-y-auto justify-center items-center custom-scrollbar"
+            : isMobile
+            ? "p-2 overflow-y-auto items-center custom-scrollbar"
+            : "p-2 md:p-6 overflow-y-auto items-center custom-scrollbar"
         )}
       >
-        <div className={cn("w-full h-full min-h-0 flex flex-col", gameId === 'infokombat' ? "" : "justify-center my-auto")}>
+        <div className={cn("w-full h-full min-h-0 flex flex-col", gameId === 'infokombat' ? "" : "my-auto")}>
           {gameId === 'pattern-master' && (
             <PatternMasterGame isAdmin={isAdmin} currentStudent={currentStudent} onClose={onClose} />
           )}
@@ -1856,11 +1970,12 @@ function StarCatcherArcadeGame({ isAdmin, currentStudent, onClose }: { isAdmin: 
       if (!ctx || !canvasRef.current) return;
       const state = gameStateRef.current;
 
-      // Update internal resolution for sharpness
-      const rect = canvasRef.current.getBoundingClientRect();
+      // Update internal resolution using pre-transform layout box (safe in CSS landscape rotation)
+      const cWidth = canvasRef.current.clientWidth || 800;
+      const cHeight = canvasRef.current.clientHeight || 450;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const targetW = Math.max(800, Math.floor(rect.width * dpr));
-      const targetH = Math.max(450, Math.floor(rect.height * dpr));
+      const targetW = Math.max(800, Math.floor(cWidth * dpr));
+      const targetH = Math.max(450, Math.floor(cHeight * dpr));
       if (canvasRef.current.width !== targetW || canvasRef.current.height !== targetH) {
         canvasRef.current.width = targetW;
         canvasRef.current.height = targetH;
@@ -1983,41 +2098,41 @@ function StarCatcherArcadeGame({ isAdmin, currentStudent, onClose }: { isAdmin: 
         </div>
       </div>
 
-      <div className="relative w-full aspect-[16/9] bg-slate-950 rounded-3xl overflow-hidden border-4 border-slate-800 shadow-2xl">
+      <div className="relative w-full max-w-4xl flex-1 min-h-0 aspect-[16/9] max-h-[75vh] bg-slate-950 rounded-3xl overflow-hidden border-4 border-slate-800 shadow-2xl">
         {!isPlaying && !isGameOver ? (
-          <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 space-y-6 z-10">
-            <div className="w-20 h-20 bg-brand rounded-2xl flex items-center justify-center text-5xl shadow-lg animate-bounce">
+          <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 sm:p-6 space-y-4 sm:space-y-6 z-10">
+            <div className="w-14 h-14 sm:w-20 sm:h-20 bg-brand rounded-2xl flex items-center justify-center text-3xl sm:text-5xl shadow-lg animate-bounce">
               🐱
             </div>
-            <div className="space-y-2">
-              <h4 className="font-black text-3xl text-white tracking-tight">Star Catcher Arcade</h4>
-              <p className="text-sm text-slate-300 font-bold max-w-sm">
+            <div className="space-y-1.5">
+              <h4 className="font-black text-xl sm:text-3xl text-white tracking-tight">Star Catcher Arcade</h4>
+              <p className="text-xs sm:text-sm text-slate-300 font-bold max-w-sm">
                 Gunakan <strong className="text-amber-400">Panah Kiri & Kanan</strong> untuk menggerakkan Kucing dan tangkap Bintang yang jatuh!
               </p>
             </div>
             <button
               onClick={startGame}
-              className="px-10 py-4 bg-brand text-white font-black text-lg rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+              className="px-7 py-3 sm:px-10 sm:py-4 bg-brand text-white font-black text-sm sm:text-lg rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
             >
-              <Play size={24} /> Mulai Mainkan!
+              <Play size={20} /> Mulai Mainkan!
             </button>
           </div>
         ) : isGameOver ? (
-          <div className="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center text-center p-8 space-y-6 z-10">
-            <div className="text-6xl animate-pulse">🙀</div>
+          <div className="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center text-center p-4 sm:p-8 space-y-4 sm:space-y-6 z-10">
+            <div className="text-4xl sm:text-6xl animate-pulse">🙀</div>
             <div className="space-y-1">
-              <h4 className="font-black text-3xl text-rose-500">Game Over!</h4>
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Bintang Terlewat Terlalu Banyak</p>
+              <h4 className="font-black text-2xl sm:text-3xl text-rose-500">Game Over!</h4>
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-[11px] sm:text-xs">Bintang Terlewat Terlalu Banyak</p>
             </div>
-            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 w-full max-w-xs">
+            <div className="bg-slate-900 p-4 sm:p-6 rounded-3xl border border-slate-800 w-full max-w-xs">
               <span className="text-xs text-slate-500 font-black uppercase tracking-tighter block mb-1">Skor Akhir Kamu:</span>
-              <div className="text-6xl font-black text-amber-400 drop-shadow-lg">{score}</div>
+              <div className="text-4xl sm:text-6xl font-black text-amber-400 drop-shadow-lg">{score}</div>
             </div>
             <button
               onClick={startGame}
-              className="px-8 py-4 bg-white text-slate-950 font-black text-lg rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+              className="px-6 py-3 sm:px-8 sm:py-4 bg-white text-slate-950 font-black text-sm sm:text-lg rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
             >
-              <RotateCcw size={24} /> Main Lagi
+              <RotateCcw size={20} /> Main Lagi
             </button>
           </div>
         ) : null}
@@ -2029,26 +2144,26 @@ function StarCatcherArcadeGame({ isAdmin, currentStudent, onClose }: { isAdmin: 
           className="w-full h-full object-contain"
         />
 
-        {/* On-Screen Mobile Controls */}
-        {isPlaying && (
-          <div className="absolute bottom-6 left-0 right-0 flex justify-between px-8 pointer-events-none sm:hidden">
+        {/* On-Screen Mobile Controls (kept visible in mobile landscape too) */}
+        {isPlaying && (detectMobileDevice() || typeof window !== 'undefined' && window.innerWidth < 1024) && (
+          <div className="absolute bottom-3 sm:bottom-5 left-0 right-0 flex justify-between px-4 sm:px-8 pointer-events-none">
             <button
               onMouseDown={() => gameStateRef.current.keys.left = true}
               onMouseUp={() => gameStateRef.current.keys.left = false}
-              onTouchStart={() => gameStateRef.current.keys.left = true}
+              onTouchStart={(e) => { e.preventDefault(); gameStateRef.current.keys.left = true; }}
               onTouchEnd={() => gameStateRef.current.keys.left = false}
-              className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white pointer-events-auto active:bg-white/30 transition-colors"
+              className="w-14 h-14 sm:w-16 sm:h-16 bg-white/15 backdrop-blur-md rounded-2xl flex items-center justify-center text-white pointer-events-auto active:bg-white/35 transition-colors border border-white/20"
             >
-              <MoveLeft size={32} />
+              <MoveLeft size={28} />
             </button>
             <button
               onMouseDown={() => gameStateRef.current.keys.right = true}
               onMouseUp={() => gameStateRef.current.keys.right = false}
-              onTouchStart={() => gameStateRef.current.keys.right = true}
+              onTouchStart={(e) => { e.preventDefault(); gameStateRef.current.keys.right = true; }}
               onTouchEnd={() => gameStateRef.current.keys.right = false}
-              className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white pointer-events-auto active:bg-white/30 transition-colors"
+              className="w-14 h-14 sm:w-16 sm:h-16 bg-white/15 backdrop-blur-md rounded-2xl flex items-center justify-center text-white pointer-events-auto active:bg-white/35 transition-colors border border-white/20"
             >
-              <MoveRight size={32} />
+              <MoveRight size={28} />
             </button>
           </div>
         )}
@@ -6318,7 +6433,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
   return (
     <div ref={gameContainerRef} className={cn(
       "space-y-3 font-sans transition-all duration-300 w-full h-full flex flex-col",
-      isFullScreen ? "fixed inset-0 z-[9999] bg-slate-950 p-2 md:p-4 w-screen h-screen overflow-hidden" : "mx-auto max-w-6xl"
+      isFullScreen ? "fixed inset-0 z-[9999] bg-slate-950 p-2 md:p-4 w-full h-full overflow-hidden" : "mx-auto max-w-6xl"
     )}>
       {/* HUD Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900 text-white p-3 md:p-4 rounded-2xl border border-slate-800 shadow-md gap-3 shrink-0">
@@ -6423,7 +6538,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       {/* Main Canvas Viewport - Fully Responsive Aspect Ratio Container */}
       <div className={cn(
         "relative rounded-3xl overflow-hidden border-4 border-slate-900 bg-slate-950 shadow-2xl flex flex-col items-center justify-center transition-all",
-        isFullScreen ? "fixed inset-0 w-screen h-screen z-[9999] rounded-none border-0" : "w-full aspect-[16/9]"
+        isFullScreen ? "fixed inset-0 w-full h-full z-[9999] rounded-none border-0" : "w-full aspect-[16/9]"
       )}>
         <canvas
           ref={canvasRef}

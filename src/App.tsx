@@ -87,6 +87,10 @@ import StudentSoalRunner from './components/StudentSoalRunner';
 import { AdminMaterialPrintModal } from './components/AdminMaterialPrintModal';
 import { AdminQuestionAnalysis } from './components/AdminQuestionAnalysis';
 import { resolveCourseImageUrl, getPublicFallbackImageUrl } from './courseImageMap';
+import courseCoverSystemsFlat from './assets/images/course_cover_systems_flat_1795244678070.jpg';
+import courseCoverCodingFlat from './assets/images/course_cover_coding_flat_1795244677820.jpg';
+import courseCoverDataFlat from './assets/images/course_cover_data_flat_1795244677214.jpg';
+import soalCoverChallengeFlat from './assets/images/soal_cover_challenge_flat_1795244677336.jpg';
 
 enum OperationType {
   CREATE = 'create',
@@ -163,6 +167,76 @@ const parseCheatingDetail = (item: string) => {
     return String(item);
   }
 };
+
+const COURSE_COVER_THEMES = [
+  {
+    image: courseCoverSystemsFlat,
+    fallbackGradient: 'from-blue-600 via-blue-700 to-indigo-800',
+    label: 'Sistem & Jaringan'
+  },
+  {
+    image: courseCoverCodingFlat,
+    fallbackGradient: 'from-teal-500 via-teal-600 to-emerald-700',
+    label: 'Algoritma & Koding'
+  },
+  {
+    image: courseCoverDataFlat,
+    fallbackGradient: 'from-indigo-600 via-indigo-700 to-violet-800',
+    label: 'Data & Informatika'
+  }
+];
+
+const SOAL_COVER_THEMES = [
+  {
+    image: '' as string,
+    fallbackGradient: 'from-emerald-500 via-teal-600 to-emerald-700',
+    label: 'Evaluasi Pemahaman',
+    isCustomSvg: true
+  },
+  {
+    image: soalCoverChallengeFlat,
+    fallbackGradient: 'from-purple-800 via-indigo-900 to-slate-900',
+    label: 'Tantangan Logika',
+    isCustomSvg: false
+  },
+  {
+    image: courseCoverCodingFlat,
+    fallbackGradient: 'from-teal-500 via-cyan-600 to-teal-700',
+    label: 'Uji Algoritma',
+    isCustomSvg: false
+  },
+  {
+    image: courseCoverDataFlat,
+    fallbackGradient: 'from-indigo-600 via-blue-700 to-indigo-800',
+    label: 'Uji Konsep & Data',
+    isCustomSvg: false
+  }
+];
+
+function getCourseCoverArt(title: string, index: number) {
+  const lower = (title || '').toLowerCase();
+  if (/(sistem|komputer|hardware|perangkat|jaringan|internet|cpu|os|memori)/.test(lower)) {
+    return COURSE_COVER_THEMES[0];
+  }
+  if (/(algo|koding|program|scratch|komputasi|logika|variabel|cabang|ulang|blok)/.test(lower)) {
+    return COURSE_COVER_THEMES[1];
+  }
+  if (/(data|tik|excel|olah|angka|dampak|sosial|grafik|dokumen|presentasi)/.test(lower)) {
+    return COURSE_COVER_THEMES[2];
+  }
+  return COURSE_COVER_THEMES[index % COURSE_COVER_THEMES.length];
+}
+
+function getSoalCoverArt(title: string, index: number) {
+  const lower = (title || '').toLowerCase();
+  if (/(algo|koding|program|scratch|komputasi|dekomposisi|abstraksi)/.test(lower)) {
+    return SOAL_COVER_THEMES[1 + (index % 2)];
+  }
+  if (/(data|tik|excel|grafik|internet)/.test(lower)) {
+    return SOAL_COVER_THEMES[3];
+  }
+  return SOAL_COVER_THEMES[index % SOAL_COVER_THEMES.length];
+}
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<'login' | 'admin' | 'course' | 'student_dashboard' | 'course_confirm' | 'soal' | 'soal_confirm'>(() => {
@@ -1764,17 +1838,16 @@ export default function App() {
                         const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
                         const hasCompleted = !!studentAssessment;
                         const activeQs = soalQuestions.filter(q => q.setId === set.id && q.isActive !== false);
-                        const accentBars = ['bg-emerald-600', 'bg-teal-600', 'bg-blue-600', 'bg-indigo-600'];
-                        const topBarClass = hasCompleted ? 'bg-emerald-600' : accentBars[index % accentBars.length];
+                        const coverArt = getSoalCoverArt(set.title, index);
                         const timerText = set.timerMode === 'per_soal'
-                          ? `${set.defaultQuestionTimerSeconds || 30}d / soal`
+                          ? `${set.defaultQuestionTimerSeconds || 30} dtk / soal`
                           : set.titleTimerSeconds > 0
                           ? `${Math.ceil(set.titleTimerSeconds / 60)} Menit`
                           : 'Tanpa Batas';
 
                         return (
                           <motion.div
-                            whileHover={{ y: -3 }}
+                            whileHover={{ y: -4 }}
                             whileTap={{ scale: 0.99 }}
                             key={set.id}
                             onClick={() => {
@@ -1783,32 +1856,99 @@ export default function App() {
                               setIsPreviewingSoal(false);
                               setCurrentPage('soal_confirm');
                             }}
-                            className="group bg-white border border-slate-200 hover:border-slate-300 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col cursor-pointer"
+                            className="group bg-white border border-slate-200 hover:border-emerald-300 rounded-2xl overflow-hidden shadow-2xs hover:shadow-lg transition-all duration-200 flex flex-col cursor-pointer"
                           >
-                            <div className={cn("h-2 w-full", topBarClass)} />
-                            <div className="p-5 flex-1 flex flex-col">
-                              {/* Quiet unboxed metadata line */}
-                              <div className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-500 mb-2 tabular-nums">
-                                <span className="truncate">
-                                  {activeQs.length} Soal PG · {timerText}{set.isFullScreen ? ' · Layar Penuh' : ''}
+                            {/* Illustrated Cover Banner */}
+                            <div className={cn("relative h-36 w-full overflow-hidden bg-gradient-to-br shrink-0", coverArt.fallbackGradient)}>
+                              {coverArt.isCustomSvg ? (
+                                <svg
+                                  viewBox="0 0 320 144"
+                                  aria-hidden="true"
+                                  className="relative z-10 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                >
+                                  <rect width="320" height="144" fill="#10B981" />
+                                  <circle cx="46" cy="36" r="14" fill="#FBBF24" />
+                                  <circle cx="278" cy="112" r="20" fill="#34D399" />
+                                  <rect x="78" y="20" width="84" height="104" rx="10" fill="#FFFFFF" />
+                                  <rect x="92" y="38" width="56" height="7" rx="3.5" fill="#CBD5E1" />
+                                  <rect x="92" y="54" width="44" height="7" rx="3.5" fill="#CBD5E1" />
+                                  <rect x="92" y="70" width="52" height="7" rx="3.5" fill="#CBD5E1" />
+                                  <rect x="92" y="86" width="36" height="7" rx="3.5" fill="#CBD5E1" />
+                                  <circle cx="210" cy="68" r="34" fill="#FB7185" />
+                                  <circle cx="210" cy="68" r="24" fill="#38BDF8" />
+                                  <path d="M199 68l7 7 15-15" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                                  <rect x="136" y="102" width="76" height="14" rx="7" fill="#FACC15" transform="rotate(-12 136 102)" />
+                                  <rect x="136" y="102" width="22" height="14" rx="5" fill="#FB7185" transform="rotate(-12 136 102)" />
+                                </svg>
+                              ) : (
+                                <>
+                                  <div className="absolute inset-0 flex items-center justify-center opacity-20 text-white pointer-events-none">
+                                    <ClipboardList size={42} />
+                                  </div>
+                                  <img
+                                    src={coverArt.image}
+                                    alt={set.title}
+                                    referrerPolicy="no-referrer"
+                                    className="relative z-10 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                  />
+                                </>
+                              )}
+                              <div className="absolute inset-0 z-20 bg-gradient-to-b from-slate-950/60 via-transparent to-slate-950/75" />
+
+                              {/* Top unboxed kicker & status */}
+                              <div className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between gap-2">
+                                <span className="text-[11px] font-mono font-bold tracking-wider text-white tabular-nums drop-shadow-xs">
+                                  Paket {String(index + 1).padStart(2, '0')}
                                 </span>
-                                {hasCompleted && (
-                                  <span className="inline-flex items-center gap-1 text-emerald-700 font-bold shrink-0">
-                                    <CheckCircle size={13} /> Selesai
+                                {hasCompleted ? (
+                                  <span className="inline-flex items-center gap-1 text-emerald-200 text-xs font-extrabold whitespace-nowrap drop-shadow-xs">
+                                    <CheckCircle size={14} /> Selesai
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] font-semibold text-white/95 truncate max-w-[140px] drop-shadow-xs">
+                                    {set.kelas || 'Semua Kelas'}
                                   </span>
                                 )}
                               </div>
 
-                              <h3 className="font-extrabold text-base md:text-lg text-slate-900 leading-snug mb-1.5 group-hover:text-emerald-700 transition-colors">
+                              {/* Bottom banner metadata */}
+                              <div className="absolute bottom-3 left-4 right-4 z-30 flex items-end justify-between gap-2">
+                                <p className="text-xs font-bold text-white truncate drop-shadow-xs">
+                                  {coverArt.label}
+                                </p>
+                                <span className="text-[11px] font-mono font-semibold text-white/95 tabular-nums whitespace-nowrap shrink-0 drop-shadow-xs">
+                                  {set.isFullScreen ? 'Mode Ujian' : 'Mode Latihan'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Card Body */}
+                            <div className="p-5 flex-1 flex flex-col">
+                              <h3 className="font-extrabold text-base md:text-[17px] text-slate-900 leading-snug mb-1.5 group-hover:text-emerald-700 transition-colors line-clamp-2">
                                 {set.title}
                               </h3>
-                              {set.description && (
-                                <p className="text-xs text-slate-600 leading-relaxed line-clamp-2 mb-4">
-                                  {set.description}
-                                </p>
-                              )}
+                              <p className="text-xs text-slate-600 leading-relaxed line-clamp-2 mb-4">
+                                {set.description || 'Uji pemahaman materi dengan butir soal pilihan ganda terukur dan umpan balik otomatis.'}
+                              </p>
 
-                              <div className="mt-auto pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                              {/* Clean unboxed specs strip */}
+                              <div className="grid grid-cols-3 divide-x divide-slate-200 border-y border-slate-100 py-2.5 mb-4 tabular-nums">
+                                <div className="pr-2">
+                                  <span className="block text-[10px] font-semibold text-slate-400">Butir Soal</span>
+                                  <span className="text-xs font-extrabold text-slate-800">{activeQs.length} PG</span>
+                                </div>
+                                <div className="px-3">
+                                  <span className="block text-[10px] font-semibold text-slate-400">Durasi</span>
+                                  <span className="text-xs font-extrabold text-slate-800 truncate block">{timerText}</span>
+                                </div>
+                                <div className="pl-3">
+                                  <span className="block text-[10px] font-semibold text-slate-400">Target</span>
+                                  <span className="text-xs font-extrabold text-slate-800 truncate block">{set.kelas || 'Umum'}</span>
+                                </div>
+                              </div>
+
+                              {/* Footer Action Row */}
+                              <div className="mt-auto flex items-center justify-between gap-2">
                                 {hasCompleted ? (
                                   <>
                                     {(set.isScoreVisible ?? true) ? (
@@ -1817,21 +1957,19 @@ export default function App() {
                                         (studentAssessment?.score ?? 0) >= 80 ? "text-emerald-700" :
                                         (studentAssessment?.score ?? 0) >= 60 ? "text-amber-700" : "text-rose-700"
                                       )}>
-                                        Skor: {studentAssessment?.score}
+                                        Skor: {studentAssessment?.score}/100
                                       </span>
                                     ) : (
-                                      <span className="text-xs font-semibold text-slate-500">Tersimpan</span>
+                                      <span className="text-xs font-semibold text-slate-500">Nilai Tersimpan</span>
                                     )}
-                                    <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-700 inline-flex items-center gap-1 whitespace-nowrap">
+                                    <span className="px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-700 group-hover:bg-emerald-50 group-hover:text-emerald-700 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors">
                                       Buka Detail <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                                     </span>
                                   </>
                                 ) : (
                                   <>
-                                    <span className="text-xs font-medium text-slate-400">
-                                      {set.kelas || 'Semua Kelas'}
-                                    </span>
-                                    <span className="text-xs font-extrabold text-emerald-700 inline-flex items-center gap-1 whitespace-nowrap">
+                                    <span className="text-xs font-medium text-slate-400">Siap dikerjakan</span>
+                                    <span className="px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white group-hover:bg-emerald-700 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs transition-colors">
                                       Kerjakan Soal <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                                     </span>
                                   </>
@@ -1863,42 +2001,88 @@ export default function App() {
                       {displayedCourses.map((course, index) => {
                         const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
                         const hasCompleted = !!studentAssessment;
-                        const accentBars = ['bg-blue-600', 'bg-indigo-600', 'bg-cyan-600', 'bg-violet-600', 'bg-sky-600', 'bg-teal-600'];
-                        const topBarClass = hasCompleted ? 'bg-emerald-600' : accentBars[index % accentBars.length];
                         const isFullScreenMode = materialConfigs[course.id]?.isFullScreen;
+                        const coverArt = getCourseCoverArt(course.title, index);
+                        const totalCourseQuiz = course.topics.reduce((sum, t) => sum + (t.quiz?.length || 0), 0);
 
                         return (
                           <motion.div
-                            whileHover={{ y: -3 }}
+                            whileHover={{ y: -4 }}
                             whileTap={{ scale: 0.99 }}
                             key={course.id}
                             onClick={() => {
                               setActiveCourseId(course.id);
                               setCurrentPage('course_confirm');
                             }}
-                            className="group bg-white border border-slate-200 hover:border-slate-300 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col cursor-pointer"
+                            className="group bg-white border border-slate-200 hover:border-blue-300 rounded-2xl overflow-hidden shadow-2xs hover:shadow-lg transition-all duration-200 flex flex-col cursor-pointer"
                           >
-                            <div className={cn("h-2 w-full", topBarClass)} />
-                            <div className="p-5 flex-1 flex flex-col">
-                              <div className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-500 mb-2 tabular-nums">
-                                <span className="truncate">
-                                  {course.level} · {course.topics.length} Topik{isFullScreenMode ? ' · Mode Ujian' : ''}
+                            {/* Illustrated Cover Banner */}
+                            <div className={cn("relative h-36 w-full overflow-hidden bg-gradient-to-br shrink-0", coverArt.fallbackGradient)}>
+                              <div className="absolute inset-0 flex items-center justify-center opacity-20 text-white pointer-events-none">
+                                <BookOpen size={42} />
+                              </div>
+                              <img
+                                src={coverArt.image}
+                                alt={course.title}
+                                referrerPolicy="no-referrer"
+                                className="relative z-10 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              />
+                              <div className="absolute inset-0 z-20 bg-gradient-to-b from-slate-950/60 via-transparent to-slate-950/75" />
+
+                              {/* Top unboxed kicker & status */}
+                              <div className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between gap-2">
+                                <span className="text-[11px] font-mono font-bold tracking-wider text-white tabular-nums drop-shadow-xs">
+                                  Modul {String(index + 1).padStart(2, '0')}
                                 </span>
-                                {hasCompleted && (
-                                  <span className="inline-flex items-center gap-1 text-emerald-700 font-bold shrink-0">
-                                    <CheckCircle size={13} /> Selesai
+                                {hasCompleted ? (
+                                  <span className="inline-flex items-center gap-1 text-emerald-200 text-xs font-extrabold whitespace-nowrap drop-shadow-xs">
+                                    <CheckCircle size={14} /> Selesai
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] font-semibold text-white/95 truncate max-w-[140px] drop-shadow-xs">
+                                    {course.level}
                                   </span>
                                 )}
                               </div>
 
-                              <h3 className="font-extrabold text-base md:text-lg text-slate-900 leading-snug mb-1.5 group-hover:text-brand transition-colors">
+                              {/* Bottom banner metadata */}
+                              <div className="absolute bottom-3 left-4 right-4 z-30 flex items-end justify-between gap-2">
+                                <p className="text-xs font-bold text-white truncate drop-shadow-xs">
+                                  {coverArt.label}
+                                </p>
+                                <span className="text-[11px] font-mono font-semibold text-white/95 tabular-nums whitespace-nowrap shrink-0 drop-shadow-xs">
+                                  {isFullScreenMode ? 'Mode Ujian' : 'Mandiri'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Card Body */}
+                            <div className="p-5 flex-1 flex flex-col">
+                              <h3 className="font-extrabold text-base md:text-[17px] text-slate-900 leading-snug mb-1.5 group-hover:text-brand transition-colors line-clamp-2">
                                 {course.title}
                               </h3>
                               <p className="text-xs text-slate-600 leading-relaxed line-clamp-2 mb-4">
                                 {course.description || `Pelajari ${course.topics.length} topik terstruktur beserta evaluasi kuis interaktif.`}
                               </p>
 
-                              <div className="mt-auto pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                              {/* Clean unboxed specs strip */}
+                              <div className="grid grid-cols-3 divide-x divide-slate-200 border-y border-slate-100 py-2.5 mb-4 tabular-nums">
+                                <div className="pr-2">
+                                  <span className="block text-[10px] font-semibold text-slate-400">Topik</span>
+                                  <span className="text-xs font-extrabold text-slate-800">{course.topics.length} Bagian</span>
+                                </div>
+                                <div className="px-3">
+                                  <span className="block text-[10px] font-semibold text-slate-400">Evaluasi</span>
+                                  <span className="text-xs font-extrabold text-slate-800">{totalCourseQuiz} Kuis</span>
+                                </div>
+                                <div className="pl-3">
+                                  <span className="block text-[10px] font-semibold text-slate-400">Tingkat</span>
+                                  <span className="text-xs font-extrabold text-slate-800 truncate block">{course.level}</span>
+                                </div>
+                              </div>
+
+                              {/* Footer Action Row */}
+                              <div className="mt-auto flex items-center justify-between gap-2">
                                 {hasCompleted ? (
                                   <>
                                     <span className={cn(
@@ -1906,16 +2090,16 @@ export default function App() {
                                       (studentAssessment?.score ?? 0) >= 80 ? "text-emerald-700" :
                                       (studentAssessment?.score ?? 0) >= 60 ? "text-amber-700" : "text-rose-700"
                                     )}>
-                                      Skor: {studentAssessment?.score}
+                                      Skor: {studentAssessment?.score}/100
                                     </span>
-                                    <span className="text-xs font-bold text-slate-700 group-hover:text-brand inline-flex items-center gap-1 whitespace-nowrap">
+                                    <span className="px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-700 group-hover:bg-blue-50 group-hover:text-brand text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors">
                                       Pelajari Ulang <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                                     </span>
                                   </>
                                 ) : (
                                   <>
                                     <span className="text-xs font-medium text-slate-400">Belum dimulai</span>
-                                    <span className="text-xs font-extrabold text-brand inline-flex items-center gap-1 whitespace-nowrap">
+                                    <span className="px-3.5 py-1.5 rounded-xl bg-brand text-white group-hover:bg-blue-700 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs transition-colors">
                                       Mulai Belajar <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                                     </span>
                                   </>
