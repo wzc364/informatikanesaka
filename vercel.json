@@ -3,6 +3,9 @@
   "functions": {
     "api/analyze-question-doc.js": {
       "maxDuration": 60
+    },
+    "api/generate-questions.js": {
+      "maxDuration": 60
     }
   },
   "rewrites": [

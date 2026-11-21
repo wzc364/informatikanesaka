@@ -3,6 +3,7 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { processAnalyzeQuestionRequest } from "./server/questionAnalyzer.mjs";
+import { processGenerateQuestionsRequest } from "./server/questionGenerator.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +36,12 @@ async function startServer() {
   // API Route to analyze uploaded exam/question documents with Gemini
   app.post("/api/analyze-question-doc", async (req, res) => {
     const { status, payload } = await processAnalyzeQuestionRequest(req.body);
+    return res.status(status).json(payload);
+  });
+
+  // API Route to generate multiple-choice questions with Gemini AI
+  app.post("/api/generate-questions", async (req, res) => {
+    const { status, payload } = await processGenerateQuestionsRequest(req.body);
     return res.status(status).json(payload);
   });
 

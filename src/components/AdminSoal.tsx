@@ -30,6 +30,9 @@ import {
   BookOpen,
   CheckSquare,
   Square,
+  Wand2,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { db } from '../firebase';
 import {
@@ -359,6 +362,36 @@ export default function AdminSoal({
   const [pickerNewSetActive, setPickerNewSetActive] = useState(true);
   const [selectedMaterialQuestionIds, setSelectedMaterialQuestionIds] = useState<Set<string>>(new Set());
   const [isImportingMaterial, setIsImportingMaterial] = useState(false);
+
+  // Tambah Soal AI Modal
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [aiTargetMode, setAiTargetMode] = useState<'existing' | 'new'>('new');
+  const [aiTargetSetId, setAiTargetSetId] = useState<string>('');
+  const [aiNewSetTitle, setAiNewSetTitle] = useState('');
+  const [aiNewSetKelas, setAiNewSetKelas] = useState('Semua Kelas');
+  const [aiNewSetActive, setAiNewSetActive] = useState(true);
+  const [aiContextMode, setAiContextMode] = useState<'custom' | 'course'>('custom');
+  const [aiCourseId, setAiCourseId] = useState<string>(COURSES[0]?.id || '');
+  const [aiTopicId, setAiTopicId] = useState<string>('all');
+  const [aiTopicPrompt, setAiTopicPrompt] = useState('');
+  const [aiJenjang, setAiJenjang] = useState('SMP Kelas VIII');
+  const [aiDifficulty, setAiDifficulty] = useState<'Campuran' | 'Mudah' | 'Sedang' | 'Sukar'>('Campuran');
+  const [aiCount, setAiCount] = useState<number>(5);
+  const [aiInstructions, setAiInstructions] = useState('');
+  const [aiGeneratedList, setAiGeneratedList] = useState<
+    Array<{
+      uid: string;
+      selected: boolean;
+      questionText: string;
+      options: [string, string, string, string];
+      correctAnswer: 0 | 1 | 2 | 3;
+      explanation: string;
+      cognitiveLevel: string;
+    }>
+  >([]);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [isSavingAi, setIsSavingAi] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const excelInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -1256,6 +1289,243 @@ export default function AdminSoal({
     }
   };
 
+  // ========== TAMBAH SOAL DENGAN AI ==========
+  const selectedAiCourse = useMemo(
+    () => COURSES.find((c) => c.id === aiCourseId) || COURSES[0] || null,
+    [aiCourseId]
+  );
+
+  const openAiQuestionModal = (origin: 'top' | 'set') => {
+    setAiError(null);
+    setAiGeneratedList([]);
+    setAiContextMode('custom');
+    setAiCourseId(COURSES[0]?.id || '');
+    setAiTopicId('all');
+    setAiCount(5);
+    setAiDifficulty('Campuran');
+    setAiJenjang(selectedSet?.kelas && selectedSet.kelas !== 'Semua Kelas' ? selectedSet.kelas : 'SMP Kelas VIII');
+    setAiInstructions('');
+
+    if (origin === 'set' && selectedSet) {
+      setAiTargetMode('existing');
+      setAiTargetSetId(selectedSet.id);
+      setAiTopicPrompt(selectedSet.title);
+      setAiNewSetTitle(selectedSet.title);
+    } else {
+      setAiTargetMode('new');
+      setAiTargetSetId(soalSets[0]?.id || '');
+      setAiTopicPrompt('');
+      setAiNewSetTitle('');
+      setAiNewSetKelas('Semua Kelas');
+      setAiNewSetActive(true);
+    }
+    setIsAiModalOpen(true);
+  };
+
+  const buildCourseContextText = (): string => {
+    if (!selectedAiCourse) return '';
+    const topics =
+      aiTopicId === 'all'
+        ? selectedAiCourse.topics
+        : selectedAiCourse.topics.filter((t) => t.id === aiTopicId);
+    return topics
+      .map((t) => {
+        const cleanContent = (t.content || '')
+          .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+          .replace(/[#*_`>]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 2600);
+        return `Topik: ${t.title}\nRingkasan Materi: ${cleanContent}`;
+      })
+      .join('\n\n')
+      .slice(0, 18000);
+  };
+
+  const handleGenerateAiQuestions = async () => {
+    setAiError(null);
+    const effectiveTopic =
+      aiContextMode === 'course' && selectedAiCourse
+        ? aiTopicId === 'all'
+          ? selectedAiCourse.title
+          : `${selectedAiCourse.title} - ${
+              selectedAiCourse.topics.find((t) => t.id === aiTopicId)?.title || ''
+            }`
+        : aiTopicPrompt.trim();
+
+    if (!effectiveTopic) {
+      setAiError('Tuliskan topik atau materi soal yang ingin dibuat AI.');
+      return;
+    }
+
+    const materialContext = aiContextMode === 'course' ? buildCourseContextText() : '';
+
+    setIsGeneratingAi(true);
+    try {
+      const response = await fetch('/api/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: effectiveTopic,
+          materialContext,
+          jenjang: aiJenjang,
+          difficulty: aiDifficulty,
+          count: aiCount,
+          instructions: aiInstructions.trim(),
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 404 && !payload?.error) {
+          throw new Error(
+            'Endpoint pembuat soal AI belum aktif (HTTP 404). Muat ulang halaman atau pastikan folder /api ikut ter-deploy.'
+          );
+        }
+        throw new Error(
+          payload?.error || `Gagal membuat soal dengan AI (HTTP ${response.status}).`
+        );
+      }
+
+      const rawQs = Array.isArray(payload?.questions) ? payload.questions : [];
+      if (rawQs.length === 0) {
+        throw new Error('AI tidak menghasilkan soal. Coba ubah topik atau instruksi.');
+      }
+
+      const mapped = rawQs.map((q: any, idx: number) => ({
+        uid: `ai_${Date.now()}_${idx}`,
+        selected: true,
+        questionText: String(q.questionText || '').trim(),
+        options: [
+          String(q.options?.[0] || ''),
+          String(q.options?.[1] || ''),
+          String(q.options?.[2] || ''),
+          String(q.options?.[3] || ''),
+        ] as [string, string, string, string],
+        correctAnswer: (Number.isInteger(q.correctAnswer) && q.correctAnswer >= 0 && q.correctAnswer <= 3
+          ? q.correctAnswer
+          : 0) as 0 | 1 | 2 | 3,
+        explanation: String(q.explanation || '').trim(),
+        cognitiveLevel: String(q.cognitiveLevel || 'C2 Memahami').trim(),
+      }));
+
+      setAiGeneratedList(mapped);
+      if (aiTargetMode === 'new' && !aiNewSetTitle.trim()) {
+        setAiNewSetTitle(`Latihan AI: ${effectiveTopic.slice(0, 60)}`);
+      }
+    } catch (err: any) {
+      setAiError(err?.message || 'Terjadi kendala saat menghubungi layanan AI.');
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
+  const handleSaveAiQuestions = async () => {
+    const selectedItems = aiGeneratedList.filter(
+      (q) =>
+        q.selected &&
+        q.questionText.trim() &&
+        q.options.every((opt) => opt.trim().length > 0)
+    );
+    if (selectedItems.length === 0) {
+      setAiError('Pilih minimal 1 soal valid (pertanyaan dan 4 opsi tidak boleh kosong).');
+      return;
+    }
+    if (aiTargetMode === 'new' && !aiNewSetTitle.trim()) {
+      setAiError('Isi judul kartu soal baru terlebih dahulu.');
+      return;
+    }
+    if (aiTargetMode === 'existing' && !aiTargetSetId) {
+      setAiError('Pilih kartu soal tujuan terlebih dahulu.');
+      return;
+    }
+
+    setIsSavingAi(true);
+    setAiError(null);
+    const now = new Date().toISOString();
+
+    try {
+      let targetId = aiTargetSetId;
+      let targetTitle = '';
+      let defaultTimer = 30;
+      let nextOrder = 0;
+
+      if (aiTargetMode === 'new') {
+        const newSetRef = doc(collection(db, 'soal_sets'));
+        targetId = newSetRef.id;
+        targetTitle = aiNewSetTitle.trim();
+        const newSet: SoalSet = {
+          id: targetId,
+          title: targetTitle,
+          description:
+            aiContextMode === 'course' && selectedAiCourse
+              ? `Dibuat oleh AI berdasarkan materi: ${selectedAiCourse.title}`
+              : `Dibuat oleh AI • Topik: ${aiTopicPrompt.trim() || targetTitle}`,
+          kelas: aiNewSetKelas.trim() || 'Semua Kelas',
+          isActive: aiNewSetActive,
+          isFullScreen: false,
+          isScoreVisible: true,
+          timerMode: 'per_judul',
+          titleTimerSeconds: 900,
+          defaultQuestionTimerSeconds: 30,
+          shuffleQuestions: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+        await setDoc(newSetRef, newSet);
+      } else {
+        const existingSet = soalSets.find((s) => s.id === aiTargetSetId);
+        if (!existingSet) return;
+        targetTitle = existingSet.title;
+        defaultTimer = existingSet.defaultQuestionTimerSeconds || 30;
+        const existingList = questionsBySet[existingSet.id] || [];
+        nextOrder = existingList.reduce((max, item) => Math.max(max, item.order ?? 0), 0);
+      }
+
+      for (let i = 0; i < selectedItems.length; i += 400) {
+        const chunk = selectedItems.slice(i, i + 400);
+        const batch = writeBatch(db);
+        chunk.forEach((item) => {
+          nextOrder += 1;
+          const newQRef = doc(collection(db, 'soal_questions'));
+          const newQ: SoalQuestion = {
+            id: newQRef.id,
+            setId: targetId,
+            order: nextOrder,
+            isActive: true,
+            questionText: item.questionText.trim(),
+            options: item.options.map((o) => ({ text: o.trim() })) as [
+              SoalOption,
+              SoalOption,
+              SoalOption,
+              SoalOption,
+            ],
+            correctAnswer: item.correctAnswer,
+            timerSeconds: defaultTimer,
+            ...(item.explanation.trim() ? { explanation: item.explanation.trim() } : {}),
+            createdAt: now,
+            updatedAt: now,
+          };
+          batch.set(newQRef, newQ);
+        });
+        await batch.commit();
+      }
+
+      if (aiTargetMode === 'existing') {
+        await updateDoc(doc(db, 'soal_sets', targetId), { updatedAt: now });
+      }
+
+      setIsAiModalOpen(false);
+      setSelectedSetId(targetId);
+      setQuestionSearch('');
+      showToast(`${selectedItems.length} soal AI berhasil disimpan ke "${targetTitle}".`);
+    } catch (err) {
+      onFirestoreError?.(err, 'write', 'soal_questions');
+    } finally {
+      setIsSavingAi(false);
+    }
+  };
+
   // ========== RENDER ==========
   return (
     <div className="space-y-6">
@@ -1282,6 +1552,13 @@ export default function AdminSoal({
                 <Layers size={14} className="text-brand" />
                 <span>{soalSets.length} Kartu • {soalSets.filter(s => s.isActive).length} Aktif • {soalQuestions.length} Butir Soal</span>
               </div>
+              <button
+                onClick={() => openAiQuestionModal('top')}
+                className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-sm shadow-lg shadow-purple-600/20 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <Sparkles size={18} />
+                Buat Soal AI
+              </button>
               <button
                 onClick={() => openMaterialPicker('top')}
                 className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-sm shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-2"
@@ -1598,6 +1875,13 @@ export default function AdminSoal({
                       <GraduationCap size={16} />
                       Ambil dari Materi
                     </button>
+                    <button
+                      onClick={() => openAiQuestionModal('set')}
+                      className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-xs md:text-sm shadow-md shadow-purple-600/20 active:scale-95 transition-all flex items-center gap-2"
+                    >
+                      <Sparkles size={16} />
+                      Tambah Soal AI
+                    </button>
                     {allQs.length > 0 && (
                       <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-300 rounded-xl p-1">
                         <button
@@ -1826,6 +2110,13 @@ export default function AdminSoal({
                       >
                         <GraduationCap size={16} />
                         Ambil dari Materi
+                      </button>
+                      <button
+                        onClick={() => openAiQuestionModal('set')}
+                        className="px-5 py-2.5 bg-purple-600 text-white rounded-xl font-black text-xs shadow-md flex items-center gap-2"
+                      >
+                        <Sparkles size={16} />
+                        Tambah Soal AI
                       </button>
                     </div>
                   )}
@@ -3038,6 +3329,534 @@ export default function AdminSoal({
                         rawMaterialCandidates.filter((i) => selectedMaterialQuestionIds.has(i.uid))
                           .length
                       } Soal`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================== MODAL TAMBAH SOAL AI ================== */}
+      {isAiModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-[122] flex items-center justify-center p-3 md:p-6">
+          <div className="bg-slate-100 border border-slate-300 rounded-[2rem] w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+            {/* Header */}
+            <div className="p-5 md:p-6 bg-slate-200 border-b border-slate-300 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Wand2 size={20} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg md:text-xl font-black text-slate-900 truncate">
+                    Tambah Soal Otomatis dengan AI
+                  </h3>
+                  <p className="text-xs font-bold text-slate-600 truncate">
+                    Buat soal PG 4 opsi + kunci + pembahasan otomatis dari topik atau materi
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAiModalOpen(false)}
+                className="p-2 hover:bg-slate-300 rounded-xl text-slate-600 shrink-0"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 md:p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
+              {/* Tujuan Penyimpanan */}
+              <div className="bg-white border border-slate-300 rounded-2xl p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-700">
+                    Tujuan Penyimpanan Soal AI
+                  </span>
+                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setAiTargetMode('new')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                        aiTargetMode === 'new'
+                          ? 'bg-purple-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      + Buat Kartu Baru
+                    </button>
+                    <button
+                      type="button"
+                      disabled={soalSets.length === 0}
+                      onClick={() => {
+                        setAiTargetMode('existing');
+                        if (!aiTargetSetId && soalSets[0]) {
+                          setAiTargetSetId(soalSets[0].id);
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all disabled:opacity-40 ${
+                        aiTargetMode === 'existing'
+                          ? 'bg-brand text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Ke Kartu yang Ada ({soalSets.length})
+                    </button>
+                  </div>
+                </div>
+
+                {aiTargetMode === 'new' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-1">
+                    <div className="md:col-span-6">
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                        Judul Kartu Soal Baru *
+                      </label>
+                      <input
+                        type="text"
+                        value={aiNewSetTitle}
+                        onChange={(e) => setAiNewSetTitle(e.target.value)}
+                        placeholder="Contoh: Kuis AI - Algoritma & Pemrograman"
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                        Target Kelas
+                      </label>
+                      <input
+                        type="text"
+                        value={aiNewSetKelas}
+                        onChange={(e) => setAiNewSetKelas(e.target.value)}
+                        placeholder="Semua Kelas"
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-semibold text-slate-800"
+                      />
+                    </div>
+                    <div className="md:col-span-3 flex items-end">
+                      <label className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl cursor-pointer">
+                        <span className="text-xs font-black text-slate-800">Langsung Aktif</span>
+                        <input
+                          type="checkbox"
+                          checked={aiNewSetActive}
+                          onChange={(e) => setAiNewSetActive(e.target.checked)}
+                          className="w-4 h-4 accent-purple-600"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pt-1">
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      Pilih Kartu Soal Tujuan
+                    </label>
+                    <select
+                      value={aiTargetSetId}
+                      onChange={(e) => setAiTargetSetId(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900"
+                    >
+                      {soalSets.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.title} ({(questionsBySet[s.id] || []).length} soal • {s.kelas || 'Semua Kelas'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Pengaturan Prompt / Materi AI */}
+              <div className="bg-white border border-slate-300 rounded-2xl p-4 md:p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-700">
+                    Sumber Topik Pembuatan Soal
+                  </span>
+                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setAiContextMode('custom')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                        aiContextMode === 'custom'
+                          ? 'bg-purple-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Tulis Topik Bebas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiContextMode('course')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                        aiContextMode === 'course'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Dari Materi Kelola Materi
+                    </button>
+                  </div>
+                </div>
+
+                {aiContextMode === 'custom' ? (
+                  <div>
+                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1.5">
+                      Topik / Materi Soal *
+                    </label>
+                    <input
+                      type="text"
+                      value={aiTopicPrompt}
+                      onChange={(e) => setAiTopicPrompt(e.target.value)}
+                      placeholder="Contoh: Berpikir Komputasional, Sistem Bilangan Biner, atau Jaringan Komputer & Internet"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                    />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                        Materi Acuan (Kelola Materi)
+                      </label>
+                      <select
+                        value={aiCourseId}
+                        onChange={(e) => {
+                          setAiCourseId(e.target.value);
+                          setAiTopicId('all');
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900"
+                      >
+                        {COURSES.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.title} ({c.topics.length} topik)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                        Sub-Topik Materi
+                      </label>
+                      <select
+                        value={aiTopicId}
+                        onChange={(e) => setAiTopicId(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900"
+                      >
+                        <option value="all">Semua Topik dalam Materi Ini</option>
+                        {selectedAiCourse?.topics.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      Jumlah Soal (1–20)
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {[5, 10, 15, 20].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setAiCount(preset)}
+                          className={`px-2.5 py-2 rounded-xl text-xs font-black border transition-all ${
+                            aiCount === preset
+                              ? 'bg-purple-600 text-white border-purple-600'
+                              : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                      <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={aiCount}
+                        onChange={(e) =>
+                          setAiCount(Math.min(20, Math.max(1, parseInt(e.target.value, 10) || 1)))
+                        }
+                        className="w-16 px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-black text-slate-900 text-center"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      Jenjang / Kelas
+                    </label>
+                    <select
+                      value={aiJenjang}
+                      onChange={(e) => setAiJenjang(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                    >
+                      <option value="SMP Kelas VII">SMP Kelas VII</option>
+                      <option value="SMP Kelas VIII">SMP Kelas VIII</option>
+                      <option value="SMP Kelas IX">SMP Kelas IX</option>
+                      <option value="SMP Fase D (Umum)">SMP Fase D (Umum)</option>
+                      <option value="SMA / SMK">SMA / SMK</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      Tingkat Kesulitan
+                    </label>
+                    <select
+                      value={aiDifficulty}
+                      onChange={(e) => setAiDifficulty(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
+                    >
+                      <option value="Campuran">Campuran (Mudah–Sukar)</option>
+                      <option value="Mudah">Mudah (C1–C2)</option>
+                      <option value="Sedang">Sedang (C3)</option>
+                      <option value="Sukar">Sukar / HOTS (C4–C5)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+                  <div className="flex-1">
+                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      Instruksi Tambahan (Opsional)
+                    </label>
+                    <input
+                      type="text"
+                      value={aiInstructions}
+                      onChange={(e) => setAiInstructions(e.target.value)}
+                      placeholder="Misal: Sertakan soal cerita sehari-hari, hindari soal hafalan definisi..."
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isGeneratingAi}
+                    onClick={handleGenerateAiQuestions}
+                    className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-xs md:text-sm shadow-md shadow-purple-600/20 disabled:opacity-60 flex items-center justify-center gap-2 shrink-0"
+                  >
+                    {isGeneratingAi ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        AI Sedang Membuat {aiCount} Soal...
+                      </>
+                    ) : aiGeneratedList.length > 0 ? (
+                      <>
+                        <RefreshCw size={16} />
+                        Generate Ulang ({aiCount} Soal)
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} />
+                        Generate Soal dengan AI
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {aiError && (
+                  <div className="p-3.5 bg-red-50 border border-red-300 rounded-xl text-red-800 text-xs font-bold flex items-start gap-2">
+                    <AlertTriangle size={16} className="shrink-0 mt-0.5 text-red-600" />
+                    <span>{aiError}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Pratinjau & Edit Soal Hasil AI */}
+              {aiGeneratedList.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 bg-purple-50 border border-purple-200 px-4 py-2.5 rounded-xl">
+                    <span className="text-xs font-black text-purple-950">
+                      Hasil AI: {aiGeneratedList.length} Soal •{' '}
+                      <span className="text-emerald-700">
+                        {aiGeneratedList.filter((q) => q.selected).length} dipilih untuk disimpan
+                      </span>{' '}
+                      <span className="text-slate-500 font-semibold">(bisa diedit langsung di bawah)</span>
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAiGeneratedList((prev) => prev.map((q) => ({ ...q, selected: true })))
+                        }
+                        className="px-3 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-black"
+                      >
+                        Pilih Semua
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAiGeneratedList((prev) => prev.map((q) => ({ ...q, selected: false })))
+                        }
+                        className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 rounded-lg text-xs font-bold"
+                      >
+                        Kosongkan
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {aiGeneratedList.map((item, idx) => (
+                      <div
+                        key={item.uid}
+                        className={`p-4 rounded-2xl border-2 transition-all space-y-3 ${
+                          item.selected
+                            ? 'bg-white border-purple-400 shadow-xs'
+                            : 'bg-slate-50 border-slate-300 opacity-70'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAiGeneratedList((prev) =>
+                                  prev.map((q) =>
+                                    q.uid === item.uid ? { ...q, selected: !q.selected } : q
+                                  )
+                                )
+                              }
+                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black ${
+                                item.selected
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-slate-200 text-slate-600'
+                              }`}
+                            >
+                              {item.selected ? <CheckSquare size={14} /> : <Square size={14} />}
+                              Soal #{idx + 1}
+                            </button>
+                            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-black">
+                              {item.cognitiveLevel}
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-bold text-slate-500">
+                            Kunci saat ini: <strong className="text-emerald-700">{OPTION_LABELS[item.correctAnswer]}</strong>
+                          </span>
+                        </div>
+
+                        <textarea
+                          rows={2}
+                          value={item.questionText}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setAiGeneratedList((prev) =>
+                              prev.map((q) =>
+                                q.uid === item.uid ? { ...q, questionText: val } : q
+                              )
+                            );
+                          }}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                        />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {item.options.map((optText, oIdx) => {
+                            const isKey = item.correctAnswer === oIdx;
+                            return (
+                              <div
+                                key={oIdx}
+                                className={`flex items-center gap-2 p-2 rounded-xl border ${
+                                  isKey
+                                    ? 'bg-emerald-50 border-emerald-400'
+                                    : 'bg-slate-50 border-slate-200'
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  title="Klik untuk jadikan kunci jawaban"
+                                  onClick={() =>
+                                    setAiGeneratedList((prev) =>
+                                      prev.map((q) =>
+                                        q.uid === item.uid
+                                          ? { ...q, correctAnswer: oIdx as 0 | 1 | 2 | 3 }
+                                          : q
+                                      )
+                                    )
+                                  }
+                                  className={`w-7 h-7 rounded-lg text-xs font-black shrink-0 flex items-center justify-center transition-all ${
+                                    isKey
+                                      ? 'bg-emerald-600 text-white'
+                                      : 'bg-slate-200 text-slate-700 hover:bg-emerald-100'
+                                  }`}
+                                >
+                                  {OPTION_LABELS[oIdx]}
+                                </button>
+                                <input
+                                  type="text"
+                                  value={optText}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setAiGeneratedList((prev) =>
+                                      prev.map((q) => {
+                                        if (q.uid !== item.uid) return q;
+                                        const nextOpts = [...q.options] as [
+                                          string,
+                                          string,
+                                          string,
+                                          string,
+                                        ];
+                                        nextOpts[oIdx] = val;
+                                        return { ...q, options: nextOpts };
+                                      })
+                                    );
+                                  }}
+                                  className="flex-1 min-w-0 bg-transparent text-xs font-semibold text-slate-800 focus:outline-none"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <input
+                          type="text"
+                          value={item.explanation}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setAiGeneratedList((prev) =>
+                              prev.map((q) =>
+                                q.uid === item.uid ? { ...q, explanation: val } : q
+                              )
+                            );
+                          }}
+                          placeholder="Pembahasan singkat..."
+                          className="w-full px-3 py-1.5 bg-blue-50/70 border border-blue-200 rounded-lg text-xs font-medium text-blue-950 focus:outline-none"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 bg-slate-200 border-t border-slate-300 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <span className="text-xs font-bold text-slate-600">
+                {aiGeneratedList.length > 0
+                  ? `${aiGeneratedList.filter((q) => q.selected).length} soal dipilih siap disimpan`
+                  : 'Atur parameter di atas lalu klik Generate Soal dengan AI'}
+              </span>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsAiModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-300/60"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    isSavingAi ||
+                    isGeneratingAi ||
+                    aiGeneratedList.filter((q) => q.selected).length === 0 ||
+                    (aiTargetMode === 'new' && !aiNewSetTitle.trim()) ||
+                    (aiTargetMode === 'existing' && !aiTargetSetId)
+                  }
+                  onClick={handleSaveAiQuestions}
+                  className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-sm shadow-lg shadow-purple-600/20 disabled:opacity-40 flex items-center gap-2"
+                >
+                  <Sparkles size={17} />
+                  {isSavingAi
+                    ? 'Menyimpan...'
+                    : `Simpan ${aiGeneratedList.filter((q) => q.selected).length} Soal AI`}
                 </button>
               </div>
             </div>
