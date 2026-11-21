@@ -1414,6 +1414,8 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHig
           "flex-1 w-full min-h-0 bg-slate-950 flex flex-col",
           gameId === 'infokombat'
             ? "p-0 overflow-hidden"
+            : gameId === 'contra-snes' || gameId === 'petualangan-smp' || gameId === 'star-catcher'
+            ? "p-1.5 sm:p-3 overflow-hidden items-center"
             : isMobile
             ? "p-2 overflow-y-auto items-center custom-scrollbar"
             : "p-2 md:p-6 overflow-y-auto items-center custom-scrollbar"
@@ -2098,7 +2100,7 @@ function StarCatcherArcadeGame({ isAdmin, currentStudent, onClose }: { isAdmin: 
         </div>
       </div>
 
-      <div className="relative w-full max-w-4xl flex-1 min-h-0 aspect-[16/9] max-h-[75vh] bg-slate-950 rounded-3xl overflow-hidden border-4 border-slate-800 shadow-2xl">
+      <div className="relative w-full max-w-4xl flex-1 min-h-0 bg-slate-950 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-slate-800 shadow-2xl">
         {!isPlaying && !isGameOver ? (
           <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 sm:p-6 space-y-4 sm:space-y-6 z-10">
             <div className="w-14 h-14 sm:w-20 sm:h-20 bg-brand rounded-2xl flex items-center justify-center text-3xl sm:text-5xl shadow-lg animate-bounce">
@@ -6537,8 +6539,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
 
       {/* Main Canvas Viewport - Fully Responsive Aspect Ratio Container */}
       <div className={cn(
-        "relative rounded-3xl overflow-hidden border-4 border-slate-900 bg-slate-950 shadow-2xl flex flex-col items-center justify-center transition-all",
-        isFullScreen ? "fixed inset-0 w-full h-full z-[9999] rounded-none border-0" : "w-full aspect-[16/9]"
+        "relative rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-slate-900 bg-slate-950 shadow-2xl flex flex-col items-center justify-center transition-all",
+        isFullScreen ? "fixed inset-0 w-full h-full z-[9999] rounded-none border-0" : "w-full flex-1 min-h-0"
       )}>
         <canvas
           ref={canvasRef}

@@ -2873,36 +2873,37 @@ export default function ContraSnesGame({
     <div
       ref={containerRef}
       className={cn(
-        'space-y-3 font-sans w-full flex flex-col',
-        isFullScreen ? 'fixed inset-0 z-[9999] bg-slate-950 p-2 md:p-4 w-full h-full overflow-hidden' : 'mx-auto max-w-6xl'
+        'font-sans w-full h-full min-h-0 flex flex-col gap-1.5 sm:gap-2.5',
+        isFullScreen ? 'fixed inset-0 z-[9999] bg-slate-950 p-1.5 sm:p-3 w-full h-full overflow-hidden' : 'mx-auto max-w-6xl'
       )}
     >
-      {/* SNES Retro Arcade HUD Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900 text-white p-3 md:p-3.5 rounded-2xl border-2 border-red-500/40 shadow-lg gap-2.5 shrink-0">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="px-3 py-1 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl text-xs font-black tracking-wider uppercase shadow-sm">
-            🕹️ INFORMATIKA WAR • STAGE {currentStage}
+      {/* Compact Single-Row SNES Arcade HUD Bar */}
+      <div className="flex items-center justify-between gap-2 bg-slate-900/95 text-white px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl border border-red-500/40 shadow-lg shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <div className="px-2 sm:px-3 py-1 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black tracking-wider uppercase shadow-sm whitespace-nowrap">
+            <span className="sm:hidden">S{currentStage}</span>
+            <span className="hidden sm:inline">INFORMATIKA WAR • STAGE {currentStage}</span>
           </div>
 
           {/* HP Hearts Indicator */}
-          <div className="flex items-center gap-1 bg-slate-950/80 border border-slate-800 px-2.5 py-1 rounded-xl" title={`HP: ${lives} / ${MAX_HP}`}>
+          <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-950/80 border border-slate-800 px-1.5 sm:px-2.5 py-1 rounded-lg sm:rounded-xl shrink-0" title={`HP: ${lives} / ${MAX_HP}`}>
             {Array.from({ length: MAX_HP }).map((_, i) => (
               <Heart
                 key={i}
-                size={14}
+                size={12}
                 className={cn(
-                  'transition-all',
+                  'transition-all sm:w-3.5 sm:h-3.5',
                   i < lives ? 'text-rose-500 fill-rose-500 scale-100' : 'text-slate-700 fill-slate-800 scale-90'
                 )}
               />
             ))}
-            <span className="ml-1 text-[10px] font-black text-rose-300 font-mono">
+            <span className="ml-1 text-[10px] font-black text-rose-300 font-mono tabular-nums">
               {lives}/{MAX_HP}
             </span>
           </div>
 
-          {/* Clickable Weapon Selector Pills ([1]-[5]) */}
-          <div className="flex items-center gap-1 flex-wrap">
+          {/* Clickable Weapon Selector ([1]-[5]) */}
+          <div className="flex items-center gap-1 shrink-0">
             {(['N', 'S', 'L', 'F', 'M'] as WeaponType[]).map((wKey, idx) => {
               const count = ammoBag[wKey] || 0;
               const unlocked = wKey === 'N' || count > 0;
@@ -2915,17 +2916,17 @@ export default function ContraSnesGame({
                   onClick={() => selectActiveWeapon(wKey)}
                   title={`${WEAPON_INFO[wKey].name} (Tombol ${idx + 1})`}
                   className={cn(
-                    'px-2 py-1 rounded-xl border text-[10px] font-black flex items-center gap-1 transition-all',
+                    'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg sm:rounded-xl border text-[10px] font-black flex items-center gap-0.5 sm:gap-1 transition-all whitespace-nowrap shrink-0',
                     isActive
-                      ? `${WEAPON_INFO[wKey].badgeBg} ring-2 ring-amber-300 scale-105 shadow`
+                      ? `${WEAPON_INFO[wKey].badgeBg} ring-2 ring-amber-300 shadow`
                       : unlocked
                       ? 'bg-slate-800 border-slate-700 text-slate-200 hover:border-slate-500'
                       : 'bg-slate-950/60 border-slate-800/60 text-slate-600 opacity-50 cursor-not-allowed'
                   )}
                 >
-                  <span className="opacity-70">{idx + 1}:</span>
+                  <span className="hidden md:inline opacity-70">{idx + 1}:</span>
                   <span>{wKey}</span>
-                  <span className="font-mono bg-black/30 px-1 rounded">
+                  <span className="font-mono tabular-nums bg-black/30 px-1 rounded">
                     {wKey === 'N' ? '∞' : count}
                   </span>
                 </button>
@@ -2934,21 +2935,22 @@ export default function ContraSnesGame({
           </div>
 
           {shieldFrames > 0 && (
-            <div className="px-2.5 py-1 bg-sky-500 text-slate-950 rounded-xl text-[10px] font-black animate-pulse flex items-center gap-1">
-              <Shield size={12} /> PERISAI ({Math.ceil(shieldFrames / 60)}s)
+            <div className="px-2 py-0.5 sm:py-1 bg-sky-500 text-slate-950 rounded-lg sm:rounded-xl text-[10px] font-black animate-pulse flex items-center gap-1 whitespace-nowrap shrink-0">
+              <Shield size={11} /> {Math.ceil(shieldFrames / 60)}s
             </div>
           )}
 
-          <div className="text-xs font-bold text-slate-300">
-            Progres: <span className="text-amber-400 font-mono font-black">{progressPct}%</span>
+          <div className="text-[11px] sm:text-xs font-bold text-slate-300 whitespace-nowrap shrink-0 tabular-nums">
+            <span className="hidden md:inline">Progres: </span>
+            <span className="text-amber-400 font-mono font-black">{progressPct}%</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 ml-auto sm:ml-0 flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {bossHpInfo && gameState === 'playing' && (
-            <div className="px-3 py-1 bg-rose-950 border border-rose-500/60 rounded-xl flex items-center gap-2">
-              <span className="text-[10px] font-black text-rose-300 uppercase">BOSS HP</span>
-              <div className="w-20 h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div className="px-2 py-1 bg-rose-950 border border-rose-500/60 rounded-lg sm:rounded-xl flex items-center gap-1.5 shrink-0">
+              <span className="text-[10px] font-black text-rose-300 uppercase">BOSS</span>
+              <div className="w-12 sm:w-20 h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-red-500 to-amber-400 transition-all"
                   style={{ width: `${Math.round((bossHpInfo.hp / bossHpInfo.maxHp) * 100)}%` }}
@@ -2957,16 +2959,16 @@ export default function ContraSnesGame({
             </div>
           )}
 
-          <div className="px-3.5 py-1.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black rounded-xl font-mono">
+          <div className="px-2 sm:px-3 py-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] sm:text-xs font-black rounded-lg sm:rounded-xl font-mono tabular-nums whitespace-nowrap shrink-0">
             SKOR: {score}
           </div>
 
           <button
             onClick={() => setScanlinesEnabled(s => !s)}
-            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-[10px] font-black"
+            className="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg sm:rounded-xl text-[10px] font-black whitespace-nowrap shrink-0"
             title="Toggle Efek CRT SNES Scanline"
           >
-            {scanlinesEnabled ? '📺 CRT ON' : '📺 CRT OFF'}
+            {scanlinesEnabled ? 'CRT ON' : 'CRT OFF'}
           </button>
 
           <button
@@ -2979,18 +2981,21 @@ export default function ContraSnesGame({
                 audioRef.current.setBgmMode(currentStage, !!engineRef.current?.boss?.active);
               }
             }}
-            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl"
+            className="p-1.5 sm:p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg sm:rounded-xl shrink-0"
             title={muted ? 'Nyalakan Musik & Suara' : 'Matikan Musik & Suara'}
           >
-            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
           </button>
 
           <button
             onClick={toggleFullScreen}
-            className="p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-xl"
+            className={cn(
+              "p-1.5 sm:p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-lg sm:rounded-xl shrink-0",
+              !isFullScreen && "hidden md:inline-flex"
+            )}
             title="Layar Penuh"
           >
-            {isFullScreen ? <Minimize size={16} /> : <Maximize size={16} />}
+            {isFullScreen ? <Minimize size={15} /> : <Maximize size={15} />}
           </button>
 
           <button
@@ -2998,16 +3003,19 @@ export default function ContraSnesGame({
               audioRef.current.stopBgm();
               onClose();
             }}
-            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl"
+            className={cn(
+              "p-1.5 sm:p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg sm:rounded-xl shrink-0",
+              !isFullScreen && "hidden md:inline-flex"
+            )}
             title="Tutup Game"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
       </div>
 
-      {/* Main SNES Game Viewport */}
-      <div className="relative rounded-3xl overflow-hidden border-4 border-slate-800 bg-slate-950 shadow-2xl w-full flex-1 min-h-0 max-h-[76vh] aspect-[16/9] mx-auto flex items-center justify-center">
+      {/* Main SNES Game Viewport (Fills remaining landscape height cleanly) */}
+      <div className="relative flex-1 min-h-0 w-full rounded-xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-slate-800 bg-slate-950 shadow-2xl flex items-center justify-center">
         <canvas
           ref={canvasRef}
           width={800}
@@ -3027,18 +3035,18 @@ export default function ContraSnesGame({
 
         {/* Boss Incoming Warning Banner */}
         {bossBanner && gameState === 'playing' && (
-          <div className="absolute top-6 inset-x-0 flex justify-center pointer-events-none z-20 animate-bounce">
-            <div className="px-6 py-2 bg-red-600/95 border-2 border-amber-300 text-white font-black text-sm md:text-lg tracking-widest uppercase rounded-xl shadow-2xl">
-              ⚠️ PERINGATAN! BOSS REAKTOR CYBER DI DEPAN! ⚠️
+          <div className="absolute top-3 sm:top-6 inset-x-0 flex justify-center pointer-events-none z-20 animate-bounce px-3">
+            <div className="px-4 sm:px-6 py-1.5 sm:py-2 bg-red-600/95 border-2 border-amber-300 text-white font-black text-xs sm:text-base tracking-widest uppercase rounded-xl shadow-2xl text-center">
+              PERINGATAN! BOSS REAKTOR CYBER DI DEPAN!
             </div>
           </div>
         )}
 
-        {/* Semi-Transparent In-Game Touch Controls Overlay (Inside Game Canvas Area!) */}
+        {/* Semi-Transparent In-Game Touch Controls Overlay */}
         {isTouchDevice && gameState === 'playing' && !pendingWeaponQuiz && (
-          <div className="absolute inset-x-0 bottom-2.5 sm:bottom-4 px-3 sm:px-5 flex items-end justify-between gap-4 pointer-events-none z-30 touch-none select-none">
+          <div className="absolute inset-x-0 bottom-2 sm:bottom-3.5 px-2.5 sm:px-5 flex items-end justify-between gap-4 pointer-events-none z-30 touch-none select-none">
             {/* Left SNES D-Pad */}
-            <div className="grid grid-cols-3 gap-1 w-32 sm:w-36 pointer-events-auto">
+            <div className="grid grid-cols-3 gap-1 w-28 sm:w-34 pointer-events-auto">
               <div />
               <button
                 type="button"
@@ -3047,7 +3055,7 @@ export default function ContraSnesGame({
                 onPointerUp={e => { e.preventDefault(); setControlState('up', false); }}
                 onPointerCancel={() => setControlState('up', false)}
                 onLostPointerCapture={() => setControlState('up', false)}
-                className="h-10 bg-slate-900/50 active:bg-brand/75 text-white font-black text-sm rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center select-none touch-none"
+                className="h-8 sm:h-10 bg-slate-900/55 active:bg-brand/80 text-white font-black text-xs sm:text-sm rounded-lg sm:rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center select-none touch-none"
               >
                 ▲
               </button>
@@ -3059,7 +3067,7 @@ export default function ContraSnesGame({
                 onPointerUp={e => { e.preventDefault(); setControlState('left', false); }}
                 onPointerCancel={() => setControlState('left', false)}
                 onLostPointerCapture={() => setControlState('left', false)}
-                className="h-10 bg-slate-900/50 active:bg-brand/75 text-white font-black text-sm rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center select-none touch-none"
+                className="h-8 sm:h-10 bg-slate-900/55 active:bg-brand/80 text-white font-black text-xs sm:text-sm rounded-lg sm:rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center select-none touch-none"
               >
                 ◀
               </button>
@@ -3070,7 +3078,7 @@ export default function ContraSnesGame({
                 onPointerUp={e => { e.preventDefault(); setControlState('down', false); }}
                 onPointerCancel={() => setControlState('down', false)}
                 onLostPointerCapture={() => setControlState('down', false)}
-                className="h-10 bg-slate-900/50 active:bg-brand/75 text-white font-black text-sm rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center select-none touch-none"
+                className="h-8 sm:h-10 bg-slate-900/55 active:bg-brand/80 text-white font-black text-xs sm:text-sm rounded-lg sm:rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center select-none touch-none"
                 title="Tiarap"
               >
                 ▼
@@ -3082,13 +3090,13 @@ export default function ContraSnesGame({
                 onPointerUp={e => { e.preventDefault(); setControlState('right', false); }}
                 onPointerCancel={() => setControlState('right', false)}
                 onLostPointerCapture={() => setControlState('right', false)}
-                className="h-10 bg-slate-900/50 active:bg-brand/75 text-white font-black text-sm rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center select-none touch-none"
+                className="h-8 sm:h-10 bg-slate-900/55 active:bg-brand/80 text-white font-black text-xs sm:text-sm rounded-lg sm:rounded-xl border border-white/25 backdrop-blur-[2px] flex items-center justify-center select-none touch-none"
               >
                 ▶
               </button>
             </div>
 
-            {/* Right Action Buttons: TEMBAK & PANAH ATAS (LONCAT) */}
+            {/* Right Action Buttons: TEMBAK & LONCAT */}
             <div className="flex items-center gap-2 sm:gap-3 pointer-events-auto">
               <button
                 type="button"
@@ -3097,9 +3105,9 @@ export default function ContraSnesGame({
                 onPointerUp={e => { e.preventDefault(); setControlState('shoot', false); }}
                 onPointerCancel={() => setControlState('shoot', false)}
                 onLostPointerCapture={() => setControlState('shoot', false)}
-                className="w-20 sm:w-24 h-12 sm:h-14 bg-red-600/55 active:bg-red-500/85 text-white font-black text-xs rounded-2xl border border-red-300/50 backdrop-blur-[2px] flex items-center justify-center shadow-lg select-none touch-none"
+                className="w-16 sm:w-22 h-11 sm:h-13 bg-red-600/65 active:bg-red-500/90 text-white font-black text-[11px] sm:text-xs rounded-xl sm:rounded-2xl border border-red-300/50 backdrop-blur-[2px] flex items-center justify-center shadow-lg select-none touch-none"
               >
-                TEMBAK 🔥
+                TEMBAK
               </button>
               <button
                 type="button"
@@ -3110,9 +3118,9 @@ export default function ContraSnesGame({
                 onPointerUp={e => { e.preventDefault(); setControlState('jump', false); }}
                 onPointerCancel={() => setControlState('jump', false)}
                 onLostPointerCapture={() => setControlState('jump', false)}
-                className="w-16 sm:w-20 h-12 sm:h-14 bg-emerald-600/60 active:bg-emerald-500/85 text-white font-black text-2xl rounded-2xl border border-emerald-300/60 backdrop-blur-[2px] flex items-center justify-center shadow-lg select-none touch-none"
+                className="w-14 sm:w-18 h-11 sm:h-13 bg-emerald-600/65 active:bg-emerald-500/90 text-white font-black text-lg sm:text-2xl rounded-xl sm:rounded-2xl border border-emerald-300/60 backdrop-blur-[2px] flex items-center justify-center shadow-lg select-none touch-none"
               >
-                ⬆️
+                ▲
               </button>
             </div>
           </div>
@@ -3120,71 +3128,73 @@ export default function ContraSnesGame({
 
         {/* START OVERLAY */}
         {gameState === 'start' && (
-          <div className="absolute inset-0 bg-slate-950/92 backdrop-blur-md flex flex-col items-center justify-center text-center p-5 md:p-8 text-white space-y-4 z-40 overflow-y-auto">
-            <div className="px-4 py-1 bg-red-600 text-white font-black text-[10px] tracking-[0.25em] uppercase rounded-full border border-amber-300 shadow-lg">
-              16-BIT SNES ACTION • INFORMATIKA EDITION
-            </div>
-            <h2 className="text-2xl md:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-sky-400">
-              INFORMATIKA WAR
-            </h2>
-            <p className="text-xs md:text-sm text-slate-300 max-w-lg font-medium leading-relaxed">
-              Tangkap <strong className="text-amber-300">Kotak Suplai Terjun Payung</strong> dari langit! Ambil{' '}
-              <strong className="text-emerald-300">Medkit ❤️ +1 HP</strong> langsung, atau jawab kuis Informatika saat mengambil kotak{' '}
-              <strong className="text-amber-300">❓ PILIH</strong> untuk bebas memilih Peluru Spesial (S / L / F / M), +1 HP, atau Perisai!
-            </p>
+          <div className="absolute inset-0 bg-slate-950/92 backdrop-blur-md flex flex-col items-center p-3 sm:p-6 text-white z-40 overflow-y-auto">
+            <div className="my-auto flex flex-col items-center text-center space-y-2.5 sm:space-y-4 max-w-2xl w-full">
+              <div className="px-3 py-0.5 bg-red-600 text-white font-black text-[10px] tracking-[0.2em] uppercase rounded-full border border-amber-300 shadow-lg">
+                16-BIT SNES ACTION • INFORMATIKA EDITION
+              </div>
+              <h2 className="text-xl sm:text-3xl md:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-sky-400">
+                INFORMATIKA WAR
+              </h2>
+              <p className="text-[11px] sm:text-sm text-slate-300 max-w-lg font-medium leading-relaxed">
+                Tangkap <strong className="text-amber-300">Kotak Suplai</strong> dari langit! Ambil{' '}
+                <strong className="text-emerald-300">Medkit +1 HP</strong> langsung, atau jawab kuis pada kotak{' '}
+                <strong className="text-amber-300">PILIH</strong> untuk membuka Peluru Spesial (S/L/F/M), +1 HP, atau Perisai.
+              </p>
 
-            {/* Stage Selector */}
-            <div className="flex items-center gap-2.5 flex-wrap justify-center">
-              {([1, 2, 3] as const).map(st => {
-                const locked = !isAdmin && st > 1 && !completedStages.includes(st - 1);
-                const hi = studentStageHighScores?.[st] || 0;
-                return (
-                  <button
-                    key={st}
-                    disabled={locked}
-                    onClick={() => startStage(st)}
-                    className={cn(
-                      'px-4 py-2.5 rounded-2xl border-2 text-xs font-black transition-all flex items-center gap-2',
-                      currentStage === st
-                        ? 'bg-red-600 border-amber-300 text-white shadow-lg scale-105'
-                        : 'bg-slate-800/90 border-slate-700 text-slate-200 hover:border-slate-500',
-                      locked && 'opacity-45 cursor-not-allowed'
-                    )}
-                  >
-                    <span>{locked ? '🔒' : st === 1 ? '🌴' : st === 2 ? '🌊' : '🔥'} Stage {st}: {STAGE_THEMES[st].name}</span>
-                    {hi > 0 && (
-                      <span className="px-1.5 py-0.5 bg-amber-400 text-amber-950 rounded text-[10px]">🏆 {hi}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+              {/* Stage Selector */}
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                {([1, 2, 3] as const).map(st => {
+                  const locked = !isAdmin && st > 1 && !completedStages.includes(st - 1);
+                  const hi = studentStageHighScores?.[st] || 0;
+                  return (
+                    <button
+                      key={st}
+                      disabled={locked}
+                      onClick={() => startStage(st)}
+                      className={cn(
+                        'px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl border-2 text-[11px] sm:text-xs font-black transition-all flex items-center gap-1.5',
+                        currentStage === st
+                          ? 'bg-red-600 border-amber-300 text-white shadow-lg scale-105'
+                          : 'bg-slate-800/90 border-slate-700 text-slate-200 hover:border-slate-500',
+                        locked && 'opacity-45 cursor-not-allowed'
+                      )}
+                    >
+                      <span>{locked ? '🔒 ' : ''}Stage {st}: {STAGE_THEMES[st].name}</span>
+                      {hi > 0 && (
+                        <span className="px-1.5 py-0.5 bg-amber-400 text-amber-950 rounded text-[10px] tabular-nums">{hi}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
-            <button
-              onClick={() => startStage(currentStage)}
-              className="px-8 py-3.5 bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-black text-base rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-            >
-              <Play size={20} />
-              <span>MULAI MISI STAGE {currentStage}</span>
-            </button>
+              <button
+                onClick={() => startStage(currentStage)}
+                className="px-6 sm:px-8 py-2.5 sm:py-3.5 bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-black text-xs sm:text-base rounded-xl sm:rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <Play size={18} />
+                <span>MULAI MISI STAGE {currentStage}</span>
+              </button>
+            </div>
           </div>
         )}
 
         {/* INFORMATIKA QUIZ GATE & 6-ITEM REWARD PICKER */}
         {pendingWeaponQuiz && (
-          <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 md:p-6 text-white z-50 overflow-y-auto">
-            <div className="w-full max-w-xl bg-slate-900 border-2 border-amber-400 rounded-3xl p-5 md:p-6 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl border-2 border-amber-300 bg-amber-500/20 flex items-center justify-center font-black text-2xl shadow-md">
+          <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center p-3 sm:p-6 text-white z-50 overflow-y-auto">
+            <div className="my-auto w-full max-w-xl bg-slate-900 border-2 border-amber-400 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-2xl space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl border-2 border-amber-300 bg-amber-500/20 flex items-center justify-center font-black text-lg sm:text-2xl shadow-md">
                     🪂
                   </div>
                   <div className="text-left">
                     <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 block">
-                      🔐 Kotak Suplai & Kuis Informatika
+                      Kotak Suplai & Kuis Informatika
                     </span>
-                    <h3 className="text-sm md:text-base font-black text-white">
-                      Jawab benar untuk memilih Item Hadiah!
+                    <h3 className="text-xs sm:text-base font-black text-white">
+                      Jawab benar untuk memilih Item Hadiah
                     </h3>
                   </div>
                 </div>
@@ -3193,83 +3203,83 @@ export default function ContraSnesGame({
                 </span>
               </div>
 
-              <p className="text-sm md:text-base font-black text-white leading-snug text-left">
+              <p className="text-xs sm:text-base font-black text-white leading-snug text-left">
                 {pendingWeaponQuiz.quiz.question}
               </p>
 
               {quizFeedback ? (
                 quizFeedback.awaitingItemPick ? (
-                  <div className="space-y-3">
-                    <div className="p-3.5 rounded-2xl border-2 bg-emerald-950/90 border-emerald-500 text-emerald-200 text-xs md:text-sm font-bold text-left">
+                  <div className="space-y-2.5 sm:space-y-3">
+                    <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 bg-emerald-950/90 border-emerald-500 text-emerald-200 text-xs sm:text-sm font-bold text-left">
                       {quizFeedback.msg}
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       <button
                         onClick={() => handlePickRewardItem('S')}
-                        className="p-3 bg-red-950/80 hover:bg-red-700 border-2 border-red-400/70 rounded-2xl text-left transition-all active:scale-95"
+                        className="p-2.5 sm:p-3 bg-red-950/80 hover:bg-red-700 border-2 border-red-400/70 rounded-xl sm:rounded-2xl text-left transition-all active:scale-95"
                       >
                         <div className="text-xs font-black text-red-300">[S] Spread Gun</div>
                         <div className="text-[10px] text-slate-300 font-semibold mt-0.5">+45 Peluru 5-Arah</div>
                       </button>
                       <button
                         onClick={() => handlePickRewardItem('L')}
-                        className="p-3 bg-sky-950/80 hover:bg-sky-700 border-2 border-sky-400/70 rounded-2xl text-left transition-all active:scale-95"
+                        className="p-2.5 sm:p-3 bg-sky-950/80 hover:bg-sky-700 border-2 border-sky-400/70 rounded-xl sm:rounded-2xl text-left transition-all active:scale-95"
                       >
                         <div className="text-xs font-black text-sky-300">[L] Cyber Laser</div>
                         <div className="text-[10px] text-slate-300 font-semibold mt-0.5">+45 Laser Tembus</div>
                       </button>
                       <button
                         onClick={() => handlePickRewardItem('F')}
-                        className="p-3 bg-orange-950/80 hover:bg-orange-700 border-2 border-orange-400/70 rounded-2xl text-left transition-all active:scale-95"
+                        className="p-2.5 sm:p-3 bg-orange-950/80 hover:bg-orange-700 border-2 border-orange-400/70 rounded-xl sm:rounded-2xl text-left transition-all active:scale-95"
                       >
                         <div className="text-xs font-black text-orange-300">[F] Fireball Wave</div>
                         <div className="text-[10px] text-slate-300 font-semibold mt-0.5">+45 Bola Api</div>
                       </button>
                       <button
                         onClick={() => handlePickRewardItem('M')}
-                        className="p-3 bg-purple-950/80 hover:bg-purple-700 border-2 border-purple-400/70 rounded-2xl text-left transition-all active:scale-95"
+                        className="p-2.5 sm:p-3 bg-purple-950/80 hover:bg-purple-700 border-2 border-purple-400/70 rounded-xl sm:rounded-2xl text-left transition-all active:scale-95"
                       >
                         <div className="text-xs font-black text-purple-300">[M] Machine Gun</div>
                         <div className="text-[10px] text-slate-300 font-semibold mt-0.5">+75 Peluru Cepat</div>
                       </button>
                       <button
                         onClick={() => handlePickRewardItem('HP')}
-                        className="p-3 bg-emerald-950/80 hover:bg-emerald-700 border-2 border-emerald-400/70 rounded-2xl text-left transition-all active:scale-95"
+                        className="p-2.5 sm:p-3 bg-emerald-950/80 hover:bg-emerald-700 border-2 border-emerald-400/70 rounded-xl sm:rounded-2xl text-left transition-all active:scale-95"
                       >
-                        <div className="text-xs font-black text-emerald-300">❤️ +1 HP Medkit</div>
+                        <div className="text-xs font-black text-emerald-300">+1 HP Medkit</div>
                         <div className="text-[10px] text-slate-300 font-semibold mt-0.5">
                           {lives >= MAX_HP ? 'HP Penuh (+100 Skor)' : `Tambah Nyawa (${lives}/${MAX_HP})`}
                         </div>
                       </button>
                       <button
                         onClick={() => handlePickRewardItem('SHIELD')}
-                        className="p-3 bg-cyan-950/80 hover:bg-cyan-700 border-2 border-cyan-400/70 rounded-2xl text-left transition-all active:scale-95"
+                        className="p-2.5 sm:p-3 bg-cyan-950/80 hover:bg-cyan-700 border-2 border-cyan-400/70 rounded-xl sm:rounded-2xl text-left transition-all active:scale-95"
                       >
-                        <div className="text-xs font-black text-cyan-300">🛡️ Perisai Energi</div>
-                        <div className="text-[10px] text-slate-300 font-semibold mt-0.5">Kebal Selama 8 Detik</div>
+                        <div className="text-xs font-black text-cyan-300">Perisai Energi</div>
+                        <div className="text-[10px] text-slate-300 font-semibold mt-0.5">Kebal 8 Detik</div>
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="p-4 rounded-2xl border-2 bg-rose-950/90 border-rose-500 text-rose-200 text-xs md:text-sm font-bold text-left">
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-xl sm:rounded-2xl border-2 bg-rose-950/90 border-rose-500 text-rose-200 text-xs sm:text-sm font-bold text-left">
                       {quizFeedback.msg}
                     </div>
                     <button
                       onClick={resumeAfterQuiz}
-                      className="w-full py-3 bg-brand hover:bg-brand-hover text-white rounded-xl font-black text-sm shadow-lg active:scale-95 transition-all"
+                      className="w-full py-2.5 sm:py-3 bg-brand hover:bg-brand-hover text-white rounded-xl font-black text-xs sm:text-sm shadow-lg active:scale-95 transition-all"
                     >
-                      Lanjutkan Pertempuran ▶
+                      Lanjutkan Pertempuran
                     </button>
                   </div>
                 )
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {pendingWeaponQuiz.quiz.options.map((opt, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleAnswerWeaponQuiz(idx)}
-                      className="p-3 bg-slate-800 hover:bg-brand border border-slate-700 hover:border-amber-300 rounded-xl text-left text-xs font-bold text-white transition-all flex items-center gap-2.5 active:scale-95"
+                      className="p-2.5 sm:p-3 bg-slate-800 hover:bg-brand border border-slate-700 hover:border-amber-300 rounded-xl text-left text-xs font-bold text-white transition-all flex items-center gap-2.5 active:scale-95"
                     >
                       <span className="w-6 h-6 rounded-lg bg-slate-950 text-amber-400 font-mono font-black flex items-center justify-center shrink-0">
                         {String.fromCharCode(65 + idx)}
@@ -3285,71 +3295,75 @@ export default function ContraSnesGame({
 
         {/* VICTORY OVERLAY */}
         {gameState === 'win' && (
-          <div className="absolute inset-0 bg-emerald-950/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 text-white space-y-4 z-40">
-            <div className="w-16 h-16 bg-amber-400 text-amber-950 rounded-2xl flex items-center justify-center text-3xl shadow-xl animate-bounce">
-              🏆
-            </div>
-            <h2 className="text-2xl md:text-3xl font-black text-amber-300">
-              MISI STAGE {currentStage} SELESAI!
-            </h2>
-            <p className="text-xs md:text-sm text-emerald-200 font-bold max-w-md">
-              Reaktor Cyber Boss di {STAGE_THEMES[currentStage].name} berhasil dihancurkan!
-            </p>
-            <div className="bg-emerald-900/80 border border-emerald-700 px-8 py-4 rounded-2xl">
-              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-300 block">Skor Akhir Stage {currentStage}</span>
-              <span className="text-4xl font-black text-amber-400 font-mono">{score}</span>
-            </div>
-            <div className="flex items-center gap-3 flex-wrap justify-center">
-              {currentStage < 3 ? (
+          <div className="absolute inset-0 bg-emerald-950/95 backdrop-blur-md flex flex-col items-center p-4 sm:p-6 text-white z-40 overflow-y-auto">
+            <div className="my-auto flex flex-col items-center text-center space-y-2.5 sm:space-y-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-amber-400 text-amber-950 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-xl animate-bounce">
+                🏆
+              </div>
+              <h2 className="text-xl sm:text-3xl font-black text-amber-300">
+                MISI STAGE {currentStage} SELESAI!
+              </h2>
+              <p className="text-xs sm:text-sm text-emerald-200 font-bold max-w-md">
+                Reaktor Cyber Boss di {STAGE_THEMES[currentStage].name} berhasil dihancurkan!
+              </p>
+              <div className="bg-emerald-900/80 border border-emerald-700 px-6 sm:px-8 py-2.5 sm:py-4 rounded-2xl">
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-300 block">Skor Akhir Stage {currentStage}</span>
+                <span className="text-2xl sm:text-4xl font-black text-amber-400 font-mono tabular-nums">{score}</span>
+              </div>
+              <div className="flex items-center gap-2.5 flex-wrap justify-center">
+                {currentStage < 3 ? (
+                  <button
+                    onClick={() => startStage((currentStage + 1) as 1 | 2 | 3)}
+                    className="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-amber-950 font-black rounded-xl text-xs sm:text-sm shadow-lg"
+                  >
+                    Lanjut Stage {currentStage + 1}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => startStage(1)}
+                    className="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-amber-950 font-black rounded-xl text-xs sm:text-sm shadow-lg"
+                  >
+                    Main Lagi Dari Stage 1
+                  </button>
+                )}
                 <button
-                  onClick={() => startStage((currentStage + 1) as 1 | 2 | 3)}
-                  className="px-6 py-3 bg-amber-400 hover:bg-amber-300 text-amber-950 font-black rounded-xl text-sm shadow-lg"
+                  onClick={onClose}
+                  className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs sm:text-sm"
                 >
-                  Lanjut Stage {currentStage + 1} ➔
+                  Tutup
                 </button>
-              ) : (
-                <button
-                  onClick={() => startStage(1)}
-                  className="px-6 py-3 bg-amber-400 hover:bg-amber-300 text-amber-950 font-black rounded-xl text-sm shadow-lg"
-                >
-                  Main Lagi Dari Stage 1 🔄
-                </button>
-              )}
-              <button
-                onClick={onClose}
-                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-sm"
-              >
-                Tutup
-              </button>
+              </div>
             </div>
           </div>
         )}
 
         {/* GAME OVER OVERLAY */}
         {gameState === 'gameover' && (
-          <div className="absolute inset-0 bg-slate-950/92 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 text-white space-y-4 z-40">
-            <AlertTriangle size={48} className="text-rose-500" />
-            <h2 className="text-2xl md:text-3xl font-black text-rose-400">GAME OVER — NYAWA HABIS!</h2>
-            <p className="text-xs text-slate-300 max-w-sm">
-              Kalahkan musuh & jawab kuis Informatika saat mengambil kapsul peluru spesial untuk membuka Spread Gun & Laser!
-            </p>
-            <div className="bg-slate-900 border border-slate-800 px-6 py-3 rounded-2xl">
-              <span className="text-xs text-slate-400 block">Skor Terkumpul</span>
-              <span className="text-3xl font-black text-amber-400 font-mono">{score}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => startStage(currentStage)}
-                className="px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl text-sm flex items-center gap-2 shadow-lg"
-              >
-                <RotateCcw size={16} /> Coba Lagi Stage {currentStage}
-              </button>
-              <button
-                onClick={onClose}
-                className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-sm"
-              >
-                Tutup
-              </button>
+          <div className="absolute inset-0 bg-slate-950/92 backdrop-blur-md flex flex-col items-center p-4 sm:p-6 text-white z-40 overflow-y-auto">
+            <div className="my-auto flex flex-col items-center text-center space-y-2.5 sm:space-y-4">
+              <AlertTriangle size={36} className="text-rose-500 sm:w-12 sm:h-12" />
+              <h2 className="text-xl sm:text-3xl font-black text-rose-400">GAME OVER — NYAWA HABIS!</h2>
+              <p className="text-[11px] sm:text-xs text-slate-300 max-w-sm">
+                Kalahkan musuh &amp; jawab kuis Informatika saat mengambil kapsul peluru spesial untuk membuka Spread Gun &amp; Laser!
+              </p>
+              <div className="bg-slate-900 border border-slate-800 px-5 sm:px-6 py-2 sm:py-3 rounded-2xl">
+                <span className="text-[11px] text-slate-400 block">Skor Terkumpul</span>
+                <span className="text-2xl sm:text-3xl font-black text-amber-400 font-mono tabular-nums">{score}</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => startStage(currentStage)}
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-lg"
+                >
+                  <RotateCcw size={15} /> Coba Lagi Stage {currentStage}
+                </button>
+                <button
+                  onClick={onClose}
+                  className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs sm:text-sm"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -3357,10 +3371,10 @@ export default function ContraSnesGame({
 
       {/* Desktop Controls Guide */}
       {!isTouchDevice && (
-        <div className="bg-slate-900/90 px-4 py-2 rounded-2xl border border-slate-800 flex items-center justify-center gap-4 flex-wrap shrink-0 text-xs text-slate-300 font-semibold">
-          <span>🕹️ Kontrol Informatika War:</span>
+        <div className="bg-slate-900/90 px-4 py-1.5 rounded-xl border border-slate-800 flex items-center justify-center gap-4 flex-wrap shrink-0 text-xs text-slate-300 font-semibold">
+          <span>Kontrol Informatika War:</span>
           <span className="text-amber-300">
-            [←/→] atau [A/D] Lari • [↑ Panah Atas] Loncat • [W] Bidik Atas/Diagonal • [↓/S] Tiarap • [Z/J/Enter] Tembak • [1-5] Pilih Senjata
+            [←/→] atau [A/D] Lari • [↑] Loncat • [W] Bidik Atas/Diagonal • [↓/S] Tiarap • [Z/J/Enter] Tembak • [1-5] Pilih Senjata
           </span>
         </div>
       )}
