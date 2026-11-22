@@ -4,7 +4,7 @@
  */
 
 import farmerSpriteUrl from '../assets/images/berkebun_farmer_pixel_1795346951033.jpg';
-import farmerWalkSheetUrl from '../assets/images/farmer_walk_sheet_v2_1795354737788.jpg';
+import farmerWalkSheetUrl from '../assets/images/farmer_walk_sheet_v3_1795359286105.jpg';
 import farmerActionsSheetUrl from '../assets/images/berkebun_farmer_actions_sheet_1795352733967.jpg';
 import farmhouseSpriteUrl from '../assets/images/berkebun_farmhouse_pixel_1795346951463.jpg';
 import shopSpriteUrl from '../assets/images/berkebun_shop_pixel_1795346951275.jpg';
@@ -450,7 +450,7 @@ async function loadAiFarmerPoses(): Promise<Partial<Record<string, HTMLCanvasEle
   const poses: Partial<Record<string, HTMLCanvasElement>> = {};
 
   if (walkImg) {
-    const wCells = sliceGridSheet(walkImg, 3, 3, 150);
+    const wCells = sliceGridSheet(walkImg, 4, 4, 160);
     const setWalk = (idx: number, key: string) => {
       const sp = wCells[idx];
       if (sp) poses[key] = sp;
@@ -459,17 +459,22 @@ async function loadAiFarmerPoses(): Promise<Partial<Record<string, HTMLCanvasEle
     setWalk(0, 'idle_1');
     setWalk(1, 'walk1_1');
     setWalk(2, 'walk2_1');
-    // Row 1: Right (dir 0) + flipped Left (dir 2)
-    setWalk(3, 'idle_0');
-    setWalk(4, 'walk1_0');
-    setWalk(5, 'walk2_0');
-    if (wCells[3]) poses.idle_2 = flipCanvasHorizontal(wCells[3]);
-    if (wCells[4]) poses.walk1_2 = flipCanvasHorizontal(wCells[4]);
-    if (wCells[5]) poses.walk2_2 = flipCanvasHorizontal(wCells[5]);
-    // Row 2: Up / Back (dir 3)
-    setWalk(6, 'idle_3');
-    setWalk(7, 'walk1_3');
-    setWalk(8, 'walk2_3');
+    setWalk(3, 'walk1_1');
+    // Row 1: Right (dir 0)
+    setWalk(4, 'idle_0');
+    setWalk(5, 'walk1_0');
+    setWalk(6, 'walk2_0');
+    setWalk(7, 'walk1_0');
+    // Row 2: Left (dir 2)
+    setWalk(8, 'idle_2');
+    setWalk(9, 'walk1_2');
+    setWalk(10, 'walk2_2');
+    setWalk(11, 'walk1_2');
+    // Row 3: Up (dir 3)
+    setWalk(12, 'idle_3');
+    setWalk(13, 'walk1_3');
+    setWalk(14, 'walk2_3');
+    setWalk(15, 'walk1_3');
   }
 
   if (actImg) {
