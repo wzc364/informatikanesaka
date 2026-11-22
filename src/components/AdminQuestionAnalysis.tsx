@@ -843,15 +843,15 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
       {/* Panel Input & Konfigurasi Analisis */}
       <form
         onSubmit={runAnalysis}
-        className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-5 md:p-6 shadow-xs space-y-5"
+        className="bg-slate-50/90 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-5 md:p-6 shadow-xs space-y-5"
       >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200/80 dark:border-slate-800 pb-4">
           <div>
-            <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-              <Sparkles size={18} className="text-brand" />
+            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <Sparkles size={18} className="text-brand dark:text-blue-400" />
               Analisis Dokumen Soal Otomatis
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Unggah berkas soal (PDF, DOC, DOCX, TXT, Excel, atau foto soal) untuk disusun menjadi kisi-kisi, ringkasan materi, pembahasan rinci, dan latihan soal serupa.
             </p>
           </div>
@@ -863,7 +863,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
             <div>
               <label
                 htmlFor="analysis-title-input"
-                className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-1.5"
+                className="block text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5"
               >
                 Judul Dokumen Analisis
               </label>
@@ -873,12 +873,12 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Contoh: Analisis Soal Sumatif Berpikir Komputasional Kelas VIII"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/15 transition-all"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/15 transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Upload File Dokumen Soal
               </label>
               <input
@@ -910,23 +910,23 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
                 }}
                 className={`rounded-2xl border-2 border-dashed p-5 text-center cursor-pointer transition-all ${
                   isDragging
-                    ? 'border-brand bg-blue-50/80'
+                    ? 'border-brand bg-blue-50/80 dark:bg-blue-950/50'
                     : selectedFile
-                      ? 'border-emerald-400 bg-emerald-50/40 hover:bg-emerald-50/70'
-                      : 'border-slate-300 bg-white hover:border-brand hover:bg-blue-50/30'
+                      ? 'border-emerald-400 dark:border-emerald-700 bg-emerald-50/40 dark:bg-emerald-950/30 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/50'
+                      : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:border-brand hover:bg-blue-50/30 dark:hover:bg-slate-800'
                 }`}
               >
                 {selectedFile ? (
                   <div className="flex items-center justify-between gap-3 text-left">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
                         <FileText size={20} />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-extrabold text-slate-900 truncate">
+                        <p className="text-sm font-extrabold text-slate-900 dark:text-white truncate">
                           {selectedFile.name}
                         </p>
-                        <p className="text-[11px] font-semibold text-slate-500">
+                        <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                           {formatBytes(selectedFile.size)} &bull; Siap dianalisis
                         </p>
                       </div>
@@ -938,20 +938,20 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
                         setSelectedFile(null);
                         if (fileInputRef.current) fileInputRef.current.value = '';
                       }}
-                      className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-600 hover:text-rose-600 hover:border-rose-200 shrink-0"
+                      className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 shrink-0"
                     >
                       Ganti File
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-1.5">
-                    <div className="w-11 h-11 rounded-2xl bg-blue-50 text-brand mx-auto flex items-center justify-center">
+                    <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-brand dark:text-blue-400 mx-auto flex items-center justify-center">
                       <FileUp size={22} />
                     </div>
-                    <p className="text-sm font-bold text-slate-800">
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                       Klik atau seret file dokumen ke sini
                     </p>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Mendukung PDF, DOC, DOCX, TXT, RTF, CSV, Excel (.xls/.xlsx), HTML, dan foto soal (maks. 15 MB)
                     </p>
                   </div>
@@ -964,7 +964,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
           <div className="lg:col-span-6 flex flex-col justify-between space-y-3">
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   Pilih Bagian yang Ditampilkan &amp; Dianalisis
                 </span>
                 <button
@@ -977,7 +977,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
                       latihanSoal: true,
                     })
                   }
-                  className="text-[11px] font-bold text-brand hover:underline"
+                  className="text-[11px] font-bold text-brand dark:text-blue-400 hover:underline"
                 >
                   Centang Semua
                 </button>
@@ -991,8 +991,8 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
                       key={opt.key}
                       className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all select-none ${
                         checked
-                          ? 'bg-blue-50/70 border-blue-400 shadow-xs'
-                          : 'bg-white border-slate-200 hover:border-slate-300'
+                          ? 'bg-blue-50/70 dark:bg-blue-950/50 border-blue-400 dark:border-blue-600 shadow-xs'
+                          : 'bg-white dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                       }`}
                     >
                       <input
@@ -1003,16 +1003,16 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
                       />
                       <span
                         className={`mt-0.5 shrink-0 ${
-                          checked ? 'text-blue-700' : 'text-slate-400'
+                          checked ? 'text-blue-700 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'
                         }`}
                       >
                         {checked ? <CheckSquare size={18} /> : <Square size={18} />}
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-xs font-extrabold text-slate-900">
+                        <span className="block text-xs font-extrabold text-slate-900 dark:text-white">
                           {opt.label}
                         </span>
-                        <span className="block text-[10.5px] text-slate-500 leading-snug mt-0.5">
+                        <span className="block text-[10.5px] text-slate-500 dark:text-slate-400 leading-snug mt-0.5">
                           {opt.desc}
                         </span>
                       </span>
@@ -1023,7 +1023,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-              <span className="text-[11px] font-semibold text-slate-500">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 {selectedCount} dari 4 komponen dipilih
               </span>
               <button
@@ -1048,8 +1048,8 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
         </div>
 
         {errorMsg && (
-          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-start gap-2.5">
-            <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/60 text-rose-800 dark:text-rose-200 text-xs font-semibold flex items-start gap-2.5">
+            <AlertCircle size={16} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
             <span className="flex-1">{errorMsg}</span>
           </div>
         )}
@@ -1057,10 +1057,10 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
 
       {/* Riwayat Analisis Tersimpan */}
       {savedHistory.length > 0 && (
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
           <div className="flex items-center justify-between gap-2 mb-2.5">
-            <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-              <History size={14} className="text-brand" />
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+              <History size={14} className="text-brand dark:text-blue-400" />
               Riwayat Analisis Tersimpan ({savedHistory.length})
             </h4>
           </div>
@@ -1073,7 +1073,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
                   className={`inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-xl border text-xs font-bold transition-all ${
                     isCurrent
                       ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-blue-300'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600'
                   }`}
                 >
                   <button
@@ -1090,7 +1090,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
                     className={`p-1 rounded-lg transition-colors ${
                       isCurrent
                         ? 'hover:bg-blue-500 text-blue-100 hover:text-white'
-                        : 'hover:bg-rose-100 text-slate-400 hover:text-rose-600'
+                        : 'hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400'
                     }`}
                     aria-label="Hapus riwayat analisis"
                   >
@@ -1105,7 +1105,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
 
       {/* Peringatan jika ada bagian yang baru dicentang setelah analisis */}
       {activeResult && missingRequestedSections.length > 0 && (
-        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex flex-wrap items-center justify-between gap-3">
+        <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs font-semibold flex flex-wrap items-center justify-between gap-3">
           <span>
             Bagian <strong>{missingRequestedSections.join(', ')}</strong> belum dibuat pada hasil analisis ini.
           </span>
@@ -1120,7 +1120,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
               Analisis Ulang Lengkap
             </button>
           ) : (
-            <span className="text-[11px] text-amber-700">
+            <span className="text-[11px] text-amber-700 dark:text-amber-300">
               Unggah ulang file lalu klik Analisis Soal untuk melengkapinya.
             </span>
           )}
@@ -1130,7 +1130,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
       {/* Area Dokumen Hasil Analisis & Tombol Cetak */}
       {activeResult ? (
         <div className="space-y-3">
-          <div className="bg-slate-900 text-white rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md">
+          <div className="bg-slate-900 text-white rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md border border-slate-800">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-extrabold text-slate-300 mr-1 flex items-center gap-1.5">
                 <Table2 size={14} className="text-blue-400" />
@@ -1194,22 +1194,22 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
             </div>
           </div>
 
-          {/* Pratinjau Lembar A4 Rapi */}
-          <div className="bg-slate-200/80 border border-slate-300 rounded-2xl p-4 sm:p-6 overflow-x-auto">
-            <div className="max-w-[210mm] mx-auto bg-white rounded-xl shadow-xl border border-slate-300 px-6 py-8 sm:px-11 sm:py-10">
+          {/* Pratinjau Lembar A4 Rapi (Kertas tetap putih) */}
+          <div className="bg-slate-200/80 dark:bg-slate-800/70 border border-slate-300 dark:border-slate-700 rounded-2xl p-4 sm:p-6 overflow-x-auto">
+            <div className="max-w-[210mm] mx-auto bg-white text-slate-900 rounded-xl shadow-xl border border-slate-300 px-6 py-8 sm:px-11 sm:py-10">
               {renderAnalysisDocument(false)}
             </div>
           </div>
         </div>
       ) : (
-        <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-10 text-center text-slate-500 space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 mx-auto flex items-center justify-center text-slate-400">
+        <div className="bg-slate-50 dark:bg-slate-900/70 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-10 text-center text-slate-500 dark:text-slate-400 space-y-2">
+          <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 mx-auto flex items-center justify-center text-slate-400 dark:text-slate-500">
             <BookOpen size={22} />
           </div>
-          <p className="text-sm font-extrabold text-slate-700">
+          <p className="text-sm font-extrabold text-slate-700 dark:text-slate-200">
             Belum Ada Dokumen yang Dianalisis
           </p>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
             Isi judul, unggah dokumen soal di atas, centang komponen yang diinginkan, lalu klik <strong>Analisis Soal Sekarang</strong>. Hasilnya akan tersusun rapi dan siap dicetak.
           </p>
         </div>

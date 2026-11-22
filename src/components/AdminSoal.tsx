@@ -58,12 +58,12 @@ interface AdminSoalProps {
 }
 
 const CARD_THEMES = [
-  { bg: 'bg-blue-100/90 border-blue-200', title: 'text-blue-950', accent: 'bg-blue-600 text-white', pill: 'bg-blue-200/80 text-blue-900' },
-  { bg: 'bg-emerald-100/90 border-emerald-200', title: 'text-emerald-950', accent: 'bg-emerald-600 text-white', pill: 'bg-emerald-200/80 text-emerald-900' },
-  { bg: 'bg-purple-100/90 border-purple-200', title: 'text-purple-950', accent: 'bg-purple-600 text-white', pill: 'bg-purple-200/80 text-purple-900' },
-  { bg: 'bg-amber-100/90 border-amber-200', title: 'text-amber-950', accent: 'bg-amber-600 text-white', pill: 'bg-amber-200/80 text-amber-900' },
-  { bg: 'bg-indigo-100/90 border-indigo-200', title: 'text-indigo-950', accent: 'bg-indigo-600 text-white', pill: 'bg-indigo-200/80 text-indigo-900' },
-  { bg: 'bg-rose-100/90 border-rose-200', title: 'text-rose-950', accent: 'bg-rose-600 text-white', pill: 'bg-rose-200/80 text-rose-900' },
+  { bg: 'bg-blue-100/90 dark:bg-blue-950/45 border-blue-200 dark:border-blue-800/70', title: 'text-blue-950 dark:text-blue-100', accent: 'bg-blue-600 text-white', pill: 'bg-blue-200/80 dark:bg-blue-900/70 text-blue-900 dark:text-blue-200' },
+  { bg: 'bg-emerald-100/90 dark:bg-emerald-950/45 border-emerald-200 dark:border-emerald-800/70', title: 'text-emerald-950 dark:text-emerald-100', accent: 'bg-emerald-600 text-white', pill: 'bg-emerald-200/80 dark:bg-emerald-900/70 text-emerald-900 dark:text-emerald-200' },
+  { bg: 'bg-purple-100/90 dark:bg-purple-950/45 border-purple-200 dark:border-purple-800/70', title: 'text-purple-950 dark:text-purple-100', accent: 'bg-purple-600 text-white', pill: 'bg-purple-200/80 dark:bg-purple-900/70 text-purple-900 dark:text-purple-200' },
+  { bg: 'bg-amber-100/90 dark:bg-amber-950/45 border-amber-200 dark:border-amber-800/70', title: 'text-amber-950 dark:text-amber-100', accent: 'bg-amber-600 text-white', pill: 'bg-amber-200/80 dark:bg-amber-900/70 text-amber-900 dark:text-amber-200' },
+  { bg: 'bg-indigo-100/90 dark:bg-indigo-950/45 border-indigo-200 dark:border-indigo-800/70', title: 'text-indigo-950 dark:text-indigo-100', accent: 'bg-indigo-600 text-white', pill: 'bg-indigo-200/80 dark:bg-indigo-900/70 text-indigo-900 dark:text-indigo-200' },
+  { bg: 'bg-rose-100/90 dark:bg-rose-950/45 border-rose-200 dark:border-rose-800/70', title: 'text-rose-950 dark:text-rose-100', accent: 'bg-rose-600 text-white', pill: 'bg-rose-200/80 dark:bg-rose-900/70 text-rose-900 dark:text-rose-200' },
 ];
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D'] as const;
@@ -1541,15 +1541,15 @@ export default function AdminSoal({
       {!selectedSet ? (
         /* ================== TOP VIEW: KARTU SOAL SESUAI JUDUL ================== */
         <>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
             <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Bank & Kartu Soal (PG 4 Opsi)</h2>
-              <p className="text-sm text-slate-600 font-medium mt-0.5">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Bank & Kartu Soal (PG 4 Opsi)</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-0.5">
                 Buat kartu soal sesuai judul, atur soal bergambar (manual/bulk), aktifkan kartu, dan atur timer per soal atau per judul.
               </p>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="bg-slate-200/80 border border-slate-300 px-3.5 py-2 rounded-xl text-xs font-black text-slate-700 flex items-center gap-2">
+              <div className="bg-slate-200/80 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 px-3.5 py-2 rounded-xl text-xs font-black text-slate-700 dark:text-slate-200 flex items-center gap-2">
                 <Layers size={14} className="text-brand" />
                 <span>{soalSets.length} Kartu • {soalSets.filter(s => s.isActive).length} Aktif • {soalQuestions.length} Butir Soal</span>
               </div>
@@ -1579,13 +1579,13 @@ export default function AdminSoal({
 
           {/* Search Kartu Soal */}
           <div className="relative max-w-md">
-            <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari kartu soal berdasarkan judul atau kelas..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-200/80 border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand/30"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-200/80 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30"
             />
           </div>
 
@@ -1615,7 +1615,7 @@ export default function AdminSoal({
                             className={`text-[10px] font-black px-2.5 py-0.5 rounded-lg uppercase tracking-widest ${
                               set.isActive
                                 ? 'bg-emerald-600 text-white'
-                                : 'bg-slate-300 text-slate-700'
+                                : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
                             }`}
                           >
                             {set.isActive ? 'Aktif / Terbit' : 'Nonaktif / Draft'}
@@ -1638,40 +1638,40 @@ export default function AdminSoal({
                         className={`p-2 rounded-xl shrink-0 shadow-sm transition-all active:scale-95 ${
                           set.isActive
                             ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                            : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                            : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
                         }`}
                       >
                         {set.isActive ? <CheckCircle size={20} /> : <X size={20} />}
                       </button>
                     </div>
 
-                    <p className="text-sm text-slate-700 font-medium line-clamp-2 mb-4">
+                    <p className="text-sm text-slate-700 dark:text-slate-300 font-medium line-clamp-2 mb-4">
                       {set.description || 'Paket soal pilihan ganda 4 opsi.'}
                     </p>
 
                     {/* Info Badges */}
-                    <div className="bg-white/75 border border-slate-300/80 rounded-2xl p-3 space-y-2 text-xs font-bold text-slate-700 mb-5">
+                    <div className="bg-white/75 dark:bg-slate-900/75 border border-slate-300/80 dark:border-slate-700/80 rounded-2xl p-3 space-y-2 text-xs font-bold text-slate-700 dark:text-slate-300 mb-5">
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
                           <ClipboardList size={14} className="text-brand" />
                           Jumlah Soal:
                         </span>
-                        <span className="font-black text-slate-900">
+                        <span className="font-black text-slate-900 dark:text-slate-100">
                           {activeQs.length} Aktif / {allQs.length} Total
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
-                          <Clock size={14} className="text-amber-600" />
+                          <Clock size={14} className="text-amber-600 dark:text-amber-400" />
                           Mode Timer:
                         </span>
-                        <span className="font-black text-slate-900">
+                        <span className="font-black text-slate-900 dark:text-slate-100">
                           {isTimerPerSoal
                             ? `Per Soal (${set.defaultQuestionTimerSeconds || 30}d def • ~${formatDurationShort(totalPerSoalSec)})`
                             : `Per Judul (${formatDurationShort(set.titleTimerSeconds)})`}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-slate-600 pt-1 border-t border-slate-200/80">
+                      <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-200/80 dark:border-slate-700/80">
                         <span>{set.isFullScreen ? '🔒 Wajib Fullscreen (Anti-Curang)' : '🔓 Mode Normal'}</span>
                         <span>{set.isScoreVisible !== false ? '👁️ Nilai Tampil' : '👁️‍🗨️ Nilai Tersembunyi'}</span>
                       </div>
@@ -1684,7 +1684,7 @@ export default function AdminSoal({
                           setSelectedSetId(set.id);
                           setQuestionSearch('');
                         }}
-                        className="w-full py-2.5 px-4 bg-slate-900 hover:bg-brand text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                        className="w-full py-2.5 px-4 bg-slate-900 dark:bg-slate-800 hover:bg-brand dark:hover:bg-brand text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                       >
                         <Edit3 size={15} />
                         <span>Buka & Kelola Soal ({allQs.length})</span>
@@ -1696,7 +1696,7 @@ export default function AdminSoal({
                           onClick={() => toggleSetActive(set)}
                           className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-black transition-all shadow-xs active:scale-95 ${
                             set.isActive
-                              ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                              ? 'bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 border border-red-200 dark:border-red-800/70'
                               : 'bg-emerald-600 text-white hover:bg-emerald-700'
                           }`}
                         >
@@ -1704,7 +1704,7 @@ export default function AdminSoal({
                         </button>
                         <button
                           onClick={() => openSettingsModal(set)}
-                          className="py-2 px-2.5 bg-white hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
+                          className="py-2 px-2.5 bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
                           title="Pengaturan Timer & Ujian"
                         >
                           <Settings size={14} />
@@ -1712,7 +1712,7 @@ export default function AdminSoal({
                         </button>
                         <button
                           onClick={() => openEditSetModal(set)}
-                          className="py-2 px-2.5 bg-white hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all"
+                          className="py-2 px-2.5 bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-xl text-xs font-bold transition-all"
                           title="Edit Judul Kartu"
                         >
                           <Edit3 size={14} />
@@ -1720,7 +1720,7 @@ export default function AdminSoal({
                         <button
                           onClick={() => onPreviewSet(set)}
                           disabled={activeQs.length === 0}
-                          className="py-2 px-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:pointer-events-none"
+                          className="py-2 px-2.5 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:pointer-events-none"
                           title={activeQs.length === 0 ? 'Tambahkan minimal 1 soal aktif untuk pratinjau' : 'Pratinjau Ujian'}
                         >
                           <Eye size={14} />
@@ -1733,7 +1733,7 @@ export default function AdminSoal({
                               label: `${set.title} (${allQs.length} soal)`,
                             })
                           }
-                          className="py-2 px-2.5 bg-white hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-all"
+                          className="py-2 px-2.5 bg-white dark:bg-slate-800 hover:bg-red-100 dark:hover:bg-red-950/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/70 rounded-xl text-xs font-bold transition-all"
                           title="Hapus Kartu Soal"
                         >
                           <Trash2 size={14} />
@@ -1745,14 +1745,14 @@ export default function AdminSoal({
               })}
             </div>
           ) : (
-            <div className="py-20 bg-slate-200/60 rounded-[2rem] border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-8">
-              <div className="w-20 h-20 bg-blue-100 text-brand rounded-full flex items-center justify-center mb-4 border border-blue-200">
+            <div className="py-20 bg-slate-200/60 dark:bg-slate-900/60 rounded-[2rem] border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-center p-8">
+              <div className="w-20 h-20 bg-blue-100 dark:bg-blue-950/60 text-brand rounded-full flex items-center justify-center mb-4 border border-blue-200 dark:border-blue-800">
                 <ClipboardList size={38} />
               </div>
-              <h3 className="text-xl font-black text-slate-800 mb-2">
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2">
                 {searchQuery ? 'Kartu Soal Tidak Ditemukan' : 'Belum Ada Kartu Soal'}
               </h3>
-              <p className="text-sm text-slate-600 font-medium max-w-md mb-6">
+              <p className="text-sm text-slate-600 dark:text-slate-400 font-medium max-w-md mb-6">
                 Buat kartu soal baru berdasarkan judul ulangan/latihan, lalu isi dengan soal PG 4 opsi (bisa pakai gambar & upload bulk).
               </p>
               {!searchQuery && (
@@ -1775,12 +1775,12 @@ export default function AdminSoal({
           return (
             <div className="space-y-6">
               {/* Top Navigation & Card Controls */}
-              <div className="bg-slate-200/80 border border-slate-300 rounded-3xl p-5 md:p-6 space-y-4">
+              <div className="bg-slate-200/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-800 rounded-3xl p-5 md:p-6 space-y-4">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex items-start gap-3">
                     <button
                       onClick={() => setSelectedSetId(null)}
-                      className="p-2.5 bg-slate-100 hover:bg-white border border-slate-300 rounded-xl text-slate-700 transition-all shrink-0 active:scale-95"
+                      className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200 transition-all shrink-0 active:scale-95"
                       title="Kembali ke Daftar Kartu Soal"
                     >
                       <ArrowLeft size={20} />
@@ -1791,29 +1791,29 @@ export default function AdminSoal({
                           className={`text-[10px] font-black px-2.5 py-0.5 rounded-lg uppercase tracking-widest ${
                             selectedSet.isActive
                               ? 'bg-emerald-600 text-white'
-                              : 'bg-slate-400 text-white'
+                              : 'bg-slate-400 dark:bg-slate-700 text-white'
                           }`}
                         >
                           {selectedSet.isActive ? 'Kartu Aktif' : 'Kartu Nonaktif'}
                         </span>
-                        <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-blue-100 text-brand border border-blue-200">
+                        <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-950/70 text-brand border border-blue-200 dark:border-blue-800">
                           {selectedSet.kelas || 'Semua Kelas'}
                         </span>
-                        <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+                        <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
                           <Clock size={11} />
                           {selectedSet.timerMode === 'per_soal'
                             ? `Timer Per Soal (Default ${selectedSet.defaultQuestionTimerSeconds || 30}d)`
                             : `Timer Per Judul (${formatDurationShort(selectedSet.titleTimerSeconds)})`}
                         </span>
                         {selectedSet.isFullScreen && (
-                          <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-rose-100 text-rose-700 border border-rose-200">
+                          <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
                             🔒 Anti-Curang Fullscreen
                           </span>
                         )}
                       </div>
-                      <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-1">{selectedSet.title}</h2>
+                      <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">{selectedSet.title}</h2>
                       {selectedSet.description && (
-                        <p className="text-xs md:text-sm text-slate-600 font-medium mt-0.5">{selectedSet.description}</p>
+                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 font-medium mt-0.5">{selectedSet.description}</p>
                       )}
                     </div>
                   </div>
@@ -1824,7 +1824,7 @@ export default function AdminSoal({
                       onClick={() => toggleSetActive(selectedSet)}
                       className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-xs ${
                         selectedSet.isActive
-                          ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+                          ? 'bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/60'
                           : 'bg-emerald-600 text-white hover:bg-emerald-700'
                       }`}
                     >
@@ -1833,15 +1833,15 @@ export default function AdminSoal({
                     </button>
                     <button
                       onClick={() => openSettingsModal(selectedSet)}
-                      className="px-3.5 py-2 bg-slate-100 hover:bg-white border border-slate-300 text-slate-800 rounded-xl text-xs font-black transition-all flex items-center gap-1.5"
+                      className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-black transition-all flex items-center gap-1.5"
                     >
-                      <Clock size={15} className="text-amber-600" />
+                      <Clock size={15} className="text-amber-600 dark:text-amber-400" />
                       Setelan Timer & Ujian
                     </button>
                     <button
                       onClick={() => onPreviewSet(selectedSet)}
                       disabled={activeCount === 0}
-                      className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
+                      className="px-3.5 py-2 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <Eye size={15} />
                       Pratinjau
@@ -1850,7 +1850,7 @@ export default function AdminSoal({
                 </div>
 
                 {/* Toolbar Tambah Soal Manual, Bulk, & Filter */}
-                <div className="pt-4 border-t border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="pt-4 border-t border-slate-300 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <button
                       onClick={openAddQuestionModal}
@@ -1884,16 +1884,16 @@ export default function AdminSoal({
                       Tambah Soal AI
                     </button>
                     {allQs.length > 0 && (
-                      <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-300 rounded-xl p-1">
+                      <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-1">
                         <button
                           onClick={() => toggleAllQuestionsActive(true)}
-                          className="px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+                          className="px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 rounded-lg transition-colors"
                         >
                           Aktifkan Semua
                         </button>
                         <button
                           onClick={() => toggleAllQuestionsActive(false)}
-                          className="px-2.5 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+                          className="px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                         >
                           Nonaktifkan Semua
                         </button>
@@ -1902,17 +1902,17 @@ export default function AdminSoal({
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-black text-slate-600 whitespace-nowrap">
+                    <span className="text-xs font-black text-slate-600 dark:text-slate-400 whitespace-nowrap">
                       {activeCount}/{allQs.length} Soal Aktif
                     </span>
                     <div className="relative flex-1 sm:w-56">
-                      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
                       <input
                         type="text"
                         value={questionSearch}
                         onChange={(e) => setQuestionSearch(e.target.value)}
                         placeholder="Cari butir soal..."
-                        className="w-full pl-9 pr-3 py-2 bg-slate-100 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand/30"
                       />
                     </div>
                   </div>
@@ -1927,28 +1927,28 @@ export default function AdminSoal({
                     return (
                       <div
                         key={q.id}
-                        className={`bg-slate-100 border-2 rounded-2xl p-5 transition-all ${
-                          isActiveQ ? 'border-slate-300 shadow-xs' : 'border-slate-300/60 opacity-70 bg-slate-200/70'
+                        className={`bg-slate-100 dark:bg-slate-900 border-2 rounded-2xl p-5 transition-all ${
+                          isActiveQ ? 'border-slate-300 dark:border-slate-700 shadow-xs' : 'border-slate-300/60 dark:border-slate-800 opacity-70 bg-slate-200/70 dark:bg-slate-900/50'
                         }`}
                       >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-200">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-200 dark:border-slate-800">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="px-3 py-1 bg-slate-900 text-white rounded-lg text-xs font-black">
+                            <span className="px-3 py-1 bg-slate-900 dark:bg-slate-800 text-white rounded-lg text-xs font-black">
                               Soal #{idx + 1}
                             </span>
                             <button
                               onClick={() => toggleQuestionActive(q)}
                               className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-all flex items-center gap-1 border ${
                                 isActiveQ
-                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200'
-                                  : 'bg-slate-200 text-slate-600 border-slate-300 hover:bg-slate-300'
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-900/70'
+                                  : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:bg-slate-300 dark:hover:bg-slate-700'
                               }`}
                             >
                               {isActiveQ ? <CheckCircle size={12} /> : <X size={12} />}
                               {isActiveQ ? 'Soal Aktif' : 'Soal Nonaktif'}
                             </button>
                             {selectedSet.timerMode === 'per_soal' && (
-                              <span className="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[11px] font-black flex items-center gap-1">
+                              <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg text-[11px] font-black flex items-center gap-1">
                                 <Clock size={12} />
                                 {q.timerSeconds > 0
                                   ? `${q.timerSeconds} detik`
@@ -1956,7 +1956,7 @@ export default function AdminSoal({
                               </span>
                             )}
                             {(q.questionImage || q.options.some(o => o.image)) && (
-                              <span className="px-2 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-black flex items-center gap-1">
+                              <span className="px-2 py-1 bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg text-[10px] font-black flex items-center gap-1">
                                 <ImageIcon size={11} />
                                 Bergambar
                               </span>
@@ -1966,7 +1966,7 @@ export default function AdminSoal({
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => openEditQuestionModal(q)}
-                              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-brand border border-blue-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                              className="px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-brand border border-blue-200 dark:border-blue-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
                             >
                               <Edit3 size={13} />
                               Edit
@@ -1979,7 +1979,7 @@ export default function AdminSoal({
                                   label: `Soal #${idx + 1}: "${(q.questionText || 'Soal Bergambar').slice(0, 50)}"`,
                                 })
                               }
-                              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                              className="px-3 py-1.5 bg-red-50 dark:bg-red-950/60 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
                             >
                               <Trash2 size={13} />
                               Hapus
@@ -1994,7 +1994,7 @@ export default function AdminSoal({
                               <button
                                 type="button"
                                 onClick={() => setLightboxImg(q.questionImage || null)}
-                                className="shrink-0 group relative rounded-xl overflow-hidden border border-slate-300 bg-white p-1 shadow-xs hover:ring-2 hover:ring-brand transition-all"
+                                className="shrink-0 group relative rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 shadow-xs hover:ring-2 hover:ring-brand transition-all"
                               >
                                 <img
                                   src={q.questionImage}
@@ -2006,7 +2006,7 @@ export default function AdminSoal({
                                 </span>
                               </button>
                             )}
-                            <p className="text-slate-900 font-bold text-base leading-relaxed whitespace-pre-wrap flex-1">
+                            <p className="text-slate-900 dark:text-slate-100 font-bold text-base leading-relaxed whitespace-pre-wrap flex-1">
                               {q.questionText || <span className="italic text-slate-400">(Soal berupa gambar)</span>}
                             </p>
                           </div>
@@ -2021,22 +2021,22 @@ export default function AdminSoal({
                                   key={optIdx}
                                   className={`p-3 rounded-xl border flex items-start gap-3 transition-all ${
                                     isKey
-                                      ? 'bg-emerald-50 border-emerald-400 ring-1 ring-emerald-300'
-                                      : 'bg-white border-slate-300'
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-400 dark:border-emerald-700 ring-1 ring-emerald-300 dark:ring-emerald-800'
+                                      : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700'
                                   }`}
                                 >
                                   <span
                                     className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
                                       isKey
                                         ? 'bg-emerald-600 text-white'
-                                        : 'bg-slate-200 text-slate-700'
+                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
                                     }`}
                                   >
                                     {OPTION_LABELS[optIdx]}
                                   </span>
                                   <div className="flex-1 min-w-0 space-y-2">
                                     {opt.text && (
-                                      <p className={`text-sm font-semibold break-words ${isKey ? 'text-emerald-950 font-bold' : 'text-slate-800'}`}>
+                                      <p className={`text-sm font-semibold break-words ${isKey ? 'text-emerald-950 dark:text-emerald-100 font-bold' : 'text-slate-800 dark:text-slate-200'}`}>
                                         {opt.text}
                                       </p>
                                     )}
@@ -2044,7 +2044,7 @@ export default function AdminSoal({
                                       <button
                                         type="button"
                                         onClick={() => setLightboxImg(opt.image || null)}
-                                        className="rounded-lg overflow-hidden border border-slate-200 bg-slate-50 p-1 hover:ring-2 hover:ring-brand transition-all block"
+                                        className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-1 hover:ring-2 hover:ring-brand transition-all block"
                                       >
                                         <img
                                           src={opt.image}
@@ -2055,7 +2055,7 @@ export default function AdminSoal({
                                     )}
                                   </div>
                                   {isKey && (
-                                    <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md shrink-0">
+                                    <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/70 px-2 py-0.5 rounded-md shrink-0">
                                       ✓ Kunci
                                     </span>
                                   )}
@@ -2065,7 +2065,7 @@ export default function AdminSoal({
                           </div>
 
                           {q.explanation && (
-                            <div className="bg-blue-50/80 border border-blue-200 rounded-xl px-4 py-2.5 text-xs text-blue-900">
+                            <div className="bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/70 rounded-xl px-4 py-2.5 text-xs text-blue-900 dark:text-blue-200">
                               <span className="font-black">Pembahasan: </span>
                               <span className="font-medium">{q.explanation}</span>
                             </div>
@@ -2076,14 +2076,14 @@ export default function AdminSoal({
                   })}
                 </div>
               ) : (
-                <div className="py-16 bg-slate-200/50 rounded-3xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-8">
-                  <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center text-slate-400 mb-4">
+                <div className="py-16 bg-slate-200/50 dark:bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-center p-8">
+                  <div className="w-16 h-16 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 mb-4">
                     <ClipboardList size={32} />
                   </div>
-                  <h3 className="text-lg font-black text-slate-800 mb-1">
+                  <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-1">
                     {questionSearch ? 'Soal Tidak Ditemukan' : 'Kartu Soal Ini Masih Kosong'}
                   </h3>
-                  <p className="text-xs text-slate-600 font-medium max-w-md mb-5">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium max-w-md mb-5">
                     Tambahkan soal pilihan ganda 4 opsi satu per satu secara manual, atau impor banyak soal sekaligus dengan fitur Bulk Soal.
                   </p>
                   {!questionSearch && (
@@ -2130,22 +2130,22 @@ export default function AdminSoal({
 
       {/* ================== MODAL BUAT / EDIT KARTU SOAL ================== */}
       {isSetModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <div className="bg-slate-100 border border-slate-300 rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl">
-            <div className="p-6 bg-slate-200 border-b border-slate-300 flex items-center justify-between">
-              <h3 className="text-lg font-black text-slate-900">
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl">
+            <div className="p-6 bg-slate-200 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 flex items-center justify-between">
+              <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">
                 {editingSet ? 'Edit Kartu Soal' : 'Buat Kartu Soal Baru'}
               </h3>
               <button
                 onClick={() => setIsSetModalOpen(false)}
-                className="p-2 hover:bg-slate-300 rounded-xl text-slate-600"
+                className="p-2 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
               >
                 <X size={18} />
               </button>
             </div>
             <form onSubmit={handleSaveSet} className="p-6 space-y-4">
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-600 block mb-1.5">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1.5">
                   Judul Kartu Soal *
                 </label>
                 <input
@@ -2154,12 +2154,12 @@ export default function AdminSoal({
                   value={setTitle}
                   onChange={(e) => setSetTitle(e.target.value)}
                   placeholder="Contoh: Ulangan Harian Bab 1 - Berpikir Komputasional"
-                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                  className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/40"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-600 block mb-1.5">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1.5">
                   Target Kelas / Label
                 </label>
                 <input
@@ -2167,12 +2167,12 @@ export default function AdminSoal({
                   value={setKelas}
                   onChange={(e) => setSetKelas(e.target.value)}
                   placeholder="Contoh: Semua Kelas / Kelas 7 / Kelas 8"
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/40"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-600 block mb-1.5">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1.5">
                   Deskripsi Singkat
                 </label>
                 <textarea
@@ -2180,14 +2180,14 @@ export default function AdminSoal({
                   value={setDesc}
                   onChange={(e) => setSetDesc(e.target.value)}
                   placeholder="Petunjuk singkat pengerjaan soal untuk siswa..."
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/40"
                 />
               </div>
 
-              <label className="flex items-center justify-between p-3.5 bg-white border border-slate-300 rounded-xl cursor-pointer">
+              <label className="flex items-center justify-between p-3.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer">
                 <div>
-                  <span className="text-sm font-black text-slate-900 block">Aktifkan Kartu Soal</span>
-                  <span className="text-xs text-slate-500 font-medium">Siswa dapat melihat dan mengerjakan kartu ini</span>
+                  <span className="text-sm font-black text-slate-900 dark:text-slate-100 block">Aktifkan Kartu Soal</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Siswa dapat melihat dan mengerjakan kartu ini</span>
                 </div>
                 <input
                   type="checkbox"
@@ -2197,11 +2197,11 @@ export default function AdminSoal({
                 />
               </label>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsSetModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-200"
+                  className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-800"
                 >
                   Batal
                 </button>
@@ -2220,16 +2220,16 @@ export default function AdminSoal({
 
       {/* ================== MODAL SETELAN TIMER & UJIAN ================== */}
       {settingsModalSet && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <div className="bg-slate-100 border border-slate-300 rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="p-6 bg-slate-200 border-b border-slate-300 flex items-center justify-between">
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="p-6 bg-slate-200 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-black text-slate-900">Setelan Timer & Mode Ujian</h3>
-                <p className="text-xs font-bold text-slate-600 truncate max-w-md">{settingsModalSet.title}</p>
+                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">Setelan Timer & Mode Ujian</h3>
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate max-w-md">{settingsModalSet.title}</p>
               </div>
               <button
                 onClick={() => setSettingsModalSet(null)}
-                className="p-2 hover:bg-slate-300 rounded-xl text-slate-600"
+                className="p-2 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
               >
                 <X size={18} />
               </button>
@@ -2238,7 +2238,7 @@ export default function AdminSoal({
             <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
               {/* Pilihan Mode Timer */}
               <div className="space-y-2.5">
-                <label className="text-xs font-black uppercase tracking-wider text-slate-600 block">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
                   Pengaturan Timer Soal
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2247,15 +2247,15 @@ export default function AdminSoal({
                     onClick={() => setCfgTimerMode('per_judul')}
                     className={`p-4 rounded-2xl border-2 text-left transition-all ${
                       cfgTimerMode === 'per_judul'
-                        ? 'bg-blue-50 border-brand ring-2 ring-brand/20'
-                        : 'bg-white border-slate-300 hover:border-slate-400'
+                        ? 'bg-blue-50 dark:bg-blue-950/50 border-brand ring-2 ring-brand/20'
+                        : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-black text-sm text-slate-900">Per Judul Soal</span>
+                      <span className="font-black text-sm text-slate-900 dark:text-slate-100">Per Judul Soal</span>
                       {cfgTimerMode === 'per_judul' && <CheckCircle size={17} className="text-brand" />}
                     </div>
-                    <p className="text-xs text-slate-600 font-medium">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                       1 batas waktu total untuk menyelesaikan seluruh soal dalam kartu ini.
                     </p>
                   </button>
@@ -2265,15 +2265,15 @@ export default function AdminSoal({
                     onClick={() => setCfgTimerMode('per_soal')}
                     className={`p-4 rounded-2xl border-2 text-left transition-all ${
                       cfgTimerMode === 'per_soal'
-                        ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-400/20'
-                        : 'bg-white border-slate-300 hover:border-slate-400'
+                        ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-500 ring-2 ring-amber-400/20'
+                        : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-black text-sm text-slate-900">Per Butir Soal</span>
-                      {cfgTimerMode === 'per_soal' && <CheckCircle size={17} className="text-amber-600" />}
+                      <span className="font-black text-sm text-slate-900 dark:text-slate-100">Per Butir Soal</span>
+                      {cfgTimerMode === 'per_soal' && <CheckCircle size={17} className="text-amber-600 dark:text-amber-400" />}
                     </div>
-                    <p className="text-xs text-slate-600 font-medium">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                       Setiap soal punya hitung mundur sendiri & lanjut otomatis saat waktu habis.
                     </p>
                   </button>
@@ -2281,37 +2281,37 @@ export default function AdminSoal({
               </div>
 
               {cfgTimerMode === 'per_judul' ? (
-                <div className="bg-blue-50/70 border border-blue-200 rounded-2xl p-4 space-y-3">
-                  <p className="text-xs font-black text-blue-900 uppercase tracking-wider">
+                <div className="bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/70 rounded-2xl p-4 space-y-3">
+                  <p className="text-xs font-black text-blue-900 dark:text-blue-200 uppercase tracking-wider">
                     Durasi Total Untuk Seluruh Kartu (0 = Tanpa Batas Waktu)
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">Menit</label>
+                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">Menit</label>
                       <input
                         type="number"
                         min={0}
                         value={cfgTitleMinutes}
                         onChange={(e) => setCfgTitleMinutes(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl font-black text-slate-900 text-sm"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-black text-slate-900 dark:text-slate-100 text-sm"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">Detik</label>
+                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">Detik</label>
                       <input
                         type="number"
                         min={0}
                         max={59}
                         value={cfgTitleSeconds}
                         onChange={(e) => setCfgTitleSeconds(Math.min(59, Math.max(0, parseInt(e.target.value, 10) || 0)))}
-                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl font-black text-slate-900 text-sm"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-black text-slate-900 dark:text-slate-100 text-sm"
                       />
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-2">
-                  <label className="text-xs font-black text-amber-900 uppercase tracking-wider block">
+                <div className="bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/70 rounded-2xl p-4 space-y-2">
+                  <label className="text-xs font-black text-amber-900 dark:text-amber-200 uppercase tracking-wider block">
                     Timer Default Per Soal (Detik)
                   </label>
                   <input
@@ -2319,9 +2319,9 @@ export default function AdminSoal({
                     min={5}
                     value={cfgDefaultQuestionSec}
                     onChange={(e) => setCfgDefaultQuestionSec(Math.max(5, parseInt(e.target.value, 10) || 30))}
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl font-black text-slate-900 text-sm"
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-black text-slate-900 dark:text-slate-100 text-sm"
                   />
-                  <p className="text-[11px] text-amber-800 font-medium">
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium">
                     Digunakan bila soal tidak memiliki timer khusus. Anda tetap bisa mengatur timer unik di setiap soal saat edit/tambah soal.
                   </p>
                 </div>
@@ -2329,12 +2329,12 @@ export default function AdminSoal({
 
               {/* Toggles */}
               <div className="space-y-3">
-                <label className="flex items-center justify-between p-3.5 bg-white border border-slate-300 rounded-2xl cursor-pointer">
+                <label className="flex items-center justify-between p-3.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl cursor-pointer">
                   <div className="flex items-center gap-3">
-                    <Maximize size={18} className="text-rose-600 shrink-0" />
+                    <Maximize size={18} className="text-rose-600 dark:text-rose-400 shrink-0" />
                     <div>
-                      <span className="text-sm font-black text-slate-900 block">Wajib Fullscreen (Anti-Curang)</span>
-                      <span className="text-xs text-slate-500">Pelanggaran keluar layar/pindah tab langsung masuk Monitoring Kecurangan</span>
+                      <span className="text-sm font-black text-slate-900 dark:text-slate-100 block">Wajib Fullscreen (Anti-Curang)</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Pelanggaran keluar layar/pindah tab langsung masuk Monitoring Kecurangan</span>
                     </div>
                   </div>
                   <input
@@ -2345,12 +2345,12 @@ export default function AdminSoal({
                   />
                 </label>
 
-                <label className="flex items-center justify-between p-3.5 bg-white border border-slate-300 rounded-2xl cursor-pointer">
+                <label className="flex items-center justify-between p-3.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl cursor-pointer">
                   <div className="flex items-center gap-3">
-                    <Eye size={18} className="text-emerald-600 shrink-0" />
+                    <Eye size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <div>
-                      <span className="text-sm font-black text-slate-900 block">Tampilkan Skor ke Siswa</span>
-                      <span className="text-xs text-slate-500">Perlihatkan nilai akhir langsung setelah siswa selesai mengerjakan</span>
+                      <span className="text-sm font-black text-slate-900 dark:text-slate-100 block">Tampilkan Skor ke Siswa</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Perlihatkan nilai akhir langsung setelah siswa selesai mengerjakan</span>
                     </div>
                   </div>
                   <input
@@ -2361,12 +2361,12 @@ export default function AdminSoal({
                   />
                 </label>
 
-                <label className="flex items-center justify-between p-3.5 bg-white border border-slate-300 rounded-2xl cursor-pointer">
+                <label className="flex items-center justify-between p-3.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl cursor-pointer">
                   <div className="flex items-center gap-3">
-                    <Shuffle size={18} className="text-indigo-600 shrink-0" />
+                    <Shuffle size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
                     <div>
-                      <span className="text-sm font-black text-slate-900 block">Acak Urutan Soal</span>
-                      <span className="text-xs text-slate-500">Urutan soal diacak secara otomatis untuk setiap siswa</span>
+                      <span className="text-sm font-black text-slate-900 dark:text-slate-100 block">Acak Urutan Soal</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Urutan soal diacak secara otomatis untuk setiap siswa</span>
                     </div>
                   </div>
                   <input
@@ -2377,12 +2377,12 @@ export default function AdminSoal({
                   />
                 </label>
 
-                <label className="flex items-center justify-between p-3.5 bg-white border border-slate-300 rounded-2xl cursor-pointer">
+                <label className="flex items-center justify-between p-3.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl cursor-pointer">
                   <div className="flex items-center gap-3">
-                    <CheckCircle size={18} className="text-emerald-600 shrink-0" />
+                    <CheckCircle size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <div>
-                      <span className="text-sm font-black text-slate-900 block">Status Kartu Aktif</span>
-                      <span className="text-xs text-slate-500">Tampilkan kartu soal ini di dashboard siswa</span>
+                      <span className="text-sm font-black text-slate-900 dark:text-slate-100 block">Status Kartu Aktif</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Tampilkan kartu soal ini di dashboard siswa</span>
                     </div>
                   </div>
                   <input
@@ -2395,11 +2395,11 @@ export default function AdminSoal({
               </div>
             </div>
 
-            <div className="p-5 bg-slate-200 border-t border-slate-300 flex justify-end gap-3">
+            <div className="p-5 bg-slate-200 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setSettingsModalSet(null)}
-                className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-300/60"
+                className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-300/60 dark:hover:bg-slate-700"
               >
                 Batal
               </button>
@@ -2418,18 +2418,18 @@ export default function AdminSoal({
 
       {/* ================== MODAL TAMBAH / EDIT SOAL MANUAL (1 PER SATU) ================== */}
       {isQModalOpen && selectedSet && (
-        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-[115] flex items-center justify-center p-3 md:p-6">
-          <div className="bg-slate-100 border border-slate-300 rounded-[2rem] w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
-            <div className="p-5 md:p-6 bg-slate-200 border-b border-slate-300 flex items-center justify-between shrink-0">
+        <div className="fixed inset-0 bg-slate-900/65 dark:bg-slate-950/80 backdrop-blur-sm z-[115] flex items-center justify-center p-3 md:p-6">
+          <div className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[2rem] w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+            <div className="p-5 md:p-6 bg-slate-200 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 flex items-center justify-between shrink-0">
               <div>
-                <h3 className="text-lg md:text-xl font-black text-slate-900">
+                <h3 className="text-lg md:text-xl font-black text-slate-900 dark:text-slate-100">
                   {editingQuestion ? 'Edit Butir Soal PG (4 Opsi)' : 'Tambah Soal Manual (1 Per Satu)'}
                 </h3>
-                <p className="text-xs font-bold text-slate-600 truncate">Kartu: {selectedSet.title}</p>
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">Kartu: {selectedSet.title}</p>
               </div>
               <button
                 onClick={() => setIsQModalOpen(false)}
-                className="p-2 hover:bg-slate-300 rounded-xl text-slate-600"
+                className="p-2 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
               >
                 <X size={20} />
               </button>
@@ -2437,31 +2437,31 @@ export default function AdminSoal({
 
             <div className="p-5 md:p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
               {qFormError && (
-                <div className="p-3.5 bg-red-100 border border-red-300 rounded-xl text-red-800 text-xs font-bold flex items-center gap-2">
+                <div className="p-3.5 bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 rounded-xl text-red-800 dark:text-red-300 text-xs font-bold flex items-center gap-2">
                   <AlertTriangle size={16} className="shrink-0" />
                   <span>{qFormError}</span>
                 </div>
               )}
 
               {/* Pertanyaan & Gambar Soal */}
-              <div className="bg-white border border-slate-300 rounded-2xl p-4 space-y-3">
+              <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-700">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
                     Pertanyaan Soal
                   </label>
-                  <span className="text-[11px] font-bold text-slate-500">Bisa teks, gambar, atau keduanya</span>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Bisa teks, gambar, atau keduanya</span>
                 </div>
                 <textarea
                   rows={3}
                   value={qText}
                   onChange={(e) => setQText(e.target.value)}
                   placeholder="Tuliskan pertanyaan di sini..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30"
                 />
 
                 {/* Upload / URL Gambar Soal */}
                 <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center pt-1">
-                  <label className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-black cursor-pointer flex items-center justify-center gap-1.5 shrink-0 transition-all">
+                  <label className="px-3.5 py-2 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-xl text-xs font-black cursor-pointer flex items-center justify-center gap-1.5 shrink-0 transition-all">
                     <ImageIcon size={14} />
                     <span>Upload Gambar Soal</span>
                     <input
@@ -2479,13 +2479,13 @@ export default function AdminSoal({
                     value={qImage.startsWith('data:') ? '' : qImage}
                     onChange={(e) => setQImage(e.target.value)}
                     placeholder="Atau tempel URL gambar soal (https://...)"
-                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand/30"
                   />
                   {qImage && (
                     <button
                       type="button"
                       onClick={() => setQImage('')}
-                      className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold shrink-0"
+                      className="px-3 py-2 bg-red-50 dark:bg-red-950/60 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold shrink-0"
                     >
                       Hapus Gambar
                     </button>
@@ -2493,7 +2493,7 @@ export default function AdminSoal({
                 </div>
 
                 {qImage && (
-                  <div className="p-2 bg-slate-100 border border-slate-200 rounded-xl w-fit">
+                  <div className="p-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl w-fit">
                     <img src={qImage} alt="Preview Soal" className="max-h-40 rounded-lg object-contain" />
                   </div>
                 )}
@@ -2502,7 +2502,7 @@ export default function AdminSoal({
               {/* 4 Opsi Jawaban (A, B, C, D) */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-700">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
                     Pilihan Ganda (4 Opsi: A, B, C, D) &bull; Klik huruf untuk pilih Kunci Jawaban
                   </label>
                 </div>
@@ -2514,8 +2514,8 @@ export default function AdminSoal({
                         key={idx}
                         className={`p-3.5 rounded-2xl border-2 space-y-2.5 transition-all ${
                           isKey
-                            ? 'bg-emerald-50/90 border-emerald-500 shadow-sm'
-                            : 'bg-white border-slate-300'
+                            ? 'bg-emerald-50/90 dark:bg-emerald-950/45 border-emerald-500 shadow-sm'
+                            : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -2525,13 +2525,13 @@ export default function AdminSoal({
                             className={`px-3 py-1 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all ${
                               isKey
                                 ? 'bg-emerald-600 text-white shadow-sm'
-                                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600'
                             }`}
                           >
                             <span>Opsi {OPTION_LABELS[idx]}</span>
                             {isKey && <Check size={13} />}
                           </button>
-                          <span className={`text-[10px] font-black uppercase ${isKey ? 'text-emerald-700' : 'text-slate-400'}`}>
+                          <span className={`text-[10px] font-black uppercase ${isKey ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
                             {isKey ? 'Kunci Jawaban Benar' : 'Klik jadikan kunci'}
                           </span>
                         </div>
@@ -2548,11 +2548,11 @@ export default function AdminSoal({
                             });
                           }}
                           placeholder={`Teks jawaban opsi ${OPTION_LABELS[idx]}...`}
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30"
                         />
 
                         <div className="flex items-center gap-1.5">
-                          <label className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[11px] font-black cursor-pointer flex items-center gap-1 shrink-0">
+                          <label className="px-2.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg text-[11px] font-black cursor-pointer flex items-center gap-1 shrink-0">
                             <ImageIcon size={12} />
                             <span>Gambar</span>
                             <input
@@ -2577,7 +2577,7 @@ export default function AdminSoal({
                               });
                             }}
                             placeholder="Atau URL gambar opsi..."
-                            className="flex-1 min-w-0 px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-[11px] font-medium text-slate-700"
+                            className="flex-1 min-w-0 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-medium text-slate-700 dark:text-slate-200"
                           />
                           {opt.image && (
                             <button
@@ -2589,7 +2589,7 @@ export default function AdminSoal({
                                   return next;
                                 })
                               }
-                              className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                              className="p-1.5 bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/60"
                               title="Hapus gambar opsi"
                             >
                               <X size={13} />
@@ -2598,7 +2598,7 @@ export default function AdminSoal({
                         </div>
 
                         {opt.image && (
-                          <div className="p-1.5 bg-white border border-slate-200 rounded-lg w-fit">
+                          <div className="p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg w-fit">
                             <img src={opt.image} alt={`Preview ${OPTION_LABELS[idx]}`} className="max-h-24 object-contain rounded" />
                           </div>
                         )}
@@ -2610,9 +2610,9 @@ export default function AdminSoal({
 
               {/* Timer Per Soal & Status & Pembahasan */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white border border-slate-300 rounded-2xl p-4 space-y-2">
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                    <Clock size={14} className="text-amber-600" />
+                <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl p-4 space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                    <Clock size={14} className="text-amber-600 dark:text-amber-400" />
                     Timer Khusus Soal Ini (Detik)
                   </label>
                   <input
@@ -2620,20 +2620,20 @@ export default function AdminSoal({
                     min={0}
                     value={qTimer}
                     onChange={(e) => setQTimer(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-black text-slate-900"
+                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-black text-slate-900 dark:text-slate-100"
                   />
-                  <p className="text-[11px] text-slate-500 font-medium">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                     {selectedSet.timerMode === 'per_soal'
                       ? `Aktif dipakai (0 = ikut default kartu ${selectedSet.defaultQuestionTimerSeconds || 30}d).`
                       : 'Saat ini kartu pakai mode Per Judul. Nilai ini otomatis dipakai jika kartu diubah ke mode Per Soal.'}
                   </p>
                 </div>
 
-                <div className="bg-white border border-slate-300 rounded-2xl p-4 flex flex-col justify-between gap-3">
+                <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl p-4 flex flex-col justify-between gap-3">
                   <label className="flex items-center justify-between cursor-pointer">
                     <div>
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 block">Status Soal</span>
-                      <span className="text-xs text-slate-500">Hanya soal aktif yang tampil ke siswa</span>
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 block">Status Soal</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Hanya soal aktif yang tampil ke siswa</span>
                     </div>
                     <input
                       type="checkbox"
@@ -2647,17 +2647,17 @@ export default function AdminSoal({
                     value={qExplanation}
                     onChange={(e) => setQExplanation(e.target.value)}
                     placeholder="Pembahasan singkat (opsional)..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800"
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="p-5 bg-slate-200 border-t border-slate-300 flex flex-wrap justify-end gap-2.5 shrink-0">
+            <div className="p-5 bg-slate-200 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700 flex flex-wrap justify-end gap-2.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsQModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-300/60"
+                className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-300/60 dark:hover:bg-slate-700"
               >
                 Batal
               </button>
@@ -2686,16 +2686,16 @@ export default function AdminSoal({
 
       {/* ================== MODAL IMPORT BULK SOAL ================== */}
       {isBulkOpen && selectedSet && (
-        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-[115] flex items-center justify-center p-3 md:p-6">
-          <div className="bg-slate-100 border border-slate-300 rounded-[2rem] w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
-            <div className="p-5 md:p-6 bg-slate-200 border-b border-slate-300 flex items-center justify-between shrink-0">
+        <div className="fixed inset-0 bg-slate-900/65 dark:bg-slate-950/80 backdrop-blur-sm z-[115] flex items-center justify-center p-3 md:p-6">
+          <div className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[2rem] w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+            <div className="p-5 md:p-6 bg-slate-200 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 flex items-center justify-between shrink-0">
               <div>
-                <h3 className="text-lg md:text-xl font-black text-slate-900">Import Bulk Soal (Banyak Sekaligus)</h3>
-                <p className="text-xs font-bold text-slate-600">Target Kartu: {selectedSet.title}</p>
+                <h3 className="text-lg md:text-xl font-black text-slate-900 dark:text-slate-100">Import Bulk Soal (Banyak Sekaligus)</h3>
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-400">Target Kartu: {selectedSet.title}</p>
               </div>
               <button
                 onClick={() => setIsBulkOpen(false)}
-                className="p-2 hover:bg-slate-300 rounded-xl text-slate-600"
+                className="p-2 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300"
               >
                 <X size={20} />
               </button>
@@ -2703,12 +2703,12 @@ export default function AdminSoal({
 
             <div className="p-5 md:p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
               {/* Tab Selector */}
-              <div className="flex bg-slate-200 p-1 rounded-2xl border border-slate-300 w-fit">
+              <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-2xl border border-slate-300 dark:border-slate-700 w-fit">
                 <button
                   type="button"
                   onClick={() => setBulkTab('text')}
                   className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all ${
-                    bulkTab === 'text' ? 'bg-brand text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                    bulkTab === 'text' ? 'bg-brand text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <FileText size={15} />
@@ -2718,7 +2718,7 @@ export default function AdminSoal({
                   type="button"
                   onClick={() => setBulkTab('excel')}
                   className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all ${
-                    bulkTab === 'excel' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                    bulkTab === 'excel' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <FileSpreadsheet size={15} />
@@ -2728,21 +2728,21 @@ export default function AdminSoal({
 
               {bulkTab === 'text' ? (
                 <div className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="text-xs text-blue-950 space-y-1">
+                  <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/70 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="text-xs text-blue-950 dark:text-blue-100 space-y-1">
                       <p className="font-black">Panduan Format Tempel Teks (pisahkan antar soal dengan 1 baris kosong):</p>
-                      <p className="font-medium text-blue-800">
-                        Tulis pertanyaan, lalu <code className="bg-white px-1 rounded">A. ... B. ... C. ... D. ...</code>, dan{' '}
-                        <code className="bg-white px-1 rounded">Kunci: B</code>. Opsional:{' '}
-                        <code className="bg-white px-1 rounded">Gambar: URL</code>,{' '}
-                        <code className="bg-white px-1 rounded">Gambar A: URL</code>,{' '}
-                        <code className="bg-white px-1 rounded">Timer: 30</code>.
+                      <p className="font-medium text-blue-800 dark:text-blue-300">
+                        Tulis pertanyaan, lalu <code className="bg-white dark:bg-slate-800 px-1 rounded">A. ... B. ... C. ... D. ...</code>, dan{' '}
+                        <code className="bg-white dark:bg-slate-800 px-1 rounded">Kunci: B</code>. Opsional:{' '}
+                        <code className="bg-white dark:bg-slate-800 px-1 rounded">Gambar: URL</code>,{' '}
+                        <code className="bg-white dark:bg-slate-800 px-1 rounded">Gambar A: URL</code>,{' '}
+                        <code className="bg-white dark:bg-slate-800 px-1 rounded">Timer: 30</code>.
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setBulkText(SAMPLE_BULK_TEXT)}
-                      className="px-3.5 py-2 bg-white hover:bg-blue-100 text-brand border border-blue-300 rounded-xl text-xs font-black shrink-0 flex items-center gap-1.5"
+                      className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-slate-700 text-brand border border-blue-300 dark:border-blue-700 rounded-xl text-xs font-black shrink-0 flex items-center gap-1.5"
                     >
                       <Sparkles size={14} />
                       Isi Contoh
@@ -2754,22 +2754,22 @@ export default function AdminSoal({
                     value={bulkText}
                     onChange={(e) => setBulkText(e.target.value)}
                     placeholder="Tempel daftar soal pilihan ganda 4 opsi di sini..."
-                    className="w-full p-4 bg-white border border-slate-300 rounded-2xl text-xs md:text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    className="w-full p-4 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs md:text-sm font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30"
                   />
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="text-xs text-emerald-950 space-y-1">
+                  <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="text-xs text-emerald-950 dark:text-emerald-100 space-y-1">
                       <p className="font-black">Import dari Microsoft Excel (.xlsx) atau CSV</p>
-                      <p className="font-medium text-emerald-800">
+                      <p className="font-medium text-emerald-800 dark:text-emerald-300">
                         Gunakan kolom: Pertanyaan, Gambar Soal, Opsi A..D, Gambar A..D, Kunci (A/B/C/D), Timer, Pembahasan.
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={handleDownloadTemplate}
-                      className="px-3.5 py-2 bg-white hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-xl text-xs font-black shrink-0 flex items-center gap-1.5"
+                      className="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-xl text-xs font-black shrink-0 flex items-center gap-1.5"
                     >
                       <Download size={14} />
                       Download Template
@@ -2778,13 +2778,13 @@ export default function AdminSoal({
 
                   <div
                     onClick={() => excelInputRef.current?.click()}
-                    className="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-white rounded-2xl p-8 text-center cursor-pointer transition-all"
+                    className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 bg-white dark:bg-slate-800 rounded-2xl p-8 text-center cursor-pointer transition-all"
                   >
-                    <Upload size={28} className="mx-auto text-emerald-600 mb-2" />
-                    <p className="text-sm font-black text-slate-800">
+                    <Upload size={28} className="mx-auto text-emerald-600 dark:text-emerald-400 mb-2" />
+                    <p className="text-sm font-black text-slate-800 dark:text-slate-100">
                       {bulkExcelFilename ? `File dipilih: ${bulkExcelFilename}` : 'Klik untuk pilih file .xlsx atau .csv'}
                     </p>
-                    <p className="text-xs text-slate-500 mt-1">Data soal akan dipratinjau terlebih dahulu sebelum disimpan</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Data soal akan dipratinjau terlebih dahulu sebelum disimpan</p>
                     <input
                       ref={excelInputRef}
                       type="file"
@@ -2804,7 +2804,7 @@ export default function AdminSoal({
                 return (
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                         Pratinjau Hasil Baca ({validCount} Siap Simpan / {items.length} Total)
                       </h4>
                     </div>
@@ -2814,8 +2814,8 @@ export default function AdminSoal({
                           key={idx}
                           className={`p-3 rounded-xl border text-xs ${
                             item.error
-                              ? 'bg-red-50 border-red-300 text-red-900'
-                              : 'bg-white border-emerald-300 text-slate-800'
+                              ? 'bg-red-50 dark:bg-red-950/50 border-red-300 dark:border-red-800 text-red-900 dark:text-red-200'
+                              : 'bg-white dark:bg-slate-800 border-emerald-300 dark:border-emerald-700 text-slate-800 dark:text-slate-100'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2 mb-1">
@@ -2831,9 +2831,9 @@ export default function AdminSoal({
                             )}
                           </div>
                           {!item.error && (
-                            <div className="grid grid-cols-2 gap-1 text-[11px] text-slate-600">
+                            <div className="grid grid-cols-2 gap-1 text-[11px] text-slate-600 dark:text-slate-400">
                               {item.options.map((o, oIdx) => (
-                                <span key={oIdx} className={item.correctAnswer === oIdx ? 'font-black text-emerald-700' : ''}>
+                                <span key={oIdx} className={item.correctAnswer === oIdx ? 'font-black text-emerald-700 dark:text-emerald-400' : ''}>
                                   {OPTION_LABELS[oIdx]}. {o.text || (o.image ? '[Gambar]' : '-')}
                                 </span>
                               ))}
@@ -2847,11 +2847,11 @@ export default function AdminSoal({
               })()}
             </div>
 
-            <div className="p-5 bg-slate-200 border-t border-slate-300 flex justify-end gap-3 shrink-0">
+            <div className="p-5 bg-slate-200 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700 flex justify-end gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsBulkOpen(false)}
-                className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-300/60"
+                className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-300/60 dark:hover:bg-slate-700"
               >
                 Batal
               </button>
@@ -2875,18 +2875,18 @@ export default function AdminSoal({
 
       {/* ================== MODAL KONFIRMASI HAPUS ================== */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-[125] flex items-center justify-center p-4">
-          <div className="bg-slate-100 border border-slate-300 rounded-[2rem] w-full max-w-md p-6 shadow-2xl space-y-5">
+        <div className="fixed inset-0 bg-slate-900/65 dark:bg-slate-950/80 backdrop-blur-sm z-[125] flex items-center justify-center p-4">
+          <div className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[2rem] w-full max-w-md p-6 shadow-2xl space-y-5">
             <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/70 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
                 <Trash2 size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-black text-slate-900">
+                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">
                   {deleteConfirm.type === 'set' ? 'Hapus Kartu Soal?' : 'Hapus Butir Soal?'}
                 </h3>
-                <p className="text-xs text-slate-600 font-medium mt-1">
-                  Anda yakin ingin menghapus <span className="font-black text-slate-900">{deleteConfirm.label}</span>? Tindakan ini tidak dapat dibatalkan.
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">
+                  Anda yakin ingin menghapus <span className="font-black text-slate-900 dark:text-slate-100">{deleteConfirm.label}</span>? Tindakan ini tidak dapat dibatalkan.
                 </p>
               </div>
             </div>
@@ -2894,7 +2894,7 @@ export default function AdminSoal({
               <button
                 type="button"
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-200"
+                className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-800"
               >
                 Batal
               </button>
@@ -2913,19 +2913,19 @@ export default function AdminSoal({
 
       {/* ================== MODAL AMBIL SOAL DARI KELOLA MATERI ================== */}
       {isMaterialPickerOpen && createPortal(
-        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-[120] flex items-center justify-center p-3 md:p-6">
-          <div className="bg-slate-100 border border-slate-300 rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 bg-slate-900/65 dark:bg-slate-950/80 backdrop-blur-sm z-[120] flex items-center justify-center p-3 md:p-6">
+          <div className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
             {/* Header */}
-            <div className="p-5 md:p-6 bg-slate-200 border-b border-slate-300 flex items-center justify-between gap-3 shrink-0">
+            <div className="p-5 md:p-6 bg-slate-200 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
                   <GraduationCap size={20} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-lg md:text-xl font-black text-slate-900 truncate">
+                  <h3 className="text-lg md:text-xl font-black text-slate-900 dark:text-slate-100 truncate">
                     Ambil Soal dari Kelola Materi
                   </h3>
-                  <p className="text-xs font-bold text-slate-600 truncate">
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">
                     Pilih soal kuis yang sudah ada di materi pembelajaran atau hasil Analisis Soal
                   </p>
                 </div>
@@ -2933,7 +2933,7 @@ export default function AdminSoal({
               <button
                 type="button"
                 onClick={() => setIsMaterialPickerOpen(false)}
-                className="p-2 hover:bg-slate-300 rounded-xl text-slate-600 shrink-0"
+                className="p-2 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300 shrink-0"
               >
                 <X size={20} />
               </button>
@@ -2942,19 +2942,19 @@ export default function AdminSoal({
             {/* Body */}
             <div className="p-5 md:p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
               {/* Target Kartu Soal */}
-              <div className="bg-white border border-slate-300 rounded-2xl p-4 space-y-3">
+              <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl p-4 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-700">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
                     Tujuan Penyimpanan Kartu Soal
                   </span>
-                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
                     <button
                       type="button"
                       onClick={() => setPickerTargetMode('new')}
                       className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
                         pickerTargetMode === 'new'
                           ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       + Buat Kartu Baru
@@ -2971,7 +2971,7 @@ export default function AdminSoal({
                       className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all disabled:opacity-40 ${
                         pickerTargetMode === 'existing'
                           ? 'bg-brand text-white shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       Ke Kartu yang Ada ({soalSets.length})
@@ -2982,7 +2982,7 @@ export default function AdminSoal({
                 {pickerTargetMode === 'new' ? (
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-1">
                     <div className="md:col-span-6">
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
                         Judul Kartu Soal Baru *
                       </label>
                       <input
@@ -2990,11 +2990,11 @@ export default function AdminSoal({
                         value={pickerNewSetTitle}
                         onChange={(e) => setPickerNewSetTitle(e.target.value)}
                         placeholder="Contoh: Latihan Soal Berpikir Komputasi..."
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                        className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                       />
                     </div>
                     <div className="md:col-span-3">
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
                         Target Kelas
                       </label>
                       <input
@@ -3002,12 +3002,12 @@ export default function AdminSoal({
                         value={pickerNewSetKelas}
                         onChange={(e) => setPickerNewSetKelas(e.target.value)}
                         placeholder="Semua Kelas"
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-semibold text-slate-800"
+                        className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs md:text-sm font-semibold text-slate-800 dark:text-slate-100"
                       />
                     </div>
                     <div className="md:col-span-3 flex items-end">
-                      <label className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl cursor-pointer">
-                        <span className="text-xs font-black text-slate-800">Langsung Aktif</span>
+                      <label className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer">
+                        <span className="text-xs font-black text-slate-800 dark:text-slate-100">Langsung Aktif</span>
                         <input
                           type="checkbox"
                           checked={pickerNewSetActive}
@@ -3019,13 +3019,13 @@ export default function AdminSoal({
                   </div>
                 ) : (
                   <div className="pt-1">
-                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
                       Pilih Kartu Soal Tujuan
                     </label>
                     <select
                       value={pickerTargetSetId}
                       onChange={(e) => setPickerTargetSetId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30"
                     >
                       {soalSets.map((s) => (
                         <option key={s.id} value={s.id}>
@@ -3040,7 +3040,7 @@ export default function AdminSoal({
               {/* Sumber Soal Tabs & Filter */}
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex bg-slate-200 p-1 rounded-2xl border border-slate-300 w-fit">
+                  <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-2xl border border-slate-300 dark:border-slate-700 w-fit">
                     <button
                       type="button"
                       onClick={() => {
@@ -3054,7 +3054,7 @@ export default function AdminSoal({
                       className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all ${
                         materialSourceTab === 'courses'
                           ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'text-slate-600 hover:text-slate-900'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       <BookOpen size={15} />
@@ -3073,7 +3073,7 @@ export default function AdminSoal({
                       className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all ${
                         materialSourceTab === 'analisis'
                           ? 'bg-blue-600 text-white shadow-sm'
-                          : 'text-slate-600 hover:text-slate-900'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       <Sparkles size={15} />
@@ -3082,13 +3082,13 @@ export default function AdminSoal({
                   </div>
 
                   <div className="relative flex-1 min-w-[220px] max-w-xs">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
                     <input
                       type="text"
                       value={pickerSearch}
                       onChange={(e) => setPickerSearch(e.target.value)}
                       placeholder="Cari teks pertanyaan / topik..."
-                      className="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                     />
                   </div>
                 </div>
@@ -3096,13 +3096,13 @@ export default function AdminSoal({
                 {materialSourceTab === 'courses' ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1">
                         Pilih Materi di Kelola Materi
                       </label>
                       <select
                         value={pickerCourseId}
                         onChange={(e) => handlePickerCourseChange(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                       >
                         {COURSES.map((c) => {
                           const totalQ = c.topics.reduce((acc, t) => acc + (t.quiz?.length || 0), 0);
@@ -3116,13 +3116,13 @@ export default function AdminSoal({
                       </select>
                     </div>
                     <div>
-                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1">
                         Filter Topik / Sub-Bab
                       </label>
                       <select
                         value={pickerTopicId}
                         onChange={(e) => handlePickerTopicChange(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                       >
                         <option value="all">
                           Semua Topik ({selectedPickerCourse?.topics.reduce((a, t) => a + (t.quiz?.length || 0), 0) || 0} soal)
@@ -3137,7 +3137,7 @@ export default function AdminSoal({
                   </div>
                 ) : (
                   <div>
-                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1">
                       Pilih Riwayat Analisis Soal (Kelola Materi &rarr; Analisis Soal)
                     </label>
                     {analysisSetsWithPractice.length > 0 ? (
@@ -3151,7 +3151,7 @@ export default function AdminSoal({
                             );
                           }
                         }}
-                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs md:text-sm font-bold text-slate-900"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100"
                       >
                         {analysisSetsWithPractice.map((a) => (
                           <option key={a.id} value={a.id}>
@@ -3160,7 +3160,7 @@ export default function AdminSoal({
                         ))}
                       </select>
                     ) : (
-                      <div className="p-4 bg-white border border-dashed border-slate-300 rounded-xl text-xs text-slate-600 font-medium">
+                      <div className="p-4 bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-600 dark:text-slate-400 font-medium">
                         Belum ada latihan soal tersimpan dari menu <strong>Kelola Materi &rarr; Analisis Soal</strong>. Gunakan tab <strong>Materi Pembelajaran</strong> untuk mengambil soal dari materi yang sudah ada.
                       </div>
                     )}
@@ -3170,10 +3170,10 @@ export default function AdminSoal({
 
               {/* Action bar Pilih Semua + Counter */}
               {filteredMaterialCandidates.length > 0 && (
-                <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-200/80 px-4 py-2.5 rounded-xl border border-slate-300">
-                  <span className="text-xs font-black text-slate-800">
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-200/80 dark:bg-slate-800/80 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700">
+                  <span className="text-xs font-black text-slate-800 dark:text-slate-200">
                     Menampilkan {filteredMaterialCandidates.length} soal •{' '}
-                    <span className="text-emerald-700">
+                    <span className="text-emerald-700 dark:text-emerald-400">
                       {rawMaterialCandidates.filter((i) => selectedMaterialQuestionIds.has(i.uid)).length} dipilih untuk diambil
                     </span>
                   </span>
@@ -3185,7 +3185,7 @@ export default function AdminSoal({
                         filteredMaterialCandidates.forEach((item) => next.add(item.uid));
                         setSelectedMaterialQuestionIds(next);
                       }}
-                      className="px-3 py-1 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-black transition-colors"
+                      className="px-3 py-1 bg-white dark:bg-slate-900 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-black transition-colors"
                     >
                       Pilih Semua ({filteredMaterialCandidates.length})
                     </button>
@@ -3196,7 +3196,7 @@ export default function AdminSoal({
                         filteredMaterialCandidates.forEach((item) => next.delete(item.uid));
                         setSelectedMaterialQuestionIds(next);
                       }}
-                      className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 rounded-lg text-xs font-bold transition-colors"
+                      className="px-3 py-1 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-bold transition-colors"
                     >
                       Kosongkan Pilihan
                     </button>
@@ -3225,30 +3225,30 @@ export default function AdminSoal({
                         }}
                         className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
                           isChecked
-                            ? 'bg-white border-emerald-500 ring-2 ring-emerald-500/15 shadow-xs'
-                            : 'bg-slate-50 border-slate-300 hover:border-slate-400 opacity-85'
+                            ? 'bg-white dark:bg-slate-800 border-emerald-500 ring-2 ring-emerald-500/15 shadow-xs'
+                            : 'bg-slate-50 dark:bg-slate-800/60 border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 opacity-85'
                         }`}
                       >
                         <div className="flex items-start gap-3">
-                          <span className={`mt-0.5 shrink-0 ${isChecked ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          <span className={`mt-0.5 shrink-0 ${isChecked ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
                             {isChecked ? <CheckSquare size={20} /> : <Square size={20} />}
                           </span>
                           <div className="flex-1 min-w-0 space-y-2.5">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="px-2 py-0.5 rounded-md bg-slate-800 text-white text-[10px] font-black">
+                              <span className="px-2 py-0.5 rounded-md bg-slate-800 dark:bg-slate-700 text-white text-[10px] font-black">
                                 #{idx + 1}
                               </span>
-                              <span className="px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold">
+                              <span className="px-2.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[10px] font-bold">
                                 {item.topicTitle}
                               </span>
                               {isDuplicate && (
-                                <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-black">
+                                <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-black">
                                   Sudah ada di kartu tujuan
                                 </span>
                               )}
                             </div>
 
-                            <p className="text-sm font-bold text-slate-900 leading-relaxed whitespace-pre-wrap">
+                            <p className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-relaxed whitespace-pre-wrap">
                               {item.questionText}
                             </p>
 
@@ -3261,8 +3261,8 @@ export default function AdminSoal({
                                     key={oIdx}
                                     className={`px-2.5 py-1.5 rounded-lg border flex items-start gap-2 ${
                                       isKey
-                                        ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-bold'
-                                        : 'bg-slate-50 border-slate-200 text-slate-700'
+                                        ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-400 dark:border-emerald-700 text-emerald-950 dark:text-emerald-100 font-bold'
+                                        : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                                     }`}
                                   >
                                     <span className="font-black shrink-0">{OPTION_LABELS[oIdx]}.</span>
@@ -3273,8 +3273,8 @@ export default function AdminSoal({
                             </div>
 
                             {item.explanation && (
-                              <p className="text-[11px] text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg">
-                                <strong className="text-slate-800">Pembahasan: </strong>
+                              <p className="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-lg">
+                                <strong className="text-slate-800 dark:text-slate-100">Pembahasan: </strong>
                                 {item.explanation}
                               </p>
                             )}
@@ -3285,15 +3285,15 @@ export default function AdminSoal({
                   })}
                 </div>
               ) : (
-                <div className="py-10 text-center bg-white rounded-2xl border border-dashed border-slate-300 text-slate-500 text-xs font-semibold">
+                <div className="py-10 text-center bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-semibold">
                   Tidak ada soal yang cocok pada sumber / kata kunci tersebut.
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="p-5 bg-slate-200 border-t border-slate-300 flex flex-wrap items-center justify-between gap-3 shrink-0">
-              <span className="text-xs font-bold text-slate-600">
+            <div className="p-5 bg-slate-200 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
                 {(() => {
                   const count = rawMaterialCandidates.filter((i) =>
                     selectedMaterialQuestionIds.has(i.uid)
@@ -3307,7 +3307,7 @@ export default function AdminSoal({
                 <button
                   type="button"
                   onClick={() => setIsMaterialPickerOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-300/60"
+                  className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-300/60 dark:hover:bg-slate-700"
                 >
                   Batal
                 </button>
@@ -3340,19 +3340,19 @@ export default function AdminSoal({
 
       {/* ================== MODAL TAMBAH SOAL AI ================== */}
       {isAiModalOpen && createPortal(
-        <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm z-[122] flex items-center justify-center p-3 md:p-5">
-          <div className="bg-slate-100 border border-slate-300 rounded-2xl w-full max-w-6xl overflow-hidden shadow-2xl flex flex-col h-[90vh] max-h-[90vh]">
+        <div className="fixed inset-0 bg-slate-900/65 dark:bg-slate-950/80 backdrop-blur-sm z-[122] flex items-center justify-center p-3 md:p-5">
+          <div className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl w-full max-w-6xl overflow-hidden shadow-2xl flex flex-col h-[90vh] max-h-[90vh]">
             {/* Header */}
-            <div className="px-4 py-3 md:px-5 bg-slate-200 border-b border-slate-300 flex items-center justify-between gap-3 shrink-0">
+            <div className="px-4 py-3 md:px-5 bg-slate-200 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
                   <Wand2 size={17} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm md:text-base font-black text-slate-900 truncate">
+                  <h3 className="text-sm md:text-base font-black text-slate-900 dark:text-slate-100 truncate">
                     Tambah Soal Otomatis dengan AI
                   </h3>
-                  <p className="text-[11px] font-semibold text-slate-600 truncate">
+                  <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 truncate">
                     Atur topik di kiri, lalu pratinjau &amp; edit soal hasil AI di kanan
                   </p>
                 </div>
@@ -3360,7 +3360,7 @@ export default function AdminSoal({
               <button
                 type="button"
                 onClick={() => setIsAiModalOpen(false)}
-                className="p-1.5 hover:bg-slate-300 rounded-lg text-slate-600 shrink-0"
+                className="p-1.5 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 shrink-0"
               >
                 <X size={18} />
               </button>
@@ -3369,21 +3369,21 @@ export default function AdminSoal({
             {/* Body: 2 Kolom Horizontal (Kiri Pengaturan, Kanan Pratinjau) */}
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
               {/* Panel Kiri: Pengaturan & Prompt */}
-              <div className="lg:col-span-5 bg-white border-b lg:border-b-0 lg:border-r border-slate-300 p-4 space-y-3.5 overflow-y-auto custom-scrollbar">
+              <div className="lg:col-span-5 bg-white dark:bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-300 dark:border-slate-700 p-4 space-y-3.5 overflow-y-auto custom-scrollbar">
                 {/* Tujuan Penyimpanan */}
-                <div className="space-y-2 pb-3 border-b border-slate-200">
+                <div className="space-y-2 pb-3 border-b border-slate-200 dark:border-slate-800">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
                       Tujuan Kartu
                     </span>
-                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
                       <button
                         type="button"
                         onClick={() => setAiTargetMode('new')}
                         className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all ${
                           aiTargetMode === 'new'
                             ? 'bg-purple-600 text-white shadow-2xs'
-                            : 'text-slate-600 hover:text-slate-900'
+                            : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                         }`}
                       >
                         + Kartu Baru
@@ -3400,7 +3400,7 @@ export default function AdminSoal({
                         className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all disabled:opacity-40 ${
                           aiTargetMode === 'existing'
                             ? 'bg-brand text-white shadow-2xs'
-                            : 'text-slate-600 hover:text-slate-900'
+                            : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                         }`}
                       >
                         Kartu Ada ({soalSets.length})
@@ -3415,7 +3415,7 @@ export default function AdminSoal({
                         value={aiNewSetTitle}
                         onChange={(e) => setAiNewSetTitle(e.target.value)}
                         placeholder="Judul Kartu Soal Baru *"
-                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                        className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
                       />
                       <div className="grid grid-cols-2 gap-2">
                         <input
@@ -3423,10 +3423,10 @@ export default function AdminSoal({
                           value={aiNewSetKelas}
                           onChange={(e) => setAiNewSetKelas(e.target.value)}
                           placeholder="Target Kelas (Semua Kelas)"
-                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800"
+                          className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-100"
                         />
-                        <label className="flex items-center justify-between px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg cursor-pointer">
-                          <span className="text-[11px] font-bold text-slate-800">Langsung Aktif</span>
+                        <label className="flex items-center justify-between px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer">
+                          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Langsung Aktif</span>
                           <input
                             type="checkbox"
                             checked={aiNewSetActive}
@@ -3440,7 +3440,7 @@ export default function AdminSoal({
                     <select
                       value={aiTargetSetId}
                       onChange={(e) => setAiTargetSetId(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100"
                     >
                       {soalSets.map((s) => (
                         <option key={s.id} value={s.id}>
@@ -3454,17 +3454,17 @@ export default function AdminSoal({
                 {/* Sumber Topik */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
                       Sumber Topik
                     </span>
-                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
                       <button
                         type="button"
                         onClick={() => setAiContextMode('custom')}
                         className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all ${
                           aiContextMode === 'custom'
                             ? 'bg-purple-600 text-white shadow-2xs'
-                            : 'text-slate-600 hover:text-slate-900'
+                            : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                         }`}
                       >
                         Topik Bebas
@@ -3475,7 +3475,7 @@ export default function AdminSoal({
                         className={`px-2.5 py-1 rounded-md text-[11px] font-black transition-all ${
                           aiContextMode === 'course'
                             ? 'bg-emerald-600 text-white shadow-2xs'
-                            : 'text-slate-600 hover:text-slate-900'
+                            : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                         }`}
                       >
                         Dari Materi
@@ -3489,7 +3489,7 @@ export default function AdminSoal({
                       value={aiTopicPrompt}
                       onChange={(e) => setAiTopicPrompt(e.target.value)}
                       placeholder="Contoh: Berpikir Komputasional, Sistem Biner, Jaringan..."
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
                     />
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -3499,7 +3499,7 @@ export default function AdminSoal({
                           setAiCourseId(e.target.value);
                           setAiTopicId('all');
                         }}
-                        className="w-full px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
+                        className="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100"
                       >
                         {COURSES.map((c) => (
                           <option key={c.id} value={c.id}>
@@ -3510,7 +3510,7 @@ export default function AdminSoal({
                       <select
                         value={aiTopicId}
                         onChange={(e) => setAiTopicId(e.target.value)}
-                        className="w-full px-2.5 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
+                        className="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100"
                       >
                         <option value="all">Semua Topik</option>
                         {selectedAiCourse?.topics.map((t) => (
@@ -3526,7 +3526,7 @@ export default function AdminSoal({
                 {/* Parameter Soal */}
                 <div className="space-y-2.5">
                   <div>
-                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1">
                       Jumlah Soal (1–20)
                     </label>
                     <div className="flex items-center gap-1.5">
@@ -3538,7 +3538,7 @@ export default function AdminSoal({
                           className={`flex-1 py-1.5 rounded-lg text-xs font-black border transition-all ${
                             aiCount === preset
                               ? 'bg-purple-600 text-white border-purple-600'
-                              : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
+                              : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                           }`}
                         >
                           {preset}
@@ -3552,20 +3552,20 @@ export default function AdminSoal({
                         onChange={(e) =>
                           setAiCount(Math.min(20, Math.max(1, parseInt(e.target.value, 10) || 1)))
                         }
-                        className="w-14 px-2 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-black text-slate-900 text-center tabular-nums"
+                        className="w-14 px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-black text-slate-900 dark:text-slate-100 text-center tabular-nums"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1">
                         Jenjang
                       </label>
                       <select
                         value={aiJenjang}
                         onChange={(e) => setAiJenjang(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
+                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100"
                       >
                         <option value="SMP Kelas VII">SMP Kelas VII</option>
                         <option value="SMP Kelas VIII">SMP Kelas VIII</option>
@@ -3575,13 +3575,13 @@ export default function AdminSoal({
                       </select>
                     </div>
                     <div>
-                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1">
                         Kesulitan
                       </label>
                       <select
                         value={aiDifficulty}
                         onChange={(e) => setAiDifficulty(e.target.value as any)}
-                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
+                        className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100"
                       >
                         <option value="Campuran">Campuran</option>
                         <option value="Mudah">Mudah (C1–C2)</option>
@@ -3592,7 +3592,7 @@ export default function AdminSoal({
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1">
                       Instruksi Tambahan (Opsional)
                     </label>
                     <input
@@ -3600,7 +3600,7 @@ export default function AdminSoal({
                       value={aiInstructions}
                       onChange={(e) => setAiInstructions(e.target.value)}
                       placeholder="Misal: Sertakan studi kasus sehari-hari..."
-                      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800"
+                      className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-100"
                     />
                   </div>
                 </div>
@@ -3630,21 +3630,21 @@ export default function AdminSoal({
                 </button>
 
                 {aiError && (
-                  <div className="p-3 bg-red-50 border border-red-300 rounded-xl text-red-800 text-xs font-bold flex items-start gap-2">
-                    <AlertTriangle size={15} className="shrink-0 mt-0.5 text-red-600" />
+                  <div className="p-3 bg-red-50 dark:bg-red-950/60 border border-red-300 dark:border-red-800 rounded-xl text-red-800 dark:text-red-300 text-xs font-bold flex items-start gap-2">
+                    <AlertTriangle size={15} className="shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
                     <span>{aiError}</span>
                   </div>
                 )}
               </div>
 
               {/* Panel Kanan: Pratinjau & Edit Soal Hasil AI */}
-              <div className="lg:col-span-7 bg-slate-50 p-4 overflow-y-auto custom-scrollbar flex flex-col">
+              <div className="lg:col-span-7 bg-slate-50 dark:bg-slate-950/70 p-4 overflow-y-auto custom-scrollbar flex flex-col">
                 {aiGeneratedList.length > 0 ? (
                   <div className="space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2 bg-purple-50 border border-purple-200 px-3.5 py-2 rounded-xl sticky top-0 z-10">
-                      <span className="text-xs font-black text-purple-950 tabular-nums">
+                    <div className="flex flex-wrap items-center justify-between gap-2 bg-purple-50 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 px-3.5 py-2 rounded-xl sticky top-0 z-10">
+                      <span className="text-xs font-black text-purple-950 dark:text-purple-100 tabular-nums">
                         Hasil: {aiGeneratedList.length} Soal ·{' '}
-                        <span className="text-emerald-700">
+                        <span className="text-emerald-700 dark:text-emerald-400">
                           {aiGeneratedList.filter((q) => q.selected).length} dipilih
                         </span>
                       </span>
@@ -3654,7 +3654,7 @@ export default function AdminSoal({
                           onClick={() =>
                             setAiGeneratedList((prev) => prev.map((q) => ({ ...q, selected: true })))
                           }
-                          className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-[11px] font-black"
+                          className="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700 rounded-lg text-[11px] font-black"
                         >
                           Pilih Semua
                         </button>
@@ -3663,7 +3663,7 @@ export default function AdminSoal({
                           onClick={() =>
                             setAiGeneratedList((prev) => prev.map((q) => ({ ...q, selected: false })))
                           }
-                          className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 rounded-lg text-[11px] font-bold"
+                          className="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded-lg text-[11px] font-bold"
                         >
                           Kosongkan
                         </button>
@@ -3676,8 +3676,8 @@ export default function AdminSoal({
                           key={item.uid}
                           className={`p-3.5 rounded-xl border transition-all space-y-2.5 ${
                             item.selected
-                              ? 'bg-white border-purple-400 shadow-2xs'
-                              : 'bg-slate-100 border-slate-300 opacity-65'
+                              ? 'bg-white dark:bg-slate-900 border-purple-400 dark:border-purple-600 shadow-2xs'
+                              : 'bg-slate-100 dark:bg-slate-900/50 border-slate-300 dark:border-slate-800 opacity-65'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
@@ -3694,18 +3694,18 @@ export default function AdminSoal({
                                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-black ${
                                   item.selected
                                     ? 'bg-purple-600 text-white'
-                                    : 'bg-slate-200 text-slate-600'
+                                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                                 }`}
                               >
                                 {item.selected ? <CheckSquare size={13} /> : <Square size={13} />}
                                 Soal #{idx + 1}
                               </button>
-                              <span className="text-[11px] font-bold text-slate-500">
+                              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
                                 {item.cognitiveLevel}
                               </span>
                             </div>
-                            <span className="text-[11px] font-bold text-slate-500">
-                              Kunci: <strong className="text-emerald-700">{OPTION_LABELS[item.correctAnswer]}</strong>
+                            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                              Kunci: <strong className="text-emerald-700 dark:text-emerald-400">{OPTION_LABELS[item.correctAnswer]}</strong>
                             </span>
                           </div>
 
@@ -3720,7 +3720,7 @@ export default function AdminSoal({
                                 )
                               );
                             }}
-                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                            className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
                           />
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
@@ -3731,8 +3731,8 @@ export default function AdminSoal({
                                   key={oIdx}
                                   className={`flex items-center gap-1.5 p-1.5 rounded-lg border ${
                                     isKey
-                                      ? 'bg-emerald-50 border-emerald-400'
-                                      : 'bg-slate-50 border-slate-200'
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-400 dark:border-emerald-700'
+                                      : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
                                   }`}
                                 >
                                   <button
@@ -3750,7 +3750,7 @@ export default function AdminSoal({
                                     className={`w-6 h-6 rounded-md text-[11px] font-black shrink-0 flex items-center justify-center transition-all ${
                                       isKey
                                         ? 'bg-emerald-600 text-white'
-                                        : 'bg-slate-200 text-slate-700 hover:bg-emerald-100'
+                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
                                     }`}
                                   >
                                     {OPTION_LABELS[oIdx]}
@@ -3774,7 +3774,7 @@ export default function AdminSoal({
                                         })
                                       );
                                     }}
-                                    className="flex-1 min-w-0 bg-transparent text-xs font-semibold text-slate-800 focus:outline-none"
+                                    className="flex-1 min-w-0 bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none"
                                   />
                                 </div>
                               );
@@ -3793,21 +3793,21 @@ export default function AdminSoal({
                               );
                             }}
                             placeholder="Pembahasan singkat..."
-                            className="w-full px-2.5 py-1 bg-blue-50/70 border border-blue-200 rounded-lg text-[11px] font-medium text-blue-950 focus:outline-none"
+                            className="w-full px-2.5 py-1 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/70 rounded-lg text-[11px] font-medium text-blue-950 dark:text-blue-200 focus:outline-none"
                           />
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-300 rounded-2xl bg-white/70">
-                    <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center mb-3">
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl bg-white/70 dark:bg-slate-900/50">
+                    <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-950/70 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3">
                       {isGeneratingAi ? <Loader2 size={24} className="animate-spin" /> : <Wand2 size={24} />}
                     </div>
-                    <h4 className="text-sm font-black text-slate-800 mb-1">
+                    <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 mb-1">
                       {isGeneratingAi ? `Sedang Menyusun ${aiCount} Soal...` : 'Pratinjau Soal AI'}
                     </h4>
-                    <p className="text-xs text-slate-500 max-w-sm">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
                       {isGeneratingAi
                         ? 'AI sedang membuat pertanyaan, 4 pilihan jawaban, kunci, dan pembahasan.'
                         : 'Isi topik atau pilih materi di kolom sebelah kiri, lalu klik "Generate Soal dengan AI". Hasil soal dapat langsung Anda edit di sini sebelum disimpan.'}
@@ -3818,8 +3818,8 @@ export default function AdminSoal({
             </div>
 
             {/* Footer */}
-            <div className="px-4 py-3 md:px-5 bg-slate-200 border-t border-slate-300 flex flex-wrap items-center justify-between gap-3 shrink-0">
-              <span className="text-xs font-bold text-slate-600 tabular-nums">
+            <div className="px-4 py-3 md:px-5 bg-slate-200 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300 tabular-nums">
                 {aiGeneratedList.length > 0
                   ? `${aiGeneratedList.filter((q) => q.selected).length} soal dipilih siap disimpan`
                   : 'Belum ada soal yang dibuat'}
@@ -3828,7 +3828,7 @@ export default function AdminSoal({
                 <button
                   type="button"
                   onClick={() => setIsAiModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs md:text-sm hover:bg-slate-300/60"
+                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs md:text-sm hover:bg-slate-300/60 dark:hover:bg-slate-700"
                 >
                   Batal
                 </button>

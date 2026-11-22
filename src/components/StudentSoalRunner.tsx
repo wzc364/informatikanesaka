@@ -12,6 +12,8 @@ import {
   Send,
   ShieldAlert,
   ClipboardList,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { db } from '../firebase';
 import {
@@ -33,6 +35,8 @@ interface StudentSoalRunnerProps {
   isAdminPreview?: boolean;
   onExit: () => void;
   onFirestoreError?: (error: unknown, op: 'write' | 'delete', path: string) => void;
+  isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
 }
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D'] as const;
@@ -51,6 +55,8 @@ export default function StudentSoalRunner({
   isAdminPreview = false,
   onExit,
   onFirestoreError,
+  isDarkMode = false,
+  onToggleDarkMode,
 }: StudentSoalRunnerProps) {
   // Filter active questions & optionally shuffle once per session
   const [orderedQuestions] = useState<SoalQuestion[]>(() => {
@@ -319,13 +325,13 @@ export default function StudentSoalRunner({
   // Empty guard
   if (orderedQuestions.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 max-w-md w-full text-center shadow-sm space-y-4">
-          <div className="w-14 h-14 bg-amber-50 border border-amber-200 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6 font-sans transition-colors">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 max-w-md w-full text-center shadow-sm space-y-4">
+          <div className="w-14 h-14 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center mx-auto">
             <ClipboardList size={28} />
           </div>
-          <h2 className="text-xl font-extrabold text-slate-900">Belum Ada Soal Aktif</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Belum Ada Soal Aktif</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             Kartu soal "{soalSet.title}" belum memiliki butir soal yang diaktifkan.
           </p>
           <button
@@ -343,8 +349,8 @@ export default function StudentSoalRunner({
   if (isCompleted && finalResult) {
     const canSeeScore = isAdminPreview || (soalSet.isScoreVisible ?? true);
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 md:p-8 font-sans">
-        <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg overflow-hidden shadow-md text-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 md:p-8 font-sans transition-colors">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-md text-center">
           <div className="bg-emerald-600 px-8 py-9 text-white">
             <div className="w-16 h-16 bg-white/15 border border-white/25 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <CheckCircle size={34} className="text-white" />
@@ -357,32 +363,32 @@ export default function StudentSoalRunner({
 
           <div className="p-6 md:p-8 space-y-6">
             {canSeeScore ? (
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-3">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Skor Akhir</p>
+              <div className="bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-3">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Skor Akhir</p>
                 <p
                   className={`text-6xl font-black font-mono tabular-nums ${
                     finalResult.score >= 80
-                      ? 'text-emerald-600'
+                      ? 'text-emerald-600 dark:text-emerald-400'
                       : finalResult.score >= 60
-                      ? 'text-amber-600'
-                      : 'text-rose-600'
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-rose-600 dark:text-rose-400'
                   }`}
                 >
                   {finalResult.score}
                 </p>
-                <div className="flex items-center justify-center gap-4 text-xs font-bold pt-3 border-t border-slate-200 tabular-nums">
-                  <span className="text-emerald-700">Benar: {finalResult.correctCount}</span>
-                  <span aria-hidden="true" className="text-slate-300">·</span>
-                  <span className="text-rose-700">Salah: {finalResult.wrongCount}</span>
-                  <span aria-hidden="true" className="text-slate-300">·</span>
-                  <span className="text-slate-600 font-mono">{formatClock(finalResult.durationSeconds)}</span>
+                <div className="flex items-center justify-center gap-4 text-xs font-bold pt-3 border-t border-slate-200 dark:border-slate-700 tabular-nums">
+                  <span className="text-emerald-700 dark:text-emerald-400">Benar: {finalResult.correctCount}</span>
+                  <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                  <span className="text-rose-700 dark:text-rose-400">Salah: {finalResult.wrongCount}</span>
+                  <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                  <span className="text-slate-600 dark:text-slate-300 font-mono">{formatClock(finalResult.durationSeconds)}</span>
                 </div>
               </div>
             ) : (
-              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 space-y-2">
-                <Eye size={26} className="text-brand mx-auto" />
-                <p className="font-extrabold text-slate-900">Jawaban Anda Sudah Disimpan</p>
-                <p className="text-xs text-slate-600">
+              <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl p-6 space-y-2">
+                <Eye size={26} className="text-brand dark:text-blue-400 mx-auto" />
+                <p className="font-extrabold text-slate-900 dark:text-white">Jawaban Anda Sudah Disimpan</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   Guru menyembunyikan skor sementara pada paket soal ini. Nilai telah dikirim ke sistem guru.
                 </p>
               </div>
@@ -406,7 +412,7 @@ export default function StudentSoalRunner({
   const qTimeRatio = isPerSoal && maxQDuration > 0 ? Math.max(0, Math.min(100, (questionTimeLeft / maxQDuration) * 100)) : 100;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors">
       {/* Fullscreen Anti-Cheating Guard Overlay */}
       {!isAdminPreview && soalSet.isFullScreen && !isFullscreenActive && !isCompleted && (
         <div className="fixed inset-0 bg-slate-900 z-[999] flex flex-col items-center justify-center p-6 text-center">
@@ -430,7 +436,7 @@ export default function StudentSoalRunner({
       )}
 
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 h-16 sticky top-0 z-20 flex items-center justify-between gap-4">
+      <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 md:px-8 h-16 sticky top-0 z-20 flex items-center justify-between gap-4 transition-colors">
         <div className="min-w-0 flex items-center gap-3">
           {(isAdminPreview || !soalSet.isFullScreen) && (
             <button
@@ -440,7 +446,7 @@ export default function StudentSoalRunner({
                 }
                 onExit();
               }}
-              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors shrink-0 cursor-pointer"
+              className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition-colors shrink-0 cursor-pointer"
               title="Keluar"
             >
               <ArrowLeft size={18} />
@@ -449,16 +455,16 @@ export default function StudentSoalRunner({
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-[11px] font-semibold">
               {isAdminPreview && (
-                <span className="text-amber-700 font-bold">Mode Pratinjau Admin</span>
+                <span className="text-amber-700 dark:text-amber-400 font-bold">Mode Pratinjau Admin</span>
               )}
               {!isAdminPreview && soalSet.isFullScreen && (
-                <span className="text-rose-700 font-bold inline-flex items-center gap-1">
+                <span className="text-rose-700 dark:text-rose-400 font-bold inline-flex items-center gap-1">
                   <ShieldAlert size={12} />
                   Layar Penuh Terpantau
                 </span>
               )}
             </div>
-            <h1 className="font-extrabold text-slate-900 text-sm md:text-base truncate">{soalSet.title}</h1>
+            <h1 className="font-extrabold text-slate-900 dark:text-white text-sm md:text-base truncate">{soalSet.title}</h1>
           </div>
         </div>
 
@@ -468,8 +474,8 @@ export default function StudentSoalRunner({
             <div
               className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 font-mono font-bold text-xs md:text-sm ${
                 questionTimeLeft <= 5
-                  ? 'bg-red-50 border-red-300 text-red-700'
-                  : 'bg-amber-50 border-amber-200 text-amber-700'
+                  ? 'bg-red-50 dark:bg-red-950/60 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300'
+                  : 'bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
               }`}
             >
               <Clock size={14} />
@@ -479,30 +485,42 @@ export default function StudentSoalRunner({
             <div
               className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 font-mono font-bold text-xs md:text-sm ${
                 titleTimeLeft <= 60
-                  ? 'bg-red-50 border-red-300 text-red-700'
-                  : 'bg-blue-50 border-blue-200 text-brand'
+                  ? 'bg-red-50 dark:bg-red-950/60 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300'
+                  : 'bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800 text-brand dark:text-blue-300'
               }`}
             >
               <Clock size={14} />
               <span>{formatClock(titleTimeLeft)}</span>
             </div>
           ) : (
-            <div className="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold hidden sm:flex items-center gap-1.5">
+            <div className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold hidden sm:flex items-center gap-1.5">
               <Clock size={14} />
               <span>Tanpa Batas</span>
             </div>
           )}
 
           {/* Question Counter */}
-          <div className="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 font-mono">
+          <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-extrabold text-slate-800 dark:text-slate-100 font-mono">
             {currentIndex + 1} / {orderedQuestions.length}
           </div>
+
+          {onToggleDarkMode && (
+            <button
+              type="button"
+              onClick={onToggleDarkMode}
+              title={isDarkMode ? 'Mode Terang' : 'Mode Gelap'}
+              aria-label={isDarkMode ? 'Aktifkan Mode Terang' : 'Aktifkan Mode Gelap'}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 transition-colors cursor-pointer"
+            >
+              {isDarkMode ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} />}
+            </button>
+          )}
         </div>
       </header>
 
       {/* Per-question timer progress bar */}
       {isPerSoal && (
-        <div className="w-full h-1.5 bg-slate-200">
+        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800">
           <div
             className={`h-full transition-all duration-1000 ease-linear ${
               questionTimeLeft <= 5 ? 'bg-red-500' : 'bg-amber-500'
@@ -517,8 +535,8 @@ export default function StudentSoalRunner({
         <div className="max-w-4xl mx-auto space-y-5">
           {/* Palette Nomor Soal (Hanya di mode per_judul supaya tidak loncat waktu di mode per_soal) */}
           {!isPerSoal && orderedQuestions.length > 1 && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-3.5 flex items-center gap-2 flex-wrap shadow-2xs tabular-nums">
-              <span className="text-xs font-bold text-slate-500 mr-1">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 flex items-center gap-2 flex-wrap shadow-2xs tabular-nums">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mr-1">
                 Navigasi ({answeredCount}/{orderedQuestions.length}):
               </span>
               {orderedQuestions.map((q, idx) => {
@@ -533,7 +551,7 @@ export default function StudentSoalRunner({
                         ? 'bg-brand text-white ring-2 ring-brand/25'
                         : isAnswered
                         ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
                     {idx + 1}
@@ -544,13 +562,13 @@ export default function StudentSoalRunner({
           )}
 
           {/* Card Soal Aktif */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-2xs space-y-6">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-2xs space-y-6">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <span className="px-3 py-1 bg-slate-900 text-white rounded-lg text-xs font-bold font-mono tabular-nums">
+              <span className="px-3 py-1 bg-slate-900 dark:bg-slate-800 text-white rounded-lg text-xs font-bold font-mono tabular-nums">
                 Pertanyaan #{currentIndex + 1}
               </span>
               {isPerSoal && (
-                <span className="text-xs font-semibold text-amber-700">
+                <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">
                   Mode Per Soal · Lanjut otomatis saat waktu habis
                 </span>
               )}
@@ -558,7 +576,7 @@ export default function StudentSoalRunner({
 
             {/* Gambar Soal jika ada */}
             {currentQuestion.questionImage && (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center">
+              <div className="bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col items-center">
                 <img
                   src={currentQuestion.questionImage}
                   alt={`Gambar Soal ${currentIndex + 1}`}
@@ -571,7 +589,7 @@ export default function StudentSoalRunner({
 
             {/* Teks Soal */}
             {currentQuestion.questionText && (
-              <h2 className="text-lg md:text-xl font-bold text-slate-900 leading-relaxed whitespace-pre-wrap">
+              <h2 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white leading-relaxed whitespace-pre-wrap">
                 {currentQuestion.questionText}
               </h2>
             )}
@@ -593,15 +611,15 @@ export default function StudentSoalRunner({
                     }
                     className={`p-4 rounded-xl border text-left transition-all flex items-start gap-3.5 group cursor-pointer active:scale-[0.99] ${
                       isSelected
-                        ? 'bg-blue-50/70 border-brand ring-2 ring-brand/20'
-                        : 'bg-white border-slate-200 hover:border-brand/50 hover:bg-slate-50'
+                        ? 'bg-blue-50/70 dark:bg-blue-950/60 border-brand ring-2 ring-brand/20'
+                        : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-brand/50 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
                     <span
                       className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 transition-colors ${
                         isSelected
                           ? 'bg-brand text-white'
-                          : 'bg-slate-100 text-slate-700 group-hover:bg-blue-100 group-hover:text-brand'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 group-hover:text-brand dark:group-hover:text-blue-300'
                       }`}
                     >
                       {OPTION_LABELS[optIdx]}
@@ -609,12 +627,12 @@ export default function StudentSoalRunner({
 
                     <div className="flex-1 min-w-0 space-y-2">
                       {opt.text && (
-                        <p className={`text-sm md:text-base font-semibold break-words ${isSelected ? 'text-blue-950' : 'text-slate-800'}`}>
+                        <p className={`text-sm md:text-base font-semibold break-words ${isSelected ? 'text-blue-950 dark:text-blue-100' : 'text-slate-800 dark:text-slate-200'}`}>
                           {opt.text}
                         </p>
                       )}
                       {opt.image && (
-                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 w-fit">
+                        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 w-fit">
                           <img
                             src={opt.image}
                             alt={`Opsi ${OPTION_LABELS[optIdx]}`}
@@ -633,19 +651,19 @@ export default function StudentSoalRunner({
             </div>
 
             {/* Footer Navigation */}
-            <div className="pt-5 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+            <div className="pt-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 flex-wrap">
               {!isPerSoal ? (
                 <button
                   type="button"
                   disabled={currentIndex === 0}
                   onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs md:text-sm disabled:opacity-40 disabled:pointer-events-none flex items-center gap-2 whitespace-nowrap cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs md:text-sm disabled:opacity-40 disabled:pointer-events-none flex items-center gap-2 whitespace-nowrap cursor-pointer"
                 >
                   <ArrowLeft size={16} />
                   Sebelumnya
                 </button>
               ) : (
-                <div className="text-xs font-semibold text-slate-500 tabular-nums">
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
                   Soal {currentIndex + 1} dari {orderedQuestions.length}
                 </div>
               )}
@@ -678,21 +696,21 @@ export default function StudentSoalRunner({
       {/* Modal Konfirmasi Kumpulkan */}
       {showSubmitConfirm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[130] flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-xl space-y-5">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-xl space-y-5">
             <div className="flex items-start gap-3">
-              <div className="w-11 h-11 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-400 rounded-xl flex items-center justify-center shrink-0">
                 <Send size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-extrabold text-slate-900">Kumpulkan Jawaban?</h3>
-                <p className="text-xs text-slate-600 font-medium mt-1">
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">Kumpulkan Jawaban?</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-1">
                   Anda telah menjawab{' '}
-                  <span className="font-bold text-slate-900 tabular-nums">
+                  <span className="font-bold text-slate-900 dark:text-white tabular-nums">
                     {answeredCount} dari {orderedQuestions.length}
                   </span>{' '}
                   soal.
                   {answeredCount < orderedQuestions.length && (
-                    <span className="text-amber-700 font-bold block mt-1.5">
+                    <span className="text-amber-700 dark:text-amber-400 font-bold block mt-1.5">
                       <AlertTriangle size={12} className="inline mr-1" />
                       Masih ada {orderedQuestions.length - answeredCount} soal yang belum dipilih.
                     </span>
@@ -705,7 +723,7 @@ export default function StudentSoalRunner({
               <button
                 type="button"
                 onClick={() => setShowSubmitConfirm(false)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer"
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
               >
                 Periksa Lagi
               </button>

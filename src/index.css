@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-brand: #1d4ed8;
@@ -12,7 +13,7 @@
 
 @layer base {
   body {
-    @apply bg-slate-300 text-slate-800 antialiased font-sans;
+    @apply bg-slate-300 text-slate-800 dark:bg-slate-950 dark:text-slate-100 antialiased font-sans transition-colors duration-200;
   }
 }
 
@@ -28,6 +29,14 @@
 }
 .markdown-body thead {
   background-color: #cbd5e1;
+}
+.dark .markdown-body th,
+.dark .markdown-body td {
+  border-color: #334155;
+}
+.dark .markdown-body thead {
+  background-color: #1e293b;
+  color: #f1f5f9;
 }
 
 /* Modern Scrollbar Styling */
@@ -68,6 +77,10 @@
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.55);
   border-radius: 9999px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.6);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
@@ -354,5 +367,68 @@
     radial-gradient(at 52% 88%, rgba(52, 211, 153, 0.18) 0px, transparent 55%);
 }
 
+/* Dark Mode Variants for All 10 Background Presets */
+.dark .app-bg-default {
+  background-color: #020617;
+}
 
+.dark .app-bg-ocean-breeze {
+  background-color: #071326;
+  background-image: linear-gradient(135deg, #071326 0%, #0b1d3a 50%, #0a2540 100%);
+}
 
+.dark .app-bg-mint-fresh {
+  background-color: #041712;
+  background-image: linear-gradient(135deg, #041712 0%, #062820 50%, #08332c 100%);
+}
+
+.dark .app-bg-warm-sand {
+  background-color: #181006;
+  background-image: linear-gradient(135deg, #181006 0%, #241709 52%, #29160a 100%);
+}
+
+.dark .app-bg-lavender-mist {
+  background-color: #110b22;
+  background-image: linear-gradient(135deg, #110b22 0%, #1b1136 52%, #25133b 100%);
+}
+
+.dark .app-bg-sunset-pastel {
+  background-color: #1a0b12;
+  background-image: linear-gradient(135deg, #1a0b12 0%, #29101d 48%, #26190d 100%);
+}
+
+.dark .app-bg-dot-matrix {
+  background-color: #020617;
+  background-image: radial-gradient(rgba(148, 163, 184, 0.22) 1.35px, transparent 1.35px);
+  background-size: 20px 20px;
+}
+
+.dark .app-bg-blueprint-grid {
+  background-color: #051124;
+  background-image:
+    linear-gradient(to right, rgba(56, 189, 248, 0.14) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 189, 248, 0.14) 1px, transparent 1px),
+    linear-gradient(to right, rgba(14, 165, 233, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(14, 165, 233, 0.07) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+}
+
+.dark .app-bg-diagonal-weave {
+  background-color: #0b1120;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(148, 163, 184, 0.07),
+    rgba(148, 163, 184, 0.07) 12px,
+    rgba(15, 23, 42, 0.55) 12px,
+    rgba(15, 23, 42, 0.55) 24px
+  );
+}
+
+.dark .app-bg-aurora-circuit {
+  background-color: #060b19;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='none' stroke='%23818cf8' stroke-opacity='0.14' stroke-width='1.2'%3E%3Cpath d='M0 20h25l10 10h20M80 60H55L45 50H25'/%3E%3Ccircle cx='55' cy='30' r='3'/%3E%3Ccircle cx='25' cy='50' r='3'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(at 12% 18%, rgba(56, 189, 248, 0.18) 0px, transparent 52%),
+    radial-gradient(at 88% 15%, rgba(167, 139, 250, 0.18) 0px, transparent 48%),
+    radial-gradient(at 52% 88%, rgba(52, 211, 153, 0.14) 0px, transparent 55%);
+}

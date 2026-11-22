@@ -639,29 +639,29 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
     <div className={cn("font-sans", isAdmin ? "space-y-4" : "space-y-6")}>
       {/* Top Header */}
       {isAdmin ? (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 dark:bg-slate-900 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 bg-brand text-white rounded-lg flex items-center justify-center shrink-0">
               <Gamepad2 size={17} />
             </div>
             <div className="flex items-baseline gap-2 min-w-0">
-              <h2 className="text-sm md:text-base font-extrabold text-slate-900 tracking-tight truncate">
+              <h2 className="text-sm md:text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
                 Daftar Game Edukasi
               </h2>
-              <span className="text-xs text-slate-500 font-semibold whitespace-nowrap tabular-nums">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap tabular-nums">
                 · {GAMES_LIST.length} Game
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1 p-1 bg-slate-200/80 rounded-xl border border-slate-300/80 shrink-0 self-start sm:self-auto">
+          <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl border border-slate-300/80 dark:border-slate-700 shrink-0 self-start sm:self-auto">
             <button
               onClick={() => setActiveTab('manage')}
               className={cn(
                 "px-3 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap",
                 activeTab === 'manage'
-                  ? "bg-white text-slate-900 shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-950 text-slate-900 dark:text-white shadow-2xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               )}
             >
               <Settings size={13} />
@@ -672,8 +672,8 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
               className={cn(
                 "px-3 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap tabular-nums",
                 activeTab === 'leaderboard'
-                  ? "bg-white text-slate-900 shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-950 text-slate-900 dark:text-white shadow-2xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               )}
             >
               <Trophy size={13} className="text-amber-500" />
@@ -682,32 +682,32 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
           </div>
         </div>
       ) : (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white px-5 py-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 px-5 py-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="w-11 h-11 bg-indigo-600 text-white rounded-xl flex items-center justify-center shrink-0">
               <Gamepad2 size={22} />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
                 <span>Permainan Edukatif</span>
                 <span aria-hidden="true">·</span>
                 <span className="tabular-nums">{orderedGames.filter(g => gameConfigs[g.id]?.isActive ?? true).length} Game Tersedia</span>
               </div>
-              <h2 className="text-lg md:text-xl font-extrabold text-slate-900 tracking-tight truncate">
+              <h2 className="text-lg md:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
                 Arena Game Informatika
               </h2>
             </div>
           </div>
 
           {/* Tab Switcher */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0 self-start sm:self-auto">
+          <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0 self-start sm:self-auto">
             <button
               onClick={() => setActiveTab('manage')}
               className={cn(
                 "px-3.5 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer",
                 activeTab === 'manage' 
-                  ? "bg-white text-slate-900 shadow-xs" 
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-950 text-slate-900 dark:text-white shadow-xs" 
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               )}
             >
               <Gamepad2 size={14} />
@@ -718,8 +718,8 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
               className={cn(
                 "px-3.5 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap tabular-nums cursor-pointer",
                 activeTab === 'leaderboard' 
-                  ? "bg-white text-slate-900 shadow-xs" 
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white dark:bg-slate-950 text-slate-900 dark:text-white shadow-xs" 
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               )}
             >
               <Trophy size={14} className="text-amber-500" />
@@ -733,7 +733,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
       {activeTab === 'manage' && (
         <div className="space-y-3">
           {isAdmin && (
-            <p className="text-[11px] font-medium text-slate-500 flex items-center gap-1.5 px-1">
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5 px-1">
               <GripVertical size={13} className="text-slate-400 shrink-0" />
               <span>Seret kartu atau gunakan tombol panah untuk mengatur urutan tampil ke siswa (tersimpan otomatis).</span>
             </p>
@@ -976,47 +976,47 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                 return (
                   <div 
                     key={game.id}
-                    className="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between"
+                    className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between"
                   >
                     <div>
                       <GameCardBanner gameId={game.id} title={game.title} category={game.category} />
 
-                      <p className="text-xs text-slate-600 leading-relaxed mb-3.5 line-clamp-2">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3.5 line-clamp-2">
                         {game.description}
                       </p>
 
                       {/* Clean unboxed metadata row */}
-                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs font-semibold text-slate-600 mb-3 tabular-nums">
-                        <span className="inline-flex items-center gap-1 text-slate-700">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs font-semibold text-slate-600 dark:text-slate-400 mb-3 tabular-nums">
+                        <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-300">
                           <Flame size={13} className="text-amber-500" />
                           {game.difficulty}
                         </span>
-                        <span aria-hidden="true" className="text-slate-300">·</span>
-                        <span className={cn("inline-flex items-center gap-1 font-bold", myStudentHighScore > 0 ? "text-emerald-700" : "text-slate-500")}>
-                          <Trophy size={13} className={myStudentHighScore > 0 ? "text-amber-500" : "text-slate-400"} />
+                        <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">·</span>
+                        <span className={cn("inline-flex items-center gap-1 font-bold", myStudentHighScore > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400")}>
+                          <Trophy size={13} className={myStudentHighScore > 0 ? "text-amber-500" : "text-slate-400 dark:text-slate-500"} />
                           {myStudentHighScore > 0 ? `Skor Terbaik: ${myStudentHighScore}` : 'Belum Ada Skor'}
                         </span>
                         {game.id === 'petualangan-smp' && (
                           <>
-                            <span aria-hidden="true" className="text-slate-300">·</span>
-                            <span className="text-blue-700">4 Stage</span>
+                            <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">·</span>
+                            <span className="text-blue-700 dark:text-blue-400">4 Stage</span>
                           </>
                         )}
                         {game.id === 'contra-snes' && (
                           <>
-                            <span aria-hidden="true" className="text-slate-300">·</span>
-                            <span className="text-orange-700">3 Stage</span>
+                            <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">·</span>
+                            <span className="text-orange-700 dark:text-orange-400">3 Stage</span>
                           </>
                         )}
                       </div>
 
                       {game.id === 'contra-snes' && Object.keys(currentStudentContraHighScores).length > 0 && (
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-600 mb-3 tabular-nums">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-3 tabular-nums">
                           {[1, 2, 3].map(st => {
                             const stScore = currentStudentContraHighScores[st];
                             if (!stScore) return null;
                             return (
-                              <span key={st} className="px-2 py-0.5 bg-slate-100 rounded-md text-slate-700">
+                              <span key={st} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md text-slate-700 dark:text-slate-200">
                                 Stage {st}: {stScore}
                               </span>
                             );
@@ -1025,12 +1025,12 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                       )}
 
                       {game.id === 'petualangan-smp' && Object.keys(currentStudentStageHighScores).length > 0 && (
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-600 mb-3 tabular-nums">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-3 tabular-nums">
                           {[1, 2, 3, 4].map(st => {
                             const stScore = currentStudentStageHighScores[st];
                             if (!stScore) return null;
                             return (
-                              <span key={st} className="px-2 py-0.5 bg-slate-100 rounded-md text-slate-700">
+                              <span key={st} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md text-slate-700 dark:text-slate-200">
                                 Stage {st}: {stScore}
                               </span>
                             );
@@ -1040,8 +1040,8 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                     </div>
 
                     {/* Bottom Actions */}
-                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
-                      <span className="text-[11px] font-medium text-slate-400 tabular-nums">
+                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 tabular-nums">
                         Rekor Tertinggi: {gameHighScore > 0 ? `${gameHighScore} pts` : '-'}
                       </span>
                       <button
@@ -1060,14 +1060,14 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
       {/* Main Tab 2: Leaderboard */}
       {activeTab === 'leaderboard' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 md:p-6 space-y-5">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs p-5 md:p-6 space-y-5">
           {/* Controls Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+              <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Trophy className="text-amber-500" size={20} /> Papan Skor & Peringkat Siswa
               </h2>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                 Menampilkan 1 skor tertinggi setiap siswa per stage permainan.
               </p>
             </div>
@@ -1081,7 +1081,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                   placeholder="Cari siswa / kelas..." 
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2 pl-9 pr-3 text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                 />
               </div>
 
@@ -1089,7 +1089,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
               <select
                 value={filterKelas}
                 onChange={e => setFilterKelas(e.target.value)}
-                className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2 cursor-pointer"
+                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs font-semibold rounded-xl px-3 py-2 cursor-pointer"
               >
                 <option value="all">Semua Kelas</option>
                 {uniqueClasses.map(k => (
@@ -1104,7 +1104,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                   setFilterGame(e.target.value);
                   setFilterStage('all');
                 }}
-                className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2 cursor-pointer"
+                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs font-semibold rounded-xl px-3 py-2 cursor-pointer"
               >
                 <option value="all">Semua Game</option>
                 {GAMES_LIST.map(g => (
@@ -1117,7 +1117,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                 <select
                   value={filterStage}
                   onChange={e => setFilterStage(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2 cursor-pointer"
+                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs font-semibold rounded-xl px-3 py-2 cursor-pointer"
                 >
                   <option value="all">Semua Stage</option>
                   <option value="1">Stage 1</option>
@@ -1131,10 +1131,10 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
           {/* Scores Table */}
           {filteredScores.length > 0 ? (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
               <table className="w-full text-left border-collapse text-xs md:text-sm tabular-nums">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
+                  <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300">
                     <th className="px-4 py-3 text-center w-12">#</th>
                     <th className="px-4 py-3">Siswa</th>
                     <th className="px-4 py-3">Kelas</th>
@@ -1145,44 +1145,44 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                     {isAdmin && <th className="px-4 py-3 text-center">Aksi</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
                   {filteredScores.map((score, idx) => {
                     const isTop1 = idx === 0;
                     const isTop2 = idx === 1;
                     const isTop3 = idx === 2;
 
                     return (
-                      <tr key={score.id} className="hover:bg-slate-50 transition-colors">
+                      <tr key={score.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="px-4 py-3 text-center font-black">
                           {isTop1 ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-400 text-amber-950 font-black">1</span> :
-                           isTop2 ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 text-slate-800 font-black">2</span> :
+                           isTop2 ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-black">2</span> :
                            isTop3 ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-700 text-amber-100 font-black">3</span> :
                            idx + 1}
                         </td>
-                        <td className="px-4 py-3 font-bold text-slate-900">
+                        <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">
                           {score.studentName || 'Siswa'}
-                          {score.studentNis && <span className="block text-[11px] font-mono font-normal text-slate-500">NISN: {score.studentNis}</span>}
+                          {score.studentNis && <span className="block text-[11px] font-mono font-normal text-slate-500 dark:text-slate-400">NISN: {score.studentNis}</span>}
                         </td>
-                        <td className="px-4 py-3 font-semibold text-slate-700">
+                        <td className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
                           {score.studentKelas || score.kelas || '-'}
                         </td>
-                        <td className="px-4 py-3 font-semibold text-indigo-700">
+                        <td className="px-4 py-3 font-semibold text-indigo-700 dark:text-indigo-400">
                           {score.gameTitle || 'Game'}
                         </td>
-                        <td className="px-4 py-3 text-center font-extrabold text-emerald-700 text-base font-mono">
+                        <td className="px-4 py-3 text-center font-extrabold text-emerald-700 dark:text-emerald-400 text-base font-mono">
                           {score.score || 0}
                         </td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-600">
+                        <td className="px-4 py-3 text-center font-mono text-slate-600 dark:text-slate-400">
                           {score.durationSec ? `${score.durationSec}s` : '-'}
                         </td>
-                        <td className="px-4 py-3 text-slate-500 text-xs">
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">
                           {formatScoreTimestamp(score)}
                         </td>
                         {isAdmin && (
                           <td className="px-4 py-3 text-center">
                             <button
                               onClick={() => handleClearScore(score.id)}
-                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-lg transition-colors"
                               title="Hapus Skor"
                             >
                               <Trash2 size={16} />
@@ -1196,10 +1196,10 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
               </table>
             </div>
           ) : (
-            <div className="p-12 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl">
-              <Gamepad2 size={36} className="mx-auto text-slate-400 mb-3" />
-              <h3 className="font-bold text-slate-800 text-base mb-1">Belum Ada Catatan Skor Permainan</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            <div className="p-12 text-center bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
+              <Gamepad2 size={36} className="mx-auto text-slate-400 dark:text-slate-500 mb-3" />
+              <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base mb-1">Belum Ada Catatan Skor Permainan</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
                 Siswa yang menyelesaikan tantangan game edukasi akan muncul di papan skor ini secara otomatis.
               </p>
             </div>
