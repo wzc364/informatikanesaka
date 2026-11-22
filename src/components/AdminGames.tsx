@@ -51,6 +51,12 @@ import patternMasterBg from '../assets/images/game_pattern_bg_1795243068059.jpg'
 import scratchBlocksBg from '../assets/images/game_koding_bg_1795243068875.jpg';
 import dekomposisiBg from '../assets/images/game_dekomposisi_bg_1795243068709.jpg';
 import starCatcherBg from '../assets/images/game_starcatcher_bg_1795243067534.jpg';
+import bossKeyboardIdleImg from '../assets/images/boss_keyboard_idle_v2_1795342634195.jpg';
+import bossKeyboardActionImg from '../assets/images/boss_keyboard_action_1795341957877.jpg';
+import bossCpuIdleImg from '../assets/images/boss_cpu_idle_1795341958591.jpg';
+import bossCpuActionImg from '../assets/images/boss_cpu_action_1795341958520.jpg';
+import bossKujangIdleImg from '../assets/images/boss_kujang_idle_1795342609678.jpg';
+import bossKujangActionImg from '../assets/images/boss_kujang_action_1795342609635.jpg';
 
 const GAME_ART_MAP: Record<string, { image: string; fallbackGradient: string; accentClass: string; badgeText: string }> = {
   'infokombat': {
@@ -69,7 +75,7 @@ const GAME_ART_MAP: Record<string, { image: string; fallbackGradient: string; ac
     image: petualanganSmpBg,
     fallbackGradient: 'from-blue-800 via-indigo-900 to-slate-950',
     accentClass: 'bg-blue-600',
-    badgeText: 'Platformer 4 Stage'
+    badgeText: 'Platformer 5 Stage'
   },
   'pattern-master': {
     image: patternMasterBg,
@@ -203,7 +209,7 @@ export const GAMES_LIST: GameItem[] = [
     id: 'petualangan-smp',
     title: 'Petualangan Ke Sekolah',
     category: 'Permainan 2D Platformer Edukatif',
-    description: 'Petualangan seru siswa SMP menuju sekolah, bumi perkemahan, museum sains, hingga Alun-Alun Ciamis lengkap dengan aksi Bos Battle!',
+    description: 'Petualangan seru siswa SMP menuju sekolah, bumi perkemahan, museum sains, Alun-Alun Ciamis, hingga Gedung Sate Kota Bandung lengkap dengan aksi Bos Battle!',
     iconName: 'Gamepad2',
     difficulty: 'Tantangan',
     defaultTimerSec: 90
@@ -285,9 +291,193 @@ const BOSS2_POSE_PATHS = [
   '/assets/aistudio/boss2_11.png',  // 10: saat mendarat (debu pendaratan)
 ];
 
+const BOSS3_POSE_PATHS = [
+  bossKeyboardIdleImg,   // 0: idle / jalan
+  bossKeyboardActionImg, // 1: lompat / tembak / kaget
+];
+
+const BOSS4_POSE_PATHS = [
+  bossCpuIdleImg,        // 0: idle / jalan
+  bossCpuActionImg,      // 1: lompat / tembak / kaget
+];
+
+const BOSS5_POSE_PATHS = [
+  bossKujangIdleImg,     // 0: idle / jalan
+  bossKujangActionImg,   // 1: lompat / tembak / kaget
+];
+
+function getBossAreaX(stage: number): number {
+  if (stage === 2) return 4900;
+  if (stage === 3) return 5300;
+  if (stage === 4) return 5800;
+  if (stage === 5) return 6300;
+  return 5400;
+}
+
 type ProcessedSprite = HTMLCanvasElement | HTMLImageElement;
 const PROCESSED_SPRITE_CACHE = new Map<string, ProcessedSprite>();
 const SPRITE_LOAD_PROMISES = new Map<string, Promise<ProcessedSprite | null>>();
+
+function loadEdgeCleanSprite(
+  path: string,
+  maxHeight: number
+): Promise<ProcessedSprite | null> {
+  const cacheKey = `edge:${path}`;
+  const cached = PROCESSED_SPRITE_CACHE.get(cacheKey);
+  if (cached) return Promise.resolve(cached);
+
+  const existingPromise = SPRITE_LOAD_PROMISES.get(cacheKey);
+  if (existingPromise) return existingPromise;
+
+  const promise = new Promise<ProcessedSprite | null>((resolve) => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.crossOrigin = 'anonymous';
+
+    const finalize = async () => {
+      try {
+        if (typeof img.decode === 'function') {
+          await img.decode().catch(() => {});
+        }
+        const natW = img.naturalWidth || 400;
+        const natH = img.naturalHeight || 400;
+        const scale = natH > maxHeight ? maxHeight / natH : 1;
+        const targetW = Math.max(1, Math.round(natW * scale));
+        const targetH = Math.max(1, Math.round(natH * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) {
+          PROCESSED_SPRITE_CACHE.set(cacheKey, img);
+          resolve(img);
+          return;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        const imgData = ctx.getImageData(0, 0, targetW, targetH);
+        const data = imgData.data;
+        const total = targetW * targetH;
+        const visited = new Uint8Array(total);
+        const queue = new Int32Array(total);
+        let head = 0;
+        let tail = 0;
+
+        const isNearWhite = (idx: number) => {
+          const p = idx * 4;
+          const r = data[p];
+          const g = data[p + 1];
+          const b = data[p + 2];
+          const maxC = Math.max(r, g, b);
+          const minC = Math.min(r, g, b);
+          return minC > 224 && maxC - minC < 26;
+        };
+
+        const enqueue = (x: number, y: number) => {
+          if (x < 0 || x >= targetW || y < 0 || y >= targetH) return;
+          const idx = y * targetW + x;
+          if (visited[idx] || !isNearWhite(idx)) return;
+          visited[idx] = 1;
+          queue[tail++] = idx;
+        };
+
+        for (let x = 0; x < targetW; x++) {
+          enqueue(x, 0);
+          enqueue(x, targetH - 1);
+        }
+        for (let y = 1; y < targetH - 1; y++) {
+          enqueue(0, y);
+          enqueue(targetW - 1, y);
+        }
+
+        while (head < tail) {
+          const idx = queue[head++];
+          data[idx * 4 + 3] = 0;
+          const x = idx % targetW;
+          const y = (idx - x) / targetW;
+          enqueue(x - 1, y);
+          enqueue(x + 1, y);
+          enqueue(x, y - 1);
+          enqueue(x, y + 1);
+        }
+
+        // Feather light anti-aliased fringe adjacent to cleared background
+        for (let y = 1; y < targetH - 1; y++) {
+          for (let x = 1; x < targetW - 1; x++) {
+            const idx = y * targetW + x;
+            if (visited[idx]) continue;
+            const p = idx * 4;
+            const r = data[p];
+            const g = data[p + 1];
+            const b = data[p + 2];
+            const minC = Math.min(r, g, b);
+            const maxC = Math.max(r, g, b);
+            if (minC > 195 && maxC - minC < 30) {
+              const hasBgNeighbor =
+                visited[idx - 1] || visited[idx + 1] || visited[idx - targetW] || visited[idx + targetW];
+              if (hasBgNeighbor) {
+                data[p + 3] = Math.round(data[p + 3] * 0.25);
+              }
+            }
+          }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+
+        // Trim transparent padding so monster feet sit cleanly at sprite bottom
+        let minX = targetW;
+        let minY = targetH;
+        let maxX = -1;
+        let maxY = -1;
+        for (let y = 0; y < targetH; y++) {
+          for (let x = 0; x < targetW; x++) {
+            if (data[(y * targetW + x) * 4 + 3] > 20) {
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+              if (y < minY) minY = y;
+              if (y > maxY) maxY = y;
+            }
+          }
+        }
+
+        let finalCanvas: HTMLCanvasElement = canvas;
+        if (maxX > minX && maxY > minY) {
+          const cropW = maxX - minX + 1;
+          const cropH = maxY - minY + 1;
+          const trimmed = document.createElement('canvas');
+          trimmed.width = cropW;
+          trimmed.height = cropH;
+          const tCtx = trimmed.getContext('2d');
+          if (tCtx) {
+            tCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+            finalCanvas = trimmed;
+          }
+        }
+
+        PROCESSED_SPRITE_CACHE.set(cacheKey, finalCanvas);
+        resolve(finalCanvas);
+      } catch {
+        PROCESSED_SPRITE_CACHE.set(cacheKey, img);
+        resolve(img);
+      }
+    };
+
+    img.onload = () => {
+      void finalize();
+    };
+    img.onerror = () => resolve(null);
+    img.src = path;
+    if (img.complete && img.naturalWidth > 0) {
+      void finalize();
+    }
+  });
+
+  SPRITE_LOAD_PROMISES.set(cacheKey, promise);
+  return promise;
+}
 
 const IS_LITTLE_ENDIAN = (() => {
   if (typeof Uint32Array === 'undefined') return true;
@@ -391,7 +581,7 @@ interface AdminGamesProps {
 export default function AdminGames({ isAdmin, currentStudent, studentsList = [] }: AdminGamesProps) {
   const [activeTab, setActiveTab] = useState<'manage' | 'leaderboard' | 'play'>('manage');
   const [selectedGameId, setSelectedGameId] = useState<string>(GAMES_LIST[0].id);
-  const [gameConfigs, setGameConfigs] = useState<Record<string, { isActive: boolean; timerSec?: number; materiId?: string; stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string }>>({});
+  const [gameConfigs, setGameConfigs] = useState<Record<string, { isActive: boolean; timerSec?: number; materiId?: string; stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string; stage5MateriId?: string }>>({});
   const [gameScores, setGameScores] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterKelas, setFilterKelas] = useState('all');
@@ -596,7 +786,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
     return matchSearch && matchKelas && matchGame && matchStage;
   });
 
-  // Highest score per stage (1-4) for current student on Petualangan SMP
+  // Highest score per stage (1-5) for current student on Petualangan SMP
   const currentStudentStageHighScores: Record<number, number> = (() => {
     const map: Record<number, number> = {};
     if (!currentStudent) return map;
@@ -870,7 +1060,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                         {game.id === 'petualangan-smp' && (
                           <details className="group/det bg-slate-950/75 rounded-xl border border-white/20 overflow-hidden">
                             <summary className="cursor-pointer list-none px-3 py-1.5 flex items-center justify-between text-[11px] font-bold text-white select-none">
-                              <span>Atur Materi 4 Stage</span>
+                              <span>Atur Materi 5 Stage</span>
                               <ChevronDown size={13} className="text-white/80 group-open/det:rotate-180 transition-transform" />
                             </summary>
                             <div className="p-2 pt-1.5 border-t border-white/15 grid grid-cols-2 gap-1.5 text-[10px]">
@@ -915,6 +1105,18 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                                 <select
                                   value={gameConfigs['petualangan-smp']?.stage4MateriId ?? 'bk-algoritma'}
                                   onChange={(e) => updateStageMateri('stage4MateriId', e.target.value)}
+                                  className="bg-white border border-slate-200 text-[10px] font-semibold rounded-md p-1 text-slate-900 w-full"
+                                >
+                                  {COURSES.map(c => (
+                                    <option key={c.id} value={c.id}>{c.title}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="col-span-2">
+                                <span className="font-bold text-white/90 block mb-0.5">Stage 5: Kota Bandung</span>
+                                <select
+                                  value={gameConfigs['petualangan-smp']?.stage5MateriId ?? 'tik'}
+                                  onChange={(e) => updateStageMateri('stage5MateriId', e.target.value)}
                                   className="bg-white border border-slate-200 text-[10px] font-semibold rounded-md p-1 text-slate-900 w-full"
                                 >
                                   {COURSES.map(c => (
@@ -999,7 +1201,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                         {game.id === 'petualangan-smp' && (
                           <>
                             <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">·</span>
-                            <span className="text-blue-700 dark:text-blue-400">4 Stage</span>
+                            <span className="text-blue-700 dark:text-blue-400">5 Stage</span>
                           </>
                         )}
                         {game.id === 'contra-snes' && (
@@ -1026,7 +1228,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
                       {game.id === 'petualangan-smp' && Object.keys(currentStudentStageHighScores).length > 0 && (
                         <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-3 tabular-nums">
-                          {[1, 2, 3, 4].map(st => {
+                          {[1, 2, 3, 4, 5].map(st => {
                             const stScore = currentStudentStageHighScores[st];
                             if (!stScore) return null;
                             return (
@@ -1123,7 +1325,12 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                   <option value="1">Stage 1</option>
                   <option value="2">Stage 2</option>
                   <option value="3">Stage 3</option>
-                  {filterGame === 'petualangan-smp' && <option value="4">Stage 4</option>}
+                  {filterGame === 'petualangan-smp' && (
+                    <>
+                      <option value="4">Stage 4</option>
+                      <option value="5">Stage 5</option>
+                    </>
+                  )}
                 </select>
               )}
             </div>
@@ -2449,7 +2656,7 @@ function generateStageEngine(stageNum: number) {
       },
       bullets: [] as Array<{ x: number; y: number; vx: number; w: number; h: number }>,
       cameraX: 0,
-      worldWidth: 6400,
+      worldWidth: 6600,
       platforms: [
         { x: 0, y: 380, w: 450, h: 100, type: 'ground' },
         { x: 500, y: 300, w: 110, h: 20, type: 'platform' },
@@ -2473,7 +2680,7 @@ function generateStageEngine(stageNum: number) {
         { x: 4550, y: 210, w: 130, h: 20, type: 'platform' },
         { x: 4750, y: 160, w: 130, h: 20, type: 'platform' },
         { x: 4950, y: 240, w: 130, h: 20, type: 'platform' },
-        { x: 5150, y: 380, w: 1250, h: 100, type: 'ground' }
+        { x: 5150, y: 380, w: 1450, h: 100, type: 'ground' }
       ],
       items: [
         { id: 1, x: 220, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
@@ -2492,7 +2699,7 @@ function generateStageEngine(stageNum: number) {
         { id: 11, x: 4400, y: 245, w: 26, h: 24, type: 'laptop', collected: false },
         { id: 12, x: 4600, y: 165, w: 28, h: 22, type: 'ram', collected: false },
         { id: 104, x: 4800, y: 115, w: 30, h: 26, type: 'ammo', collected: false },
-        { id: 13, x: 5350, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 13, x: 5220, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
       ],
       obstacles: [
         { id: 1, x: 320, y: 360, w: 75, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
@@ -2503,13 +2710,40 @@ function generateStageEngine(stageNum: number) {
         { id: 6, x: 3450, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 7, x: 3650, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.5, minX: 3350, maxX: 3950, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 8, x: 4300, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 9, x: 4500, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: -2.3, minX: 4500, maxX: 4800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4500, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: -2.3, minX: 4380, maxX: 4800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 10, x: 4650, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
-        { id: 11, x: 5300, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 12, x: 5500, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.6, minX: 5200, maxX: 5800, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 13, x: 5850, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: -2.8, minX: 5600, maxX: 6050, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 11, x: 5165, y: 360, w: 65, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 12, x: 3750, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.6, minX: 3500, maxX: 3950, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 13, x: 4680, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: -2.7, minX: 4400, maxX: 4810, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
-      schoolGateX: 6100,
+      schoolGateX: 6320,
+      boss: {
+        x: 6000,
+        y: 380 - 160,
+        w: 115,
+        h: 140,
+        hp: 10,
+        maxHp: 10,
+        vx: 2,
+        vy: 0,
+        minX: 5300,
+        maxX: 6150,
+        shootTimer: 0,
+        state: 'idle' as 'idle' | 'moving' | 'shooting' | 'jumping' | 'dying' | 'dead',
+        jumpPhase: 'none' as 'none' | 'prep' | 'air' | 'land',
+        stateTimer: 0,
+        lasers: [] as Array<{ x: number; y: number; vx: number; vy?: number; w: number; h: number; type?: string }>,
+        fightStarted: false,
+        countdown: 0,
+        pattern: [1, 4, 2, 3, 4, 2, 1, 4, 3, 4, 2],
+        patternIndex: 0,
+        direction: 'left' as 'left' | 'right',
+        targetX: 0,
+        bossRetries: 3,
+        invulnerableFrames: 0,
+        itemDropTimer: 0,
+        hpDropTimer: 0
+      }
     };
   }
 
@@ -2595,9 +2829,153 @@ function generateStageEngine(stageNum: number) {
         { id: 10, x: 4400, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
         { id: 11, x: 4900, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 12, x: 5150, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.8, minX: 4750, maxX: 5300, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 13, x: 5800, y: 330, w: 52, h: 50, type: 'computer_evil', vx: -3, minX: 5550, maxX: 6300, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 13, x: 5600, y: 330, w: 52, h: 50, type: 'computer_evil', vx: -2.6, minX: 5520, maxX: 5720, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
       schoolGateX: 6800,
+      boss: {
+        x: 6500,
+        y: 380 - 160,
+        w: 115,
+        h: 140,
+        hp: 10,
+        maxHp: 10,
+        vx: 2,
+        vy: 0,
+        minX: 5800,
+        maxX: 6650,
+        shootTimer: 0,
+        state: 'idle' as 'idle' | 'moving' | 'shooting' | 'jumping' | 'dying' | 'dead',
+        jumpPhase: 'none' as 'none' | 'prep' | 'air' | 'land',
+        stateTimer: 0,
+        lasers: [] as Array<{ x: number; y: number; vx: number; vy?: number; w: number; h: number; type?: string }>,
+        fightStarted: false,
+        countdown: 0,
+        pattern: [1, 4, 2, 3, 4, 2, 1, 4, 3, 4, 2],
+        patternIndex: 0,
+        direction: 'left' as 'left' | 'right',
+        targetX: 0,
+        bossRetries: 3,
+        invulnerableFrames: 0,
+        itemDropTimer: 0,
+        hpDropTimer: 0
+      }
+    };
+  }
+
+  if (stageNum === 5) {
+    // Stage 5: Menuju Kota Bandung (Gedung Sate & Tangkuban Perahu - 240m)
+    return {
+      player: {
+        x: 100,
+        y: 300,
+        width: 45,
+        height: 65,
+        vx: 0,
+        vy: 0,
+        isGrounded: false,
+        direction: 'right' as 'left' | 'right',
+        invulnerableFrames: 0,
+        superPowerFrames: 0,
+        keyboardGunFrames: 0,
+        bulletsLeft: 0,
+        shootCooldown: 0,
+        animFrame: 0,
+      },
+      bullets: [] as Array<{ x: number; y: number; vx: number; w: number; h: number }>,
+      cameraX: 0,
+      worldWidth: 7700,
+      platforms: [
+        { x: 0, y: 380, w: 500, h: 100, type: 'ground' },
+        { x: 560, y: 300, w: 130, h: 20, type: 'platform' },
+        { x: 740, y: 225, w: 140, h: 20, type: 'platform' },
+        { x: 930, y: 165, w: 140, h: 20, type: 'platform' },
+        { x: 1120, y: 380, w: 660, h: 100, type: 'ground' },
+        { x: 1320, y: 270, w: 150, h: 20, type: 'platform' },
+        { x: 1540, y: 195, w: 150, h: 20, type: 'platform' },
+        { x: 1900, y: 380, w: 680, h: 100, type: 'ground' },
+        { x: 2060, y: 275, w: 150, h: 20, type: 'platform' },
+        { x: 2290, y: 205, w: 150, h: 20, type: 'platform' },
+        { x: 2590, y: 150, w: 160, h: 20, type: 'platform' },
+        { x: 2860, y: 380, w: 760, h: 100, type: 'ground' },
+        { x: 3060, y: 275, w: 140, h: 20, type: 'platform' },
+        { x: 3270, y: 200, w: 140, h: 20, type: 'platform' },
+        { x: 3480, y: 265, w: 140, h: 20, type: 'platform' },
+        { x: 3740, y: 380, w: 720, h: 100, type: 'ground' },
+        { x: 3940, y: 260, w: 150, h: 20, type: 'platform' },
+        { x: 4180, y: 185, w: 150, h: 20, type: 'platform' },
+        { x: 4440, y: 245, w: 150, h: 20, type: 'platform' },
+        { x: 4720, y: 380, w: 760, h: 100, type: 'ground' },
+        { x: 4920, y: 280, w: 140, h: 20, type: 'platform' },
+        { x: 5150, y: 205, w: 140, h: 20, type: 'platform' },
+        { x: 5380, y: 150, w: 150, h: 20, type: 'platform' },
+        { x: 5620, y: 250, w: 150, h: 20, type: 'platform' },
+        { x: 5900, y: 380, w: 1800, h: 100, type: 'ground' }
+      ],
+      items: [
+        { id: 1, x: 230, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 2, x: 595, y: 255, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 101, x: 780, y: 180, w: 30, h: 26, type: 'ammo', collected: false },
+        { id: 3, x: 965, y: 120, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 4, x: 1370, y: 225, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 5, x: 1590, y: 150, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 6, x: 2110, y: 230, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 102, x: 2220, y: 330, w: 30, h: 26, type: 'ammo', collected: false },
+        { id: 7, x: 2340, y: 160, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
+        { id: 8, x: 2640, y: 105, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 3 },
+        { id: 9, x: 3110, y: 230, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 10, x: 3320, y: 155, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 103, x: 3530, y: 220, w: 30, h: 26, type: 'ammo', collected: false },
+        { id: 11, x: 3990, y: 215, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 12, x: 4230, y: 140, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 104, x: 4490, y: 200, w: 30, h: 26, type: 'ammo', collected: false },
+        { id: 13, x: 4970, y: 235, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 105, x: 5430, y: 105, w: 30, h: 26, type: 'ammo', collected: false },
+        { id: 14, x: 5670, y: 205, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 15, x: 6180, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
+      ],
+      obstacles: [
+        { id: 1, x: 350, y: 360, w: 75, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 2, x: 1280, y: 330, w: 52, h: 50, type: 'computer_evil', vx: 2.2, minX: 1180, maxX: 1700, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 3, x: 1480, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 4, x: 2020, y: 328, w: 52, h: 52, type: 'phone_evil', vx: -2.4, minX: 1930, maxX: 2500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 5, x: 2640, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2.2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
+        { id: 6, x: 3180, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 7, x: 3420, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.6, minX: 2950, maxX: 3560, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 8, x: 3880, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4120, y: 328, w: 52, h: 52, type: 'phone_evil', vx: -2.6, minX: 3940, maxX: 4400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 10, x: 4520, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2.2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
+        { id: 11, x: 4980, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 12, x: 5220, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.8, minX: 4820, maxX: 5400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 13, x: 6020, y: 330, w: 52, h: 50, type: 'computer_evil', vx: -2.6, minX: 5930, maxX: 6180, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      ],
+      schoolGateX: 7300,
+      boss: {
+        x: 7000,
+        y: 380 - 160,
+        w: 115,
+        h: 140,
+        hp: 10,
+        maxHp: 10,
+        vx: 2,
+        vy: 0,
+        minX: 6300,
+        maxX: 7150,
+        shootTimer: 0,
+        state: 'idle' as 'idle' | 'moving' | 'shooting' | 'jumping' | 'dying' | 'dead',
+        jumpPhase: 'none' as 'none' | 'prep' | 'air' | 'land',
+        stateTimer: 0,
+        lasers: [] as Array<{ x: number; y: number; vx: number; vy?: number; w: number; h: number; type?: string }>,
+        fightStarted: false,
+        countdown: 0,
+        pattern: [1, 4, 2, 3, 4, 2, 1, 4, 3, 4, 2],
+        patternIndex: 0,
+        direction: 'left' as 'left' | 'right',
+        targetX: 0,
+        bossRetries: 3,
+        invulnerableFrames: 0,
+        itemDropTimer: 0,
+        hpDropTimer: 0
+      }
     };
   }
 
@@ -3720,6 +4098,127 @@ function drawAlunAlunCiamis(ctx: CanvasRenderingContext2D, x: number, groundY: n
   ctx.restore();
 }
 
+// 6. GEDUNG SATE KOTA BANDUNG (Landmark Ikonik Kota Bandung)
+function drawGedungSateBandung(ctx: CanvasRenderingContext2D, x: number, groundY: number, animFrame: number) {
+  if (x < -520 || x > 980) return;
+  ctx.save();
+
+  const bldgX = x + 15;
+  const bldgW = 350;
+
+  // Lapangan Gasibu Stone Plaza
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(bldgX - 24, groundY - 12, bldgW + 48, 12);
+  ctx.fillStyle = '#0d9488';
+  ctx.fillRect(bldgX - 24, groundY - 14, bldgW + 48, 3);
+
+  // Main White Art Deco Wings
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(bldgX + 18, groundY - 98, bldgW - 36, 86);
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(bldgX + 18, groundY - 98, bldgW - 36, 86);
+
+  // Warm Terracotta Roofs on Side Wings
+  ctx.fillStyle = '#c2410c';
+  ctx.beginPath();
+  ctx.moveTo(bldgX + 10, groundY - 98);
+  ctx.lineTo(bldgX + 68, groundY - 122);
+  ctx.lineTo(bldgX + bldgW - 68, groundY - 122);
+  ctx.lineTo(bldgX + bldgW - 10, groundY - 98);
+  ctx.closePath();
+  ctx.fill();
+
+  // Arched Colonnade Windows on Wings
+  for (let w = 0; w < 8; w++) {
+    if (w === 3 || w === 4) continue;
+    const wx = bldgX + 34 + w * 38;
+    ctx.fillStyle = '#0f766e';
+    ctx.fillRect(wx, groundY - 82, 16, 26);
+    ctx.beginPath();
+    ctx.arc(wx + 8, groundY - 82, 8, Math.PI, 0);
+    ctx.fill();
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(wx + 3, groundY - 76, 10, 14);
+  }
+
+  // Central Stepped Gedung Sate Tower
+  const towerX = bldgX + bldgW / 2 - 42;
+  ctx.fillStyle = '#f1f5f9';
+  ctx.fillRect(towerX, groundY - 156, 84, 144);
+  ctx.strokeStyle = '#94a3b8';
+  ctx.strokeRect(towerX, groundY - 156, 84, 144);
+
+  // Pagoda Tiered Roof
+  ctx.fillStyle = '#9a3412';
+  ctx.beginPath();
+  ctx.moveTo(towerX - 10, groundY - 156);
+  ctx.lineTo(towerX + 42, groundY - 184);
+  ctx.lineTo(towerX + 94, groundY - 156);
+  ctx.closePath();
+  ctx.fill();
+
+  // Signature Sate Skewer Spire (6 Golden Orbs)
+  const spireX = towerX + 42;
+  ctx.fillStyle = '#eab308';
+  ctx.fillRect(spireX - 2, groundY - 224, 4, 42);
+  for (let orb = 0; orb < 6; orb++) {
+    ctx.beginPath();
+    ctx.arc(spireX, groundY - 190 - orb * 5.5, 3.6 - orb * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Grand Arch Entrance Door
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(towerX + 24, groundY - 58, 36, 46);
+  ctx.beginPath();
+  ctx.arc(towerX + 42, groundY - 58, 18, Math.PI, 0);
+  ctx.fill();
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Signboard Banner: GEDUNG SATE • KOTA BANDUNG
+  ctx.fillStyle = '#065f46';
+  ctx.fillRect(towerX - 58, groundY - 134, 200, 26);
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(towerX - 58, groundY - 134, 200, 26);
+  ctx.fillStyle = '#facc15';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('🏛️ GEDUNG SATE BANDUNG', towerX - 38, groundY - 119);
+  ctx.fillStyle = '#a7f3d0';
+  ctx.font = 'bold 8px sans-serif';
+  ctx.fillText('PARIS VAN JAVA • KOTA KEMBANG', towerX - 24, groundY - 110);
+
+  // Decorative Bandung Park Trees & Animated Fountains
+  [bldgX - 4, bldgX + bldgW + 4].forEach((tx, idx) => {
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(tx - 3, groundY - 46, 6, 34);
+    ctx.fillStyle = idx === 0 ? '#16a34a' : '#059669';
+    ctx.beginPath();
+    ctx.arc(tx, groundY - 52, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#4ade80';
+    ctx.beginPath();
+    ctx.arc(tx - 4, groundY - 58, 10, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  const fx = bldgX + 75;
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  for (let j = -1; j <= 1; j++) {
+    const spray = 16 + Math.sin(animFrame * 4 + j) * 4;
+    ctx.beginPath();
+    ctx.moveTo(fx, groundY - 12);
+    ctx.quadraticCurveTo(fx + j * 8, groundY - 12 - spray, fx + j * 14, groundY - 12);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, onClose }: { isAdmin: boolean; currentStudent: any; studentStageHighScores?: Record<number, number>; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const poseImagesRef = useRef<(ProcessedSprite | null)[]>(
@@ -3731,8 +4230,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
   const boss2ImagesRef = useRef<(ProcessedSprite | null)[]>(
     BOSS2_POSE_PATHS.map((p) => PROCESSED_SPRITE_CACHE.get(p) ?? null)
   );
+  const boss3ImagesRef = useRef<(ProcessedSprite | null)[]>(
+    BOSS3_POSE_PATHS.map((p) => PROCESSED_SPRITE_CACHE.get(`edge:${p}`) ?? null)
+  );
+  const boss4ImagesRef = useRef<(ProcessedSprite | null)[]>(
+    BOSS4_POSE_PATHS.map((p) => PROCESSED_SPRITE_CACHE.get(`edge:${p}`) ?? null)
+  );
+  const boss5ImagesRef = useRef<(ProcessedSprite | null)[]>(
+    BOSS5_POSE_PATHS.map((p) => PROCESSED_SPRITE_CACHE.get(`edge:${p}`) ?? null)
+  );
 
-  const [currentStage, setCurrentStage] = useState<1 | 2 | 3 | 4>(1);
+  const [currentStage, setCurrentStage] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [posesLoadedCount, setPosesLoadedCount] = useState<number>(() =>
     PLAYER_POSE_PATHS.filter((p) => PROCESSED_SPRITE_CACHE.has(p)).length
   );
@@ -3767,7 +4275,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
     };
   }, []);
 
-  // Lazy-load boss sprites only for the active stage (Stage 1 or Stage 2)
+  // Lazy-load boss sprites for the active stage (Stage 1, 2, 3, or 4)
   useEffect(() => {
     let cancelled = false;
     if (currentStage === 1) {
@@ -3790,6 +4298,39 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         }
         void loadProcessedSprite(path, 280, false).then((sprite) => {
           if (!cancelled) boss2ImagesRef.current[idx] = sprite;
+        });
+      });
+    } else if (currentStage === 3) {
+      BOSS3_POSE_PATHS.forEach((path, idx) => {
+        const cached = PROCESSED_SPRITE_CACHE.get(`edge:${path}`);
+        if (cached) {
+          boss3ImagesRef.current[idx] = cached;
+          return;
+        }
+        void loadEdgeCleanSprite(path, 280).then((sprite) => {
+          if (!cancelled) boss3ImagesRef.current[idx] = sprite;
+        });
+      });
+    } else if (currentStage === 4) {
+      BOSS4_POSE_PATHS.forEach((path, idx) => {
+        const cached = PROCESSED_SPRITE_CACHE.get(`edge:${path}`);
+        if (cached) {
+          boss4ImagesRef.current[idx] = cached;
+          return;
+        }
+        void loadEdgeCleanSprite(path, 280).then((sprite) => {
+          if (!cancelled) boss4ImagesRef.current[idx] = sprite;
+        });
+      });
+    } else if (currentStage === 5) {
+      BOSS5_POSE_PATHS.forEach((path, idx) => {
+        const cached = PROCESSED_SPRITE_CACHE.get(`edge:${path}`);
+        if (cached) {
+          boss5ImagesRef.current[idx] = cached;
+          return;
+        }
+        void loadEdgeCleanSprite(path, 280).then((sprite) => {
+          if (!cancelled) boss5ImagesRef.current[idx] = sprite;
         });
       });
     }
@@ -3840,7 +4381,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
   const usedQuizQuestionIndicesRef = useRef<Set<number>>(new Set());
 
   // Firestore Config for Stage Materi
-  const [stageConfigs, setStageConfigs] = useState<{ stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string }>({});
+  const [stageConfigs, setStageConfigs] = useState<{ stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string; stage5MateriId?: string }>({});
   const [completedStages, setCompletedStages] = useState<number[]>([]);
 
   useEffect(() => {
@@ -3866,7 +4407,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
     if (stageNum === 1) return stageConfigs.stage1MateriId || 'bk-dekomposisi';
     if (stageNum === 2) return stageConfigs.stage2MateriId || 'bk-pengenalan-pola';
     if (stageNum === 3) return stageConfigs.stage3MateriId || 'scratch';
-    return stageConfigs.stage4MateriId || 'bk-algoritma';
+    if (stageNum === 4) return stageConfigs.stage4MateriId || 'bk-algoritma';
+    return stageConfigs.stage5MateriId || 'tik';
   };
 
   const currentMateriId = getActiveMateriIdForStage(currentStage);
@@ -4096,7 +4638,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
     resetEngineForStage(stageNum);
     setScore(s => (gameState === 'win' ? s : 0)); // accumulate score across stages or start fresh
     setLives(3);
-    const initialDist = stageNum === 1 ? 175 : stageNum === 2 ? 190 : stageNum === 3 ? 200 : 220;
+    const initialDist = stageNum === 1 ? 175 : stageNum === 2 ? 190 : stageNum === 3 ? 200 : stageNum === 4 ? 220 : 240;
     lastDistanceRef.current = initialDist;
     setDistanceRemaining(initialDist);
     setActiveQuiz(null);
@@ -4150,6 +4692,72 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
     engineRef.current.player.x = 4850;
     engineRef.current.cameraX = 4850 - 300;
     
+    setGameState('playing');
+  };
+
+  const startBossFightStage3 = () => {
+    resetKeys();
+    setCurrentStage(3);
+    resetEngineForStage(3);
+    setScore(0);
+    setLives(3);
+    setDistanceRemaining(30);
+    setActiveQuiz(null);
+    setQuizFeedback(null);
+    setShowRewardPicker(false);
+    setSelectedRewardMsg(null);
+    setSuperPowerActive(false);
+    setKeyboardGunActive(false);
+    setBossBulletsCount(0);
+
+    // Position player just before boss area (5300)
+    engineRef.current.player.x = 5250;
+    engineRef.current.cameraX = 5250 - 300;
+
+    setGameState('playing');
+  };
+
+  const startBossFightStage4 = () => {
+    resetKeys();
+    setCurrentStage(4);
+    resetEngineForStage(4);
+    setScore(0);
+    setLives(3);
+    setDistanceRemaining(30);
+    setActiveQuiz(null);
+    setQuizFeedback(null);
+    setShowRewardPicker(false);
+    setSelectedRewardMsg(null);
+    setSuperPowerActive(false);
+    setKeyboardGunActive(false);
+    setBossBulletsCount(0);
+
+    // Position player just before boss area (5800)
+    engineRef.current.player.x = 5750;
+    engineRef.current.cameraX = 5750 - 300;
+
+    setGameState('playing');
+  };
+
+  const startBossFightStage5 = () => {
+    resetKeys();
+    setCurrentStage(5);
+    resetEngineForStage(5);
+    setScore(0);
+    setLives(3);
+    setDistanceRemaining(30);
+    setActiveQuiz(null);
+    setQuizFeedback(null);
+    setShowRewardPicker(false);
+    setSelectedRewardMsg(null);
+    setSuperPowerActive(false);
+    setKeyboardGunActive(false);
+    setBossBulletsCount(0);
+
+    // Position player just before boss area (6300)
+    engineRef.current.player.x = 6250;
+    engineRef.current.cameraX = 6250 - 300;
+
     setGameState('playing');
   };
 
@@ -4380,7 +4988,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         fxPopupsRef.current.push({ x, y, text, color, life: 40 });
       };
 
-      const isFrozen = (currentStage === 1 || currentStage === 2) && engine.boss && engine.boss.countdown > 0;
+      const isFrozen = currentStage >= 1 && currentStage <= 5 && engine.boss && engine.boss.countdown > 0;
       // Fire keyboard gun bullet when shoot key, tap buffer, or button is active
       if ((keysRef.current.shoot || meta.shootBufferFrames > 0) && (p.keyboardGunFrames > 0 || (p.bulletsLeft && p.bulletsLeft > 0)) && !isFrozen) {
         if (!p.shootCooldown || p.shootCooldown <= 0) {
@@ -4422,7 +5030,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         let bulletRemoved = false;
 
         // Bullet vs Boss Laser / Projectile (Counter Attack)
-        if ((currentStage === 1 || currentStage === 2) && engine.boss && engine.boss.state !== 'dead') {
+        if (currentStage >= 1 && currentStage <= 5 && engine.boss && engine.boss.state !== 'dead') {
            const boss = engine.boss;
            for (let lIdx = boss.lasers.length - 1; lIdx >= 0; lIdx--) {
               const l = boss.lasers[lIdx];
@@ -4444,7 +5052,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         if (bulletRemoved) continue;
 
         // Bullet vs Boss hit
-        if ((currentStage === 1 || currentStage === 2) && engine.boss && engine.boss.state !== 'dead' && engine.boss.state !== 'dying' && (!engine.boss.countdown || engine.boss.countdown <= 0)) {
+        if (currentStage >= 1 && currentStage <= 5 && engine.boss && engine.boss.state !== 'dead' && engine.boss.state !== 'dying' && (!engine.boss.countdown || engine.boss.countdown <= 0)) {
            const boss = engine.boss;
            const bossTopY = boss.y - 45;
            if (
@@ -4682,11 +5290,11 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         setDistanceRemaining(remainingMeters);
       }
 
-      // Boss Logic (Stage 1 & Stage 2)
-      if ((currentStage === 1 || currentStage === 2) && engine.boss) {
+      // Boss Logic (Stage 1, Stage 2, Stage 3, Stage 4 & Stage 5)
+      if (currentStage >= 1 && currentStage <= 5 && engine.boss) {
         const boss = engine.boss;
         if (boss.invulnerableFrames > 0) boss.invulnerableFrames--;
-        const bossAreaX = currentStage === 2 ? 4900 : 5400;
+        const bossAreaX = getBossAreaX(currentStage);
 
         // Activation and Forced Position logic: move player left, boss right
         if (p.x > bossAreaX && !boss.fightStarted && boss.state !== 'dead') {
@@ -4886,6 +5494,42 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                      h: 36,
                      type: ['chat', 'wifi', 'phone', 'mail'][Math.floor(Math.random() * 4)]
                    });
+                 } else if (currentStage === 3) {
+                   // Stage 3: Shoot Keyboard Keycap Projectiles
+                   const laserVx = boss.direction === 'left' ? -9 : 9;
+                   const laserX = boss.direction === 'left' ? boss.x - 12 : boss.x + boss.w;
+                   boss.lasers.push({
+                     x: laserX,
+                     y: boss.y + 48,
+                     vx: laserVx,
+                     w: 40,
+                     h: 34,
+                     type: ['key_esc', 'key_enter', 'key_shift', 'key_ctrl'][Math.floor(Math.random() * 4)]
+                   });
+                 } else if (currentStage === 4) {
+                   // Stage 4: Shoot Cute CPU Microchip & Spark Projectiles
+                   const laserVx = boss.direction === 'left' ? -9.5 : 9.5;
+                   const laserX = boss.direction === 'left' ? boss.x - 12 : boss.x + boss.w;
+                   boss.lasers.push({
+                     x: laserX,
+                     y: boss.y + 48,
+                     vx: laserVx,
+                     w: 38,
+                     h: 36,
+                     type: ['cpu_zap', 'cpu_chip', 'cpu_fan', 'cpu_bit'][Math.floor(Math.random() * 4)]
+                   });
+                 } else if (currentStage === 5) {
+                   // Stage 5: Shoot Cute Kujang Pusaka & Kota Bandung Projectiles
+                   const laserVx = boss.direction === 'left' ? -9.5 : 9.5;
+                   const laserX = boss.direction === 'left' ? boss.x - 12 : boss.x + boss.w;
+                   boss.lasers.push({
+                     x: laserX,
+                     y: boss.y + 48,
+                     vx: laserVx,
+                     w: 38,
+                     h: 38,
+                     type: ['kujang_star', 'bandung_crest', 'angklung', 'siliwangi'][Math.floor(Math.random() * 4)]
+                   });
                  } else {
                    // Stage 1: Blue laser bar
                    const laserVx = boss.direction === 'left' ? -10 : 10;
@@ -5027,8 +5671,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         return true;
       }
 
-      const activeBossAreaX = currentStage === 2 ? 4900 : 5400;
-      const isBossArenaLocked = (currentStage === 1 || currentStage === 2) && engine.boss && p.x > activeBossAreaX && engine.boss.state !== 'dead';
+      const activeBossAreaX = getBossAreaX(currentStage);
+      const isBossArenaLocked = currentStage >= 1 && currentStage <= 5 && engine.boss && p.x > activeBossAreaX && engine.boss.state !== 'dead';
       if (isBossArenaLocked) {
         engine.cameraX = activeBossAreaX;
       } else {
@@ -5363,6 +6007,89 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           }
         }
 
+      } else if (currentStage === 5) {
+        // Stage 5: Kota Bandung (Gunung Tangkuban Perahu, Jembatan Pasupati & Gedung Heritage)
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
+        skyGradient.addColorStop(0, '#0f172a');
+        skyGradient.addColorStop(0.32, '#0c4a6e');
+        skyGradient.addColorStop(0.68, '#0284c7');
+        skyGradient.addColorStop(1, '#bae6fd');
+        ctx.fillStyle = skyGradient;
+        ctx.fillRect(0, 0, 800, 450);
+
+        // Bright Afternoon Sun over Parahyangan Highlands
+        const sunHalo = ctx.createRadialGradient(650, 92, 10, 650, 92, 95);
+        sunHalo.addColorStop(0, 'rgba(254, 240, 138, 0.72)');
+        sunHalo.addColorStop(1, 'rgba(254, 240, 138, 0)');
+        ctx.fillStyle = sunHalo;
+        ctx.beginPath();
+        ctx.arc(650, 92, 95, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(650, 92, 24, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Soft Bandung Morning Clouds
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        for (let c = 0; c < 5; c++) {
+          const cx = (((c * 320 + 60 - camX * 0.12 - p.animFrame * 6) % 980) + 980) % 980 - 90;
+          const cy = 62 + (c % 2) * 30;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+          ctx.arc(cx + 18, cy - 6, 22, 0, Math.PI * 2);
+          ctx.arc(cx + 38, cy, 16, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Gunung Tangkuban Perahu (Flat-Topped Upturned Boat Silhouette)
+        ctx.fillStyle = '#1e3a8a';
+        ctx.beginPath();
+        for (let m = 0; m < 5; m++) {
+          const mx = m * 420 - (camX * 0.14) % 420;
+          ctx.moveTo(mx - 120, 365);
+          ctx.lineTo(mx + 20, 212);
+          ctx.lineTo(mx + 150, 198);
+          ctx.lineTo(mx + 220, 224);
+          ctx.lineTo(mx + 330, 365);
+        }
+        ctx.fill();
+
+        // Jembatan Pasupati Cable-Stayed Pylons & Deck in Midground
+        const pasupatiY = 262;
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(0, pasupatiY, 800, 6);
+        for (let py = 0; py < 4; py++) {
+          const pylonX = (((py * 380 + 180 - camX * 0.28) % 1140) + 1140) % 1140 - 150;
+          ctx.fillStyle = '#e2e8f0';
+          ctx.fillRect(pylonX - 4, 158, 8, 125);
+          ctx.strokeStyle = 'rgba(248, 250, 252, 0.45)';
+          ctx.lineWidth = 1.2;
+          for (let cb = 1; cb <= 4; cb++) {
+            ctx.beginPath();
+            ctx.moveTo(pylonX, 165 + cb * 6);
+            ctx.lineTo(pylonX - cb * 22, pasupatiY);
+            ctx.moveTo(pylonX, 165 + cb * 6);
+            ctx.lineTo(pylonX + cb * 22, pasupatiY);
+            ctx.stroke();
+          }
+        }
+
+        // Bandung Art Deco Heritage Skyline
+        for (let i = 0; i < 12; i++) {
+          const bX = i * 280 + 40 - camX * 0.38;
+          if (bX < -110 || bX > 920) continue;
+          const bH = 92 + (i % 3) * 24;
+          ctx.fillStyle = i % 2 === 0 ? '#0f766e' : '#1e293b';
+          ctx.fillRect(bX, 365 - bH, 76, bH);
+          ctx.fillStyle = '#fde047';
+          for (let wy = 365 - bH + 14; wy < 345; wy += 18) {
+            ctx.fillRect(bX + 12, wy, 10, 8);
+            ctx.fillRect(bX + 33, wy, 10, 8);
+            ctx.fillRect(bX + 54, wy, 10, 8);
+          }
+        }
+
       } else {
         // Stage 1: Home to School Bright Morning Sky (Multi-Depth Hills, Birds, Electric Poles & Houses)
         const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
@@ -5520,9 +6247,12 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         } else if (currentStage === 3) {
           // Stage 3 Start: SMPN 1 KAWALI (Titik Kumpul Keberangkatan Study Tour)
           drawSekolah(ctx, startX, 380, p.animFrame, true, 'KEBERANGKATAN STUDY TOUR');
-        } else {
+        } else if (currentStage === 4) {
           // Stage 4 Start: SMPN 1 KAWALI (Menuju Alun-Alun Ciamis)
           drawSekolah(ctx, startX, 380, p.animFrame, true, 'MENUJU ALUN-ALUN CIAMIS');
+        } else {
+          // Stage 5 Start: SMPN 1 KAWALI (Menuju Kota Bandung)
+          drawSekolah(ctx, startX, 380, p.animFrame, true, 'MENUJU KOTA BANDUNG');
         }
       }
 
@@ -5532,10 +6262,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         if (px + plat.w < -50 || px > canvas.width + 50) continue;
 
         if (plat.type === 'ground') {
-          const soilDark = currentStage === 2 ? '#3b1605' : currentStage === 3 ? '#1e293b' : currentStage === 4 ? '#3f1d2b' : '#92400e';
-          const soilLight = currentStage === 2 ? '#52220c' : currentStage === 3 ? '#334155' : currentStage === 4 ? '#581c87' : '#b45309';
-          const turfTop = currentStage === 2 ? '#15803d' : currentStage === 3 ? '#0284c7' : currentStage === 4 ? '#16a34a' : '#22c55e';
-          const turfHighlight = currentStage === 2 ? '#4ade80' : currentStage === 3 ? '#7dd3fc' : '#86efac';
+          const soilDark = currentStage === 2 ? '#3b1605' : currentStage === 3 || currentStage === 5 ? '#1e293b' : currentStage === 4 ? '#3f1d2b' : '#92400e';
+          const soilLight = currentStage === 2 ? '#52220c' : currentStage === 3 || currentStage === 5 ? '#334155' : currentStage === 4 ? '#581c87' : '#b45309';
+          const turfTop = currentStage === 2 ? '#15803d' : currentStage === 3 ? '#0284c7' : currentStage === 5 ? '#059669' : currentStage === 4 ? '#16a34a' : '#22c55e';
+          const turfHighlight = currentStage === 2 ? '#4ade80' : currentStage === 3 ? '#7dd3fc' : currentStage === 5 ? '#6ee7b7' : '#86efac';
 
           // Underground Soil / Concrete Strata
           ctx.fillStyle = soilLight;
@@ -5756,14 +6486,28 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         }
       }
 
-      // Render Boss (Stage 1 & Stage 2) & Projectiles
-      if ((currentStage === 1 || currentStage === 2) && engine.boss) {
+      // Render Boss (Stage 1, Stage 2, Stage 3, Stage 4 & Stage 5) & Projectiles
+      if (currentStage >= 1 && currentStage <= 5 && engine.boss) {
         const boss = engine.boss;
         const bx = boss.x - camX;
         const by = boss.y;
 
         let bossImg: HTMLCanvasElement | HTMLImageElement | null = null;
-        if (currentStage === 2) {
+        const isAiCartoonBoss = currentStage === 3 || currentStage === 4 || currentStage === 5;
+        if (currentStage === 3 || currentStage === 4 || currentStage === 5) {
+          const arr =
+            currentStage === 5
+              ? boss5ImagesRef.current
+              : currentStage === 3
+              ? boss3ImagesRef.current
+              : boss4ImagesRef.current;
+          const useAction =
+            boss.state === 'dying' ||
+            boss.invulnerableFrames > 0 ||
+            (boss.state === 'jumping' && boss.jumpPhase === 'air') ||
+            (boss.state === 'shooting' && (boss.shootTimer <= 18));
+          bossImg = (useAction ? arr[1] : arr[0]) || arr[0] || arr[1];
+        } else if (currentStage === 2) {
           // Stage 2 Boss Pose Mappings
           if (boss.state === 'dead' || boss.state === 'dying') {
             bossImg = boss2ImagesRef.current[7] || boss2ImagesRef.current[0];
@@ -5811,7 +6555,16 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         }
 
         if (!isSpriteReady(bossImg)) {
-          const fallbackArr = currentStage === 2 ? boss2ImagesRef.current : bossImagesRef.current;
+          const fallbackArr =
+            currentStage === 5
+              ? boss5ImagesRef.current
+              : currentStage === 4
+              ? boss4ImagesRef.current
+              : currentStage === 3
+              ? boss3ImagesRef.current
+              : currentStage === 2
+              ? boss2ImagesRef.current
+              : bossImagesRef.current;
           bossImg = fallbackArr.find(isSpriteReady) || null;
         }
 
@@ -5819,10 +6572,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
            const imgW = (bossImg as HTMLCanvasElement).width || (bossImg as HTMLImageElement).naturalWidth || 400;
            const imgH = (bossImg as HTMLCanvasElement).height || (bossImg as HTMLImageElement).naturalHeight || 400;
            const bAspect = imgW / imgH;
-           const drawBH = 150;
+           const drawBH = isAiCartoonBoss ? 142 : 150;
            const drawBW = drawBH * bAspect;
            const drawX = bx + (boss.w - drawBW)/2;
-           const drawY = by + boss.h - drawBH - 35; // Increased upward offset to 35px so feet land on platform
+           const drawY = isAiCartoonBoss ? by + 100 - drawBH : by + boss.h - drawBH - 35;
 
            // Boss Ground Shadow + Charging Aura
            if (boss.state !== 'dead') {
@@ -5833,7 +6586,16 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
              ctx.fill();
            }
            if (boss.state === 'shooting' && boss.shootTimer > 0 && boss.shootTimer < 22) {
-             ctx.fillStyle = currentStage === 2 ? 'rgba(168, 85, 247, 0.25)' : 'rgba(59, 130, 246, 0.25)';
+             ctx.fillStyle =
+               currentStage === 5
+                 ? 'rgba(20, 184, 166, 0.28)'
+                 : currentStage === 4
+                 ? 'rgba(6, 182, 212, 0.28)'
+                 : currentStage === 3
+                 ? 'rgba(16, 185, 129, 0.28)'
+                 : currentStage === 2
+                 ? 'rgba(168, 85, 247, 0.25)'
+                 : 'rgba(59, 130, 246, 0.25)';
              ctx.beginPath();
              ctx.arc(bx + boss.w / 2, by + boss.h / 2 - 20, 62 + Math.sin(p.animFrame * 8) * 6, 0, Math.PI * 2);
              ctx.fill();
@@ -5843,13 +6605,78 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
            if (boss.invulnerableFrames > 0 && Math.floor(boss.invulnerableFrames / 3) % 2 === 0) {
               ctx.globalAlpha = 0.5; // Smooth flicker-free hit blink without filter state invalidation
            }
-           // Default pose is facing left, so flip if facing right
-           if (boss.direction === 'right') {
-              ctx.translate(drawX + drawBW, drawY);
-              ctx.scale(-1, 1);
-              ctx.drawImage(bossImg, 0, 0, drawBW, drawBH);
+           if (isAiCartoonBoss) {
+              // Procedural squash/stretch/hop/recoil/KO animation on AI sprites (anchored at bottom-center)
+              let sx = 1;
+              let sy = 1;
+              let rot = 0;
+              let hopY = 0;
+              const t = p.animFrame;
+
+              if (boss.state === 'dead') {
+                sx = 1.15;
+                sy = 0.55;
+                ctx.globalAlpha = 0.72;
+              } else if (boss.state === 'dying') {
+                rot = Math.sin(boss.stateTimer * 0.45) * 0.38;
+                sx = 1.06;
+                sy = 0.94;
+              } else if (boss.invulnerableFrames > 0) {
+                rot = Math.sin(t * 14) * 0.16;
+                sx = 1.08;
+                sy = 0.92;
+              } else if (boss.state === 'jumping') {
+                if (boss.jumpPhase === 'prep') {
+                  sx = 1.18;
+                  sy = 0.78;
+                } else if (boss.jumpPhase === 'air') {
+                  sx = 0.95;
+                  sy = 1.07;
+                  rot = -0.09;
+                } else {
+                  sx = 1.2;
+                  sy = 0.78;
+                }
+              } else if (boss.state === 'shooting') {
+                if (boss.shootTimer > 0) {
+                  sx = 1.06 + Math.sin(t * 14) * 0.04;
+                  sy = 0.95;
+                  rot = 0.05;
+                } else {
+                  sx = 1.12;
+                  sy = 0.92;
+                  rot = -0.07;
+                }
+              } else if (boss.state === 'moving') {
+                const walkBounce = Math.abs(Math.sin(t * 3.8));
+                hopY = -walkBounce * 7;
+                rot = Math.sin(t * 3.8) * 0.08;
+                sx = 1 + (1 - walkBounce) * 0.05;
+                sy = 1 + walkBounce * 0.05;
+              } else {
+                const breathe = Math.sin(t * 2.2);
+                sx = 1 + breathe * 0.035;
+                sy = 1 - breathe * 0.035;
+              }
+
+              const anchorX = drawX + drawBW / 2;
+              const anchorY = drawY + drawBH + hopY;
+              ctx.translate(anchorX, anchorY);
+              if (boss.direction === 'right') {
+                ctx.scale(-1, 1);
+              }
+              ctx.rotate(rot);
+              ctx.scale(sx, sy);
+              ctx.drawImage(bossImg, -drawBW / 2, -drawBH, drawBW, drawBH);
            } else {
-              ctx.drawImage(bossImg, drawX, drawY, drawBW, drawBH);
+              // Default pose is facing left, so flip if facing right
+              if (boss.direction === 'right') {
+                 ctx.translate(drawX + drawBW, drawY);
+                 ctx.scale(-1, 1);
+                 ctx.drawImage(bossImg, 0, 0, drawBW, drawBH);
+              } else {
+                 ctx.drawImage(bossImg, drawX, drawY, drawBW, drawBH);
+              }
            }
            ctx.restore();
 
@@ -5900,8 +6727,26 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             ctx.scale(scale, scale);
             
             // Ultra Glow
-            const glowColor = currentStage === 2 ? '#a855f7' : '#3b82f6';
-            const strokeColor = currentStage === 2 ? '#c084fc' : '#60a5fa';
+            const glowColor =
+              currentStage === 5
+                ? '#14b8a6'
+                : currentStage === 4
+                ? '#06b6d4'
+                : currentStage === 3
+                ? '#10b981'
+                : currentStage === 2
+                ? '#a855f7'
+                : '#3b82f6';
+            const strokeColor =
+              currentStage === 5
+                ? '#5eead4'
+                : currentStage === 4
+                ? '#67e8f9'
+                : currentStage === 3
+                ? '#6ee7b7'
+                : currentStage === 2
+                ? '#c084fc'
+                : '#60a5fa';
             ctx.shadowColor = glowColor;
             ctx.shadowBlur = 80;
             ctx.fillStyle = '#ffffff';
@@ -5920,10 +6765,20 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             ctx.save();
             ctx.textAlign = 'center';
             ctx.fillStyle = strokeColor;
-            ctx.font = 'black 36px "Inter", sans-serif';
+            ctx.font = 'black 32px "Inter", sans-serif';
             ctx.shadowColor = '#000';
             ctx.shadowBlur = 15;
-            ctx.fillText(currentStage === 2 ? 'PERSIAPAN BERTARUNG! (STAGE 2 BOS)' : 'PERSIAPAN BERTARUNG!', 400, 340);
+            const bossCountdownLabel =
+              currentStage === 5
+                ? 'PERSIAPAN BERTARUNG! (BOS KUJANG IMUT - STAGE 5)'
+                : currentStage === 4
+                ? 'PERSIAPAN BERTARUNG! (BOS CPU LUCU - STAGE 4)'
+                : currentStage === 3
+                ? 'PERSIAPAN BERTARUNG! (BOS KEYBOARD IMUT - STAGE 3)'
+                : currentStage === 2
+                ? 'PERSIAPAN BERTARUNG! (STAGE 2 BOS)'
+                : 'PERSIAPAN BERTARUNG!';
+            ctx.fillText(bossCountdownLabel, 400, 340);
             
             // Modern stylized progress indicator
             const lineW = 400;
@@ -5961,6 +6816,108 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                ctx.textBaseline = 'middle';
                const symbol = iconType === 'phone' ? '📞' : iconType === 'mail' ? '✉️' : iconType === 'wifi' ? '📶' : '💬';
                ctx.fillText(symbol, lx + l.w / 2, l.y + l.h / 2);
+             } else if (currentStage === 3) {
+               // Stage 3: Cute Keyboard Keycap Projectiles
+               const iconType = l.type || 'key_esc';
+               const bgCol =
+                 iconType === 'key_esc'
+                   ? '#ec4899'
+                   : iconType === 'key_enter'
+                   ? '#10b981'
+                   : iconType === 'key_shift'
+                   ? '#8b5cf6'
+                   : '#0ea5e9';
+               ctx.shadowColor = bgCol;
+               ctx.shadowBlur = 14;
+               ctx.fillStyle = bgCol;
+               ctx.beginPath();
+               ctx.roundRect(lx, l.y, l.w, l.h, 7);
+               ctx.fill();
+               ctx.strokeStyle = '#ffffff';
+               ctx.lineWidth = 2;
+               ctx.stroke();
+
+               ctx.fillStyle = '#ffffff';
+               ctx.font = iconType === 'key_enter' ? 'bold 16px sans-serif' : '900 10px monospace';
+               ctx.textAlign = 'center';
+               ctx.textBaseline = 'middle';
+               const label =
+                 iconType === 'key_esc'
+                   ? 'ESC'
+                   : iconType === 'key_enter'
+                   ? '⏎'
+                   : iconType === 'key_shift'
+                   ? 'SHIFT'
+                   : 'CTRL';
+               ctx.fillText(label, lx + l.w / 2, l.y + l.h / 2 + 1);
+             } else if (currentStage === 4) {
+               // Stage 4: Cute CPU Microchip & Spark Projectiles
+               const iconType = l.type || 'cpu_zap';
+               const bgCol =
+                 iconType === 'cpu_zap'
+                   ? '#06b6d4'
+                   : iconType === 'cpu_chip'
+                   ? '#0f766e'
+                   : iconType === 'cpu_fan'
+                   ? '#3b82f6'
+                   : '#eab308';
+               ctx.shadowColor = bgCol;
+               ctx.shadowBlur = 14;
+               ctx.fillStyle = bgCol;
+               ctx.beginPath();
+               ctx.roundRect(lx, l.y, l.w, l.h, 8);
+               ctx.fill();
+               ctx.strokeStyle = '#fef08a';
+               ctx.lineWidth = 2;
+               ctx.stroke();
+
+               ctx.fillStyle = '#ffffff';
+               ctx.font = iconType === 'cpu_bit' ? '900 13px monospace' : 'bold 16px sans-serif';
+               ctx.textAlign = 'center';
+               ctx.textBaseline = 'middle';
+               const symbol =
+                 iconType === 'cpu_zap'
+                   ? '⚡'
+                   : iconType === 'cpu_chip'
+                   ? '🔲'
+                   : iconType === 'cpu_fan'
+                   ? '🌀'
+                   : '01';
+               ctx.fillText(symbol, lx + l.w / 2, l.y + l.h / 2 + 1);
+             } else if (currentStage === 5) {
+               // Stage 5: Cute Kujang Pusaka & Kota Bandung Projectiles
+               const iconType = l.type || 'kujang_star';
+               const bgCol =
+                 iconType === 'kujang_star'
+                   ? '#0d9488'
+                   : iconType === 'bandung_crest'
+                   ? '#0284c7'
+                   : iconType === 'angklung'
+                   ? '#d97706'
+                   : '#0f766e';
+               ctx.shadowColor = '#2dd4bf';
+               ctx.shadowBlur = 14;
+               ctx.fillStyle = bgCol;
+               ctx.beginPath();
+               ctx.roundRect(lx, l.y, l.w, l.h, 9);
+               ctx.fill();
+               ctx.strokeStyle = '#fde047';
+               ctx.lineWidth = 2;
+               ctx.stroke();
+
+               ctx.fillStyle = '#ffffff';
+               ctx.font = 'bold 16px sans-serif';
+               ctx.textAlign = 'center';
+               ctx.textBaseline = 'middle';
+               const symbol =
+                 iconType === 'kujang_star'
+                   ? '✨'
+                   : iconType === 'bandung_crest'
+                   ? '🗡️'
+                   : iconType === 'angklung'
+                   ? '🎵'
+                   : '🐯';
+               ctx.fillText(symbol, lx + l.w / 2, l.y + l.h / 2 + 1);
              } else {
                // Stage 1: Laser Bar
                ctx.shadowColor = '#3b82f6';
@@ -6318,6 +7275,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       // Stage 2: BUMI PERKEMAHAN PRAMUKA (Tempat Kemah)
       // Stage 3: MUSEUM WISATA SAINS & TEKNOLOGI (Tempat Wisata)
       // Stage 4: ALUN-ALUN KOTA CIAMIS (Monumen Bunga Rafflesia)
+      // Stage 5: GEDUNG SATE KOTA BANDUNG (Paris van Java)
       const gateX = engine.schoolGateX - camX;
       if (gateX > -500 && gateX < canvas.width + 500) {
         if (currentStage === 1) {
@@ -6326,8 +7284,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           drawTempatKemah(ctx, gateX - 45, 380, p.animFrame);
         } else if (currentStage === 3) {
           drawTempatWisata(ctx, gateX - 55, 380, p.animFrame);
-        } else {
+        } else if (currentStage === 4) {
           drawAlunAlunCiamis(ctx, gateX - 65, 380, p.animFrame);
+        } else {
+          drawGedungSateBandung(ctx, gateX - 65, 380, p.animFrame);
         }
       }
 
@@ -6413,7 +7373,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.restore();
         }
 
-        const isFrozen = (currentStage === 1 || currentStage === 2) && engine.boss && engine.boss.countdown > 0;
+        const isFrozen = currentStage >= 1 && currentStage <= 5 && engine.boss && engine.boss.countdown > 0;
         const isMoving = !isFrozen && Math.abs(p.vx) > 0.5;
         const isJumping = !p.isGrounded;
         const hasGunAmmo = p.keyboardGunFrames > 0 || (p.bulletsLeft !== undefined && p.bulletsLeft > 0);
@@ -6509,7 +7469,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           {/* Stage Badge */}
           <div className="px-3 py-1 bg-brand text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
             <span>Stage {currentStage}:</span>
-            <span>{currentStage === 1 ? 'Berangkat Sekolah' : currentStage === 2 ? 'Kegiatan Pramuka' : currentStage === 3 ? 'Study Tour Edukasi' : 'Menuju Kota Ciamis'}</span>
+            <span>{currentStage === 1 ? 'Berangkat Sekolah' : currentStage === 2 ? 'Kegiatan Pramuka' : currentStage === 3 ? 'Study Tour Edukasi' : currentStage === 4 ? 'Menuju Kota Ciamis' : 'Menuju Kota Bandung'}</span>
           </div>
 
           <div className="flex items-center gap-1 font-black text-rose-500 text-base">
@@ -6521,7 +7481,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           </div>
 
           <div className="text-xs font-bold text-slate-300">
-            Jarak: <span className="text-amber-400 font-mono font-black text-sm">{distanceRemaining}m</span> ke {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan' : currentStage === 3 ? 'Museum Wisata' : 'Alun-Alun Ciamis'}
+            Jarak: <span className="text-amber-400 font-mono font-black text-sm">{distanceRemaining}m</span> ke {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan' : currentStage === 3 ? 'Museum Wisata' : currentStage === 4 ? 'Alun-Alun Ciamis' : 'Gedung Sate Bandung'}
           </div>
 
           {superPowerActive && (
@@ -6547,7 +7507,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
 
         <div className="flex items-center gap-2 ml-auto sm:ml-0 flex-wrap">
           {isAdmin && (
-            <div className="flex items-center gap-1.5 bg-slate-800/90 p-1 rounded-xl border border-purple-500/40">
+            <div className="flex items-center gap-1.5 bg-slate-800/90 p-1 rounded-xl border border-purple-500/40 flex-wrap">
               <span className="text-[10px] font-black text-amber-400 px-1 uppercase tracking-wider hidden sm:inline">⚡ Admin:</span>
               <button
                 onClick={() => startBossFightStage1()}
@@ -6562,6 +7522,27 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                 title="Langsung Uji Coba Bos Stage 2 (Loncat & Cyber App Icons)"
               >
                 🔥 Bos 2
+              </button>
+              <button
+                onClick={() => startBossFightStage3()}
+                className="px-2 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[10px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                title="Langsung Uji Coba Bos Stage 3 (Monster Keyboard Imut)"
+              >
+                🔥 Bos 3
+              </button>
+              <button
+                onClick={() => startBossFightStage4()}
+                className="px-2 py-1 bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white text-[10px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                title="Langsung Uji Coba Bos Stage 4 (Monster CPU Lucu)"
+              >
+                🔥 Bos 4
+              </button>
+              <button
+                onClick={() => startBossFightStage5()}
+                className="px-2 py-1 bg-gradient-to-r from-teal-600 to-amber-500 hover:from-teal-500 hover:to-amber-400 text-white text-[10px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                title="Langsung Uji Coba Bos Stage 5 Kota Bandung (Kujang Imut)"
+              >
+                🔥 Bos 5
               </button>
               <button
                 onClick={() => {
@@ -6707,13 +7688,13 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             <div className="w-16 h-16 bg-brand rounded-2xl flex items-center justify-center shadow-lg text-3xl animate-bounce">
               🎒
             </div>
-            <h2 className="text-2xl md:text-3xl font-black tracking-tight">Petualangan Ke Sekolah & Kota Ciamis</h2>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight">Petualangan Ke Sekolah, Ciamis & Bandung</h2>
             <p className="text-xs text-slate-300 max-w-md font-medium leading-relaxed">
               Pilih Stage petualangan kamu! Kumpulkan RAM & Laptop, serta jawab Kuis Kotak Emas dari materi <strong className="text-amber-300">{activeCourseObj?.title || 'Informatika'}</strong>!
             </p>
 
             {/* Stage Selector Tabs */}
-            <div className="flex items-center gap-2 p-1.5 bg-slate-800/90 border border-slate-700 rounded-2xl max-w-2xl w-full justify-center flex-wrap">
+            <div className="flex items-center gap-2 p-1.5 bg-slate-800/90 border border-slate-700 rounded-2xl max-w-3xl w-full justify-center flex-wrap">
               <button
                 onClick={() => startGame(1)}
                 className={cn(
@@ -6780,14 +7761,31 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                   </span>
                 )}
               </button>
+              <button
+                onClick={() => startGame(5)}
+                disabled={!isAdmin && !completedStages.includes(4)}
+                className={cn(
+                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5",
+                  currentStage === 5 ? "bg-teal-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700",
+                  !isAdmin && !completedStages.includes(4) && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <span>{!isAdmin && !completedStages.includes(4) ? '🔒' : '🏯'} Stage 5</span>
+                <span className="text-[10px] opacity-80">(240m)</span>
+                {(studentStageHighScores?.[5] || 0) > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-md bg-amber-400 text-amber-950 text-[9px] font-black">
+                    🏆 {studentStageHighScores?.[5]}
+                  </span>
+                )}
+              </button>
             </div>
 
             <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-3 text-xs text-left max-w-md space-y-1 text-slate-300">
               <p className="font-black text-amber-400 uppercase tracking-wider text-[11px]">🎯 Informasi Stage {currentStage}:</p>
               <p className="text-[11px] font-semibold">
                 • <strong>Kuis Materi:</strong> {activeCourseObj?.title || 'Informatika'}<br/>
-                • <strong>Destinasi:</strong> {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan Pramuka' : currentStage === 3 ? 'Museum Wisata Sains' : 'Alun-Alun Kota Ciamis (Monumen Rafflesia)'}<br/>
-                • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat & Boss Core Virus' : currentStage === 2 ? 'Telepon Jahat (Lompat) & Boss Cyber Bot (Senjata Aplikasi)' : currentStage === 3 ? 'Keyboard Terbakar Bergigi' : 'Kombinasi Monster Cyber'}
+                • <strong>Destinasi:</strong> {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan Pramuka' : currentStage === 3 ? 'Museum Wisata Sains' : currentStage === 4 ? 'Alun-Alun Kota Ciamis (Monumen Rafflesia)' : 'Gedung Sate Kota Bandung (Paris van Java)'}<br/>
+                • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat & Boss Core Virus' : currentStage === 2 ? 'Telepon Jahat (Lompat) & Boss Cyber Bot (Senjata Aplikasi)' : currentStage === 3 ? 'Keyboard Terbakar & Boss Monster Keyboard Imut (Lompat & Keycaps)' : currentStage === 4 ? 'Kombinasi Monster Cyber & Boss Monster CPU Lucu (Lompat & Chip Listrik)' : 'Kombinasi Cyber Bandung & Boss Kujang Imut (Lompat & Energi Pusaka)'}
               </p>
             </div>
 
@@ -6807,10 +7805,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
               </button>
 
               {isAdmin && (
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap justify-center">
                   <button
                     onClick={() => startBossFightStage1()}
-                    className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                    className="px-3.5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
                     title="Uji coba pertarungan Bos Stage 1"
                   >
                     🔥 Coba Bos Stage 1
@@ -6818,10 +7816,34 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
 
                   <button
                     onClick={() => startBossFightStage2()}
-                    className="px-4 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-black text-xs md:text-sm rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                    className="px-3.5 py-2.5 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-black text-xs rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
                     title="Uji coba pertarungan Bos Stage 2 (Tembak Aplikasi & Action Loncat)"
                   >
-                    🔥 Coba Bos Stage 2 (Admin)
+                    🔥 Coba Bos Stage 2
+                  </button>
+
+                  <button
+                    onClick={() => startBossFightStage3()}
+                    className="px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                    title="Uji coba pertarungan Bos Stage 3 (Monster Keyboard Imut)"
+                  >
+                    🔥 Coba Bos Stage 3
+                  </button>
+
+                  <button
+                    onClick={() => startBossFightStage4()}
+                    className="px-3.5 py-2.5 bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white font-black text-xs rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                    title="Uji coba pertarungan Bos Stage 4 (Monster CPU Lucu)"
+                  >
+                    🔥 Coba Bos Stage 4
+                  </button>
+
+                  <button
+                    onClick={() => startBossFightStage5()}
+                    className="px-3.5 py-2.5 bg-gradient-to-r from-teal-600 to-amber-500 hover:from-teal-500 hover:to-amber-400 text-white font-black text-xs rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                    title="Uji coba pertarungan Bos Stage 5 Kota Bandung (Monster Kujang Imut)"
+                  >
+                    🔥 Coba Bos Stage 5
                   </button>
                 </div>
               )}
@@ -6925,7 +7947,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
               🏆
             </div>
             <h2 className="text-2xl md:text-3xl font-black text-amber-300">
-              {currentStage === 4 ? "JUARA PETUALANGAN KOTA CIAMIS! 🎉" : `Selamat! Selesai Stage ${currentStage}! 🎉`}
+              {currentStage === 5 ? "JUARA PETUALANGAN KOTA BANDUNG! 🎉" : `Selamat! Selesai Stage ${currentStage}! 🎉`}
             </h2>
             <p className="text-xs md:text-sm text-emerald-200 font-bold max-w-md">
               {currentStage === 1
@@ -6934,7 +7956,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                 ? "Kamu berhasil mencapai Bumi Perkemahan Pramuka! Lanjut ke Study Tour Edukasi?"
                 : currentStage === 3
                 ? "Kamu berhasil mencapai Museum Wisata Sains! Lanjut ke Petualangan Kota Ciamis?"
-                : "Selamat! Kamu telah menuntaskan seluruh 4 Stage Petualangan Edukasi Informatika!"}
+                : currentStage === 4
+                ? "Kamu berhasil tiba di Alun-Alun Kota Ciamis! Lanjut ke Petualangan Kota Bandung?"
+                : "Selamat! Kamu telah menuntaskan seluruh 5 Stage Petualangan Edukasi Informatika hingga Kota Bandung!"}
             </p>
 
             <div className="bg-emerald-900/80 border border-emerald-700 p-4 rounded-2xl">
@@ -6943,7 +7967,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             </div>
 
             <div className="flex gap-3 flex-wrap justify-center pt-2">
-              {currentStage < 4 ? (
+              {currentStage < 5 ? (
                 <button
                   onClick={() => startGame(currentStage + 1 as any)}
                   className="px-8 py-3.5 bg-amber-400 text-amber-950 font-black rounded-2xl text-sm hover:bg-amber-300 transition-all shadow-xl animate-pulse"
