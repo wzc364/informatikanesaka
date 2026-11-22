@@ -2800,7 +2800,7 @@ export default function App() {
         (printingMaterialCourseId || (adminTab === 'materials' && materialSubTab === 'analisis_soal' && hasPrintableQuestionAnalysis)) && "print:hidden"
       )}>
         {/* Mobile Header */}
-        <div className="md:hidden fixed top-2 left-2 right-2 h-12 admin-glass-card rounded-xl z-50 flex items-center justify-between px-3 transition-all duration-200">
+        <div className="md:hidden fixed top-2 left-2 right-2 h-12 admin-glass-header rounded-xl z-50 flex items-center justify-between px-3 transition-colors duration-200">
           <div className="flex items-center gap-2">
             <div className="bg-slate-100 dark:bg-slate-800 w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden relative border border-slate-200/80 dark:border-slate-700">
               <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
@@ -2841,27 +2841,23 @@ export default function App() {
 
         {/* Sidebar Navigation (Clear Frosted Glass) */}
         <aside className={cn(
-          "admin-glass-sidebar fixed inset-y-3 left-3 z-50 w-72 rounded-3xl overflow-hidden transition-all duration-300 transform md:relative md:inset-auto md:z-20 md:m-4 md:mr-0 md:h-[calc(100vh-2rem)] md:translate-x-0",
+          "admin-glass-sidebar fixed inset-y-3 left-3 z-50 w-72 rounded-3xl overflow-hidden transition-transform duration-200 transform md:relative md:inset-auto md:z-20 md:m-4 md:mr-0 md:h-[calc(100vh-2rem)] md:translate-x-0",
           isAdminSidebarOpen ? "translate-x-0" : "-translate-x-[calc(100%+1.5rem)]"
         )}>
-          {/* Subtle specular glass reflection along top/diagonal edge */}
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/12 via-transparent to-transparent dark:from-white/6 dark:via-transparent dark:to-transparent" />
-          <div aria-hidden="true" className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/85 dark:via-white/30 to-transparent" />
-
           <div className="relative z-10 p-5 flex flex-col h-full">
             <div className="flex items-center justify-between pb-5 mb-5 border-b border-white/35 dark:border-white/12">
               <div className="flex items-center gap-3">
-                <div className="bg-white/15 dark:bg-white/8 backdrop-blur-xs w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden relative border border-white/55 dark:border-white/18">
+                <div className="bg-white/25 dark:bg-white/10 w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden relative border border-white/55 dark:border-white/18">
                   <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
                 </div>
                 <div>
-                  <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100 leading-tight uppercase tracking-tight drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">SMPN 1 KAWALI</h2>
+                  <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100 leading-tight uppercase tracking-tight">SMPN 1 KAWALI</h2>
                   <p className="text-[10px] font-bold text-brand dark:text-blue-400 uppercase tracking-widest mt-0.5">Informatika</p>
                 </div>
               </div>
               <button 
                 onClick={() => setIsAdminSidebarOpen(false)}
-                className="md:hidden p-1.5 text-slate-600 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-white/20 dark:hover:bg-white/10 rounded-xl transition-all duration-300"
+                className="md:hidden p-1.5 text-slate-600 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-white/20 dark:hover:bg-white/10 rounded-xl transition-colors duration-200"
               >
                 <X size={20} />
               </button>
@@ -2878,16 +2874,16 @@ export default function App() {
                     setIsAdminSidebarOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-300 font-bold text-sm group relative",
+                    "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-colors duration-200 font-bold text-sm group relative",
                     adminTab === item.id 
-                      ? "bg-gradient-to-r from-brand/80 to-blue-600/75 backdrop-blur-xs text-white shadow-lg shadow-brand/20 border border-white/35" 
-                      : "text-slate-900 dark:text-slate-100 border border-transparent hover:bg-white/20 dark:hover:bg-white/10 hover:backdrop-blur-xs hover:border-white/45 dark:hover:border-white/18 hover:text-brand dark:hover:text-blue-300 hover:translate-x-0.5 drop-shadow-[0_1px_1px_rgba(255,255,255,0.55)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]"
+                      ? "bg-gradient-to-r from-brand/85 to-blue-600/80 text-white shadow-md shadow-brand/20 border border-white/35" 
+                      : "text-slate-900 dark:text-slate-100 border border-transparent hover:bg-white/25 dark:hover:bg-white/10 hover:border-white/45 dark:hover:border-white/18 hover:text-brand dark:hover:text-blue-300"
                   )}
                 >
                   {adminTab === item.id && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-accent rounded-r-full shadow-xs" />}
                   <div className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0",
-                    adminTab === item.id ? "bg-white/20 text-white" : "bg-white/15 dark:bg-white/8 border border-white/45 dark:border-white/12 text-slate-800 dark:text-slate-200 group-hover:bg-brand/15 dark:group-hover:bg-blue-500/20 group-hover:text-brand dark:group-hover:text-blue-300"
+                    "w-8 h-8 rounded-xl flex items-center justify-center transition-colors duration-200 shrink-0",
+                    adminTab === item.id ? "bg-white/20 text-white" : "bg-white/20 dark:bg-white/8 border border-white/45 dark:border-white/12 text-slate-800 dark:text-slate-200 group-hover:bg-brand/15 dark:group-hover:bg-blue-500/20 group-hover:text-brand dark:group-hover:text-blue-300"
                   )}>
                     <item.icon size={16} />
                   </div>
@@ -2898,9 +2894,9 @@ export default function App() {
             <div className="pt-4 mt-4 border-t border-white/35 dark:border-white/12">
               <button 
                 onClick={() => { setIsAdmin(false); setCurrentPage('login'); }} 
-                className="w-full flex items-center gap-3 text-rose-600 dark:text-rose-400 hover:bg-rose-500/12 dark:hover:bg-rose-500/18 backdrop-blur-xs border border-transparent hover:border-rose-300/55 dark:hover:border-rose-500/30 p-3 rounded-2xl transition-all duration-300 font-bold text-sm group"
+                className="w-full flex items-center gap-3 text-rose-600 dark:text-rose-400 hover:bg-rose-500/12 dark:hover:bg-rose-500/18 border border-transparent hover:border-rose-300/55 dark:hover:border-rose-500/30 p-3 rounded-2xl transition-colors duration-200 font-bold text-sm group"
               >
-                <div className="w-8 h-8 rounded-xl bg-rose-500/10 dark:bg-rose-500/12 border border-rose-200/50 dark:border-rose-500/20 group-hover:bg-rose-500/20 flex items-center justify-center transition-colors duration-300">
+                <div className="w-8 h-8 rounded-xl bg-rose-500/10 dark:bg-rose-500/12 border border-rose-200/50 dark:border-rose-500/20 group-hover:bg-rose-500/20 flex items-center justify-center transition-colors duration-200">
                   <LogOut size={16} />
                 </div>
                 Logout Admin
@@ -2910,7 +2906,7 @@ export default function App() {
         </aside>
 
         <main className="relative z-10 flex-1 p-3 md:p-5 lg:p-6 pt-16 md:pt-4 overflow-y-auto w-full custom-scrollbar">
-          <header className="sticky top-0 z-30 admin-glass-card rounded-2xl px-3.5 py-2 md:px-4 md:py-2 flex items-center justify-between gap-3 mb-4 transition-all duration-200">
+          <header className="sticky top-0 z-30 admin-glass-header rounded-2xl px-3.5 py-2 md:px-4 md:py-2 flex items-center justify-between gap-3 mb-4 transition-colors duration-200">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className={cn(
                 "w-8 h-8 rounded-lg flex items-center justify-center border border-brand/15 dark:border-blue-500/25 shrink-0",
@@ -3084,10 +3080,7 @@ export default function App() {
             )}
           </header>
           
-          <div className="admin-glass-sidebar relative overflow-hidden rounded-3xl p-4 md:p-6 transition-all duration-300">
-            {/* Subtle specular glass reflection along top/diagonal edge matching sidebar */}
-            <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/12 via-transparent to-transparent dark:from-white/6 dark:via-transparent dark:to-transparent" />
-            <div aria-hidden="true" className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/85 dark:via-white/30 to-transparent" />
+          <div className="admin-glass-shell relative overflow-hidden rounded-3xl p-4 md:p-6">
             <div className="relative z-10">
             {adminTab === 'dashboard' && (() => {
               const activeSessionList = activeSessions.filter(s => {
@@ -3106,10 +3099,10 @@ export default function App() {
                 : distinctClasses.filter(c => c === dashboardClassFilter);
 
               return (
-                <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="space-y-6">
                   {/* Kartu Kelola Game, Kelola Materi & Kelola Soal */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                    <div className="bg-indigo-600/80 hover:bg-indigo-600/90 backdrop-blur-md border border-white/40 shadow-[0_12px_26px_-10px_rgba(79,70,229,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.45)] text-white rounded-2xl p-3.5 transition-all flex items-center justify-between gap-3">
+                    <div className="bg-indigo-600/85 hover:bg-indigo-600/95 border border-white/40 shadow-[0_10px_22px_-10px_rgba(79,70,229,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.45)] text-white rounded-2xl p-3.5 transition-colors duration-200 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-10 h-10 rounded-lg bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
                           <Gamepad2 size={20} className="text-amber-300" />
@@ -3121,14 +3114,14 @@ export default function App() {
                       </div>
                       <button
                         onClick={() => setAdminTab('games')}
-                        className="px-3 py-1.5 bg-white/90 hover:bg-white text-indigo-900 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
+                        className="px-3 py-1.5 bg-white/90 hover:bg-white text-indigo-900 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-colors flex items-center gap-1 shrink-0 whitespace-nowrap"
                       >
                         <span>Kelola</span>
                         <ArrowRight size={13} />
                       </button>
                     </div>
 
-                    <div className="bg-emerald-600/80 hover:bg-emerald-600/90 backdrop-blur-md border border-white/40 shadow-[0_12px_26px_-10px_rgba(5,150,105,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.45)] text-white rounded-2xl p-3.5 transition-all flex items-center justify-between gap-3">
+                    <div className="bg-emerald-600/85 hover:bg-emerald-600/95 border border-white/40 shadow-[0_10px_22px_-10px_rgba(5,150,105,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.45)] text-white rounded-2xl p-3.5 transition-colors duration-200 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-10 h-10 rounded-lg bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
                           <GraduationCap size={20} className="text-yellow-300" />
@@ -3140,14 +3133,14 @@ export default function App() {
                       </div>
                       <button
                         onClick={() => setAdminTab('materials')}
-                        className="px-3 py-1.5 bg-white/90 hover:bg-white text-emerald-950 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
+                        className="px-3 py-1.5 bg-white/90 hover:bg-white text-emerald-950 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-colors flex items-center gap-1 shrink-0 whitespace-nowrap"
                       >
                         <span>Kelola</span>
                         <ArrowRight size={13} />
                       </button>
                     </div>
 
-                    <div className="bg-amber-600/80 hover:bg-amber-600/90 backdrop-blur-md border border-white/40 shadow-[0_12px_26px_-10px_rgba(217,119,6,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.45)] text-white rounded-2xl p-3.5 transition-all flex items-center justify-between gap-3">
+                    <div className="bg-amber-600/85 hover:bg-amber-600/95 border border-white/40 shadow-[0_10px_22px_-10px_rgba(217,119,6,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.45)] text-white rounded-2xl p-3.5 transition-colors duration-200 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-10 h-10 rounded-lg bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
                           <ClipboardList size={20} className="text-yellow-200" />
@@ -3169,14 +3162,14 @@ export default function App() {
 
                   {/* Top Modern KPI Highlights Bar */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 hover:shadow-md transition-all duration-300 group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform duration-300 group-hover:scale-110" />
+                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 transition-shadow duration-200 group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none" />
                       <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-blue-600 text-white flex items-center justify-center shadow-md shadow-brand/20">
-                          <Radio size={22} className="text-yellow-300 animate-pulse" />
+                          <Radio size={22} className="text-yellow-300" />
                         </div>
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/70">
-                          <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping" />
+                          <span className="w-2 h-2 rounded-full bg-yellow-400 ring-2 ring-yellow-400/35" />
                           Live Real-time
                         </span>
                       </div>
@@ -3188,8 +3181,8 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 hover:shadow-md transition-all duration-300 group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform duration-300 group-hover:scale-110" />
+                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 transition-shadow duration-200 group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none" />
                       <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-blue-600 text-white flex items-center justify-center shadow-md shadow-brand/20">
                           <Activity size={22} className="text-yellow-300" />
@@ -3208,16 +3201,16 @@ export default function App() {
                     </div>
 
                     {/* Card 3: Monitoring Kecurangan */}
-                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 hover:shadow-md transition-all duration-300 group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-rose-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform duration-300 group-hover:scale-110" />
+                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 transition-shadow duration-200 group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-rose-500/10 to-transparent rounded-bl-full pointer-events-none" />
                       <div className="flex items-center justify-between mb-4">
                         <div className={cn(
-                          "w-12 h-12 rounded-2xl text-white flex items-center justify-center shadow-md transition-all duration-300",
+                          "w-12 h-12 rounded-2xl text-white flex items-center justify-center shadow-md transition-colors duration-200",
                           cheatingSessionsList.length > 0 
                             ? "bg-gradient-to-tr from-rose-600 to-red-500 shadow-rose-500/20" 
                             : "bg-gradient-to-tr from-emerald-600 to-teal-500 shadow-emerald-500/20"
                         )}>
-                          {cheatingSessionsList.length > 0 ? <ShieldAlert size={22} className="animate-bounce" /> : <ShieldCheck size={22} />}
+                          {cheatingSessionsList.length > 0 ? <ShieldAlert size={22} /> : <ShieldCheck size={22} />}
                         </div>
                         <span className={cn(
                           "inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase border",
@@ -3240,8 +3233,8 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 hover:shadow-md transition-all duration-300 group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform duration-300 group-hover:scale-110" />
+                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 transition-shadow duration-200 group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none" />
                       <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-blue-600 text-white flex items-center justify-center shadow-md shadow-brand/20">
                           <Layers size={22} className="text-yellow-300" />
@@ -3266,24 +3259,24 @@ export default function App() {
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
                     
                     {/* LEFT COLUMN: KARTU PARTICIPANT */}
-                    <div className="xl:col-span-7 admin-glass-card rounded-3xl overflow-hidden flex flex-col transition-all duration-300">
+                    <div className="xl:col-span-7 admin-glass-card rounded-3xl overflow-hidden flex flex-col">
                       {/* Vibrant Gradient Header */}
-                      <div className="bg-gradient-to-r from-blue-700/80 via-blue-600/75 to-indigo-600/80 backdrop-blur-md border-b border-white/25 p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="bg-gradient-to-r from-blue-700/85 via-blue-600/80 to-indigo-600/85 border-b border-white/25 p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3.5">
-                          <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shadow-inner">
+                          <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-white shadow-inner">
                             <Users size={24} />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="text-xl md:text-2xl font-extrabold tracking-tight text-white">Kartu Participant</h3>
-                              <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping" />
+                              <span className="w-2 h-2 rounded-full bg-yellow-400 ring-2 ring-yellow-400/35" />
                             </div>
                             <p className="text-white/85 text-xs font-medium mt-0.5">Pemantauan aktivitas siswa & kelas secara langsung</p>
                           </div>
                         </div>
 
                         {/* Total Aktif Badge */}
-                        <div className="flex items-center gap-2 self-start sm:self-auto bg-white/15 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/25 shadow-xs">
+                        <div className="flex items-center gap-2 self-start sm:self-auto bg-white/15 px-4 py-2 rounded-2xl border border-white/25 shadow-xs">
                           <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-lg shadow-yellow-400/50" />
                           <span className="text-sm font-extrabold text-white tracking-wide tabular-nums">
                             Total Aktif: <span className="text-yellow-300 font-black">{activeSessionList.length}</span>
@@ -3351,7 +3344,7 @@ export default function App() {
                             const theme = classThemes[idx % classThemes.length];
 
                             return (
-                              <div key={className} className={cn("rounded-2xl border backdrop-blur-xs p-4 transition-all duration-300 shadow-xs", theme.bg, theme.border)}>
+                              <div key={className} className={cn("rounded-2xl border p-4 shadow-xs", theme.bg, theme.border)}>
                                 <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-200/60 dark:border-slate-700/60">
                                   <div className="flex items-center gap-2">
                                     <span className={cn("px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider shadow-xs", theme.badge)}>
@@ -3375,7 +3368,7 @@ export default function App() {
                                     return (
                                       <div 
                                         key={s.id} 
-                                        className="admin-glass-card hover:border-brand/40 dark:hover:border-blue-500/50 p-3.5 rounded-xl hover:shadow-md transition-all duration-300 flex flex-col gap-2.5 group"
+                                        className="admin-glass-card hover:border-brand/40 dark:hover:border-blue-500/50 p-3.5 rounded-xl transition-colors duration-200 flex flex-col gap-2.5 group"
                                       >
                                         <div className="flex items-start justify-between gap-2">
                                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -3408,7 +3401,7 @@ export default function App() {
                                           </div>
 
                                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/70 shrink-0">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                             Aktif
                                           </span>
                                         </div>
@@ -3423,7 +3416,6 @@ export default function App() {
                           <div className="py-16 text-center flex flex-col items-center justify-center">
                             <div className="w-20 h-20 bg-blue-50 dark:bg-blue-950/50 rounded-full flex items-center justify-center text-brand dark:text-blue-400 mb-4 border border-blue-100 dark:border-blue-800/60 shadow-inner relative">
                               <Users size={34} />
-                              <span className="absolute inset-0 rounded-full border-2 border-blue-400/30 animate-ping pointer-events-none" />
                             </div>
                             <h4 className="text-base font-extrabold text-slate-900 dark:text-slate-100">Belum Ada Siswa yang Aktif</h4>
                             <p className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-sm mt-1">
@@ -3435,11 +3427,11 @@ export default function App() {
                     </div>
 
                     {/* RIGHT COLUMN: MONITORING KECURANGAN */}
-                    <div className="xl:col-span-5 admin-glass-card rounded-3xl overflow-hidden flex flex-col transition-all duration-300">
+                    <div className="xl:col-span-5 admin-glass-card rounded-3xl overflow-hidden flex flex-col">
                       {/* Vibrant Red Gradient Header */}
-                      <div className="bg-gradient-to-r from-rose-600/80 via-red-600/75 to-orange-500/80 backdrop-blur-md border-b border-white/25 p-6 text-white flex items-center justify-between gap-3">
+                      <div className="bg-gradient-to-r from-rose-600/85 via-red-600/80 to-orange-500/85 border-b border-white/25 p-6 text-white flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3.5">
-                          <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shadow-inner">
+                          <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-white shadow-inner">
                             <ShieldAlert size={24} />
                           </div>
                           <div>
@@ -3463,7 +3455,7 @@ export default function App() {
                                 } catch (err) {}
                               }
                             }}
-                            className="px-3.5 py-2 bg-white/20 hover:bg-white text-white hover:text-rose-600 rounded-xl font-extrabold text-xs transition-all duration-300 flex items-center gap-1.5 backdrop-blur-md border border-white/30 shadow-xs active:scale-95"
+                            className="px-3.5 py-2 bg-white/20 hover:bg-white text-white hover:text-rose-600 rounded-xl font-extrabold text-xs transition-colors duration-200 flex items-center gap-1.5 border border-white/30 shadow-xs active:scale-95"
                           >
                             <Trash2 size={13} />
                             <span>Bersihkan Semua</span>
@@ -3591,7 +3583,7 @@ export default function App() {
                           <div 
                             key={course.id} 
                             className={cn(
-                              "admin-glass-card rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-300 hover:shadow-md",
+                              "admin-glass-card rounded-2xl p-5 flex flex-col justify-between gap-4 transition-colors duration-200",
                               theme.bg
                             )}
                           >
@@ -3615,7 +3607,7 @@ export default function App() {
 
                             <div className="space-y-2.5 pt-3 border-t border-slate-200/70 dark:border-slate-700/70">
                               {/* Toggle 1: Akses Materi */}
-                              <div className="flex items-center justify-between bg-white/25 dark:bg-white/5 backdrop-blur-xs p-2.5 rounded-xl border border-white/45 dark:border-white/12 shadow-2xs">
+                              <div className="flex items-center justify-between bg-white/30 dark:bg-white/5 p-2.5 rounded-xl border border-white/50 dark:border-white/12 shadow-2xs">
                                 <div>
                                   <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 dark:text-slate-400 block">Akses Siswa</span>
                                   <span className={cn("text-xs font-bold", isActive ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500")}>
@@ -3631,7 +3623,7 @@ export default function App() {
                                 >
                                   <span 
                                     className={cn(
-                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out",
+                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ease-in-out",
                                       isActive ? "translate-x-5" : "translate-x-0"
                                     )}
                                   />
@@ -3639,7 +3631,7 @@ export default function App() {
                               </div>
 
                               {/* Toggle 2: Wajib Fullscreen */}
-                              <div className="flex items-center justify-between bg-white/25 dark:bg-white/5 backdrop-blur-xs p-2.5 rounded-xl border border-white/45 dark:border-white/12 shadow-2xs">
+                              <div className="flex items-center justify-between bg-white/30 dark:bg-white/5 p-2.5 rounded-xl border border-white/50 dark:border-white/12 shadow-2xs">
                                 <div>
                                   <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 dark:text-slate-400 block">Mode Ujian</span>
                                   <span className={cn("text-xs font-bold", isFullScreen ? "text-brand dark:text-blue-400" : "text-slate-400 dark:text-slate-500")}>
@@ -3655,7 +3647,7 @@ export default function App() {
                                 >
                                   <span 
                                     className={cn(
-                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out",
+                                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ease-in-out",
                                       isFullScreen ? "translate-x-5" : "translate-x-0"
                                     )}
                                   />
@@ -3663,7 +3655,7 @@ export default function App() {
                               </div>
 
                               {/* Toggle 3: Poin Nilai */}
-                              <div className="flex items-center justify-between bg-white/25 dark:bg-white/5 backdrop-blur-xs p-2.5 rounded-xl border border-white/45 dark:border-white/12 shadow-2xs">
+                              <div className="flex items-center justify-between bg-white/30 dark:bg-white/5 p-2.5 rounded-xl border border-white/50 dark:border-white/12 shadow-2xs">
                                 <div>
                                   <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 dark:text-slate-400 block">Poin Nilai</span>
                                   <span className={cn("text-xs font-bold", isScoreVisible ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500")}>
@@ -3697,7 +3689,7 @@ export default function App() {
             })()}
             {adminTab === 'student_management' && (
               <div className="space-y-6">
-                <div className="flex bg-white/20 dark:bg-white/5 backdrop-blur-xs p-1.5 rounded-2xl border border-white/45 dark:border-white/12 shadow-xs w-fit">
+                <div className="flex bg-white/30 dark:bg-white/5 p-1.5 rounded-2xl border border-white/50 dark:border-white/12 shadow-xs w-fit">
                   <button
                     onClick={() => setStudentSubTab('classes')}
                     className={cn(
@@ -3752,7 +3744,7 @@ export default function App() {
                           <div>
                             <h3 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Kelas {className}</h3>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className={cn("w-2 h-2 rounded-full animate-pulse", color.text.replace('text', 'bg'))}></span>
+                              <span className={cn("w-2 h-2 rounded-full", color.text.replace('text', 'bg'))}></span>
                               <p className={cn("font-bold text-sm tabular-nums", color.text)}>{studentCount} Siswa Terdaftar</p>
                             </div>
                           </div>
@@ -4236,7 +4228,7 @@ export default function App() {
                   </div>
 
                   {/* Navigasi Sub-Halaman di Kelola Materi */}
-                  <div className="inline-flex items-center gap-1.5 p-1.5 bg-white/20 dark:bg-white/5 backdrop-blur-xs rounded-2xl border border-white/45 dark:border-white/12 w-fit shrink-0">
+                  <div className="inline-flex items-center gap-1.5 p-1.5 bg-white/30 dark:bg-white/5 rounded-2xl border border-white/50 dark:border-white/12 w-fit shrink-0">
                     <button
                       type="button"
                       onClick={() => setMaterialSubTab('list')}
@@ -4355,7 +4347,7 @@ export default function App() {
             {adminTab === 'assessments' && (
               <div className="space-y-6">
                 {/* 3 Categories Switcher Pills */}
-                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white/20 dark:bg-white/5 backdrop-blur-xs rounded-2xl border border-white/45 dark:border-white/12 w-fit">
+                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white/30 dark:bg-white/5 rounded-2xl border border-white/50 dark:border-white/12 w-fit">
                   <button
                     onClick={() => { setAssessmentCategory('materi'); setAssessmentNav({ course: null, kelas: null }); }}
                     className={cn(
@@ -5084,9 +5076,9 @@ export default function App() {
                             }
                           }}
                           className={cn(
-                            "text-left rounded-2xl border p-2.5 transition-all duration-200 flex flex-col gap-2.5 group cursor-pointer",
+                            "text-left rounded-2xl border p-2.5 transition-colors duration-200 flex flex-col gap-2.5 group cursor-pointer",
                             isSelected
-                              ? "border-brand ring-2 ring-brand/25 bg-blue-500/12 dark:bg-blue-950/35 backdrop-blur-xs shadow-sm"
+                              ? "border-brand ring-2 ring-brand/25 bg-blue-500/15 dark:bg-blue-950/40 shadow-sm"
                               : "admin-glass-card hover:shadow-xs"
                           )}
                         >

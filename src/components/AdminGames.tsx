@@ -831,10 +831,10 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
                           <span
                             className={cn(
-                              "text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap backdrop-blur-xs",
+                              "text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap",
                               isGameActive
-                                ? "bg-emerald-500/85 text-white border border-emerald-300/40"
-                                : "bg-slate-800/85 text-slate-200 border border-white/20"
+                                ? "bg-emerald-500/90 text-white border border-emerald-300/40"
+                                : "bg-slate-800/90 text-slate-200 border border-white/20"
                             )}
                           >
                             {isGameActive ? <Check size={10} /> : <X size={10} />}
@@ -842,12 +842,12 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                           </span>
                         </div>
 
-                        <p className="text-xs text-white/90 line-clamp-1 leading-snug drop-shadow-2xs">
+                        <p className="text-xs text-white/90 line-clamp-1 leading-snug">
                           {game.description}
                         </p>
 
                         {game.id === 'contra-snes' && (
-                          <details className="group/det bg-slate-950/65 backdrop-blur-xs rounded-xl border border-white/20 overflow-hidden">
+                          <details className="group/det bg-slate-950/75 rounded-xl border border-white/20 overflow-hidden">
                             <summary className="cursor-pointer list-none px-3 py-1.5 flex items-center justify-between text-[11px] font-bold text-white select-none">
                               <span>Sumber Kuis Peluru Spesial</span>
                               <ChevronDown size={13} className="text-white/80 group-open/det:rotate-180 transition-transform" />
@@ -868,7 +868,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                         )}
 
                         {game.id === 'petualangan-smp' && (
-                          <details className="group/det bg-slate-950/65 backdrop-blur-xs rounded-xl border border-white/20 overflow-hidden">
+                          <details className="group/det bg-slate-950/75 rounded-xl border border-white/20 overflow-hidden">
                             <summary className="cursor-pointer list-none px-3 py-1.5 flex items-center justify-between text-[11px] font-bold text-white select-none">
                               <span>Atur Materi 4 Stage</span>
                               <ChevronDown size={13} className="text-white/80 group-open/det:rotate-180 transition-transform" />

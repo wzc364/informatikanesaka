@@ -1927,7 +1927,7 @@ export default function AdminSoal({
                     return (
                       <div
                         key={q.id}
-                        className={`admin-glass-card rounded-2xl p-5 transition-all ${
+                        className={`admin-glass-card rounded-2xl p-5 transition-colors ${
                           isActiveQ ? '' : 'opacity-70'
                         }`}
                       >
