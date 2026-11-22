@@ -4,11 +4,18 @@
  */
 
 import farmerSpriteUrl from '../assets/images/berkebun_farmer_pixel_1795346951033.jpg';
+import farmerWalkSheetUrl from '../assets/images/berkebun_farmer_walk_sheet_1795352732856.jpg';
+import farmerActionsSheetUrl from '../assets/images/berkebun_farmer_actions_sheet_1795352733967.jpg';
 import farmhouseSpriteUrl from '../assets/images/berkebun_farmhouse_pixel_1795346951463.jpg';
 import shopSpriteUrl from '../assets/images/berkebun_shop_pixel_1795346951275.jpg';
 import binSpriteUrl from '../assets/images/berkebun_bin_pixel_1795346952182.jpg';
 import treeSpriteUrl from '../assets/images/berkebun_tree_pixel_1795346951395.jpg';
 import npcSheetUrl from '../assets/images/berkebun_npc_sheet_1795348518239.jpg';
+import npcWalkSheetAUrl from '../assets/images/berkebun_npc_walk_a_1795352732562.jpg';
+import npcWalkSheetBUrl from '../assets/images/berkebun_npc_walk_b_1795352733523.jpg';
+import furnitureSheetAUrl from '../assets/images/berkebun_furniture_sheet_a_1795352711751.jpg';
+import furnitureSheetBUrl from '../assets/images/berkebun_furniture_sheet_b_1795352709801.jpg';
+import furnitureSheetCUrl from '../assets/images/berkebun_furniture_sheet_c_1795352710884.jpg';
 import palmTreeUrl from '../assets/images/berkebun_palm_tree_pixel_1795348518032.jpg';
 import coopSpriteUrl from '../assets/images/berkebun_coop_pixel_1795348518625.jpg';
 import sacredTreeUrl from '../assets/images/berkebun_sacred_tree_pixel_1795348518161.jpg';
@@ -36,6 +43,7 @@ export type StardewToolId =
 
 export interface StardewSprites {
   farmer: HTMLCanvasElement | null;
+  farmerPoses: Partial<Record<string, HTMLCanvasElement>>;
   farmhouse: HTMLCanvasElement | null;
   shop: HTMLCanvasElement | null;
   bin: HTMLCanvasElement | null;
@@ -45,11 +53,27 @@ export interface StardewSprites {
   sacredTree: HTMLCanvasElement | null;
   lighthouse: HTMLCanvasElement | null;
   npcs: Record<NpcId, HTMLCanvasElement | null>;
+  npcPoses: Record<NpcId, Partial<Record<string, HTMLCanvasElement>>>;
   npcPortraits: Record<NpcId, string>;
+  furniture: Partial<Record<FurnitureKind, HTMLCanvasElement>>;
 }
 
 const PROCESSED_CACHE = new Map<string, HTMLCanvasElement>();
 const PROMISE_CACHE = new Map<string, Promise<HTMLCanvasElement | null>>();
+
+function flipCanvasHorizontal(source: HTMLCanvasElement): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = source.width;
+  c.height = source.height;
+  const ctx = c.getContext('2d');
+  if (ctx) {
+    ctx.imageSmoothingEnabled = false;
+    ctx.translate(source.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(source, 0, 0);
+  }
+  return c;
+}
 
 function stripExteriorWhiteAndTrim(
   source: HTMLImageElement | HTMLCanvasElement,
@@ -87,7 +111,7 @@ function stripExteriorWhiteAndTrim(
     const b = data[p + 2];
     const maxC = Math.max(r, g, b);
     const minC = Math.min(r, g, b);
-    return minC > 234 && maxC - minC < 20;
+    return minC > 232 && maxC - minC < 22;
   };
 
   const enqueue = (x: number, y: number) => {
@@ -215,8 +239,38 @@ function loadTransparentSprite(src: string, maxDim = 260): Promise<HTMLCanvasEle
   return promise;
 }
 
+function sliceGridSheet(
+  img: HTMLImageElement | null,
+  cols: number,
+  rows: number,
+  maxDim: number
+): Array<HTMLCanvasElement | null> {
+  if (!img) return Array(cols * rows).fill(null);
+  const natW = img.naturalWidth || cols * 256;
+  const natH = img.naturalHeight || rows * 256;
+  const cellW = natW / cols;
+  const cellH = natH / rows;
+  const out: Array<HTMLCanvasElement | null> = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      out.push(
+        stripExteriorWhiteAndTrim(
+          img,
+          Math.floor(c * cellW),
+          Math.floor(r * cellH),
+          Math.floor(cellW),
+          Math.floor(cellH),
+          maxDim
+        )
+      );
+    }
+  }
+  return out;
+}
+
 let NPC_CACHE: {
   npcs: Record<NpcId, HTMLCanvasElement | null>;
+  npcPoses: Record<NpcId, Partial<Record<string, HTMLCanvasElement>>>;
   npcPortraits: Record<NpcId, string>;
 } | null = null;
 
@@ -232,6 +286,14 @@ async function loadSlicedNpcs() {
       bima: null,
       lira: null,
     } as Record<NpcId, HTMLCanvasElement | null>,
+    npcPoses: {
+      raka: {},
+      sari: {},
+      jaka: {},
+      maya: {},
+      bima: {},
+      lira: {},
+    } as Record<NpcId, Partial<Record<string, HTMLCanvasElement>>>,
     npcPortraits: {
       raka: '',
       sari: '',
@@ -242,71 +304,248 @@ async function loadSlicedNpcs() {
     } as Record<NpcId, string>,
   };
 
-  const sheet = await loadImageElement(npcSheetUrl);
-  if (!sheet) return defaultResult;
+  const [sheet, walkA, walkB] = await Promise.all([
+    loadImageElement(npcSheetUrl),
+    loadImageElement(npcWalkSheetAUrl),
+    loadImageElement(npcWalkSheetBUrl),
+  ]);
 
-  const natW = sheet.naturalWidth || 1200;
-  const natH = sheet.naturalHeight || 800;
-  const cellW = Math.floor(natW / 3);
-  const cellH = Math.floor(natH / 2);
+  if (sheet) {
+    const natW = sheet.naturalWidth || 1200;
+    const natH = sheet.naturalHeight || 800;
+    const cellW = Math.floor(natW / 3);
+    const cellH = Math.floor(natH / 2);
 
-  const layout: Array<{ id: NpcId; col: number; row: number }> = [
-    { id: 'raka', col: 0, row: 0 },
-    { id: 'sari', col: 1, row: 0 },
-    { id: 'jaka', col: 2, row: 0 },
-    { id: 'maya', col: 0, row: 1 },
-    { id: 'bima', col: 1, row: 1 },
-    { id: 'lira', col: 2, row: 1 },
-  ];
+    const layout: Array<{ id: NpcId; col: number; row: number }> = [
+      { id: 'raka', col: 0, row: 0 },
+      { id: 'sari', col: 1, row: 0 },
+      { id: 'jaka', col: 2, row: 0 },
+      { id: 'maya', col: 0, row: 1 },
+      { id: 'bima', col: 1, row: 1 },
+      { id: 'lira', col: 2, row: 1 },
+    ];
 
-  for (const item of layout) {
-    const sprite = stripExteriorWhiteAndTrim(
-      sheet,
-      item.col * cellW,
-      item.row * cellH,
-      cellW,
-      cellH,
-      140
-    );
-    defaultResult.npcs[item.id] = sprite;
-    if (sprite) {
-      // Portrait snapshot zoomed cleanly toward head + shoulders inside a warm square
-      const pCanvas = document.createElement('canvas');
-      pCanvas.width = 96;
-      pCanvas.height = 96;
-      const pCtx = pCanvas.getContext('2d');
-      if (pCtx) {
-        pCtx.imageSmoothingEnabled = false;
-        const srcH = Math.round(sprite.height * 0.72);
-        const srcW = Math.min(sprite.width, srcH);
-        const sx = Math.max(0, Math.round((sprite.width - srcW) / 2));
-        pCtx.drawImage(sprite, sx, 0, srcW, srcH, 4, 4, 88, 88);
-        defaultResult.npcPortraits[item.id] = pCanvas.toDataURL('image/png');
+    for (const item of layout) {
+      const sprite = stripExteriorWhiteAndTrim(
+        sheet,
+        item.col * cellW,
+        item.row * cellH,
+        cellW,
+        cellH,
+        140
+      );
+      defaultResult.npcs[item.id] = sprite;
+      if (sprite) {
+        const pCanvas = document.createElement('canvas');
+        pCanvas.width = 96;
+        pCanvas.height = 96;
+        const pCtx = pCanvas.getContext('2d');
+        if (pCtx) {
+          pCtx.imageSmoothingEnabled = false;
+          const srcH = Math.round(sprite.height * 0.72);
+          const srcW = Math.min(sprite.width, srcH);
+          const sx = Math.max(0, Math.round((sprite.width - srcW) / 2));
+          pCtx.drawImage(sprite, sx, 0, srcW, srcH, 4, 4, 88, 88);
+          defaultResult.npcPortraits[item.id] = pCanvas.toDataURL('image/png');
+        }
       }
     }
+  }
+
+  // Slice 4x3 directional walk poses for all 6 NPCs!
+  const assignNpcWalkRow = (cells: Array<HTMLCanvasElement | null>, rowIdx: number, npcId: NpcId) => {
+    const base = rowIdx * 4;
+    const dIdle = cells[base];
+    const dWalk = cells[base + 1];
+    const rWalk = cells[base + 2];
+    const uWalk = cells[base + 3];
+    const map: Partial<Record<string, HTMLCanvasElement>> = {};
+    if (dIdle) map.down_idle = dIdle;
+    if (dWalk) map.down_walk = dWalk;
+    if (rWalk) {
+      map.right_walk = rWalk;
+      map.left_walk = flipCanvasHorizontal(rWalk);
+    }
+    if (uWalk) map.up_walk = uWalk;
+    defaultResult.npcPoses[npcId] = map;
+    if (!defaultResult.npcs[npcId] && dIdle) {
+      defaultResult.npcs[npcId] = dIdle;
+    }
+  };
+
+  if (walkA) {
+    const cellsA = sliceGridSheet(walkA, 4, 3, 140);
+    assignNpcWalkRow(cellsA, 0, 'raka');
+    assignNpcWalkRow(cellsA, 1, 'sari');
+    assignNpcWalkRow(cellsA, 2, 'jaka');
+  }
+  if (walkB) {
+    const cellsB = sliceGridSheet(walkB, 4, 3, 140);
+    assignNpcWalkRow(cellsB, 0, 'maya');
+    assignNpcWalkRow(cellsB, 1, 'bima');
+    assignNpcWalkRow(cellsB, 2, 'lira');
   }
 
   NPC_CACHE = defaultResult;
   return defaultResult;
 }
 
+let FARMER_AI_CACHE: Partial<Record<string, HTMLCanvasElement>> | null = null;
+async function loadAiFarmerPoses(): Promise<Partial<Record<string, HTMLCanvasElement>>> {
+  if (FARMER_AI_CACHE) return FARMER_AI_CACHE;
+  const [walkImg, actImg] = await Promise.all([
+    loadImageElement(farmerWalkSheetUrl),
+    loadImageElement(farmerActionsSheetUrl),
+  ]);
+  const poses: Partial<Record<string, HTMLCanvasElement>> = {};
+
+  if (walkImg) {
+    const wCells = sliceGridSheet(walkImg, 3, 3, 150);
+    const setWalk = (idx: number, key: string) => {
+      const sp = wCells[idx];
+      if (sp) poses[key] = sp;
+    };
+    // Row 0: Down (dir 1)
+    setWalk(0, 'idle_1');
+    setWalk(1, 'walk1_1');
+    setWalk(2, 'walk2_1');
+    // Row 1: Right (dir 0) + flipped Left (dir 2)
+    setWalk(3, 'idle_0');
+    setWalk(4, 'walk1_0');
+    setWalk(5, 'walk2_0');
+    if (wCells[3]) poses.idle_2 = flipCanvasHorizontal(wCells[3]);
+    if (wCells[4]) poses.walk1_2 = flipCanvasHorizontal(wCells[4]);
+    if (wCells[5]) poses.walk2_2 = flipCanvasHorizontal(wCells[5]);
+    // Row 2: Up / Back (dir 3)
+    setWalk(6, 'idle_3');
+    setWalk(7, 'walk1_3');
+    setWalk(8, 'walk2_3');
+  }
+
+  if (actImg) {
+    const aCells = sliceGridSheet(actImg, 4, 2, 165);
+    const actOrder: FarmerPose[] = [
+      'swing_up',
+      'swing_down',
+      'plant',
+      'water',
+      'harvest',
+      'fish_cast',
+      'fish_pull',
+      'sleep',
+    ];
+    actOrder.forEach((poseName, idx) => {
+      const sp = aCells[idx];
+      if (!sp) return;
+      poses[`${poseName}_0`] = sp;
+      poses[`${poseName}_1`] = sp;
+      poses[`${poseName}_3`] = sp;
+      poses[`${poseName}_2`] = flipCanvasHorizontal(sp);
+    });
+  }
+
+  FARMER_AI_CACHE = poses;
+  return poses;
+}
+
+let FURNITURE_AI_CACHE: Partial<Record<FurnitureKind, HTMLCanvasElement>> | null = null;
+async function loadAiFurnitureSprites(): Promise<Partial<Record<FurnitureKind, HTMLCanvasElement>>> {
+  if (FURNITURE_AI_CACHE) return FURNITURE_AI_CACHE;
+  const [imgA, imgB, imgC] = await Promise.all([
+    loadImageElement(furnitureSheetAUrl),
+    loadImageElement(furnitureSheetBUrl),
+    loadImageElement(furnitureSheetCUrl),
+  ]);
+  const map: Partial<Record<FurnitureKind, HTMLCanvasElement>> = {};
+
+  if (imgA) {
+    const cells = sliceGridSheet(imgA, 3, 3, 180);
+    const keys: FurnitureKind[] = [
+      'bed',
+      'fireplace',
+      'bookshelf',
+      'tv',
+      'table_food',
+      'plant',
+      'chest',
+      'rug',
+      'elder_throne',
+    ];
+    keys.forEach((k, i) => {
+      if (cells[i]) map[k] = cells[i]!;
+    });
+  }
+  if (imgB) {
+    const cells = sliceGridSheet(imgB, 3, 3, 180);
+    const keys: FurnitureKind[] = [
+      'counter',
+      'seed_rack',
+      'crate',
+      'nest_box',
+      'feed_trough',
+      'hay_bale',
+      'carpenter_bench',
+      'anvil',
+      'tool_rack',
+    ];
+    keys.forEach((k, i) => {
+      if (cells[i]) map[k] = cells[i]!;
+    });
+  }
+  if (imgC) {
+    const cells = sliceGridSheet(imgC, 3, 3, 180);
+    const keys: FurnitureKind[] = [
+      'cauldron',
+      'potion_shelf',
+      'herb_table',
+      'map_table',
+      'nav_table',
+      'telescope',
+      'beacon_lamp',
+      'wood_stack',
+      'altar_lamp',
+    ];
+    keys.forEach((k, i) => {
+      if (cells[i]) map[k] = cells[i]!;
+    });
+  }
+
+  FURNITURE_AI_CACHE = map;
+  return map;
+}
+
 export async function loadAllStardewSprites(): Promise<StardewSprites> {
-  const [farmer, farmhouse, shop, bin, tree, palmTree, coop, sacredTree, lighthouse, npcPack] =
-    await Promise.all([
-      loadTransparentSprite(farmerSpriteUrl, 128),
-      loadTransparentSprite(farmhouseSpriteUrl, 240),
-      loadTransparentSprite(shopSpriteUrl, 240),
-      loadTransparentSprite(binSpriteUrl, 120),
-      loadTransparentSprite(treeSpriteUrl, 200),
-      loadTransparentSprite(palmTreeUrl, 200),
-      loadTransparentSprite(coopSpriteUrl, 220),
-      loadTransparentSprite(sacredTreeUrl, 280),
-      loadTransparentSprite(lighthouseUrl, 260),
-      loadSlicedNpcs(),
-    ]);
+  const [
+    farmer,
+    farmerPoses,
+    farmhouse,
+    shop,
+    bin,
+    tree,
+    palmTree,
+    coop,
+    sacredTree,
+    lighthouse,
+    npcPack,
+    furniture,
+  ] = await Promise.all([
+    loadTransparentSprite(farmerSpriteUrl, 128),
+    loadAiFarmerPoses(),
+    loadTransparentSprite(farmhouseSpriteUrl, 240),
+    loadTransparentSprite(shopSpriteUrl, 240),
+    loadTransparentSprite(binSpriteUrl, 120),
+    loadTransparentSprite(treeSpriteUrl, 200),
+    loadTransparentSprite(palmTreeUrl, 200),
+    loadTransparentSprite(coopSpriteUrl, 220),
+    loadTransparentSprite(sacredTreeUrl, 280),
+    loadTransparentSprite(lighthouseUrl, 260),
+    loadSlicedNpcs(),
+    loadAiFurnitureSprites(),
+  ]);
 
   return {
     farmer,
+    farmerPoses,
     farmhouse,
     shop,
     bin,
@@ -316,8 +555,42 @@ export async function loadAllStardewSprites(): Promise<StardewSprites> {
     sacredTree,
     lighthouse,
     npcs: npcPack.npcs,
+    npcPoses: npcPack.npcPoses,
     npcPortraits: npcPack.npcPortraits,
+    furniture,
   };
+}
+
+export function getAiFarmerPoseSprite(
+  sprites: StardewSprites,
+  pose: FarmerPose,
+  dir: FarmerDir
+): HTMLCanvasElement {
+  return (
+    sprites.farmerPoses[`${pose}_${dir}`] ||
+    sprites.farmerPoses[`idle_${dir}`] ||
+    getFarmerPoseSprite(pose, dir)
+  );
+}
+
+export function getAiNpcPoseSprite(
+  sprites: StardewSprites,
+  npcId: NpcId,
+  dir: FarmerDir,
+  isWalking: boolean,
+  nowMs: number
+): HTMLCanvasElement | null {
+  const pack = sprites.npcPoses?.[npcId];
+  if (pack) {
+    if (dir === 3 && pack.up_walk) return pack.up_walk;
+    if (dir === 0 && pack.right_walk) return pack.right_walk;
+    if (dir === 2 && pack.left_walk) return pack.left_walk;
+    if (isWalking && Math.floor(nowMs / 170) % 2 === 1 && pack.down_walk) {
+      return pack.down_walk;
+    }
+    if (pack.down_idle) return pack.down_idle;
+  }
+  return sprites.npcs[npcId];
 }
 
 // ---------- 16x16 / 16x20 Crisp Pixel-Art Generator ----------

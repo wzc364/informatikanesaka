@@ -70,7 +70,8 @@ import {
   getPixelToolDataUrl,
   getPixelBagItemDataUrl,
   getPixelGoldSprinklerDataUrl,
-  getFarmerPoseSprite,
+  getAiFarmerPoseSprite,
+  getAiNpcPoseSprite,
   renderPixelWorldMapCanvas,
   type StardewSprites,
   type PixelAtlas,
@@ -510,6 +511,7 @@ export default function BerkebunGame({
   currentInteriorRef.current = currentInterior;
   const spritesRef = useRef<StardewSprites>({
     farmer: null,
+    farmerPoses: {},
     farmhouse: null,
     shop: null,
     bin: null,
@@ -519,7 +521,9 @@ export default function BerkebunGame({
     sacredTree: null,
     lighthouse: null,
     npcs: { raka: null, sari: null, jaka: null, maya: null, bima: null, lira: null },
+    npcPoses: { raka: {}, sari: {}, jaka: {}, maya: {}, bima: {}, lira: {} },
     npcPortraits: { raka: '', sari: '', jaka: '', maya: '', bima: '', lira: '' },
+    furniture: {},
   });
   const atlasRef = useRef<PixelAtlas | null>(null);
 
@@ -1746,7 +1750,7 @@ export default function BerkebunGame({
           def.furniture
             .filter((f) => f.walkable)
             .forEach((f) => {
-              const sp = atlas.furniture[f.kind];
+              const sp = sprites.furniture[f.kind] || (f.kind !== 'rug' ? atlas.furniture[f.kind] : undefined);
               if (sp) ctx.drawImage(sp, f.x * TILE_SIZE, f.y * TILE_SIZE, f.w * TILE_SIZE, f.h * TILE_SIZE);
             });
 
@@ -1765,9 +1769,20 @@ export default function BerkebunGame({
                   const fh = f.h * TILE_SIZE;
                   ctx.fillStyle = 'rgba(0,0,0,0.22)';
                   ctx.fillRect(fx + 4, fy + fh - 6, fw - 8, 8);
-                  const sp = atlas.furniture[f.kind];
+                  const aiSp = sprites.furniture[f.kind];
+                  const fallbackSp = f.kind !== 'rug' ? atlas.furniture[f.kind] : undefined;
+                  const sp = aiSp || fallbackSp;
                   if (sp) {
-                    ctx.drawImage(sp, fx + 2, fy + 2, fw - 4, fh - 4);
+                    if (aiSp) {
+                      const scale = Math.min((fw - 2) / aiSp.width, (fh + 10) / aiSp.height);
+                      const drawW = Math.round(aiSp.width * scale);
+                      const drawH = Math.round(aiSp.height * scale);
+                      const drawX = Math.round(fx + (fw - drawW) / 2);
+                      const drawY = Math.round(fy + fh - drawH - 2);
+                      ctx.drawImage(aiSp, drawX, drawY, drawW, drawH);
+                    } else {
+                      ctx.drawImage(sp, fx + 2, fy + 2, fw - 4, fh - 4);
+                    }
                   }
                   // Live animated effects for special theme furniture!
                   if (f.kind === 'fireplace') {
@@ -1818,7 +1833,7 @@ export default function BerkebunGame({
           if (def.residentNpc && def.residentPos) {
             const npcId = def.residentNpc;
             const rPos = def.residentPos;
-            const sp = sprites.npcs[npcId];
+            const sp = getAiNpcPoseSprite(sprites, npcId, 1, false, now);
             intQueue.push({
               sortY: rPos.y * TILE_SIZE + 8,
               render: () => {
@@ -1829,21 +1844,21 @@ export default function BerkebunGame({
                 ctx.ellipse(nx, ny + 10, 12, 5, 0, 0, Math.PI * 2);
                 ctx.fill();
                 if (sp) {
-                  const drawH = 50;
+                  const drawH = 54;
                   const drawW = Math.round(drawH * (sp.width / sp.height));
-                  ctx.drawImage(sp, nx - drawW / 2, ny - drawH + 12, drawW, drawH);
+                  ctx.drawImage(sp, Math.round(nx - drawW / 2), Math.round(ny - drawH + 14), drawW, drawH);
                 }
                 ctx.fillStyle = 'rgba(59, 26, 7, 0.85)';
-                ctx.fillRect(nx - 28, ny + 12, 56, 12);
+                ctx.fillRect(nx - 28, ny + 13, 56, 12);
                 ctx.fillStyle = '#fef3c7';
                 ctx.font = 'bold 8px monospace';
                 ctx.textAlign = 'center';
-                ctx.fillText(NPCS[npcId].name.split(' ')[0], nx, ny + 21);
+                ctx.fillText(NPCS[npcId].name.split(' ')[0], nx, ny + 22);
               },
             });
           }
 
-          // Farmer inside Interior with full 4-direction sprites!
+          // Farmer inside Interior with AI 4-direction & action sprites!
           intQueue.push({
             sortY: ip.y * TILE_SIZE + 8,
             render: () => {
@@ -1851,15 +1866,17 @@ export default function BerkebunGame({
               const cy = Math.round(ip.y * TILE_SIZE);
               const walkFrame: FarmerPose = Math.floor(now / 150) % 2 === 0 ? 'walk1' : 'walk2';
               const pose: FarmerPose = ip.actionTimer > 0 ? ip.actionPose : ip.moving ? walkFrame : 'idle';
-              const poseSp = getFarmerPoseSprite(pose, ip.dir);
-              const stride = ip.moving ? Math.abs(Math.sin(now * 0.016)) * 2.5 : 0;
+              const poseSp = getAiFarmerPoseSprite(sprites, pose, ip.dir);
+              const stride = ip.moving ? Math.abs(Math.sin(now * 0.016)) * 2 : 0;
+              const drawH = 54;
+              const drawW = Math.round(drawH * (poseSp.width / poseSp.height));
 
               ctx.fillStyle = 'rgba(0,0,0,0.32)';
               ctx.beginPath();
               ctx.ellipse(cx, cy + 12, 13, 5, 0, 0, Math.PI * 2);
               ctx.fill();
 
-              ctx.drawImage(poseSp, cx - 26, cy - 42 - stride, 52, 52);
+              ctx.drawImage(poseSp, Math.round(cx - drawW / 2), Math.round(cy - drawH + 14 - stride), drawW, drawH);
             },
           });
 
@@ -2545,13 +2562,15 @@ export default function BerkebunGame({
           }
         }
 
-        // Roaming NPCs with Quest Markers (!)
+        // Roaming NPCs with AI Directional Walk Poses & Quest Markers (!)
         const activeStoryCh = STORY_CHAPTERS.find((c) => c.chapter === st.storyChapter);
         const chapterReady = isChapterConditionMet(st);
         (Object.keys(NPCS) as NpcId[]).forEach((npcId) => {
           const rt = npcRuntimeRef.current[npcId];
           if (!isVisibleX(rt.x) || !isVisibleY(rt.y)) return;
-          const sp = sprites.npcs[npcId];
+          const isWalking = rt.pauseTimer === 0;
+          const sp = getAiNpcPoseSprite(sprites, npcId, rt.dir, isWalking, now);
+          const hasAiDir = Boolean(sprites.npcPoses[npcId]?.left_walk);
           const isQuestNpc = activeStoryCh?.speakerNpc === npcId;
 
           queue.push({
@@ -2559,7 +2578,7 @@ export default function BerkebunGame({
             render: () => {
               const nx = Math.round(rt.x * TILE_SIZE);
               const ny = Math.round(rt.y * TILE_SIZE);
-              const bob = rt.pauseTimer === 0 ? Math.abs(Math.sin(now * 0.014)) * 3 : 0;
+              const bob = isWalking ? Math.abs(Math.sin(now * 0.014)) * 2.5 : 0;
 
               ctx.fillStyle = 'rgba(15, 25, 10, 0.32)';
               ctx.beginPath();
@@ -2569,10 +2588,10 @@ export default function BerkebunGame({
               ctx.save();
               ctx.translate(nx, ny - bob);
               if (sp) {
-                const drawH = 50;
+                const drawH = 54;
                 const drawW = Math.round(drawH * (sp.width / sp.height));
-                if (rt.dir === 2) ctx.scale(-1, 1);
-                ctx.drawImage(sp, -drawW / 2, -drawH + 12, drawW, drawH);
+                if (!hasAiDir && rt.dir === 2) ctx.scale(-1, 1);
+                ctx.drawImage(sp, Math.round(-drawW / 2), Math.round(-drawH + 14), drawW, drawH);
               } else {
                 ctx.fillStyle = NPCS[npcId].color;
                 ctx.fillRect(-9, -24, 18, 28);
@@ -2587,7 +2606,7 @@ export default function BerkebunGame({
               ctx.fillText(NPCS[npcId].name.split(' ')[0], nx, ny + 22);
 
               if (isQuestNpc) {
-                const markerY = ny - 46 + Math.sin(now * 0.008) * 3;
+                const markerY = ny - 48 + Math.sin(now * 0.008) * 3;
                 ctx.fillStyle = chapterReady ? '#facc15' : '#ffffff';
                 ctx.strokeStyle = '#4a220c';
                 ctx.lineWidth = 2;
@@ -2603,7 +2622,7 @@ export default function BerkebunGame({
           });
         });
 
-        // Player Farmer Character with Full 4-Directional & Multi-Action Poses!
+        // Player Farmer Character with Full AI 4-Directional & Multi-Action Poses!
         queue.push({
           sortY: p.y * TILE_SIZE + 8,
           render: () => {
@@ -2620,18 +2639,21 @@ export default function BerkebunGame({
               pose = Math.floor(now / 150) % 2 === 0 ? 'walk1' : 'walk2';
             }
 
-            const stride = p.moving && !fs && p.actionTimer === 0 ? Math.abs(Math.sin(now * 0.016)) * 2.5 : 0;
-            const poseSp = getFarmerPoseSprite(pose, p.dir);
+            const stride = p.moving && !fs && p.actionTimer === 0 ? Math.abs(Math.sin(now * 0.016)) * 2 : 0;
+            const poseSp = getAiFarmerPoseSprite(sprites, pose, p.dir);
+            const hasAiPose = Boolean(sprites.farmerPoses[`${pose}_${p.dir}`] || sprites.farmerPoses[`idle_${p.dir}`]);
+            const drawH = 56;
+            const drawW = Math.round(drawH * (poseSp.width / poseSp.height));
 
             ctx.fillStyle = 'rgba(15, 25, 8, 0.35)';
             ctx.beginPath();
             ctx.ellipse(cx, cy + 12, 13, 5, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.drawImage(poseSp, cx - 26, cy - 42 - stride, 52, 52);
+            ctx.drawImage(poseSp, Math.round(cx - drawW / 2), Math.round(cy - drawH + 14 - stride), drawW, drawH);
 
-            // Bamboo Fishing Rod shaft during fishing pose
-            if (fs) {
+            // Fallback rod/tool overlays only while AI sprites are still loading
+            if (!hasAiPose && fs) {
               const rodTipX = fs.status === 'bite' ? cx + (p.dir === 2 ? -22 : 22) : cx + (p.dir === 2 ? -26 : 26);
               const rodTipY = fs.status === 'bite' ? cy - 28 : cy - 18;
               ctx.strokeStyle = '#92400e';
@@ -2642,8 +2664,7 @@ export default function BerkebunGame({
               ctx.stroke();
             }
 
-            // Tool strike animation during hammering / hoeing
-            if (p.swingTimer > 0 && (p.actionPose === 'swing_up' || p.actionPose === 'swing_down')) {
+            if (!hasAiPose && p.swingTimer > 0 && (p.actionPose === 'swing_up' || p.actionPose === 'swing_down')) {
               const toolSp = atlas.tools[activeToolRef.current];
               const prog = 1 - p.swingTimer / 18;
               const angle = (prog - 0.5) * 1.6;
@@ -2668,8 +2689,8 @@ export default function BerkebunGame({
         if (fs) {
           const bx = fs.wx * TILE_SIZE + 24;
           const by = fs.wy * TILE_SIZE + 24 + Math.sin(now * 0.012) * (fs.status === 'bite' ? 4 : 1.5);
-          const tipX = p.x * TILE_SIZE + (fs.status === 'bite' ? (p.dir === 2 ? -22 : 22) : p.dir === 2 ? -26 : 26);
-          const tipY = p.y * TILE_SIZE - (fs.status === 'bite' ? 28 : 18);
+          const tipX = p.x * TILE_SIZE + (fs.status === 'bite' ? (p.dir === 2 ? -24 : 24) : p.dir === 2 ? -26 : 26);
+          const tipY = p.y * TILE_SIZE - (fs.status === 'bite' ? 32 : 24);
           ctx.strokeStyle = '#e2e8f0';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
