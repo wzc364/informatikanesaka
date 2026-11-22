@@ -4,7 +4,7 @@
  */
 
 import farmerSpriteUrl from '../assets/images/berkebun_farmer_pixel_1795346951033.jpg';
-import farmerWalkSheetUrl from '../assets/images/berkebun_farmer_walk_sheet_1795352732856.jpg';
+import farmerWalkSheetUrl from '../assets/images/farmer_walk_sheet_v2_1795354737788.jpg';
 import farmerActionsSheetUrl from '../assets/images/berkebun_farmer_actions_sheet_1795352733967.jpg';
 import farmhouseSpriteUrl from '../assets/images/berkebun_farmhouse_pixel_1795346951463.jpg';
 import shopSpriteUrl from '../assets/images/berkebun_shop_pixel_1795346951275.jpg';
@@ -13,6 +13,9 @@ import treeSpriteUrl from '../assets/images/berkebun_tree_pixel_1795346951395.jp
 import npcSheetUrl from '../assets/images/berkebun_npc_sheet_1795348518239.jpg';
 import npcWalkSheetAUrl from '../assets/images/berkebun_npc_walk_a_1795352732562.jpg';
 import npcWalkSheetBUrl from '../assets/images/berkebun_npc_walk_b_1795352733523.jpg';
+import npcWalkSheetCUrl from '../assets/images/npc_walk_sheet_c_1795354737384.jpg';
+import npcBagasMonstersUrl from '../assets/images/npc_bagas_monsters_1795354738600.jpg';
+import mineItemsDropsUrl from '../assets/images/mine_items_drops_sheet_1795354735984.jpg';
 import furnitureSheetAUrl from '../assets/images/berkebun_furniture_sheet_a_1795352711751.jpg';
 import furnitureSheetBUrl from '../assets/images/berkebun_furniture_sheet_b_1795352709801.jpg';
 import furnitureSheetCUrl from '../assets/images/berkebun_furniture_sheet_c_1795352710884.jpg';
@@ -29,12 +32,15 @@ import {
   type FurnitureKind,
   type NpcId,
   type Season,
+  type WorldTree,
 } from './berkebunWorldData';
 
 export type StardewToolId =
   | 'hoe'
   | 'water'
+  | 'axe'
   | 'pick'
+  | 'sword'
   | 'harvest'
   | 'seed'
   | 'fertilizer'
@@ -56,6 +62,18 @@ export interface StardewSprites {
   npcPoses: Record<NpcId, Partial<Record<string, HTMLCanvasElement>>>;
   npcPortraits: Record<NpcId, string>;
   furniture: Partial<Record<FurnitureKind, HTMLCanvasElement>>;
+  monsters: {
+    slime: HTMLCanvasElement[];
+    bat: HTMLCanvasElement[];
+    golem: HTMLCanvasElement[];
+  };
+  mineEntrance: HTMLCanvasElement | null;
+  mineLadder: HTMLCanvasElement | null;
+  mineTorch: HTMLCanvasElement | null;
+  mineBomb: HTMLCanvasElement | null;
+  mineBoulder: HTMLCanvasElement | null;
+  forgeEmblem: HTMLCanvasElement | null;
+  bagItemAiSprites: Partial<Record<BagItemId, HTMLCanvasElement>>;
 }
 
 const PROCESSED_CACHE = new Map<string, HTMLCanvasElement>();
@@ -268,6 +286,22 @@ function sliceGridSheet(
   return out;
 }
 
+function makeNpcPortraitFromSprite(sprite: HTMLCanvasElement): string {
+  const pCanvas = document.createElement('canvas');
+  pCanvas.width = 96;
+  pCanvas.height = 96;
+  const pCtx = pCanvas.getContext('2d');
+  if (pCtx) {
+    pCtx.imageSmoothingEnabled = false;
+    const srcH = Math.round(sprite.height * 0.72);
+    const srcW = Math.min(sprite.width, srcH);
+    const sx = Math.max(0, Math.round((sprite.width - srcW) / 2));
+    pCtx.drawImage(sprite, sx, 0, srcW, srcH, 4, 4, 88, 88);
+    return pCanvas.toDataURL('image/png');
+  }
+  return '';
+}
+
 let NPC_CACHE: {
   npcs: Record<NpcId, HTMLCanvasElement | null>;
   npcPoses: Record<NpcId, Partial<Record<string, HTMLCanvasElement>>>;
@@ -285,6 +319,10 @@ async function loadSlicedNpcs() {
       maya: null,
       bima: null,
       lira: null,
+      kiran: null,
+      tara: null,
+      dewi: null,
+      bagas: null,
     } as Record<NpcId, HTMLCanvasElement | null>,
     npcPoses: {
       raka: {},
@@ -293,6 +331,10 @@ async function loadSlicedNpcs() {
       maya: {},
       bima: {},
       lira: {},
+      kiran: {},
+      tara: {},
+      dewi: {},
+      bagas: {},
     } as Record<NpcId, Partial<Record<string, HTMLCanvasElement>>>,
     npcPortraits: {
       raka: '',
@@ -301,13 +343,19 @@ async function loadSlicedNpcs() {
       maya: '',
       bima: '',
       lira: '',
+      kiran: '',
+      tara: '',
+      dewi: '',
+      bagas: '',
     } as Record<NpcId, string>,
   };
 
-  const [sheet, walkA, walkB] = await Promise.all([
+  const [sheet, walkA, walkB, walkC, bagasMonsters] = await Promise.all([
     loadImageElement(npcSheetUrl),
     loadImageElement(npcWalkSheetAUrl),
     loadImageElement(npcWalkSheetBUrl),
+    loadImageElement(npcWalkSheetCUrl),
+    loadImageElement(npcBagasMonstersUrl),
   ]);
 
   if (sheet) {
@@ -336,23 +384,12 @@ async function loadSlicedNpcs() {
       );
       defaultResult.npcs[item.id] = sprite;
       if (sprite) {
-        const pCanvas = document.createElement('canvas');
-        pCanvas.width = 96;
-        pCanvas.height = 96;
-        const pCtx = pCanvas.getContext('2d');
-        if (pCtx) {
-          pCtx.imageSmoothingEnabled = false;
-          const srcH = Math.round(sprite.height * 0.72);
-          const srcW = Math.min(sprite.width, srcH);
-          const sx = Math.max(0, Math.round((sprite.width - srcW) / 2));
-          pCtx.drawImage(sprite, sx, 0, srcW, srcH, 4, 4, 88, 88);
-          defaultResult.npcPortraits[item.id] = pCanvas.toDataURL('image/png');
-        }
+        defaultResult.npcPortraits[item.id] = makeNpcPortraitFromSprite(sprite);
       }
     }
   }
 
-  // Slice 4x3 directional walk poses for all 6 NPCs!
+  // Slice 4x3 directional walk poses for all 10 NPCs!
   const assignNpcWalkRow = (cells: Array<HTMLCanvasElement | null>, rowIdx: number, npcId: NpcId) => {
     const base = rowIdx * 4;
     const dIdle = cells[base];
@@ -371,6 +408,9 @@ async function loadSlicedNpcs() {
     if (!defaultResult.npcs[npcId] && dIdle) {
       defaultResult.npcs[npcId] = dIdle;
     }
+    if (!defaultResult.npcPortraits[npcId] && dIdle) {
+      defaultResult.npcPortraits[npcId] = makeNpcPortraitFromSprite(dIdle);
+    }
   };
 
   if (walkA) {
@@ -384,6 +424,16 @@ async function loadSlicedNpcs() {
     assignNpcWalkRow(cellsB, 0, 'maya');
     assignNpcWalkRow(cellsB, 1, 'bima');
     assignNpcWalkRow(cellsB, 2, 'lira');
+  }
+  if (walkC) {
+    const cellsC = sliceGridSheet(walkC, 4, 3, 140);
+    assignNpcWalkRow(cellsC, 0, 'kiran');
+    assignNpcWalkRow(cellsC, 1, 'tara');
+    assignNpcWalkRow(cellsC, 2, 'dewi');
+  }
+  if (bagasMonsters) {
+    const cellsD = sliceGridSheet(bagasMonsters, 4, 3, 140);
+    assignNpcWalkRow(cellsD, 0, 'bagas');
   }
 
   NPC_CACHE = defaultResult;
@@ -514,6 +564,83 @@ async function loadAiFurnitureSprites(): Promise<Partial<Record<FurnitureKind, H
   return map;
 }
 
+const AI_BAG_DATA_URLS = new Map<BagItemId, string>();
+
+interface MineAssetsPack {
+  monsters: { slime: HTMLCanvasElement[]; bat: HTMLCanvasElement[]; golem: HTMLCanvasElement[] };
+  mineEntrance: HTMLCanvasElement | null;
+  mineLadder: HTMLCanvasElement | null;
+  mineTorch: HTMLCanvasElement | null;
+  mineBomb: HTMLCanvasElement | null;
+  mineBoulder: HTMLCanvasElement | null;
+  forgeEmblem: HTMLCanvasElement | null;
+  bagItemAiSprites: Partial<Record<BagItemId, HTMLCanvasElement>>;
+}
+
+let MINE_PACK_CACHE: MineAssetsPack | null = null;
+
+async function loadMineAndMonsterSprites(): Promise<MineAssetsPack> {
+  if (MINE_PACK_CACHE) return MINE_PACK_CACHE;
+
+  const [sheetMonsters, sheetDrops] = await Promise.all([
+    loadImageElement(npcBagasMonstersUrl),
+    loadImageElement(mineItemsDropsUrl),
+  ]);
+
+  const pack: MineAssetsPack = {
+    monsters: { slime: [], bat: [], golem: [] },
+    mineEntrance: null,
+    mineLadder: null,
+    mineTorch: null,
+    mineBomb: null,
+    mineBoulder: null,
+    forgeEmblem: null,
+    bagItemAiSprites: {},
+  };
+
+  if (sheetMonsters) {
+    const cells = sliceGridSheet(sheetMonsters, 4, 3, 160);
+    if (cells[4]) pack.monsters.slime.push(cells[4]);
+    if (cells[5]) pack.monsters.slime.push(cells[5]);
+    if (cells[6]) pack.monsters.bat.push(cells[6]);
+    if (cells[7]) pack.monsters.bat.push(cells[7]);
+    if (cells[8]) pack.monsters.golem.push(cells[8]);
+    if (cells[9]) pack.monsters.golem.push(cells[9]);
+    if (cells[10]) pack.mineEntrance = cells[10];
+    if (cells[11]) pack.mineLadder = cells[11];
+  }
+
+  if (sheetDrops) {
+    const drops = sliceGridSheet(sheetDrops, 3, 3, 128);
+    const assignDrop = (idx: number, bagId?: BagItemId) => {
+      const sp = drops[idx];
+      if (!sp) return;
+      if (bagId) {
+        pack.bagItemAiSprites[bagId] = sp;
+        try {
+          AI_BAG_DATA_URLS.set(bagId, sp.toDataURL('image/png'));
+        } catch {
+          // ignore
+        }
+      }
+    };
+    assignDrop(0, 'torch_item');
+    if (drops[0]) pack.mineTorch = drops[0];
+    assignDrop(1, 'mine_bomb');
+    if (drops[1]) pack.mineBomb = drops[1];
+    assignDrop(2, 'hp_potion');
+    assignDrop(3, 'slime_gel');
+    assignDrop(4, 'bat_wing');
+    assignDrop(5, 'monster_core');
+    assignDrop(6, 'home_totem');
+    if (drops[7]) pack.mineBoulder = drops[7];
+    if (drops[8]) pack.forgeEmblem = drops[8];
+  }
+
+  MINE_PACK_CACHE = pack;
+  return pack;
+}
+
 export async function loadAllStardewSprites(): Promise<StardewSprites> {
   const [
     farmer,
@@ -528,6 +655,7 @@ export async function loadAllStardewSprites(): Promise<StardewSprites> {
     lighthouse,
     npcPack,
     furniture,
+    minePack,
   ] = await Promise.all([
     loadTransparentSprite(farmerSpriteUrl, 128),
     loadAiFarmerPoses(),
@@ -541,6 +669,7 @@ export async function loadAllStardewSprites(): Promise<StardewSprites> {
     loadTransparentSprite(lighthouseUrl, 260),
     loadSlicedNpcs(),
     loadAiFurnitureSprites(),
+    loadMineAndMonsterSprites(),
   ]);
 
   return {
@@ -558,6 +687,14 @@ export async function loadAllStardewSprites(): Promise<StardewSprites> {
     npcPoses: npcPack.npcPoses,
     npcPortraits: npcPack.npcPortraits,
     furniture,
+    monsters: minePack.monsters,
+    mineEntrance: minePack.mineEntrance,
+    mineLadder: minePack.mineLadder,
+    mineTorch: minePack.mineTorch,
+    mineBomb: minePack.mineBomb,
+    mineBoulder: minePack.mineBoulder,
+    forgeEmblem: minePack.forgeEmblem,
+    bagItemAiSprites: minePack.bagItemAiSprites,
   };
 }
 
@@ -681,6 +818,7 @@ export interface PixelAtlas {
   oceanWater: HTMLCanvasElement;
   stone: HTMLCanvasElement;
   wood: HTMLCanvasElement;
+  stump: HTMLCanvasElement;
   weed: HTMLCanvasElement;
   ore_copper: HTMLCanvasElement;
   ore_silver: HTMLCanvasElement;
@@ -871,6 +1009,27 @@ export function getStardewPixelAtlas(): PixelAtlas {
       { o: '#2d1407', B: '#9a5223', D: '#6b3413', R: '#e7ba84' },
       0,
       3
+    );
+  });
+
+  const stump = makePixelCanvas(16, 16, (px) => {
+    drawMatrix(
+      px,
+      [
+        '....oooooooo....',
+        '..ooRRRRRRRRoo..',
+        '.oRRRBBBBBBBRRo.',
+        '..ooBBBBBBBBoo..',
+        '...oBBDDDDDBo...',
+        '...oBBDDDDDBo...',
+        '..ooBBDDDDDBoo..',
+        '.oBBBBDDDDDBBBo.',
+        '..ooooDDDDoooo..',
+        '......oooo......',
+      ],
+      { o: '#241206', R: '#eab875', B: '#9a5223', D: '#5c2c0e' },
+      0,
+      4
     );
   });
 
@@ -1470,7 +1629,7 @@ export function getStardewPixelAtlas(): PixelAtlas {
     moonfruit: [stageSeeds, stageSprout, midTall, moonfruitRipe],
   };
 
-  // 5. Tools (8 slots)
+  // 5. Tools (10 slots)
   const tools: Record<StardewToolId, HTMLCanvasElement> = {
     hoe: makePixelCanvas(16, 16, (px) => {
       drawMatrix(
@@ -1514,6 +1673,28 @@ export function getStardewPixelAtlas(): PixelAtlas {
         3
       );
     }),
+    axe: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.......ooooo....',
+          '......oLLLLSo...',
+          '.....oLLSSSSSo..',
+          '.....oSSDDSSSo..',
+          '......oooWWoo...',
+          '.......oWWo.....',
+          '......oWWo......',
+          '.....oWWo.......',
+          '....oWWo........',
+          '...oWWo.........',
+          '..oBBo..........',
+          '..ooo...........',
+        ],
+        { o: '#261409', L: '#f1f5f9', S: '#94a3b8', D: '#475569', W: '#c07a3e', B: '#78350f' },
+        1,
+        2
+      );
+    }),
     pick: makePixelCanvas(16, 16, (px) => {
       drawMatrix(
         px,
@@ -1532,6 +1713,28 @@ export function getStardewPixelAtlas(): PixelAtlas {
         ],
         { o: '#261409', S: '#cbd5e1', D: '#64748b', W: '#c07a3e', B: '#78350f' },
         0,
+        2
+      );
+    }),
+    sword: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '...........ooo..',
+          '..........oWWSo.',
+          '.........oWWSo..',
+          '........oWSSo...',
+          '.......oWSSo....',
+          '......oWSSo.....',
+          '...oooWSSo......',
+          '..oGGGGoo.......',
+          '...oBBo.........',
+          '..oBBo..........',
+          '..oGGo..........',
+          '...oo...........',
+        ],
+        { o: '#1e1b4b', W: '#f8fafc', S: '#38bdf8', G: '#facc15', B: '#78350f' },
+        1,
         2
       );
     }),
@@ -1673,6 +1876,56 @@ export function getStardewPixelAtlas(): PixelAtlas {
     egg_gold: makeEgg('#facc15', '#fef9c3'),
     wood_res: wood,
     stone_res: stone,
+    slime_gel: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.....oooooo.....',
+          '...ooLLLLLLoo...',
+          '..oLLGGGGGGLLo..',
+          '.oLGWWGGGGGGGGo.',
+          '.oGGGGGGGGDDDGo.',
+          '..oGGGGDDDDDDo..',
+          '...oooooooooo...',
+        ],
+        { o: '#14532d', L: '#86efac', G: '#22c55e', D: '#15803d', W: '#ffffff' },
+        0,
+        5
+      );
+    }),
+    bat_wing: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '..oooo....oooo..',
+          '.oPPPPooooPPPoo.',
+          '.oPPDDDDDDPPPo..',
+          '..oPDDDDDDDPo...',
+          '...oPPoPPoPo....',
+          '....oo.oo.o.....',
+        ],
+        { o: '#1e1b4b', P: '#9333ea', D: '#4c1d95' },
+        0,
+        5
+      );
+    }),
+    monster_core: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '......oooo......',
+          '....ooCCCCoo....',
+          '...oCCWWWWCCo...',
+          '..oCCWYYYYWCCo..',
+          '...oCCWWWWCCo...',
+          '....ooCCCCoo....',
+          '......oooo......',
+        ],
+        { o: '#1e1b4b', C: '#38bdf8', W: '#e0f2fe', Y: '#fef08a' },
+        0,
+        4
+      );
+    }),
     artisan_jam: makePixelCanvas(16, 16, (px) => {
       drawMatrix(
         px,
@@ -1725,6 +1978,94 @@ export function getStardewPixelAtlas(): PixelAtlas {
         { o: '#14380c', W: '#d99a52', B: '#9a5223', G: '#22c55e', L: '#bbf7d0', D: '#15803d' },
         1,
         4
+      );
+    }),
+    hp_potion: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.....oooo.....',
+          '.....oWBo.....',
+          '....ooRRoo....',
+          '..ooRRRRRRoo..',
+          '.oRRLLRRRRRRo.',
+          '.oRRRRRRRRRRo.',
+          '..ooDDDDDDoo..',
+          '....oooooo....',
+        ],
+        { o: '#450a0a', W: '#fef2f2', B: '#9a5223', R: '#ef4444', L: '#fca5a5', D: '#991b1b' },
+        1,
+        4
+      );
+    }),
+    mine_bomb: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.......oYoo...',
+          '......oW..O...',
+          '....oooooo....',
+          '..ooSSSSSSoo..',
+          '.oSSLLSSSSSSo.',
+          '.oSSSSSSSSSSo.',
+          '..ooDDDDDDoo..',
+          '....oooooo....',
+        ],
+        { o: '#0f172a', S: '#334155', L: '#94a3b8', D: '#1e293b', W: '#d99a52', Y: '#fde047', O: '#f97316' },
+        1,
+        4
+      );
+    }),
+    torch_item: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.....oooo.....',
+          '....oYYYYo....',
+          '....oOYYOo....',
+          '.....oOOr.....',
+          '.....oBBo.....',
+          '.....oBBo.....',
+          '.....oDDo.....',
+          '......oo......',
+        ],
+        { o: '#261307', Y: '#fef08a', O: '#f97316', r: '#dc2626', B: '#b45309', D: '#78350f' },
+        1,
+        4
+      );
+    }),
+    home_totem: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '....oooooo....',
+          '...oYYYYYYo...',
+          '..oYYCCCCYYo..',
+          '..oYCCWWCCYo..',
+          '...oYYYYYYo...',
+          '...oBYYYYBo...',
+          '...oBDDDDDo...',
+          '....oooooo....',
+        ],
+        { o: '#451a03', Y: '#facc15', C: '#38bdf8', W: '#ffffff', B: '#b45309', D: '#78350f' },
+        1,
+        4
+      );
+    }),
+    fish_bait: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '....oooooo....',
+          '...oPPWWPPo...',
+          '..oPPPRRRPPo..',
+          '..oPRRRRRRPo..',
+          '...ooPPPoo....',
+          '.....oooo.....',
+        ],
+        { o: '#4a1d32', P: '#f472b6', R: '#ec4899', W: '#fdf2f8' },
+        1,
+        5
       );
     }),
   };
@@ -2199,6 +2540,7 @@ export function getStardewPixelAtlas(): PixelAtlas {
     oceanWater,
     stone,
     wood,
+    stump,
     weed,
     ore_copper,
     ore_silver,
@@ -2588,20 +2930,21 @@ export function getFarmerPoseSprite(pose: FarmerPose, dir: FarmerDir): HTMLCanva
   return sprite;
 }
 
-// ---------- Detailed Pixel-Art World Map Renderer for Pulau TIK ----------
+// ---------- Detailed Pixel-Art World Map Renderer for 5-Island Pulau TIK ----------
 
 export function renderPixelWorldMapCanvas(
   canvas: HTMLCanvasElement,
   tiles: FarmTile[],
   season: Season,
   storyChapter: number,
-  islandHealed: boolean
+  islandHealed: boolean,
+  trees?: WorldTree[]
 ): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   ctx.imageSmoothingEnabled = false;
 
-  const scale = 10; // 54*10 = 540 x 38*10 = 380 crisp pixels!
+  const scale = 8; // 78*8 = 624 x 52*8 = 416 crisp pixels!
   if (canvas.width !== WORLD_COLS * scale) canvas.width = WORLD_COLS * scale;
   if (canvas.height !== WORLD_ROWS * scale) canvas.height = WORLD_ROWS * scale;
 
@@ -2627,33 +2970,33 @@ export function renderPixelWorldMapCanvas(
           ctx.fillRect(px + 1, py + 1, scale - 2, 2);
         } else if ((x * 7 + y * 13) % 9 === 0) {
           ctx.fillStyle = '#38bdf8';
-          ctx.fillRect(px + 2, py + 4, 4, 2);
+          ctx.fillRect(px + 2, py + 3, 3, 2);
         }
       } else if (tile.kind === 'river' || tile.kind === 'pond') {
         ctx.fillStyle = '#328bc4';
         ctx.fillRect(px, py, scale, scale);
         ctx.fillStyle = '#7dd3fc';
-        ctx.fillRect(px + 2, py + 3, 5, 2);
+        ctx.fillRect(px + 1, py + 2, 4, 2);
       } else if (tile.kind === 'sand') {
         ctx.fillStyle = '#edd08f';
         ctx.fillRect(px, py, scale, scale);
         if ((x + y) % 3 === 0) {
           ctx.fillStyle = '#d7ad62';
-          ctx.fillRect(px + 2, py + 6, 3, 2);
+          ctx.fillRect(px + 2, py + 5, 2, 2);
         }
       } else if (tile.kind === 'forest_floor') {
         ctx.fillStyle = '#3c732b';
         ctx.fillRect(px, py, scale, scale);
         if ((x * 3 + y * 5) % 4 === 0) {
           ctx.fillStyle = '#245218';
-          ctx.fillRect(px + 1, py + 1, 7, 7);
+          ctx.fillRect(px + 1, py + 1, 5, 5);
           ctx.fillStyle = '#4f9438';
-          ctx.fillRect(px + 2, py + 2, 4, 4);
+          ctx.fillRect(px + 2, py + 2, 3, 3);
         }
       } else if (tile.kind === 'plaza' || tile.kind === 'cliff_pass') {
-        ctx.fillStyle = x >= 35 ? '#78716c' : '#a8a29e';
+        ctx.fillStyle = x >= 47 ? '#64748b' : '#a8a29e';
         ctx.fillRect(px, py, scale, scale);
-        ctx.fillStyle = x >= 35 ? '#57534e' : '#d6d3d1';
+        ctx.fillStyle = x >= 47 ? '#475569' : '#d6d3d1';
         ctx.fillRect(px + 1, py + 1, scale - 2, scale - 2);
         if (tile.kind === 'cliff_pass' && storyChapter < 3) {
           ctx.fillStyle = '#dc2626';
@@ -2663,41 +3006,51 @@ export function renderPixelWorldMapCanvas(
         ctx.fillStyle = '#dfb577';
         ctx.fillRect(px, py, scale, scale);
         ctx.fillStyle = '#c79554';
-        ctx.fillRect(px + 2, py + 2, 3, 3);
+        ctx.fillRect(px + 2, py + 2, 2, 2);
       } else if (tile.kind === 'bridge' || tile.kind === 'pier') {
-        const broken = tile.kind === 'bridge' && y >= 25 && storyChapter < 2;
+        const broken = tile.kind === 'bridge' && x >= 41 && x <= 43 && y >= 28 && y <= 31 && storyChapter < 2;
         ctx.fillStyle = broken ? '#dc2626' : '#9a5223';
         ctx.fillRect(px, py, scale, scale);
         ctx.fillStyle = broken ? '#fef08a' : '#dfb577';
-        ctx.fillRect(px + 1, py + 2, scale - 2, scale - 4);
+        ctx.fillRect(px + 1, py + 1, scale - 2, scale - 2);
       } else {
         ctx.fillStyle = tile.tilled ? '#7c3f16' : pal.base;
         ctx.fillRect(px, py, scale, scale);
         if (!tile.tilled && (x * 7 + y * 11) % 6 === 0) {
           ctx.fillStyle = pal.flowerA;
-          ctx.fillRect(px + 3, py + 3, 2, 2);
+          ctx.fillRect(px + 2, py + 2, 2, 2);
         }
         if (tile.crop) {
           ctx.fillStyle = tile.crop.ready ? '#fde047' : '#4ade80';
-          ctx.fillRect(px + 2, py + 2, 5, 5);
+          ctx.fillRect(px + 2, py + 2, 4, 4);
         }
       }
 
-      // Tiny mining ore / forage sparkle dots on map
       if (tile.debris === 'ore_star') {
         ctx.fillStyle = '#c084fc';
-        ctx.fillRect(px + 3, py + 3, 4, 4);
+        ctx.fillRect(px + 2, py + 2, 4, 4);
       } else if (tile.debris === 'ore_silver') {
         ctx.fillStyle = '#7dd3fc';
-        ctx.fillRect(px + 3, py + 3, 4, 4);
+        ctx.fillRect(px + 2, py + 2, 4, 4);
       } else if (tile.debris === 'ore_copper') {
         ctx.fillStyle = '#fb923c';
-        ctx.fillRect(px + 3, py + 3, 4, 4);
+        ctx.fillRect(px + 2, py + 2, 4, 4);
       }
     }
   }
 
-  // Pixel-art miniature building blocks on the map!
+  // Standing Choppable Trees overlay
+  if (trees) {
+    trees.forEach((tr) => {
+      if (tr.hp <= 0) return;
+      ctx.fillStyle = tr.kind === 'palm' ? '#16a34a' : '#14532d';
+      ctx.fillRect(tr.x * scale + 1, tr.y * scale + 1, scale - 2, scale - 2);
+      ctx.fillStyle = tr.kind === 'palm' ? '#4ade80' : '#22c55e';
+      ctx.fillRect(tr.x * scale + 2, tr.y * scale + 2, scale - 4, scale - 4);
+    });
+  }
+
+  // Pixel-art miniature building blocks on the 78x52 map!
   const drawMiniRoof = (tx: number, ty: number, tw: number, th: number, roof: string, trim: string) => {
     const rx = tx * scale;
     const ry = ty * scale;
@@ -2708,54 +3061,61 @@ export function renderPixelWorldMapCanvas(
     ctx.fillStyle = trim;
     ctx.fillRect(rx, ry, rw, rh);
     ctx.fillStyle = roof;
-    ctx.fillRect(rx + 2, ry + 2, rw - 4, rh - 6);
+    ctx.fillRect(rx + 2, ry + 2, rw - 4, rh - 4);
     ctx.fillStyle = '#fef3c7';
-    ctx.fillRect(rx + Math.floor(rw / 2) - 3, ry + rh - 5, 6, 5);
+    ctx.fillRect(rx + Math.floor(rw / 2) - 2, ry + rh - 4, 4, 4);
   };
 
-  drawMiniRoof(6, 13, 3, 3, '#b91c1c', '#f59e0b'); // Rumah Kebun
-  drawMiniRoof(13, 13, 3, 3, '#d97706', '#fef08a'); // Kandang Ayam
-  drawMiniRoof(25, 13, 3, 3, '#ec4899', '#f8fafc'); // Toko Benih
-  drawMiniRoof(31, 13, 3, 3, '#4f46e5', '#facc15'); // Balai Tetua
-  drawMiniRoof(7, 7, 3, 3, '#9333ea', '#e9d5ff'); // Pondok Maya
-  drawMiniRoof(14, 4, 3, 3, '#c2410c', '#fed7aa'); // Bengkel Jaka
-  drawMiniRoof(38, 4, 3, 3, '#b45309', '#fef3c7'); // Kincir Angin
-  drawMiniRoof(42, 29, 3, 3, '#0284c7', '#f8fafc'); // Mercusuar
-  drawMiniRoof(31, 34, 4, 3, '#78350f', '#fffbeb'); // Kapal Bima
+  drawMiniRoof(21, 17, 3, 3, '#b91c1c', '#f59e0b'); // Rumah Kebun
+  drawMiniRoof(27, 17, 3, 3, '#d97706', '#fef08a'); // Kandang Ayam
+  drawMiniRoof(39, 17, 3, 3, '#ec4899', '#f8fafc'); // Toko Benih
+  drawMiniRoof(44, 17, 3, 3, '#4f46e5', '#facc15'); // Balai Tetua
+  drawMiniRoof(49, 17, 3, 3, '#dc2626', '#cbd5e1'); // Bengkel Kiran
+  drawMiniRoof(53, 17, 3, 3, '#ea580c', '#fed7aa'); // Pos Bagas
+  drawMiniRoof(23, 8, 3, 3, '#9333ea', '#e9d5ff'); // Pondok Maya
+  drawMiniRoof(29, 5, 3, 3, '#c2410c', '#fed7aa'); // Bengkel Jaka
+  drawMiniRoof(49, 5, 3, 3, '#b45309', '#fef3c7'); // Kincir Angin
+  drawMiniRoof(52, 33, 3, 3, '#0284c7', '#f8fafc'); // Mercusuar
+  drawMiniRoof(45, 38, 4, 3, '#78350f', '#fffbeb'); // Kapal Bima
+  drawMiniRoof(7, 19, 3, 3, '#10b981', '#bbf7d0'); // Pondok Dewi
+
+  // Both Underground Mine Entrances
+  drawMiniRoof(54, 6, 2, 2, '#1e293b', '#f97316');
+  drawMiniRoof(67, 12, 2, 2, '#1e293b', '#f97316');
 
   // Sacred Pohon Cahaya Abadi + 4 Mustika Gems
   ctx.fillStyle = islandHealed ? '#f472b6' : '#ec4899';
-  ctx.fillRect(26 * scale - 2, 4 * scale - 2, 3 * scale + 4, 3 * scale + 4);
+  ctx.fillRect(39 * scale - 2, 5 * scale - 2, 3 * scale + 4, 3 * scale + 4);
   ctx.fillStyle = '#fbcfe8';
-  ctx.fillRect(26 * scale + 4, 4 * scale + 4, 3 * scale - 8, 3 * scale - 8);
+  ctx.fillRect(39 * scale + 3, 5 * scale + 3, 3 * scale - 6, 3 * scale - 6);
   const gemCoords = [
-    { x: 24, y: 8, lit: storyChapter >= 2, c: '#84cc16' },
-    { x: 25, y: 9, lit: storyChapter >= 3, c: '#38bdf8' },
-    { x: 29, y: 9, lit: storyChapter >= 4, c: '#a855f7' },
-    { x: 30, y: 8, lit: storyChapter >= 5, c: '#facc15' },
+    { x: 37, y: 9, lit: storyChapter >= 2, c: '#84cc16' },
+    { x: 38, y: 10, lit: storyChapter >= 3, c: '#38bdf8' },
+    { x: 42, y: 10, lit: storyChapter >= 4, c: '#a855f7' },
+    { x: 43, y: 9, lit: storyChapter >= 5, c: '#facc15' },
   ];
   gemCoords.forEach((g) => {
     ctx.fillStyle = g.lit || islandHealed ? g.c : '#475569';
-    ctx.fillRect(g.x * scale + 2, g.y * scale + 2, 6, 6);
+    ctx.fillRect(g.x * scale + 1, g.y * scale + 1, 6, 6);
   });
 
   // Pixel-art Compass Rose in Top-Left Ocean Corner
-  const cx = 28;
-  const cy = 28;
+  const cx = 24;
+  const cy = 24;
   ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
-  ctx.fillRect(cx - 18, cy - 18, 36, 36);
+  ctx.fillRect(cx - 16, cy - 16, 32, 32);
   ctx.strokeStyle = '#facc15';
   ctx.lineWidth = 2;
-  ctx.strokeRect(cx - 18, cy - 18, 36, 36);
+  ctx.strokeRect(cx - 16, cy - 16, 32, 32);
   ctx.fillStyle = '#f8fafc';
-  ctx.fillRect(cx - 1, cy - 12, 2, 24);
-  ctx.fillRect(cx - 12, cy - 1, 24, 2);
+  ctx.fillRect(cx - 1, cy - 10, 2, 20);
+  ctx.fillRect(cx - 10, cy - 1, 20, 2);
   ctx.fillStyle = '#ef4444';
-  ctx.fillRect(cx - 2, cy - 14, 4, 8);
+  ctx.fillRect(cx - 2, cy - 12, 4, 7);
   ctx.font = 'bold 9px monospace';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fef08a';
-  ctx.fillText('U', cx, cy - 18 + 9);
+  ctx.fillText('U', cx, cy - 16 + 8);
 }
 
 const DATA_URL_CACHE = new Map<string, string>();
@@ -2779,6 +3139,8 @@ export function getPixelToolDataUrl(toolId: StardewToolId): string {
 }
 
 export function getPixelBagItemDataUrl(itemId: BagItemId): string {
+  const aiUrl = AI_BAG_DATA_URLS.get(itemId);
+  if (aiUrl) return aiUrl;
   const key = `bag_${itemId}`;
   const existing = DATA_URL_CACHE.get(key);
   if (existing) return existing;

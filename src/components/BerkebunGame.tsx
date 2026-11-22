@@ -34,9 +34,15 @@ import {
   Compass,
   Gift,
   Fish,
+  Sword,
+  Save,
+  Flame,
+  HeartPulse,
+  ShieldAlert,
+  Bomb,
 } from 'lucide-react';
 import { cn } from '../utils';
-import { doc, setDoc, getDocs, query, collection, where } from 'firebase/firestore';
+import { doc, getDoc, setDoc, getDocs, query, collection, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import gameBerkebunBg from '../assets/images/game_berkebun_bg_1795346504800.jpg';
 import berkebunPortraitImg from '../assets/images/berkebun_portrait_1795346503232.jpg';
@@ -53,7 +59,14 @@ import {
   NPCS,
   ISLAND_REGIONS,
   INTERIORS,
+  TOOL_UPGRADE_TIERS,
+  TOOL_UPGRADE_NAMES,
+  MINE_COLS,
+  MINE_ROWS,
   createInitialIslandGrid,
+  createInitialTrees,
+  getNpcExclusiveLocation,
+  generateUndergroundFloor,
   type Season,
   type Weather,
   type CropId,
@@ -62,6 +75,10 @@ import {
   type InteriorId,
   type FurnitureItem,
   type FarmTile,
+  type WorldTree,
+  type UpgradeableToolId,
+  type UndergroundCell,
+  type UndergroundMonster,
 } from './berkebunWorldData';
 import {
   loadAllStardewSprites,
@@ -148,6 +165,8 @@ const SIDE_QUESTS: QuestDef[] = [
 
 const SEASONS: Season[] = ['Semi', 'Panas', 'Gugur', 'Dingin'];
 
+const WATER_CAPS = [20, 32, 48, 70];
+
 interface FarmSaveState {
   version: number;
   day: number;
@@ -156,6 +175,8 @@ interface FarmSaveState {
   gold: number;
   totalEarnedGold: number;
   stamina: number;
+  hp: number;
+  maxHp: number;
   waterLevel: number;
   sprinklerCount: number;
   goldSprinklerCount: number;
@@ -164,9 +185,20 @@ interface FarmSaveState {
   storyChapter: number; // 1..5, 6 = Finale completed!
   islandHealed: boolean;
   coopEggsReady: number;
+  toolLevels: Record<UpgradeableToolId, number>;
   seeds: Record<CropId, number>;
   harvestBasket: Record<string, { cropId: CropId; quality: 'normal' | 'gold'; qty: number }>;
   bagItems: Partial<Record<BagItemId, number>>;
+  chestItems: Partial<Record<BagItemId, number>>;
+  dailyFlags: {
+    fireWarmedDay?: number;
+    tableEatenDay?: number;
+    woodTakenDay?: number;
+    blessedDay?: number;
+    coopFedDay?: number;
+  };
+  savedPlayerPos?: { x: number; y: number };
+  savedMinuteOfDay?: number;
   npcHearts: Record<NpcId, number>;
   npcTalkedToday: Partial<Record<NpcId, boolean>>;
   npcGiftedToday: Partial<Record<NpcId, boolean>>;
@@ -178,20 +210,26 @@ interface FarmSaveState {
     fished: number;
     oresMined: number;
     crafted: number;
+    treesChopped: number;
+    monstersSlain: number;
   };
   claimedQuests: string[];
   tiles: FarmTile[];
+  trees: WorldTree[];
 }
 
 function createInitialSave(): FarmSaveState {
+  const initialTiles = createInitialIslandGrid();
   return {
-    version: 3,
+    version: 4,
     day: 1,
     seasonIdx: 0,
     weather: 'Cerah',
-    gold: 200,
+    gold: 250,
     totalEarnedGold: 0,
     stamina: 100,
+    hp: 100,
+    maxHp: 100,
     waterLevel: 20,
     sprinklerCount: 0,
     goldSprinklerCount: 0,
@@ -199,6 +237,14 @@ function createInitialSave(): FarmSaveState {
     storyChapter: 1,
     islandHealed: false,
     coopEggsReady: 1,
+    toolLevels: {
+      hoe: 1,
+      water: 1,
+      axe: 1,
+      pick: 1,
+      sword: 1,
+      rod: 1,
+    },
     seeds: {
       turnip: 6,
       potato: 3,
@@ -212,9 +258,16 @@ function createInitialSave(): FarmSaveState {
     },
     harvestBasket: {},
     bagItems: {
-      wood_res: 2,
-      stone_res: 2,
+      wood_res: 4,
+      stone_res: 3,
+      torch_item: 2,
+      hp_potion: 2,
+      mine_bomb: 1,
     },
+    chestItems: {},
+    dailyFlags: {},
+    savedPlayerPos: { x: 22.5, y: 21.2 },
+    savedMinuteOfDay: 360,
     npcHearts: {
       raka: 1,
       sari: 1,
@@ -222,6 +275,10 @@ function createInitialSave(): FarmSaveState {
       maya: 0,
       bima: 0,
       lira: 0,
+      kiran: 0,
+      tara: 0,
+      dewi: 0,
+      bagas: 0,
     },
     npcTalkedToday: {},
     npcGiftedToday: {},
@@ -233,14 +290,55 @@ function createInitialSave(): FarmSaveState {
       fished: 0,
       oresMined: 0,
       crafted: 0,
+      treesChopped: 0,
+      monstersSlain: 0,
     },
     claimedQuests: [],
-    tiles: createInitialIslandGrid(),
+    tiles: initialTiles,
+    trees: createInitialTrees(initialTiles),
+  };
+}
+
+function normalizeSaveState(raw: Partial<FarmSaveState>): FarmSaveState {
+  const fresh = createInitialSave();
+  const hasValidTiles = Array.isArray(raw.tiles) && raw.tiles.length === WORLD_COLS * WORLD_ROWS;
+  const tiles = hasValidTiles ? raw.tiles! : fresh.tiles;
+  const trees =
+    Array.isArray(raw.trees) && raw.trees.length > 0 ? raw.trees : createInitialTrees(tiles);
+  return {
+    ...fresh,
+    ...raw,
+    version: 4,
+    hp: typeof raw.hp === 'number' ? raw.hp : fresh.hp,
+    maxHp: typeof raw.maxHp === 'number' ? raw.maxHp : fresh.maxHp,
+    toolLevels: { ...fresh.toolLevels, ...(raw.toolLevels || {}) },
+    seeds: { ...fresh.seeds, ...(raw.seeds || {}) },
+    bagItems: { ...fresh.bagItems, ...(raw.bagItems || {}) },
+    chestItems: { ...(raw.chestItems || {}) },
+    dailyFlags: { ...(raw.dailyFlags || {}) },
+    npcHearts: { ...fresh.npcHearts, ...(raw.npcHearts || {}) },
+    stats: { ...fresh.stats, ...(raw.stats || {}) },
+    tiles,
+    trees,
   };
 }
 
 function playFarmSound(
-  type: 'hoe' | 'water' | 'plant' | 'harvest' | 'coin' | 'sleep' | 'clear' | 'error' | 'story' | 'fish',
+  type:
+    | 'hoe'
+    | 'water'
+    | 'plant'
+    | 'harvest'
+    | 'coin'
+    | 'sleep'
+    | 'clear'
+    | 'error'
+    | 'story'
+    | 'fish'
+    | 'chop'
+    | 'sword'
+    | 'bomb'
+    | 'hit',
   muted: boolean
 ) {
   if (muted) return;
@@ -302,14 +400,38 @@ function playFarmSound(
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
       osc.start(now);
       osc.stop(now + 0.22);
-    } else if (type === 'clear') {
+    } else if (type === 'clear' || type === 'chop') {
       osc.type = 'square';
-      osc.frequency.setValueAtTime(210, now);
-      osc.frequency.exponentialRampToValueAtTime(120, now + 0.08);
-      gain.gain.setValueAtTime(0.05, now);
+      osc.frequency.setValueAtTime(type === 'chop' ? 185 : 210, now);
+      osc.frequency.exponentialRampToValueAtTime(95, now + 0.08);
+      gain.gain.setValueAtTime(0.06, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
       osc.start(now);
       osc.stop(now + 0.09);
+    } else if (type === 'sword') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(620, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.1);
+      gain.gain.setValueAtTime(0.07, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+      osc.start(now);
+      osc.stop(now + 0.11);
+    } else if (type === 'bomb') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(42, now + 0.28);
+      gain.gain.setValueAtTime(0.11, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } else if (type === 'hit') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(280, now);
+      osc.frequency.exponentialRampToValueAtTime(110, now + 0.12);
+      gain.gain.setValueAtTime(0.07, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+      osc.start(now);
+      osc.stop(now + 0.13);
     } else if (type === 'error') {
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(180, now);
@@ -355,45 +477,27 @@ export default function BerkebunGame({
   currentStudent: any;
   onClose: () => void;
 }) {
-  const storageKey = `berkebun_pulau_tik_v3_${currentStudent?.id || (isAdmin ? 'admin' : 'guest')}`;
+  const storageKey = `berkebun_pulau_tik_v4_${currentStudent?.id || (isAdmin ? 'admin' : 'guest')}`;
+  const v3Key = `berkebun_pulau_tik_v3_${currentStudent?.id || (isAdmin ? 'admin' : 'guest')}`;
   const legacyKey = `berkebun_swarnadwipa_v2_${currentStudent?.id || (isAdmin ? 'admin' : 'guest')}`;
 
   const [saveState, setSaveState] = useState<FarmSaveState>(() => {
     try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        const parsed = JSON.parse(raw) as FarmSaveState;
-        if (parsed && parsed.version === 3 && Array.isArray(parsed.tiles) && parsed.tiles.length === WORLD_COLS * WORLD_ROWS) {
-          return parsed;
+      const rawV4 = localStorage.getItem(storageKey);
+      if (rawV4) {
+        const parsed = JSON.parse(rawV4) as Partial<FarmSaveState>;
+        if (parsed && Array.isArray(parsed.tiles) && parsed.tiles.length === WORLD_COLS * WORLD_ROWS) {
+          return normalizeSaveState(parsed);
         }
       }
-      // Safe migration from v2 so existing player progress transfers to organic Pulau TIK!
-      const oldRaw = localStorage.getItem(legacyKey);
-      if (oldRaw) {
-        const old = JSON.parse(oldRaw) as FarmSaveState;
-        if (old && old.version === 2) {
-          return {
-            ...createInitialSave(),
-            day: old.day,
-            seasonIdx: old.seasonIdx,
-            weather: old.weather,
-            gold: old.gold,
-            totalEarnedGold: old.totalEarnedGold,
-            stamina: old.stamina,
-            waterLevel: old.waterLevel,
-            sprinklerCount: old.sprinklerCount,
-            goldSprinklerCount: old.goldSprinklerCount,
-            fertilizerCount: old.fertilizerCount,
-            storyChapter: old.storyChapter,
-            islandHealed: old.islandHealed,
-            coopEggsReady: old.coopEggsReady,
-            seeds: old.seeds,
-            harvestBasket: old.harvestBasket,
-            bagItems: old.bagItems,
-            npcHearts: old.npcHearts,
-            stats: old.stats,
-            claimedQuests: old.claimedQuests,
-          };
+      // Migrate from v3 (54x38 -> 78x52) or v2 safely keeping player stats, gold, crops, hearts
+      for (const oldKey of [v3Key, legacyKey]) {
+        const oldRaw = localStorage.getItem(oldKey);
+        if (oldRaw) {
+          const old = JSON.parse(oldRaw) as Partial<FarmSaveState>;
+          if (old && (old.version === 3 || old.version === 2)) {
+            return normalizeSaveState({ ...old, tiles: undefined, trees: undefined, savedPlayerPos: { x: 22.5, y: 21.2 } });
+          }
         }
       }
     } catch {
@@ -406,6 +510,7 @@ export default function BerkebunGame({
     saveState.day > 1 ||
     saveState.stats.planted > 0 ||
     saveState.stats.harvested > 0 ||
+    saveState.stats.treesChopped > 0 ||
     saveState.storyChapter > 1 ||
     saveState.totalEarnedGold > 0;
 
@@ -414,12 +519,16 @@ export default function BerkebunGame({
   const [showShop, setShowShop] = useState(false);
   const [showBasket, setShowBasket] = useState(false);
   const [showCraft, setShowCraft] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showChest, setShowChest] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showWorldMap, setShowWorldMap] = useState(false);
   const [showSleepModal, setShowSleepModal] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [soundMuted, setSoundMuted] = useState(false);
   const [currentInterior, setCurrentInterior] = useState<InteriorId | null>(null);
+  const [undergroundFloor, setUndergroundFloor] = useState<number | null>(null);
+  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
 
   // Interactive NPC Dialogue state
   const [activeNpcId, setActiveNpcId] = useState<NpcId | null>(null);
@@ -454,16 +563,23 @@ export default function BerkebunGame({
   const [activeTool, setActiveTool] = useState<ToolMode>('hoe');
   const [selectedSeed, setSelectedSeed] = useState<CropId>('turnip');
   const [toastMsg, setToastMsg] = useState<string>(
-    'Selamat datang di Pulau TIK! Masuk ke Rumah untuk tidur/percepat waktu, atau jelajahi pulau.'
+    'Selamat datang di Kepulauan Pulau TIK! Tebang pohon dengan Kapak [3], upgrade alat di Bengkel Kiran, & simpan progres kapan saja.'
   );
   // 0..1439 internal minute (360 = 06:00 Siang, 1080 = 06:00 Malam). 20 min real = 12 game hours (720 mins) -> 0.6 game min/real sec
-  const [minuteOfDay, setMinuteOfDay] = useState<number>(360);
-  const floatMinuteRef = useRef<number>(360);
+  const [minuteOfDay, setMinuteOfDay] = useState<number>(() => saveState.savedMinuteOfDay ?? 360);
+  const floatMinuteRef = useRef<number>(saveState.savedMinuteOfDay ?? 360);
+
+  // MC Active Buffs (timestamps in ms)
+  const speedUntilRef = useRef<number>(0);
+  const torchUntilRef = useRef<number>(0);
+  const baitUntilRef = useRef<number>(0);
+  const invulnUntilRef = useRef<number>(0);
 
   // Player & Smooth Camera Refs + Full Action Pose State
+  const startPos = saveState.savedPlayerPos || { x: 22.5, y: 21.2 };
   const playerRef = useRef({
-    x: 9.5,
-    y: 17.5, // Right outside Farmhouse front porch!
+    x: startPos.x,
+    y: startPos.y, // Right outside Farmhouse front porch!
     dir: 1 as FarmerDir,
     moving: false,
     swingTimer: 0,
@@ -479,11 +595,23 @@ export default function BerkebunGame({
     actionTimer: 0,
   });
   const cameraRef = useRef({
-    x: Math.max(0, 9.5 * TILE_SIZE - VIEW_W / 2),
-    y: Math.max(0, 17.5 * TILE_SIZE - VIEW_H / 2),
+    x: Math.max(0, startPos.x * TILE_SIZE - VIEW_W / 2),
+    y: Math.max(0, startPos.y * TILE_SIZE - VIEW_H / 2),
   });
 
-  // Living roaming NPCs & Farm Chickens
+  // Underground Mine Runtime Refs
+  const mineCellsRef = useRef<UndergroundCell[]>([]);
+  const mineMonstersRef = useRef<UndergroundMonster[]>([]);
+  const mineDropsRef = useRef<{ id: number; x: number; y: number; bagId: BagItemId; qty: number }[]>([]);
+  const mineBombsRef = useRef<{ id: number; x: number; y: number; timer: number }[]>([]);
+  const minePosRef = useRef({ x: 8.5, y: 2.8, dir: 1 as FarmerDir, moving: false, actionPose: 'idle' as FarmerPose, actionTimer: 0 });
+  const returnMineSpotRef = useRef<{ x: number; y: number }>({ x: 54.5, y: 8.6 });
+  const undergroundFloorRef = useRef<number | null>(null);
+  undergroundFloorRef.current = undergroundFloor;
+  const minuteOfDayRef = useRef<number>(minuteOfDay);
+  minuteOfDayRef.current = minuteOfDay;
+
+  // Living roaming NPCs (all 10 villagers) & Farm Chickens
   const npcRuntimeRef = useRef<
     Record<NpcId, { x: number; y: number; dir: FarmerDir; targetX: number; targetY: number; pauseTimer: number }>
   >({
@@ -493,12 +621,16 @@ export default function BerkebunGame({
     maya: { x: NPCS.maya.baseX, y: NPCS.maya.baseY, dir: 1, targetX: NPCS.maya.baseX, targetY: NPCS.maya.baseY, pauseTimer: 70 },
     bima: { x: NPCS.bima.baseX, y: NPCS.bima.baseY, dir: 1, targetX: NPCS.bima.baseX, targetY: NPCS.bima.baseY, pauseTimer: 85 },
     lira: { x: NPCS.lira.baseX, y: NPCS.lira.baseY, dir: 1, targetX: NPCS.lira.baseX, targetY: NPCS.lira.baseY, pauseTimer: 65 },
+    kiran: { x: NPCS.kiran.baseX, y: NPCS.kiran.baseY, dir: 1, targetX: NPCS.kiran.baseX, targetY: NPCS.kiran.baseY, pauseTimer: 75 },
+    tara: { x: NPCS.tara.baseX, y: NPCS.tara.baseY, dir: 1, targetX: NPCS.tara.baseX, targetY: NPCS.tara.baseY, pauseTimer: 80 },
+    dewi: { x: NPCS.dewi.baseX, y: NPCS.dewi.baseY, dir: 1, targetX: NPCS.dewi.baseX, targetY: NPCS.dewi.baseY, pauseTimer: 70 },
+    bagas: { x: NPCS.bagas.baseX, y: NPCS.bagas.baseY, dir: 1, targetX: NPCS.bagas.baseX, targetY: NPCS.bagas.baseY, pauseTimer: 60 },
   });
 
   const chickensRef = useRef([
-    { x: 13.4, y: 16.4, dir: 1, variant: 'white' as const, timer: 40 },
-    { x: 14.8, y: 16.8, dir: -1, variant: 'brown' as const, timer: 70 },
-    { x: 15.6, y: 16.2, dir: 1, variant: 'white' as const, timer: 95 },
+    { x: 27.5, y: 20.8, dir: 1, variant: 'white' as const, timer: 40 },
+    { x: 28.8, y: 21.1, dir: -1, variant: 'brown' as const, timer: 70 },
+    { x: 29.7, y: 20.6, dir: 1, variant: 'white' as const, timer: 95 },
   ]);
 
   const keysPressedRef = useRef<Record<string, boolean>>({});
@@ -520,9 +652,17 @@ export default function BerkebunGame({
     coop: null,
     sacredTree: null,
     lighthouse: null,
-    npcs: { raka: null, sari: null, jaka: null, maya: null, bima: null, lira: null },
-    npcPoses: { raka: {}, sari: {}, jaka: {}, maya: {}, bima: {}, lira: {} },
-    npcPortraits: { raka: '', sari: '', jaka: '', maya: '', bima: '', lira: '' },
+    npcs: { raka: null, sari: null, jaka: null, maya: null, bima: null, lira: null, kiran: null, tara: null, dewi: null, bagas: null },
+    npcPoses: { raka: {}, sari: {}, jaka: {}, maya: {}, bima: {}, lira: {}, kiran: {}, tara: {}, dewi: {}, bagas: {} },
+    npcPortraits: { raka: '', sari: '', jaka: '', maya: '', bima: '', lira: '', kiran: '', tara: '', dewi: '', bagas: '' },
+    monsters: { slime: [], bat: [], golem: [] },
+    mineEntrance: null,
+    mineLadder: null,
+    mineTorch: null,
+    mineBomb: null,
+    mineBoulder: null,
+    forgeEmblem: null,
+    bagItemAiSprites: {},
     furniture: {},
   });
   const atlasRef = useRef<PixelAtlas | null>(null);
@@ -550,6 +690,45 @@ export default function BerkebunGame({
     };
   }, []);
 
+  // Load cloud save if player had newer saved state in Firestore
+  useEffect(() => {
+    if (!currentStudent && !isAdmin) return;
+    const studentId = currentStudent?.id || 'admin-preview';
+    let mounted = true;
+    void getDoc(doc(db, 'berkebun_saves', studentId))
+      .then((snap) => {
+        if (!mounted || !snap.exists()) return;
+        const data = snap.data() as { payload?: string };
+        if (data?.payload) {
+          const parsed = JSON.parse(data.payload) as Partial<FarmSaveState>;
+          const normalized = normalizeSaveState(parsed);
+          setSaveState((local) => {
+            // Keep whichever has more progress (day or earned gold)
+            const localScore = local.day * 500 + local.totalEarnedGold + local.stats.harvested * 20;
+            const cloudScore = normalized.day * 500 + normalized.totalEarnedGold + normalized.stats.harvested * 20;
+            if (cloudScore > localScore) {
+              if (normalized.savedPlayerPos) {
+                playerRef.current.x = normalized.savedPlayerPos.x;
+                playerRef.current.y = normalized.savedPlayerPos.y;
+              }
+              if (typeof normalized.savedMinuteOfDay === 'number') {
+                floatMinuteRef.current = normalized.savedMinuteOfDay;
+                setMinuteOfDay(normalized.savedMinuteOfDay);
+              }
+              return normalized;
+            }
+            return local;
+          });
+        }
+      })
+      .catch(() => {
+        // Offline / rules ignored gracefully
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [currentStudent, isAdmin]);
+
   // Auto-save to localStorage
   useEffect(() => {
     try {
@@ -571,6 +750,8 @@ export default function BerkebunGame({
       st.stats.harvested * 25 +
       st.stats.fished * 35 +
       st.stats.crafted * 50 +
+      (st.stats.treesChopped || 0) * 15 +
+      (st.stats.monstersSlain || 0) * 35 +
       questBonus +
       storyBonus +
       heartBonus
@@ -621,6 +802,40 @@ export default function BerkebunGame({
     },
     [computeTotalScore, currentStudent, isAdmin]
   );
+
+  const handleManualSave = useCallback(async () => {
+    const snapshot: FarmSaveState = {
+      ...saveStateRef.current,
+      savedPlayerPos: {
+        x: Number(playerRef.current.x.toFixed(2)),
+        y: Number(playerRef.current.y.toFixed(2)),
+      },
+      savedMinuteOfDay: Math.floor(floatMinuteRef.current),
+    };
+    setSaveState(snapshot);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(snapshot));
+    } catch {
+      // ignore
+    }
+    if (currentStudent || isAdmin) {
+      const studentId = currentStudent?.id || 'admin-preview';
+      try {
+        await setDoc(doc(db, 'berkebun_saves', studentId), {
+          studentId,
+          updatedAt: new Date().toISOString(),
+          payload: JSON.stringify(snapshot),
+        });
+      } catch {
+        // local save already succeeded
+      }
+      void syncScoreToCloud(snapshot);
+    }
+    playFarmSound('coin', soundMuted);
+    setSaveFeedback('✓ Tersimpan!');
+    setToastMsg('Progres permainan, posisi, alat, peti, dan pohon berhasil disimpan!');
+    window.setTimeout(() => setSaveFeedback(null), 2400);
+  }, [currentStudent, isAdmin, soundMuted, storageKey, syncScoreToCloud]);
 
   const spawnParticles = useCallback(
     (gx: number, gy: number, color: string, count = 6, label?: string) => {
@@ -730,6 +945,8 @@ export default function BerkebunGame({
       showShop ||
       showBasket ||
       showCraft ||
+      showUpgradeModal ||
+      showChest ||
       showJournal ||
       showWorldMap ||
       showSleepModal ||
@@ -765,6 +982,8 @@ export default function BerkebunGame({
     showShop,
     showBasket,
     showCraft,
+    showUpgradeModal,
+    showChest,
     showJournal,
     showWorldMap,
     showSleepModal,
@@ -774,10 +993,12 @@ export default function BerkebunGame({
     daySummary,
   ]);
 
-  // Fishing Bite Timer
+  // Fishing Bite Timer (faster with higher Rod level or Umpan Ikan)
   useEffect(() => {
     if (!fishingState || fishingState.status !== 'waiting') return;
-    const delay = 1300 + Math.random() * 1400;
+    const rodLvl = saveStateRef.current.toolLevels.rod || 1;
+    const baitFactor = baitUntilRef.current > Date.now() ? 0.62 : 1;
+    const delay = Math.max(450, (1300 - (rodLvl - 1) * 200) * baitFactor + Math.random() * 1000);
     const id = window.setTimeout(() => {
       playFarmSound('water', soundMuted);
       setFishingState((prev) => (prev ? { ...prev, status: 'bite' } : null));
@@ -794,36 +1015,50 @@ export default function BerkebunGame({
       return;
     }
 
-    // Bite! Catch regional fish!
+    const st = saveStateRef.current;
+    const rodLvl = st.toolLevels.rod || 1;
+    const bonusLuck = (rodLvl - 1) * 0.05 + (baitUntilRef.current > Date.now() ? 0.08 : 0);
     const roll = Math.random();
     let caught: BagItemId = 'fish_carp';
     if (fs.zone === 'ocean') {
-      caught = roll < 0.14 ? 'fish_goldkoi' : roll < 0.42 ? 'fish_lobster' : 'fish_snapper';
+      caught =
+        roll < 0.14 + bonusLuck
+          ? 'fish_goldkoi'
+          : roll < 0.44 + bonusLuck
+            ? 'fish_lobster'
+            : 'fish_snapper';
     } else {
-      caught = roll < 0.1 ? 'fish_goldkoi' : roll < 0.35 ? 'fish_snapper' : 'fish_carp';
+      caught =
+        roll < 0.1 + bonusLuck
+          ? 'fish_goldkoi'
+          : roll < 0.36 + bonusLuck
+            ? 'fish_snapper'
+            : 'fish_carp';
     }
 
+    const doubleCatch = rodLvl >= 4 && Math.random() < 0.35 ? 2 : 1;
     playFarmSound('harvest', soundMuted);
-    spawnParticles(fs.wx, fs.wy, '#38bdf8', 10, `+1 ${BAG_ITEMS[caught].name}!`);
+    spawnParticles(fs.wx, fs.wy, '#38bdf8', 10, `+${doubleCatch} ${BAG_ITEMS[caught].name}!`);
     setFishingState(null);
 
     setSaveState((prev) => {
       const updated: FarmSaveState = {
         ...prev,
         stamina: Math.max(0, prev.stamina - 3),
-        bagItems: { ...prev.bagItems, [caught]: (prev.bagItems[caught] || 0) + 1 },
-        stats: { ...prev.stats, fished: prev.stats.fished + 1 },
+        bagItems: { ...prev.bagItems, [caught]: (prev.bagItems[caught] || 0) + doubleCatch },
+        stats: { ...prev.stats, fished: prev.stats.fished + doubleCatch },
       };
       void syncScoreToCloud(updated);
       return updated;
     });
-    setToastMsg(`Berhasil memancing ${BAG_ITEMS[caught].name} (${BAG_ITEMS[caught].sellPrice}G)!`);
+    setToastMsg(`Berhasil memancing ${doubleCatch}× ${BAG_ITEMS[caught].name} (${BAG_ITEMS[caught].sellPrice}G)!`);
   }, [soundMuted, spawnParticles, syncScoreToCloud]);
 
-  // Sleep & Advance Next Day (grows crops, spawns forage/ores, lays coop eggs, auto-ships basket!)
+  // Sleep & Advance Next Day (grows crops, regrows trees, spawns forage/ores, lays coop eggs, auto-ships basket!)
   const handleSleepNextDay = useCallback(() => {
     playFarmSound('sleep', soundMuted);
     setFishingState(null);
+    setUndergroundFloor(null);
     setSaveState((prev) => {
       const nextDay = prev.day + 1;
       const nextSeasonIdx = Math.floor((nextDay - 1) / 10) % SEASONS.length;
@@ -868,16 +1103,20 @@ export default function BerkebunGame({
           }
         }
 
-        // Respawn some natural forage & mining ores gently each morning
+        // Respawn natural forage & mining ores across expanded 78x52 islands
         let nextDebris = t.debris;
         if (!nextDebris && !t.crop && !t.tilled) {
           const r = Math.random();
-          if (t.kind === 'forest_floor' && r < 0.055) {
-            nextDebris = r < 0.028 ? 'forage_mushroom' : 'forage_berry';
-          } else if (t.kind === 'sand' && (t.y === 31 || t.y === 32) && t.x !== 28 && r < 0.04) {
+          if (t.kind === 'forest_floor' && r < 0.05) {
+            nextDebris = r < 0.025 ? 'forage_mushroom' : 'forage_berry';
+          } else if (t.kind === 'sand' && r < 0.025) {
             nextDebris = 'forage_shell';
-          } else if (t.kind === 'plaza' && t.x >= 36 && t.x <= 49 && t.y >= 3 && t.y <= 11 && t.y !== 8 && r < 0.07) {
-            nextDebris = r < 0.015 ? 'ore_star' : r < 0.038 ? 'ore_silver' : 'ore_copper';
+          } else if (
+            t.kind === 'plaza' &&
+            ((t.x >= 47 && t.x <= 59 && t.y >= 3 && t.y <= 15 && t.y !== 8) || (t.x >= 62 && t.y <= 22)) &&
+            r < 0.08
+          ) {
+            nextDebris = r < 0.018 ? 'ore_star' : r < 0.044 ? 'ore_silver' : 'ore_copper';
           }
         }
 
@@ -890,6 +1129,18 @@ export default function BerkebunGame({
         };
       });
 
+      // Tree regrowth: stumps completely chopped regrow after 3 days
+      const newTrees = prev.trees.map((tree) => {
+        if (tree.hp === 0 && tree.stumpDaysLeft > 0) {
+          const left = tree.stumpDaysLeft - 1;
+          if (left <= 0) {
+            return { ...tree, hp: tree.maxHp, stumpDaysLeft: 0 };
+          }
+          return { ...tree, stumpDaysLeft: left };
+        }
+        return tree;
+      });
+
       const eggsLaid = prev.storyChapter >= 3 ? 2 : 1;
       const updated: FarmSaveState = {
         ...prev,
@@ -899,11 +1150,13 @@ export default function BerkebunGame({
         gold: prev.gold + shippedGold,
         totalEarnedGold: prev.totalEarnedGold + shippedGold,
         stamina: 100,
-        coopEggsReady: Math.min(4, prev.coopEggsReady + eggsLaid),
+        hp: prev.maxHp,
+        coopEggsReady: Math.min(6, prev.coopEggsReady + eggsLaid),
         harvestBasket: {},
         npcTalkedToday: {},
         npcGiftedToday: {},
         tiles: newTiles,
+        trees: newTrees,
       };
 
       setDaySummary({
@@ -920,7 +1173,7 @@ export default function BerkebunGame({
     setShowSleepModal(false);
     floatMinuteRef.current = 360;
     setMinuteOfDay(360);
-    setToastMsg('Selamat pagi di Pulau TIK! Energi pulih 100%.');
+    setToastMsg('Selamat pagi di Kepulauan Pulau TIK! Energi & HP pulih 100%.');
   }, [soundMuted, syncScoreToCloud]);
 
   advanceToMorningRef.current = handleSleepNextDay;
@@ -932,8 +1185,12 @@ export default function BerkebunGame({
       if (mode === 'night') {
         floatMinuteRef.current = 1080; // 06:00 Malam
         setMinuteOfDay(1080);
-        setSaveState((prev) => ({ ...prev, stamina: Math.min(100, prev.stamina + 35) }));
-        setToastMsg('Waktu dipercepat ke Malam Hari (06:00 Malam) · Energi +35!');
+        setSaveState((prev) => ({
+          ...prev,
+          stamina: Math.min(100, prev.stamina + 35),
+          hp: Math.min(prev.maxHp, prev.hp + 25),
+        }));
+        setToastMsg('Waktu dipercepat ke Malam Hari (06:00 Malam) · Energi +35 & HP +25!');
       } else {
         const cur = floatMinuteRef.current;
         let next = cur + 180;
@@ -944,11 +1201,323 @@ export default function BerkebunGame({
         if (next >= 1440) next -= 1440;
         floatMinuteRef.current = next;
         setMinuteOfDay(Math.floor(next));
-        setSaveState((prev) => ({ ...prev, stamina: Math.min(100, prev.stamina + 20) }));
-        setToastMsg('Beristirahat sebentar (+3 Jam) · Energi +20!');
+        setSaveState((prev) => ({
+          ...prev,
+          stamina: Math.min(100, prev.stamina + 20),
+          hp: Math.min(prev.maxHp, prev.hp + 15),
+        }));
+        setToastMsg('Beristirahat sebentar (+3 Jam) · Energi +20 & HP +15!');
       }
     },
     [handleSleepNextDay, soundMuted]
+  );
+
+  // Underground Mine Floor Management, Monster Drops & Bombs
+  const goMineFloor = useCallback(
+    (floor: number, returnSpot?: { x: number; y: number }) => {
+      if (returnSpot) {
+        returnMineSpotRef.current = returnSpot;
+      }
+      const { cells, monsters } = generateUndergroundFloor(floor);
+      mineCellsRef.current = cells;
+      mineMonstersRef.current = monsters;
+      mineDropsRef.current = [];
+      mineBombsRef.current = [];
+      const upLadder = cells.find((c) => c.kind === 'up_ladder');
+      minePosRef.current = {
+        x: upLadder ? upLadder.x + 0.5 : 8.5,
+        y: upLadder ? upLadder.y + 0.85 : 2.85,
+        dir: 1,
+        moving: false,
+        actionPose: 'idle',
+        actionTimer: 0,
+      };
+      setFishingState(null);
+      setCurrentInterior(null);
+      setUndergroundFloor(floor);
+      playFarmSound('story', soundMuted);
+      setToastMsg(
+        `Memasuki Gua Bawah Tanah Lantai ${floor}! Waspadai Slime, Kelelawar & Golem. Gunakan Pedang [5] & Beliung [4]!`
+      );
+    },
+    [soundMuted]
+  );
+
+  const exitMine = useCallback(() => {
+    setUndergroundFloor(null);
+    mineCellsRef.current = [];
+    mineMonstersRef.current = [];
+    mineDropsRef.current = [];
+    mineBombsRef.current = [];
+    playerRef.current.x = returnMineSpotRef.current.x;
+    playerRef.current.y = returnMineSpotRef.current.y;
+    playerRef.current.dir = 1;
+    playerRef.current.moving = false;
+    setToastMsg('Keluar dari Gua Bawah Tanah ke Pulau TIK.');
+  }, []);
+
+  const spawnMonsterDrops = useCallback((m: UndergroundMonster) => {
+    const pushDrop = (bagId: BagItemId, qty = 1) => {
+      mineDropsRef.current.push({
+        id: particleIdRef.current++,
+        x: m.x + (Math.random() - 0.5) * 0.4,
+        y: m.y + (Math.random() - 0.5) * 0.4,
+        bagId,
+        qty,
+      });
+    };
+    if (m.kind === 'slime') {
+      pushDrop('slime_gel', 1 + (Math.random() < 0.35 ? 1 : 0));
+      if (Math.random() < 0.28) pushDrop('hp_potion', 1);
+      if (Math.random() < 0.3) pushDrop('ore_copper', 1);
+    } else if (m.kind === 'bat') {
+      pushDrop('bat_wing', 1);
+      if (Math.random() < 0.35) pushDrop('ore_silver', 1);
+      if (Math.random() < 0.25) pushDrop('torch_item', 1);
+    } else {
+      pushDrop('monster_core', 1);
+      pushDrop(Math.random() < 0.45 ? 'ore_star' : 'ore_silver', 1);
+      if (Math.random() < 0.5) pushDrop('hp_potion', 1);
+    }
+  }, []);
+
+  const explodeMineBombAt = useCallback(
+    (bx: number, by: number) => {
+      playFarmSound('bomb', soundMuted);
+      const gained: Partial<Record<BagItemId, number>> = {};
+      let minedCount = 0;
+
+      if (undergroundFloorRef.current !== null) {
+        const nextCells = mineCellsRef.current.map((c) => {
+          if (c.rock && Math.abs(c.x - bx) <= 1 && Math.abs(c.y - by) <= 1) {
+            minedCount++;
+            const drop: BagItemId = c.rock === 'rock' ? 'stone_res' : (c.rock as BagItemId);
+            gained[drop] = (gained[drop] || 0) + 1;
+            return { ...c, rock: null };
+          }
+          return c;
+        });
+        mineCellsRef.current = nextCells;
+
+        const survivors: UndergroundMonster[] = [];
+        let slainNow = 0;
+        mineMonstersRef.current.forEach((m) => {
+          if (Math.hypot(m.x - (bx + 0.5), m.y - (by + 0.5)) <= 2.4) {
+            const newHp = m.hp - 55;
+            if (newHp <= 0) {
+              slainNow++;
+              spawnMonsterDrops(m);
+            } else {
+              survivors.push({ ...m, hp: newHp, hitFlash: 14 });
+            }
+          } else {
+            survivors.push(m);
+          }
+        });
+        mineMonstersRef.current = survivors;
+        if (minedCount > 0 || slainNow > 0) {
+          setSaveState((prev) => {
+            const nextBag = { ...prev.bagItems };
+            (Object.keys(gained) as BagItemId[]).forEach((bid) => {
+              nextBag[bid] = (nextBag[bid] || 0) + (gained[bid] || 0);
+            });
+            return {
+              ...prev,
+              bagItems: nextBag,
+              stats: {
+                ...prev.stats,
+                oresMined: prev.stats.oresMined + minedCount,
+                monstersSlain: (prev.stats.monstersSlain || 0) + slainNow,
+              },
+            };
+          });
+        }
+        spawnParticles(bx, by, '#fb923c', 16, 'BOOM!');
+        setToastMsg(`Bom meledak! ${minedCount} batu/bijih hancur & ${slainNow} monster tumbang!`);
+      }
+    },
+    [soundMuted, spawnMonsterDrops, spawnParticles]
+  );
+
+  // Use MC Item (Potions, Food, Bomb, Torch, Home Totem, Fish Bait)
+  const useMcItem = useCallback(
+    (itemId: BagItemId) => {
+      const def = BAG_ITEMS[itemId];
+      const st = saveStateRef.current;
+      if ((st.bagItems[itemId] || 0) <= 0) {
+        setToastMsg(`${def.name} kosong di tas!`);
+        return;
+      }
+
+      if (def.usableEffect === 'bomb') {
+        if (undergroundFloorRef.current !== null) {
+          const mp = minePosRef.current;
+          mineBombsRef.current.push({
+            id: particleIdRef.current++,
+            x: Math.floor(mp.x),
+            y: Math.floor(mp.y),
+            timer: 85,
+          });
+          setSaveState((prev) => ({
+            ...prev,
+            bagItems: { ...prev.bagItems, [itemId]: Math.max(0, (prev.bagItems[itemId] || 1) - 1) },
+          }));
+          setToastMsg('Bom Mini dipasang! Menjauh dalam 1.4 detik...');
+          return;
+        }
+        // Outdoor bomb clears debris in 3x3 around player
+        const px = Math.floor(playerRef.current.x);
+        const py = Math.floor(playerRef.current.y);
+        let cleared = 0;
+        const gained: Partial<Record<BagItemId, number>> = {};
+        const nextTiles = st.tiles.map((t) => {
+          if (t.debris && Math.abs(t.x - px) <= 1 && Math.abs(t.y - py) <= 1) {
+            cleared++;
+            if (t.debris === 'stone') gained.stone_res = (gained.stone_res || 0) + 1;
+            else if (t.debris === 'wood') gained.wood_res = (gained.wood_res || 0) + 1;
+            else if (t.debris.startsWith('ore_') || t.debris.startsWith('forage_')) {
+              const bid = t.debris as BagItemId;
+              gained[bid] = (gained[bid] || 0) + 1;
+            }
+            return { ...t, debris: null };
+          }
+          return t;
+        });
+        playFarmSound('bomb', soundMuted);
+        spawnParticles(px, py, '#fb923c', 16, 'BOOM!');
+        setSaveState((prev) => {
+          const nextBag = { ...prev.bagItems, [itemId]: Math.max(0, (prev.bagItems[itemId] || 1) - 1) };
+          (Object.keys(gained) as BagItemId[]).forEach((bid) => {
+            nextBag[bid] = (nextBag[bid] || 0) + (gained[bid] || 0);
+          });
+          return { ...prev, bagItems: nextBag, tiles: nextTiles };
+        });
+        setToastMsg(`Bom Mini meledak dan membersihkan ${cleared} rintangan!`);
+        return;
+      }
+
+      if (def.usableEffect === 'torch') {
+        torchUntilRef.current = Date.now() + 90_000;
+        playFarmSound('story', soundMuted);
+        setSaveState((prev) => ({
+          ...prev,
+          bagItems: { ...prev.bagItems, [itemId]: Math.max(0, (prev.bagItems[itemId] || 1) - 1) },
+        }));
+        setToastMsg('Obor Lentera menyala terang selama 90 detik!');
+        return;
+      }
+
+      if (def.usableEffect === 'totem') {
+        setUndergroundFloor(null);
+        setCurrentInterior(null);
+        setShowCraft(false);
+        setShowBasket(false);
+        playerRef.current.x = 22.5;
+        playerRef.current.y = 21.2;
+        playerRef.current.dir = 1;
+        playFarmSound('story', soundMuted);
+        spawnParticles(22.5, 21.2, '#38bdf8', 14, 'Pulang Kilat!');
+        setSaveState((prev) => ({
+          ...prev,
+          bagItems: { ...prev.bagItems, [itemId]: Math.max(0, (prev.bagItems[itemId] || 1) - 1) },
+        }));
+        setToastMsg('Jimat Pulang Kilat membawamu langsung ke depan Rumah Kebun!');
+        return;
+      }
+
+      if (def.usableEffect === 'bait') {
+        baitUntilRef.current = Date.now() + 120_000;
+        playFarmSound('water', soundMuted);
+        setSaveState((prev) => ({
+          ...prev,
+          bagItems: { ...prev.bagItems, [itemId]: Math.max(0, (prev.bagItems[itemId] || 1) - 1) },
+        }));
+        setToastMsg('Umpan Ikan aktif 2 menit! Ikan menyambar lebih cepat & peluang langka naik!');
+        return;
+      }
+
+      const isSpeedCoffee = itemId === 'artisan_coffee';
+      if (isSpeedCoffee) {
+        speedUntilRef.current = Date.now() + 45_000;
+      }
+
+      const eAdd = def.energyRestore || 0;
+      const hpAdd = def.hpRestore || 0;
+      if (eAdd > 0 || hpAdd > 0 || isSpeedCoffee) {
+        playFarmSound('harvest', soundMuted);
+        setSaveState((prev) => ({
+          ...prev,
+          stamina: Math.min(100, prev.stamina + eAdd),
+          hp: Math.min(prev.maxHp, prev.hp + hpAdd),
+          bagItems: { ...prev.bagItems, [itemId]: Math.max(0, (prev.bagItems[itemId] || 1) - 1) },
+        }));
+        setToastMsg(
+          `Menggunakan ${def.name}${eAdd ? ` (+${eAdd} Energi)` : ''}${hpAdd ? ` (+${hpAdd} HP)` : ''}${isSpeedCoffee ? ' · Lari Cepat 45 detik!' : ''}!`
+        );
+      }
+    },
+    [soundMuted, spawnParticles]
+  );
+
+  // Tool Upgrade Action (Lv.1 -> Lv.4 at Kiran's Forge / Jaka / Bagas)
+  const handleUpgradeTool = useCallback(
+    (toolId: UpgradeableToolId) => {
+      const st = saveStateRef.current;
+      const curLvl = st.toolLevels[toolId] || 1;
+      if (curLvl >= 4) {
+        setToastMsg(`${TOOL_UPGRADE_NAMES[toolId]} sudah mencapai level maksimal (Lv.4)!`);
+        return;
+      }
+      const tier = TOOL_UPGRADE_TIERS.find((t) => t.level === curLvl + 1);
+      if (!tier) return;
+      const woodHave = st.bagItems.wood_res || 0;
+      const oreHave = st.bagItems[tier.oreId] || 0;
+      if (st.gold < tier.goldCost || woodHave < tier.woodCost || oreHave < tier.oreQty) {
+        playFarmSound('error', soundMuted);
+        setToastMsg('Gold, Kayu, atau Bijih belum cukup untuk upgrade ini!');
+        return;
+      }
+      playFarmSound('story', soundMuted);
+      setSaveState((prev) => ({
+        ...prev,
+        gold: prev.gold - tier.goldCost,
+        toolLevels: { ...prev.toolLevels, [toolId]: curLvl + 1 },
+        waterLevel: toolId === 'water' ? WATER_CAPS[curLvl] : prev.waterLevel,
+        bagItems: {
+          ...prev.bagItems,
+          wood_res: woodHave - tier.woodCost,
+          [tier.oreId]: oreHave - tier.oreQty,
+        },
+      }));
+      setToastMsg(`${TOOL_UPGRADE_NAMES[toolId]} berhasil ditempa menjadi ${tier.tierName}!`);
+    },
+    [soundMuted]
+  );
+
+  // Chest Deposit / Withdraw
+  const handleChestTransfer = useCallback(
+    (itemId: BagItemId, mode: 'deposit' | 'withdraw') => {
+      playFarmSound('plant', soundMuted);
+      setSaveState((prev) => {
+        if (mode === 'deposit') {
+          const have = prev.bagItems[itemId] || 0;
+          if (have <= 0) return prev;
+          return {
+            ...prev,
+            bagItems: { ...prev.bagItems, [itemId]: have - 1 },
+            chestItems: { ...prev.chestItems, [itemId]: (prev.chestItems[itemId] || 0) + 1 },
+          };
+        }
+        const inChest = prev.chestItems[itemId] || 0;
+        if (inChest <= 0) return prev;
+        return {
+          ...prev,
+          chestItems: { ...prev.chestItems, [itemId]: inChest - 1 },
+          bagItems: { ...prev.bagItems, [itemId]: (prev.bagItems[itemId] || 0) + 1 },
+        };
+      });
+    },
+    [soundMuted]
   );
 
   const enterBuilding = useCallback((interiorId: InteriorId) => {
@@ -975,7 +1544,7 @@ export default function BerkebunGame({
     playerRef.current.y = def.outdoorExit.y;
     playerRef.current.dir = 1;
     playerRef.current.moving = false;
-    setToastMsg('Keluar kembali ke Pulau TIK.');
+    setToastMsg('Keluar kembali ke Kepulauan Pulau TIK.');
   }, []);
 
   const interactInteriorFurniture = useCallback(
@@ -984,18 +1553,108 @@ export default function BerkebunGame({
       if (item.interactAction === 'sleep') {
         setShowSleepModal(true);
       } else if (item.interactAction === 'shop') {
+        const sariLoc = getNpcExclusiveLocation('sari', minuteOfDayRef.current, st.weather);
+        if (sariLoc !== 'shop') {
+          setToastMsg('Mbak Sari sedang istirahat malam. Kembali lagi pukul 06:00 Siang!');
+          return;
+        }
         setShowShop(true);
       } else if (item.interactAction === 'craft') {
         setShowCraft(true);
+      } else if (item.interactAction === 'upgrade') {
+        setShowUpgradeModal(true);
+      } else if (item.interactAction === 'chest') {
+        setShowChest(true);
       } else if (item.interactAction === 'journal') {
         setShowJournal(true);
+      } else if (item.interactAction === 'map') {
+        setShowWorldMap(true);
+      } else if (item.interactAction === 'tv_weather') {
+        const nextSeason = SEASONS[Math.floor(st.day / 10) % SEASONS.length];
+        setToastMsg(
+          `Prakiraan TV Desa: Hari ke-${st.day}, cuaca saat ini ${st.weather}, musim ${SEASONS[st.seasonIdx % 4]} (berikutnya ${nextSeason}).`
+        );
+      } else if (item.interactAction === 'warm_fire') {
+        if (st.dailyFlags.fireWarmedDay === st.day) {
+          setToastMsg('Perapian hangat berderak nyaman. Bonus kehangatan hari ini sudah diambil.');
+          return;
+        }
+        playFarmSound('story', soundMuted);
+        setSaveState((prev) => ({
+          ...prev,
+          stamina: Math.min(100, prev.stamina + 25),
+          hp: Math.min(prev.maxHp, prev.hp + 15),
+          dailyFlags: { ...prev.dailyFlags, fireWarmedDay: prev.day },
+        }));
+        setToastMsg('Menghangatkan diri di Perapian! Energi +25 & HP +15.');
+      } else if (item.interactAction === 'eat_table') {
+        if (st.dailyFlags.tableEatenDay === st.day) {
+          setToastMsg('Meja makan sudah dibersihkan. Camilan harian tersedia lagi besok pagi.');
+          return;
+        }
+        playFarmSound('harvest', soundMuted);
+        setSaveState((prev) => ({
+          ...prev,
+          stamina: Math.min(100, prev.stamina + 35),
+          hp: Math.min(prev.maxHp, prev.hp + 25),
+          dailyFlags: { ...prev.dailyFlags, tableEatenDay: prev.day },
+        }));
+        setToastMsg('Menyantap hidangan hangat di Meja Makan! Energi +35 & HP +25.');
+      } else if (item.interactAction === 'water_plant') {
+        playFarmSound('water', soundMuted);
+        setToastMsg('Tanaman hias dalam ruangan disiram segar! Rumah terasa lebih hidup.');
+      } else if (item.interactAction === 'wood_pile') {
+        if (st.dailyFlags.woodTakenDay === st.day) {
+          setToastMsg('Tumpukan kayu bengkel sudah diambil jatahnya hari ini.');
+          return;
+        }
+        playFarmSound('chop', soundMuted);
+        setSaveState((prev) => ({
+          ...prev,
+          bagItems: { ...prev.bagItems, wood_res: (prev.bagItems.wood_res || 0) + 3 },
+          dailyFlags: { ...prev.dailyFlags, woodTakenDay: prev.day },
+        }));
+        setToastMsg('Pak Jaka berbagi +3 Kayu Keras dari Tumpukan Kayu!');
+      } else if (item.interactAction === 'blessing') {
+        if (st.dailyFlags.blessedDay === st.day) {
+          setToastMsg('Aura hijau kuali ramuan masih melindungimu hari ini.');
+          return;
+        }
+        playFarmSound('story', soundMuted);
+        setSaveState((prev) => ({
+          ...prev,
+          stamina: Math.min(100, prev.stamina + 25),
+          hp: Math.min(prev.maxHp, prev.hp + 30),
+          dailyFlags: { ...prev.dailyFlags, blessedDay: prev.day },
+        }));
+        setToastMsg('Berkah Kuali Ramuan Nenek Maya! Energi +25 & HP +30.');
+      } else if (item.interactAction === 'beacon') {
+        torchUntilRef.current = Date.now() + 90_000;
+        playFarmSound('story', soundMuted);
+        setToastMsg('Lentera Mercusuar menyalurkan cahaya terang (buff Obor 90 detik)!');
+      } else if (item.interactAction === 'feed_coop') {
+        if (st.dailyFlags.coopFedDay === st.day) {
+          setToastMsg('Ayam-ayam sudah kenyang diberi makan hari ini!');
+          return;
+        }
+        playFarmSound('harvest', soundMuted);
+        setSaveState((prev) => ({
+          ...prev,
+          coopEggsReady: Math.min(6, prev.coopEggsReady + 1),
+          dailyFlags: { ...prev.dailyFlags, coopFedDay: prev.day },
+        }));
+        setToastMsg('Memberi pakan ayam kandang! +1 Telur segar siap diambil di Kotak Sarang!');
+      } else if (item.interactAction === 'hay_rest') {
+        playFarmSound('sleep', soundMuted);
+        setSaveState((prev) => ({ ...prev, stamina: Math.min(100, prev.stamina + 15) }));
+        setToastMsg('Duduk santai di Tumpukan Jerami... Energi +15!');
       } else if (item.interactAction === 'telescope') {
         setToastMsg(
-          `Teleskop Mercusuar: Cuaca ${st.weather}, Musim ${SEASONS[st.seasonIdx % SEASONS.length]}. Ikan langka muncul di ujung dermaga!`
+          `Teleskop Mercusuar: Cuaca ${st.weather}, Musim ${SEASONS[st.seasonIdx % SEASONS.length]}. Ada 5 pulau & 2 pintu Gua Tambang!`
         );
       } else if (item.interactAction === 'eggs') {
         if (st.coopEggsReady <= 0) {
-          setToastMsg('Sarang jerami masih kosong. Cek lagi besok pagi setelah tidur!');
+          setToastMsg('Sarang jerami masih kosong. Beri pakan ayam atau cek besok pagi!');
           return;
         }
         const qty = st.coopEggsReady;
@@ -1017,10 +1676,139 @@ export default function BerkebunGame({
     [soundMuted]
   );
 
-  // Interact at grid coordinate (NPC, Buildings, Crops, Mining, Foraging, Fishing)
+  // Helper: get tile offsets based on tool upgrade level (Lv1: 1, Lv2: 2 ahead, Lv3: 3 line, Lv4: 3x3)
+  const getToolTargetTiles = useCallback((tx: number, ty: number, lvl: number, dir: FarmerDir) => {
+    const out: { x: number; y: number }[] = [{ x: tx, y: ty }];
+    if (lvl === 2) {
+      const dx = dir === 0 ? 1 : dir === 2 ? -1 : 0;
+      const dy = dir === 1 ? 1 : dir === 3 ? -1 : 0;
+      out.push({ x: tx + dx, y: ty + dy });
+    } else if (lvl === 3) {
+      if (dir === 0 || dir === 2) {
+        out.push({ x: tx, y: ty - 1 }, { x: tx, y: ty + 1 });
+      } else {
+        out.push({ x: tx - 1, y: ty }, { x: tx + 1, y: ty });
+      }
+    } else if (lvl >= 4) {
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (dx !== 0 || dy !== 0) out.push({ x: tx + dx, y: ty + dy });
+        }
+      }
+    }
+    return out;
+  }, []);
+
+  // Interact at grid coordinate (Mine Combat/Mining, Interior, NPC, Trees, Buildings, Crops, Mining, Foraging, Fishing)
   const interactAtTile = useCallback(
     (tx: number, ty: number) => {
-      // Handle Interior Interaction cleanly if player is inside a building!
+      const st = saveStateRef.current;
+
+      // BRANCH 1: UNDERGROUND MINE INTERACTION
+      const mFloor = undergroundFloorRef.current;
+      if (mFloor !== null) {
+        const mp = minePosRef.current;
+        const swordLvl = st.toolLevels.sword || 1;
+        const pickLvl = st.toolLevels.pick || 1;
+
+        // Sword Slash / Attack Monster if using sword OR clicking directly near a monster!
+        const swordRange = swordLvl >= 4 ? 2.9 : swordLvl >= 3 ? 2.4 : 2.0;
+        const hitTarget = mineMonstersRef.current.find(
+          (m) =>
+            Math.hypot(m.x - (tx + 0.5), m.y - (ty + 0.5)) < 1.55 &&
+            Math.hypot(m.x - mp.x, m.y - mp.y) <= swordRange
+        );
+        if (activeTool === 'sword' || hitTarget) {
+          mp.actionPose = 'swing_up';
+          mp.actionTimer = 15;
+          playFarmSound('sword', soundMuted);
+          const dmg = 16 + (swordLvl - 1) * 14;
+          const nextMonsters: UndergroundMonster[] = [];
+          let hitCount = 0;
+          let slainCount = 0;
+          mineMonstersRef.current.forEach((m) => {
+            const dPlayer = Math.hypot(m.x - mp.x, m.y - mp.y);
+            const dClick = Math.hypot(m.x - (tx + 0.5), m.y - (ty + 0.5));
+            if (dPlayer <= swordRange && (dClick < 1.9 || activeTool === 'sword')) {
+              hitCount++;
+              const nhp = m.hp - dmg;
+              const kAng = Math.atan2(m.y - mp.y, m.x - mp.x);
+              if (nhp <= 0) {
+                slainCount++;
+                spawnMonsterDrops(m);
+                spawnParticles(m.x, m.y, '#f43f5e', 10, `${m.kind.toUpperCase()} Kalah!`);
+              } else {
+                nextMonsters.push({
+                  ...m,
+                  hp: nhp,
+                  hitFlash: 12,
+                  x: Math.max(1.4, Math.min(MINE_COLS - 1.4, m.x + Math.cos(kAng) * 0.45)),
+                  y: Math.max(1.4, Math.min(MINE_ROWS - 1.4, m.y + Math.sin(kAng) * 0.45)),
+                });
+                spawnParticles(m.x, m.y, '#fbbf24', 5, `-${dmg}`);
+              }
+            } else {
+              nextMonsters.push(m);
+            }
+          });
+          mineMonstersRef.current = nextMonsters;
+          if (slainCount > 0) {
+            setSaveState((prev) => ({
+              ...prev,
+              stats: { ...prev.stats, monstersSlain: (prev.stats.monstersSlain || 0) + slainCount },
+            }));
+          }
+          if (hitCount > 0) {
+            setToastMsg(
+              slainCount > 0
+                ? `${slainCount} monster dikalahkan! Ambil item drop di tanah!`
+                : `Menyerang monster (-${dmg} HP)!`
+            );
+          }
+          return;
+        }
+
+        const cellIdx = ty * MINE_COLS + tx;
+        const cell = mineCellsRef.current[cellIdx];
+        if (!cell) return;
+        if (Math.hypot(tx + 0.5 - mp.x, ty + 0.5 - mp.y) > 2.8) {
+          setToastMsg('Dekati tangga atau batu gua terlebih dulu!');
+          return;
+        }
+        if (cell.kind === 'up_ladder') {
+          if (mFloor <= 1) exitMine();
+          else goMineFloor(mFloor - 1);
+          return;
+        }
+        if (cell.kind === 'down_ladder') {
+          goMineFloor(mFloor + 1);
+          return;
+        }
+        if (cell.rock) {
+          if (st.stamina < 2) {
+            setToastMsg('Energi terlalu rendah! Minum Ramuan atau makan camilan di Tas.');
+            playFarmSound('error', soundMuted);
+            return;
+          }
+          mp.actionPose = 'swing_up';
+          mp.actionTimer = 16;
+          playFarmSound('clear', soundMuted);
+          const itemDrop: BagItemId = cell.rock === 'rock' ? 'stone_res' : (cell.rock as BagItemId);
+          const qty = pickLvl >= 3 && Math.random() < 0.45 ? 2 : 1;
+          mineCellsRef.current[cellIdx] = { ...cell, rock: null };
+          spawnParticles(tx, ty, '#c084fc', 8, `+${qty} ${BAG_ITEMS[itemDrop].name}`);
+          setSaveState((prev) => ({
+            ...prev,
+            stamina: Math.max(0, prev.stamina - 2),
+            bagItems: { ...prev.bagItems, [itemDrop]: (prev.bagItems[itemDrop] || 0) + qty },
+            stats: { ...prev.stats, oresMined: prev.stats.oresMined + 1 },
+          }));
+          setToastMsg(`Menambang ${qty}× ${BAG_ITEMS[itemDrop].name} di Lantai ${mFloor}!`);
+        }
+        return;
+      }
+
+      // BRANCH 2: BUILDING INTERIOR INTERACTION (Checks all NPCs exclusively inside right now!)
       const intId = currentInteriorRef.current;
       if (intId) {
         const def = INTERIORS[intId];
@@ -1029,11 +1817,17 @@ export default function BerkebunGame({
           return;
         }
         const ip = interiorPosRef.current;
-        if (def.residentNpc && def.residentPos) {
-          const distNpc = Math.hypot(def.residentPos.x - (tx + 0.5), def.residentPos.y - (ty + 0.5));
-          const distP = Math.hypot(def.residentPos.x - ip.x, def.residentPos.y - ip.y);
-          if (distNpc < 1.3 && distP < 2.8) {
-            openNpcDialogue(def.residentNpc);
+        const indoorNpcs = (Object.keys(NPCS) as NpcId[]).filter(
+          (nid) => getNpcExclusiveLocation(nid, minuteOfDayRef.current, st.weather) === intId
+        );
+        for (const nid of indoorNpcs) {
+          const base = def.residentPos || { x: Math.floor(def.cols / 2), y: 3 };
+          const nPos =
+            nid === def.residentNpc ? base : { x: Math.min(def.cols - 2, base.x + 2.2), y: base.y + 0.5 };
+          const distNpc = Math.hypot(nPos.x - (tx + 0.5), nPos.y - (ty + 0.5));
+          const distP = Math.hypot(nPos.x - ip.x, nPos.y - ip.y);
+          if (distNpc < 1.35 && distP < 3.0) {
+            openNpcDialogue(nid);
             return;
           }
         }
@@ -1043,7 +1837,7 @@ export default function BerkebunGame({
         if (clickedFurn) {
           const fcx = clickedFurn.x + clickedFurn.w / 2;
           const fcy = clickedFurn.y + clickedFurn.h / 2;
-          if (Math.hypot(fcx - ip.x, fcy - ip.y) > 3.0) {
+          if (Math.hypot(fcx - ip.x, fcy - ip.y) > 3.2) {
             setToastMsg(`Dekati ${clickedFurn.name} terlebih dulu!`);
             return;
           }
@@ -1059,9 +1853,10 @@ export default function BerkebunGame({
       }
       if (tx < 0 || tx >= WORLD_COLS || ty < 0 || ty >= WORLD_ROWS) return;
 
-      // 1. Check nearby NPC near clicked tile first!
+      // 1. Check nearby OUTDOOR NPC near clicked tile first!
       const p = playerRef.current;
       for (const npcId of Object.keys(NPCS) as NpcId[]) {
+        if (getNpcExclusiveLocation(npcId, minuteOfDayRef.current, st.weather) !== 'outdoor') continue;
         const npcPos = npcRuntimeRef.current[npcId];
         const distToClick = Math.hypot(npcPos.x - (tx + 0.5), npcPos.y - (ty + 0.5));
         const distToPlayer = Math.hypot(npcPos.x - p.x, npcPos.y - p.y);
@@ -1071,61 +1866,48 @@ export default function BerkebunGame({
         }
       }
 
-      const st = saveStateRef.current;
       const idx = ty * WORLD_COLS + tx;
       const tile = st.tiles[idx];
       if (!tile) return;
 
       const dist = Math.hypot(tx + 0.5 - p.x, ty + 0.5 - p.y);
-      if (dist > 3.2) {
+      if (dist > 3.4) {
         setToastMsg('Terlalu jauh! Dekati objek tersebut terlebih dulu.');
         playFarmSound('error', soundMuted);
         return;
       }
 
-      // 2. Landmark Interactions (Enter Buildings!)
-      if (tile.kind === 'house') {
-        enterBuilding('house');
+      // 2. Landmark Interactions (Enter Buildings & Mine Entrances!)
+      if (tile.kind === 'house') { enterBuilding('house'); return; }
+      if (tile.kind === 'shop') { enterBuilding('shop'); return; }
+      if (tile.kind === 'elder_hall') { enterBuilding('elder_hall'); return; }
+      if (tile.kind === 'jaka_cabin') { enterBuilding('jaka_cabin'); return; }
+      if (tile.kind === 'maya_hut') { enterBuilding('maya_hut'); return; }
+      if (tile.kind === 'lighthouse') { enterBuilding('lighthouse'); return; }
+      if (tile.kind === 'coop') { enterBuilding('coop'); return; }
+      if (tile.kind === 'forge') { enterBuilding('forge'); return; }
+      if (tile.kind === 'dewi_hut') { enterBuilding('dewi_hut'); return; }
+      if (tile.kind === 'explorer_post') { enterBuilding('explorer_post'); return; }
+      if (tile.kind === 'mine_entrance') {
+        goMineFloor(1, { x: tx + 0.5, y: ty + 1.5 });
         return;
       }
-      if (tile.kind === 'shop') {
-        enterBuilding('shop');
-        return;
-      }
-      if (tile.kind === 'elder_hall') {
-        enterBuilding('elder_hall');
-        return;
-      }
-      if (tile.kind === 'jaka_cabin') {
-        enterBuilding('jaka_cabin');
-        return;
-      }
-      if (tile.kind === 'maya_hut') {
-        enterBuilding('maya_hut');
-        return;
-      }
-      if (tile.kind === 'lighthouse') {
-        enterBuilding('lighthouse');
-        return;
-      }
-      if (tile.kind === 'coop') {
-        enterBuilding('coop');
-        return;
-      }
-      if (tile.kind === 'bin') {
-        setShowBasket(true);
-        return;
-      }
-      if (tile.kind === 'workbench') {
-        setShowCraft(true);
-        return;
-      }
+      if (tile.kind === 'bin') { setShowBasket(true); return; }
+      if (tile.kind === 'workbench') { setShowCraft(true); return; }
       if (tile.kind === 'ship') {
-        openNpcDialogue('bima');
+        if (getNpcExclusiveLocation('bima', minuteOfDayRef.current, st.weather) === 'outdoor') {
+          openNpcDialogue('bima');
+        } else {
+          setToastMsg('Kapal Kargo Kapten Bima bersandar rapi. Temui Bima di Mercusuar saat malam/hujan!');
+        }
         return;
       }
       if (tile.kind === 'altar') {
-        openNpcDialogue('lira');
+        if (getNpcExclusiveLocation('lira', minuteOfDayRef.current, st.weather) === 'outdoor') {
+          openNpcDialogue('lira');
+        } else {
+          setToastMsg('Altar Mustika Suci bersinar tenang. Temui Lira di Balai Tetua saat malam/hujan.');
+        }
         return;
       }
       if (tile.kind === 'sacred_tree') {
@@ -1142,6 +1924,7 @@ export default function BerkebunGame({
       }
 
       // 3. Water / Fishing Interactions
+      const maxWater = WATER_CAPS[Math.min(3, (st.toolLevels.water || 1) - 1)];
       if (tile.kind === 'pond' || tile.kind === 'river' || tile.kind === 'ocean' || tile.kind === 'well') {
         if (activeTool === 'rod' && tile.kind !== 'well') {
           if (st.stamina < 3) {
@@ -1158,10 +1941,10 @@ export default function BerkebunGame({
           setToastMsg('Kail dilempar! Tunggu tanda "! TARIK!" lalu tekan Spasi atau klik air...');
           return;
         }
-        setSaveState((prev) => ({ ...prev, waterLevel: 20 }));
+        setSaveState((prev) => ({ ...prev, waterLevel: maxWater }));
         playFarmSound('water', soundMuted);
-        spawnParticles(tx, ty, '#38bdf8', 8, 'Air Penuh!');
-        setToastMsg('Penyiram diisi ulang penuh (20/20)!');
+        spawnParticles(tx, ty, '#38bdf8', 8, `Air ${maxWater}/${maxWater}!`);
+        setToastMsg(`Penyiram diisi ulang penuh (${maxWater}/${maxWater})!`);
         return;
       }
 
@@ -1171,6 +1954,75 @@ export default function BerkebunGame({
         p.actionTimer = ticks;
         p.swingTimer = ticks;
       };
+
+      // 3.5 CHOPPABLE STANDING TREES & STUMPS (Slot 3: Kapak)
+      const hitTreeIdx = st.trees.findIndex(
+        (tr) => tr.x === tx && tr.y === ty && (tr.hp > 0 || tr.stumpDaysLeft === 0)
+      );
+      if (hitTreeIdx !== -1) {
+        const tree = st.trees[hitTreeIdx];
+        if (activeTool !== 'axe') {
+          setToastMsg('Gunakan Kapak (Slot [3]) untuk menebang pohon atau tunggul ini menjadi Kayu!');
+          playFarmSound('error', soundMuted);
+          return;
+        }
+        if (st.stamina < 2) {
+          setToastMsg('Energi habis untuk menebang pohon!');
+          playFarmSound('error', soundMuted);
+          return;
+        }
+        triggerPose('swing_up', 18);
+        playFarmSound('chop', soundMuted);
+        const axeLvl = st.toolLevels.axe || 1;
+        const dmg = axeLvl >= 4 ? 4 : axeLvl;
+        if (tree.hp > 0) {
+          const nextHp = Math.max(0, tree.hp - dmg);
+          if (nextHp === 0) {
+            const woodDrop = 4 + (axeLvl >= 3 ? 2 : 0) + Math.floor(Math.random() * 2);
+            const bonusBerry = Math.random() < 0.4 ? 1 : 0;
+            spawnParticles(tx, ty, '#a16207', 12, `+${woodDrop} Kayu Keras!`);
+            setSaveState((prev) => {
+              const nextTrees = [...prev.trees];
+              nextTrees[hitTreeIdx] = { ...tree, hp: 0, stumpDaysLeft: 0 };
+              return {
+                ...prev,
+                stamina: Math.max(0, prev.stamina - 3),
+                bagItems: {
+                  ...prev.bagItems,
+                  wood_res: (prev.bagItems.wood_res || 0) + woodDrop,
+                  ...(bonusBerry > 0 ? { forage_berry: (prev.bagItems.forage_berry || 0) + 1 } : {}),
+                },
+                stats: { ...prev.stats, treesChopped: (prev.stats.treesChopped || 0) + 1 },
+                trees: nextTrees,
+              };
+            });
+            setToastMsg(`Pohon tumbang! +${woodDrop} Kayu Keras${bonusBerry ? ' & +1 Beri Liar' : ''}! Tebang tunggul untuk ekstra kayu.`);
+          } else {
+            spawnParticles(tx, ty, '#d97706', 5, `Tebang (${nextHp}/${tree.maxHp})`);
+            setSaveState((prev) => {
+              const nextTrees = [...prev.trees];
+              nextTrees[hitTreeIdx] = { ...tree, hp: nextHp };
+              return { ...prev, stamina: Math.max(0, prev.stamina - 2), trees: nextTrees };
+            });
+            setToastMsg(`Menebang pohon... Sisa ketahanan ${nextHp}/${tree.maxHp}.`);
+          }
+        } else {
+          // Chop remaining Stump -> +2 wood_res, regrows in 3 days!
+          spawnParticles(tx, ty, '#92400e', 8, '+2 Kayu Tunggul!');
+          setSaveState((prev) => {
+            const nextTrees = [...prev.trees];
+            nextTrees[hitTreeIdx] = { ...tree, hp: 0, stumpDaysLeft: 3 };
+            return {
+              ...prev,
+              stamina: Math.max(0, prev.stamina - 2),
+              bagItems: { ...prev.bagItems, wood_res: (prev.bagItems.wood_res || 0) + 2 },
+              trees: nextTrees,
+            };
+          });
+          setToastMsg('Tunggul dibersihkan! +2 Kayu Keras (tunas baru tumbuh dalam 3 hari).');
+        }
+        return;
+      }
 
       // 4. Foraging Wild Items (instant pickup regardless of tool!)
       if (
@@ -1249,37 +2101,40 @@ export default function BerkebunGame({
         return;
       }
 
-      // 6. Pickaxe Clearing & Mining Ores
+      // 6. Pickaxe Clearing & Mining Ores (with Tool Level scaling!)
       if (activeTool === 'pick') {
         if (st.stamina < 2) {
-          setToastMsg('Energi habis! Tidur di Rumah atau makan hasil hutan/olahan.');
+          setToastMsg('Energi habis! Tidur di Rumah atau gunakan Jamu/Makanan di Tas.');
           playFarmSound('error', soundMuted);
           return;
         }
         triggerPose('swing_up', 18);
+        const pickLvl = st.toolLevels.pick || 1;
         if (tile.debris === 'ore_copper' || tile.debris === 'ore_silver' || tile.debris === 'ore_star') {
           const oreId = tile.debris as BagItemId;
+          const qty = pickLvl >= 3 && Math.random() < 0.45 ? 2 : 1;
           playFarmSound('clear', soundMuted);
-          spawnParticles(tx, ty, '#c084fc', 9, `+1 ${BAG_ITEMS[oreId].name}`);
+          spawnParticles(tx, ty, '#c084fc', 9, `+${qty} ${BAG_ITEMS[oreId].name}`);
           setSaveState((prev) => {
             const newTiles = [...prev.tiles];
             newTiles[idx] = { ...tile, debris: null };
             const updated: FarmSaveState = {
               ...prev,
               stamina: Math.max(0, prev.stamina - 3),
-              bagItems: { ...prev.bagItems, [oreId]: (prev.bagItems[oreId] || 0) + 1 },
+              bagItems: { ...prev.bagItems, [oreId]: (prev.bagItems[oreId] || 0) + qty },
               stats: { ...prev.stats, oresMined: prev.stats.oresMined + 1 },
               tiles: newTiles,
             };
             void syncScoreToCloud(updated);
             return updated;
           });
-          setToastMsg(`Menambang ${BAG_ITEMS[oreId].name}!`);
+          setToastMsg(`Menambang ${qty}× ${BAG_ITEMS[oreId].name}!`);
           return;
         }
         if (tile.debris === 'stone' || tile.debris === 'wood' || tile.debris === 'weed') {
           const bagGain: BagItemId | null =
             tile.debris === 'stone' ? 'stone_res' : tile.debris === 'wood' ? 'wood_res' : null;
+          const qty = bagGain && pickLvl >= 3 ? 2 : 1;
           const bonusGold = tile.debris === 'weed' ? 6 : 4;
           playFarmSound('clear', soundMuted);
           spawnParticles(
@@ -1287,7 +2142,7 @@ export default function BerkebunGame({
             ty,
             '#fbbf24',
             7,
-            bagGain ? `+1 ${BAG_ITEMS[bagGain].name}` : `+${bonusGold}G`
+            bagGain ? `+${qty} ${BAG_ITEMS[bagGain].name}` : `+${bonusGold}G`
           );
           setSaveState((prev) => {
             const newTiles = [...prev.tiles];
@@ -1298,12 +2153,12 @@ export default function BerkebunGame({
               gold: prev.gold + bonusGold,
               totalEarnedGold: prev.totalEarnedGold + bonusGold,
               bagItems: bagGain
-                ? { ...prev.bagItems, [bagGain]: (prev.bagItems[bagGain] || 0) + 1 }
+                ? { ...prev.bagItems, [bagGain]: (prev.bagItems[bagGain] || 0) + qty }
                 : prev.bagItems,
               tiles: newTiles,
             };
           });
-          setToastMsg(bagGain ? `Mendapat ${BAG_ITEMS[bagGain].name} + ${bonusGold}G!` : 'Gulma dibersihkan!');
+          setToastMsg(bagGain ? `Mendapat ${qty}× ${BAG_ITEMS[bagGain].name} + ${bonusGold}G!` : 'Gulma dibersihkan!');
           return;
         }
         if (tile.hasSprinkler || tile.hasGoldSprinkler) {
@@ -1325,69 +2180,92 @@ export default function BerkebunGame({
         return;
       }
 
-      // 7. Soil Farming
+      // 7. Soil Farming (with Hoe & Water multi-tile upgrade area!)
       if (tile.kind !== 'grass') {
         setToastMsg('Lahan ini tidak bisa dicangkul! Berkebunlah di padang rumput hijau.');
         return;
       }
       if (st.stamina < 2 && (activeTool === 'hoe' || activeTool === 'water')) {
-        setToastMsg('Energi habis! Tidur di Rumah atau konsumsi Jamu/Buah di Tas [C].');
+        setToastMsg('Energi habis! Tidur di Rumah atau konsumsi Jamu/Buah di Tas.');
         playFarmSound('error', soundMuted);
         return;
       }
 
       if (activeTool === 'hoe') {
         if (tile.debris) {
-          setToastMsg('Bersihkan rintangan dulu dengan Beliung (Slot 3)!');
+          setToastMsg('Bersihkan rintangan dulu dengan Beliung (Slot [4])!');
           playFarmSound('error', soundMuted);
           return;
         }
-        if (tile.tilled) {
-          setToastMsg('Tanah sudah siap ditanami! Pilih Benih (Slot 5).');
+        const hoeLvl = st.toolLevels.hoe || 1;
+        const targets = getToolTargetTiles(tx, ty, hoeLvl, p.dir);
+        let tilledCount = 0;
+        const newTiles = [...st.tiles];
+        targets.forEach((pt) => {
+          if (pt.x < 0 || pt.x >= WORLD_COLS || pt.y < 0 || pt.y >= WORLD_ROWS) return;
+          const i2 = pt.y * WORLD_COLS + pt.x;
+          const t2 = newTiles[i2];
+          if (t2 && t2.kind === 'grass' && !t2.debris && !t2.tilled && !st.trees.some((tr) => tr.x === pt.x && tr.y === pt.y && tr.stumpDaysLeft === 0)) {
+            newTiles[i2] = { ...t2, tilled: true, watered: st.weather === 'Hujan' };
+            tilledCount++;
+            spawnParticles(pt.x, pt.y, '#92400e', 5);
+          }
+        });
+        if (tilledCount === 0) {
+          setToastMsg('Tanah sudah siap ditanami! Pilih Benih (Slot [7]).');
           return;
         }
         triggerPose('swing_up', 18);
         playFarmSound('hoe', soundMuted);
-        spawnParticles(tx, ty, '#92400e', 6);
-        setSaveState((prev) => {
-          const newTiles = [...prev.tiles];
-          newTiles[idx] = { ...tile, tilled: true, watered: prev.weather === 'Hujan' };
-          return { ...prev, stamina: Math.max(0, prev.stamina - 2), tiles: newTiles };
-        });
-        setToastMsg('Tanah digemburkan!');
+        setSaveState((prev) => ({
+          ...prev,
+          stamina: Math.max(0, prev.stamina - 2),
+          tiles: newTiles,
+        }));
+        setToastMsg(`${tilledCount} petak tanah digemburkan!`);
         return;
       }
 
       if (activeTool === 'water') {
-        if (!tile.tilled) {
-          setToastMsg('Cangkul tanah dulu sebelum menyiram.');
-          return;
-        }
         if (st.waterLevel <= 0) {
           setToastMsg('Air habis! Isi ulang di Kolam, Sumur Desa, atau Sungai.');
           playFarmSound('error', soundMuted);
           return;
         }
+        const waterLvl = st.toolLevels.water || 1;
+        const targets = getToolTargetTiles(tx, ty, waterLvl, p.dir);
+        let wateredCount = 0;
+        const newTiles = [...st.tiles];
+        targets.forEach((pt) => {
+          if (pt.x < 0 || pt.x >= WORLD_COLS || pt.y < 0 || pt.y >= WORLD_ROWS) return;
+          const i2 = pt.y * WORLD_COLS + pt.x;
+          const t2 = newTiles[i2];
+          if (t2 && t2.tilled && !t2.watered) {
+            newTiles[i2] = { ...t2, watered: true };
+            wateredCount++;
+            spawnParticles(pt.x, pt.y, '#38bdf8', 6);
+          }
+        });
+        if (wateredCount === 0) {
+          if (!tile.tilled) setToastMsg('Cangkul tanah dulu sebelum menyiram.');
+          else setToastMsg('Petak ini sudah basah disiram.');
+          return;
+        }
         triggerPose('water', 16);
         playFarmSound('water', soundMuted);
-        spawnParticles(tx, ty, '#38bdf8', 8);
-        setSaveState((prev) => {
-          const newTiles = [...prev.tiles];
-          newTiles[idx] = { ...tile, watered: true };
-          return {
-            ...prev,
-            stamina: Math.max(0, prev.stamina - 2),
-            waterLevel: Math.max(0, prev.waterLevel - 1),
-            tiles: newTiles,
-          };
-        });
+        setSaveState((prev) => ({
+          ...prev,
+          stamina: Math.max(0, prev.stamina - 2),
+          waterLevel: Math.max(0, prev.waterLevel - 1),
+          tiles: newTiles,
+        }));
         return;
       }
 
       if (activeTool === 'seed') {
         const cDef = CROPS[selectedSeed];
         if ((st.seeds[selectedSeed] || 0) <= 0) {
-          setToastMsg(`Benih ${cDef.name} habis! Beli lagi di Toko Mbak Sari.`);
+          setToastMsg(`Benih ${cDef.name} habis! Beli di Toko Benih Desa Purnama.`);
           playFarmSound('error', soundMuted);
           return;
         }
@@ -1478,16 +2356,27 @@ export default function BerkebunGame({
       soundMuted,
       enterBuilding,
       exitBuilding,
+      exitMine,
+      goMineFloor,
+      getToolTargetTiles,
       interactInteriorFurniture,
       openNpcDialogue,
       advanceStoryChapter,
       reelFishingRod,
+      spawnMonsterDrops,
       spawnParticles,
       syncScoreToCloud,
     ]
   );
 
   const triggerFacingAction = useCallback(() => {
+    if (undergroundFloorRef.current !== null) {
+      const mp = minePosRef.current;
+      const fx = Math.floor(mp.x + (mp.dir === 0 ? 0.9 : mp.dir === 2 ? -0.9 : 0));
+      const fy = Math.floor(mp.y + (mp.dir === 1 ? 0.9 : mp.dir === 3 ? -0.9 : 0));
+      interactAtTile(fx, fy);
+      return;
+    }
     const intId = currentInteriorRef.current;
     if (intId) {
       const ip = interiorPosRef.current;
@@ -1501,8 +2390,10 @@ export default function BerkebunGame({
       return;
     }
     const p = playerRef.current;
-    // Check nearby NPC directly in front first
+    const st = saveStateRef.current;
+    // Check nearby OUTDOOR NPC directly in front first
     for (const npcId of Object.keys(NPCS) as NpcId[]) {
+      if (getNpcExclusiveLocation(npcId, minuteOfDayRef.current, st.weather) !== 'outdoor') continue;
       const np = npcRuntimeRef.current[npcId];
       if (Math.hypot(np.x - p.x, np.y - p.y) < 1.9) {
         openNpcDialogue(npcId);
@@ -1514,7 +2405,7 @@ export default function BerkebunGame({
     interactAtTile(fx, fy);
   }, [interactAtTile, openNpcDialogue, reelFishingRod]);
 
-  // Keyboard Listeners (WASD/Arrows + Space/E + 1..8 + C/J/M)
+  // Keyboard Listeners (WASD/Arrows + Space/E + 1..0 + C/J/M)
   useEffect(() => {
     if (viewMode !== 'play') return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -1527,6 +2418,8 @@ export default function BerkebunGame({
         setShowShop(false);
         setShowBasket(false);
         setShowCraft(false);
+        setShowUpgradeModal(false);
+        setShowChest(false);
         setShowJournal(false);
         setShowWorldMap(false);
         setShowSleepModal(false);
@@ -1540,6 +2433,8 @@ export default function BerkebunGame({
           !showShop &&
           !showBasket &&
           !showCraft &&
+          !showUpgradeModal &&
+          !showChest &&
           !showJournal &&
           !showWorldMap &&
           !showSleepModal &&
@@ -1558,12 +2453,14 @@ export default function BerkebunGame({
         setShowWorldMap((v) => !v);
       } else if (k === '1') setActiveTool('hoe');
       else if (k === '2') setActiveTool('water');
-      else if (k === '3') setActiveTool('pick');
-      else if (k === '4') setActiveTool('harvest');
-      else if (k === '5') setActiveTool('seed');
-      else if (k === '6') setActiveTool('fertilizer');
-      else if (k === '7') setActiveTool('sprinkler');
-      else if (k === '8') setActiveTool('rod');
+      else if (k === '3') setActiveTool('axe');
+      else if (k === '4') setActiveTool('pick');
+      else if (k === '5') setActiveTool('sword');
+      else if (k === '6') setActiveTool('harvest');
+      else if (k === '7') setActiveTool('seed');
+      else if (k === '8') setActiveTool('fertilizer');
+      else if (k === '9') setActiveTool('sprinkler');
+      else if (k === '0') setActiveTool('rod');
     };
     const onKeyUp = (e: KeyboardEvent) => {
       keysPressedRef.current[e.key.toLowerCase()] = false;
@@ -1579,6 +2476,8 @@ export default function BerkebunGame({
     showShop,
     showBasket,
     showCraft,
+    showUpgradeModal,
+    showChest,
     showJournal,
     showWorldMap,
     showSleepModal,
@@ -1589,7 +2488,7 @@ export default function BerkebunGame({
     triggerFacingAction,
   ]);
 
-  // Main 60fps Big-Island + Interior Camera-Following Stardew Renderer
+  // Main 60fps Big-Island + Underground Mine + Interior Camera-Following Stardew Renderer
   useEffect(() => {
     if (viewMode !== 'play') return;
     let rafId: number;
@@ -1600,9 +2499,13 @@ export default function BerkebunGame({
       const atlas = atlasRef.current;
       const sprites = spritesRef.current;
       const intId = currentInteriorRef.current;
+      const mFloor = undergroundFloorRef.current;
       const canvas = canvasRef.current;
       const ctx = canvas?.getContext('2d');
       const curSeason = SEASONS[st.seasonIdx % SEASONS.length];
+      const walkCycle: FarmerPose[] = ['walk1', 'idle', 'walk2', 'idle'];
+      const walkPoseNow = walkCycle[Math.floor(now / 135) % 4];
+      const speedMult = speedUntilRef.current > Date.now() ? 1.42 : 1;
 
       // ---------------- BRANCH A: BUILDING INTERIOR SCENE ----------------
       if (intId) {
@@ -1611,7 +2514,7 @@ export default function BerkebunGame({
         const keys = keysPressedRef.current;
         let vx = 0;
         let vy = 0;
-        if (!activeNpcRef.current && !showSleepModal) {
+        if (!activeNpcRef.current && !showSleepModal && !showShop && !showCraft && !showUpgradeModal && !showChest) {
           if (keys['w'] || keys['arrowup']) vy -= 1;
           if (keys['s'] || keys['arrowdown']) vy += 1;
           if (keys['a'] || keys['arrowleft']) vx -= 1;
@@ -1634,7 +2537,7 @@ export default function BerkebunGame({
 
         if (vx !== 0 || vy !== 0) {
           const len = Math.hypot(vx, vy);
-          const speed = 0.085;
+          const speed = 0.085 * speedMult;
           const nx = ip.x + (vx / len) * speed;
           const ny = ip.y + (vy / len) * speed;
           if (canWalkInterior(nx, ip.y)) ip.x = nx;
@@ -1666,7 +2569,6 @@ export default function BerkebunGame({
           ctx.save();
           ctx.translate(ox, oy);
 
-          // Floor & Wall Tiles
           const isNightWindow = minuteOfDay >= 1080 || minuteOfDay < 360;
           const isSunsetWindow = minuteOfDay >= 990 && minuteOfDay < 1080;
 
@@ -1676,7 +2578,6 @@ export default function BerkebunGame({
               const py = y * TILE_SIZE;
 
               if (y === 0) {
-                // Upper interior wall with wainscoting & themed windows
                 ctx.fillStyle = def.wallColor;
                 ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
                 ctx.fillStyle = def.wallAccent;
@@ -1699,7 +2600,6 @@ export default function BerkebunGame({
                 }
               } else if (x === 0 || x === def.cols - 1 || y === def.rows - 1) {
                 if (x === def.exitTile.x && y === def.exitTile.y) {
-                  // Doormat / Exit Threshold
                   ctx.fillStyle = '#7c2d12';
                   ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
                   ctx.fillStyle = '#f59e0b';
@@ -1715,7 +2615,6 @@ export default function BerkebunGame({
                   ctx.fillRect(px + 3, py + 3, TILE_SIZE - 6, TILE_SIZE - 6);
                 }
               } else {
-                // Interior Flooring per building theme
                 if (def.floorStyle === 'wood') {
                   ctx.fillStyle = (x + y) % 2 === 0 ? '#c88346' : '#bd783d';
                   ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
@@ -1736,7 +2635,6 @@ export default function BerkebunGame({
                   ctx.fillStyle = '#6d28d9';
                   ctx.fillRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
                 } else {
-                  // Warm Straw Coop Floor
                   ctx.fillStyle = (x + y) % 2 === 0 ? '#d9a441' : '#c79030';
                   ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
                   ctx.fillStyle = '#fde047';
@@ -1754,7 +2652,6 @@ export default function BerkebunGame({
               if (sp) ctx.drawImage(sp, f.x * TILE_SIZE, f.y * TILE_SIZE, f.w * TILE_SIZE, f.h * TILE_SIZE);
             });
 
-          // Y-Sorted solid furniture, Resident NPC, Coop chickens & Player
           const intQueue: Array<{ sortY: number; render: () => void }> = [];
 
           def.furniture
@@ -1784,7 +2681,6 @@ export default function BerkebunGame({
                       ctx.drawImage(sp, fx + 2, fy + 2, fw - 4, fh - 4);
                     }
                   }
-                  // Live animated effects for special theme furniture!
                   if (f.kind === 'fireplace') {
                     const flicker = Math.sin(now * 0.018) * 3;
                     ctx.fillStyle = 'rgba(251, 146, 60, 0.35)';
@@ -1807,7 +2703,6 @@ export default function BerkebunGame({
               });
             });
 
-          // Resident Chickens inside Coop
           if (intId === 'coop') {
             [
               { x: 4.5, y: 5.5, variant: 'white' as const, dir: 1 },
@@ -1829,10 +2724,14 @@ export default function BerkebunGame({
             });
           }
 
-          // Resident NPC inside Building
-          if (def.residentNpc && def.residentPos) {
-            const npcId = def.residentNpc;
-            const rPos = def.residentPos;
+          // Exclusive NPCs currently inside this building!
+          const indoorNpcs = (Object.keys(NPCS) as NpcId[]).filter(
+            (nid) => getNpcExclusiveLocation(nid, minuteOfDay, st.weather) === intId
+          );
+          indoorNpcs.forEach((npcId) => {
+            const base = def.residentPos || { x: Math.floor(def.cols / 2), y: 3 };
+            const rPos =
+              npcId === def.residentNpc ? base : { x: Math.min(def.cols - 2, base.x + 2.2), y: base.y + 0.5 };
             const sp = getAiNpcPoseSprite(sprites, npcId, 1, false, now);
             intQueue.push({
               sortY: rPos.y * TILE_SIZE + 8,
@@ -1856,18 +2755,17 @@ export default function BerkebunGame({
                 ctx.fillText(NPCS[npcId].name.split(' ')[0], nx, ny + 22);
               },
             });
-          }
+          });
 
-          // Farmer inside Interior with AI 4-direction & action sprites!
+          // Farmer inside Interior with 4-step walking animation
           intQueue.push({
             sortY: ip.y * TILE_SIZE + 8,
             render: () => {
               const cx = Math.round(ip.x * TILE_SIZE);
               const cy = Math.round(ip.y * TILE_SIZE);
-              const walkFrame: FarmerPose = Math.floor(now / 150) % 2 === 0 ? 'walk1' : 'walk2';
-              const pose: FarmerPose = ip.actionTimer > 0 ? ip.actionPose : ip.moving ? walkFrame : 'idle';
+              const pose: FarmerPose = ip.actionTimer > 0 ? ip.actionPose : ip.moving ? walkPoseNow : 'idle';
               const poseSp = getAiFarmerPoseSprite(sprites, pose, ip.dir);
-              const stride = ip.moving ? Math.abs(Math.sin(now * 0.016)) * 2 : 0;
+              const stride = ip.moving ? Math.abs(Math.sin(now * 0.017)) * 2.5 : 0;
               const drawH = 54;
               const drawW = Math.round(drawH * (poseSp.width / poseSp.height));
 
@@ -1883,7 +2781,6 @@ export default function BerkebunGame({
           intQueue.sort((a, b) => a.sortY - b.sortY);
           for (const item of intQueue) item.render();
 
-          // Target Furniture Highlight + Prompt
           const fx = Math.floor(ip.x + (ip.dir === 0 ? 0.85 : ip.dir === 2 ? -0.85 : 0));
           const fy = Math.floor(ip.y + (ip.dir === 1 ? 0.85 : ip.dir === 3 ? -0.85 : 0));
           const nearFurn = def.furniture.find(
@@ -1905,12 +2802,11 @@ export default function BerkebunGame({
 
           ctx.restore();
 
-          // Room Banner + Nearby Prompt Overlay
           ctx.fillStyle = 'rgba(59, 26, 7, 0.9)';
-          ctx.fillRect(14, 10, 290, 26);
+          ctx.fillRect(14, 10, 310, 26);
           ctx.strokeStyle = '#d98a42';
           ctx.lineWidth = 2;
-          ctx.strokeRect(14, 10, 290, 26);
+          ctx.strokeRect(14, 10, 310, 26);
           ctx.fillStyle = '#fef3c7';
           ctx.font = 'bold 11px monospace';
           ctx.textAlign = 'left';
@@ -1942,6 +2838,321 @@ export default function BerkebunGame({
         return;
       }
 
+      // ---------------- BRANCH C: UNDERGROUND CAVE & MONSTERS ----------------
+      if (mFloor !== null) {
+        const mp = minePosRef.current;
+        const keys = keysPressedRef.current;
+        let vx = 0;
+        let vy = 0;
+        if (!activeNpcRef.current && !showCraft && !showChest && !showUpgradeModal) {
+          if (keys['w'] || keys['arrowup']) vy -= 1;
+          if (keys['s'] || keys['arrowdown']) vy += 1;
+          if (keys['a'] || keys['arrowleft']) vx -= 1;
+          if (keys['d'] || keys['arrowright']) vx += 1;
+        }
+
+        const canWalkMine = (cx: number, cy: number) => {
+          const tx = Math.floor(cx);
+          const ty = Math.floor(cy);
+          if (tx < 1 || tx >= MINE_COLS - 1 || ty < 1 || ty >= MINE_ROWS - 1) return false;
+          const cell = mineCellsRef.current[ty * MINE_COLS + tx];
+          if (!cell || cell.kind === 'wall' || cell.rock) return false;
+          return true;
+        };
+
+        if (vx !== 0 || vy !== 0) {
+          const len = Math.hypot(vx, vy);
+          const spd = 0.095 * speedMult;
+          const nx = mp.x + (vx / len) * spd;
+          const ny = mp.y + (vy / len) * spd;
+          if (canWalkMine(nx, mp.y)) mp.x = nx;
+          if (canWalkMine(mp.x, ny)) mp.y = ny;
+          if (Math.abs(vx) >= Math.abs(vy)) mp.dir = vx > 0 ? 0 : 2;
+          else mp.dir = vy > 0 ? 1 : 3;
+          mp.moving = true;
+        } else {
+          mp.moving = false;
+        }
+        if (mp.actionTimer > 0) {
+          mp.actionTimer--;
+          if (mp.actionTimer === 0) mp.actionPose = 'idle';
+        }
+
+        // Update Active Bombs
+        const nextBombs: typeof mineBombsRef.current = [];
+        mineBombsRef.current.forEach((b) => {
+          const rem = b.timer - 1;
+          if (rem <= 0) {
+            explodeMineBombAt(b.x, b.y);
+          } else {
+            nextBombs.push({ ...b, timer: rem });
+          }
+        });
+        mineBombsRef.current = nextBombs;
+
+        // Pickup Drops
+        const remainingDrops: typeof mineDropsRef.current = [];
+        const pickedUp: Partial<Record<BagItemId, number>> = {};
+        mineDropsRef.current.forEach((dr) => {
+          if (Math.hypot(dr.x - mp.x, dr.y - mp.y) < 1.05) {
+            pickedUp[dr.bagId] = (pickedUp[dr.bagId] || 0) + dr.qty;
+          } else {
+            remainingDrops.push(dr);
+          }
+        });
+        if (Object.keys(pickedUp).length > 0) {
+          mineDropsRef.current = remainingDrops;
+          playFarmSound('plant', soundMuted);
+          setSaveState((prev) => {
+            const nb = { ...prev.bagItems };
+            (Object.keys(pickedUp) as BagItemId[]).forEach((bid) => {
+              nb[bid] = (nb[bid] || 0) + (pickedUp[bid] || 0);
+            });
+            return { ...prev, bagItems: nb };
+          });
+        }
+
+        // Update Monster AI & Contact Damage
+        mineMonstersRef.current.forEach((m) => {
+          if (m.hitFlash > 0) m.hitFlash--;
+          const dist = Math.hypot(mp.x - m.x, mp.y - m.y);
+          if (dist < 6.5 && dist > 0.35) {
+            const dx = (mp.x - m.x) / dist;
+            const dy = (mp.y - m.y) / dist;
+            const nx = m.x + dx * m.speed;
+            const ny = m.y + dy * m.speed;
+            if (canWalkMine(nx, m.y)) m.x = nx;
+            if (canWalkMine(m.x, ny)) m.y = ny;
+          }
+          if (dist < 0.72 && Date.now() > invulnUntilRef.current) {
+            invulnUntilRef.current = Date.now() + 950;
+            playFarmSound('hit', soundMuted);
+            spawnParticles(mp.x, mp.y, '#ef4444', 7, `-${m.damage} HP`);
+            const nextHp = Math.max(0, st.hp - m.damage);
+            if (nextHp <= 0) {
+              setUndergroundFloor(null);
+              playerRef.current.x = 22.5;
+              playerRef.current.y = 21.2;
+              setSaveState((prev) => ({
+                ...prev,
+                hp: Math.round(prev.maxHp * 0.6),
+                stamina: Math.max(20, prev.stamina - 20),
+              }));
+              setToastMsg('Pingsan di dalam Gua! Penduduk membawamu pulang dengan selamat.');
+            } else {
+              setSaveState((prev) => ({ ...prev, hp: nextHp }));
+            }
+          }
+        });
+
+        const mCamY = Math.max(0, Math.min(MINE_ROWS * TILE_SIZE - VIEW_H, mp.y * TILE_SIZE - VIEW_H / 2));
+
+        if (canvas && ctx && atlas) {
+          ctx.imageSmoothingEnabled = false;
+          ctx.fillStyle = '#090910';
+          ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+          ctx.save();
+          ctx.translate(0, -Math.round(mCamY));
+
+          for (const cell of mineCellsRef.current) {
+            const px = cell.x * TILE_SIZE;
+            const py = cell.y * TILE_SIZE;
+            if (cell.kind === 'wall') {
+              ctx.fillStyle = '#1e1b2e';
+              ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+              ctx.fillStyle = '#332e4d';
+              ctx.fillRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 10);
+              ctx.fillStyle = '#0f0d1a';
+              ctx.fillRect(px, py + TILE_SIZE - 8, TILE_SIZE, 8);
+            } else {
+              ctx.fillStyle = (cell.x + cell.y) % 2 === 0 ? '#2b283a' : '#262334';
+              ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+              ctx.fillStyle = '#38344b';
+              if ((cell.x * 3 + cell.y) % 4 === 0) ctx.fillRect(px + 10, py + 12, 8, 5);
+            }
+
+            if (cell.kind === 'up_ladder' || cell.kind === 'down_ladder') {
+              if (sprites.mineLadder) {
+                ctx.drawImage(sprites.mineLadder, px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+              } else {
+                ctx.fillStyle = cell.kind === 'up_ladder' ? '#f59e0b' : '#38bdf8';
+                ctx.fillRect(px + 10, py + 6, TILE_SIZE - 20, TILE_SIZE - 12);
+              }
+              ctx.fillStyle = cell.kind === 'up_ladder' ? '#fde047' : '#7dd3fc';
+              ctx.font = 'bold 9px monospace';
+              ctx.textAlign = 'center';
+              ctx.fillText(cell.kind === 'up_ladder' ? 'NAIK' : 'TURUN', px + 24, py + 45);
+            } else if (cell.kind === 'torch') {
+              if (sprites.mineTorch) {
+                ctx.drawImage(sprites.mineTorch, px + 8, py + 6, 32, 36);
+              } else {
+                ctx.fillStyle = '#fb923c';
+                ctx.fillRect(px + 20, py + 14, 8, 18);
+              }
+            }
+
+            if (cell.rock) {
+              if (cell.rock === 'rock') {
+                const sp = sprites.mineBoulder || atlas.stone;
+                ctx.drawImage(sp, px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+              } else {
+                const sp = atlas[cell.rock];
+                if (sp) ctx.drawImage(sp, px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+              }
+            }
+          }
+
+          // Active Bombs
+          mineBombsRef.current.forEach((b) => {
+            const bx = b.x * TILE_SIZE;
+            const by = b.y * TILE_SIZE;
+            const pulse = 1 + Math.sin(now * 0.04) * 0.12;
+            ctx.save();
+            ctx.translate(bx + 24, by + 24);
+            ctx.scale(pulse, pulse);
+            if (sprites.mineBomb) ctx.drawImage(sprites.mineBomb, -16, -16, 32, 32);
+            else {
+              ctx.fillStyle = '#ef4444';
+              ctx.beginPath();
+              ctx.arc(0, 0, 12, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.restore();
+          });
+
+          // Monster Drops on cave floor
+          mineDropsRef.current.forEach((dr) => {
+            const bob = Math.sin(now * 0.008 + dr.id) * 2.5;
+            const dx = dr.x * TILE_SIZE;
+            const dy = dr.y * TILE_SIZE + bob;
+            ctx.fillStyle = 'rgba(250, 204, 21, 0.35)';
+            ctx.beginPath();
+            ctx.arc(dx, dy, 12, 0, Math.PI * 2);
+            ctx.fill();
+            const sp = sprites.bagItemAiSprites[dr.bagId] || atlas.bagItems[dr.bagId];
+            if (sp) ctx.drawImage(sp, dx - 11, dy - 11, 22, 22);
+          });
+
+          // Monsters
+          mineMonstersRef.current.forEach((m) => {
+            const mx = Math.round(m.x * TILE_SIZE);
+            const my = Math.round(m.y * TILE_SIZE);
+            const mFrames = sprites.monsters[m.kind] || [];
+            const sp = mFrames.length > 0 ? mFrames[Math.floor(now / 260) % mFrames.length] : undefined;
+            const hop = m.kind === 'bat' ? Math.sin(now * 0.018 + m.id) * 5 : Math.abs(Math.sin(now * 0.01 + m.id)) * 3;
+
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.beginPath();
+            ctx.ellipse(mx, my + 12, 14, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (m.hitFlash > 0) ctx.filter = 'brightness(2)';
+            if (sp) {
+              const dh = m.kind === 'golem' ? 50 : 40;
+              const dw = Math.round(dh * (sp.width / Math.max(1, sp.height)));
+              ctx.drawImage(sp, mx - dw / 2, my - dh + 14 - hop, dw, dh);
+            } else {
+              ctx.fillStyle = m.kind === 'slime' ? '#22c55e' : m.kind === 'bat' ? '#a855f7' : '#64748b';
+              ctx.beginPath();
+              ctx.arc(mx, my - 6 - hop, 14, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.filter = 'none';
+
+            // Monster HP bar
+            const hpPct = Math.max(0, m.hp / m.maxHp);
+            ctx.fillStyle = '#18181b';
+            ctx.fillRect(mx - 16, my - 34, 32, 5);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(mx - 15, my - 33, Math.round(30 * hpPct), 3);
+          });
+
+          // Farmer in Cave
+          {
+            const cx = Math.round(mp.x * TILE_SIZE);
+            const cy = Math.round(mp.y * TILE_SIZE);
+            const pose: FarmerPose = mp.actionTimer > 0 ? mp.actionPose : mp.moving ? walkPoseNow : 'idle';
+            const poseSp = getAiFarmerPoseSprite(sprites, pose, mp.dir);
+            const stride = mp.moving ? Math.abs(Math.sin(now * 0.017)) * 2.5 : 0;
+            const drawH = 54;
+            const drawW = Math.round(drawH * (poseSp.width / poseSp.height));
+            if (Date.now() < invulnUntilRef.current && Math.floor(now / 80) % 2 === 0) {
+              ctx.globalAlpha = 0.5;
+            }
+            ctx.drawImage(poseSp, Math.round(cx - drawW / 2), Math.round(cy - drawH + 14 - stride), drawW, drawH);
+            ctx.globalAlpha = 1;
+          }
+
+          // Particles in cave
+          particlesRef.current = particlesRef.current.filter((pt) => {
+            pt.x += pt.vx;
+            pt.y += pt.vy;
+            pt.vy += 0.04;
+            pt.life++;
+            const alpha = 1 - pt.life / pt.maxLife;
+            if (alpha <= 0) return false;
+            ctx.globalAlpha = alpha;
+            if (pt.label) {
+              ctx.font = 'bold 12px monospace';
+              ctx.fillStyle = pt.color;
+              ctx.textAlign = 'center';
+              ctx.fillText(pt.label, pt.x, pt.y);
+            } else {
+              ctx.fillStyle = pt.color;
+              ctx.fillRect(Math.round(pt.x - 2), Math.round(pt.y - 2), 4, 4);
+            }
+            ctx.globalAlpha = 1;
+            return true;
+          });
+
+          ctx.restore();
+
+          // Warm Torch + Player Lantern Glow Overlay
+          const hasTorchBuff = torchUntilRef.current > Date.now();
+          ctx.fillStyle = hasTorchBuff ? 'rgba(8, 8, 18, 0.14)' : 'rgba(6, 6, 16, 0.34)';
+          ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const pRadius = hasTorchBuff ? 195 : 115;
+          const psx = mp.x * TILE_SIZE;
+          const psy = mp.y * TILE_SIZE - Math.round(mCamY);
+          const pGrad = ctx.createRadialGradient(psx, psy, 8, psx, psy, pRadius);
+          pGrad.addColorStop(0, 'rgba(253, 224, 71, 0.25)');
+          pGrad.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = pGrad;
+          ctx.beginPath();
+          ctx.arc(psx, psy, pRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // Cave HUD Banner
+          ctx.fillStyle = 'rgba(24, 24, 27, 0.9)';
+          ctx.fillRect(14, 10, 340, 26);
+          ctx.strokeStyle = '#a855f7';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(14, 10, 340, 26);
+          ctx.fillStyle = '#e9d5ff';
+          ctx.font = 'bold 11px monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(`GUA BAWAH TANAH · LANTAI ${mFloor} · MONSTER: ${mineMonstersRef.current.length}`, 24, 27);
+        }
+
+        const mm = minimapRef.current;
+        const mCtx = mm?.getContext('2d');
+        if (mm && mCtx) {
+          mCtx.fillStyle = '#18181b';
+          mCtx.fillRect(0, 0, mm.width, mm.height);
+          mCtx.fillStyle = '#c084fc';
+          mCtx.font = 'bold 10px monospace';
+          mCtx.textAlign = 'center';
+          mCtx.fillText(`GUA LT.${mFloor}`, mm.width / 2, mm.height / 2);
+        }
+
+        rafId = requestAnimationFrame(loop);
+        return;
+      }
+
       // ---------------- BRANCH B: OUTDOOR PULAU TIK WORLD ----------------
       const tileAt = (cx: number, cy: number): FarmTile | undefined => {
         const tx = Math.floor(cx);
@@ -1949,6 +3160,9 @@ export default function BerkebunGame({
         if (tx < 0 || tx >= WORLD_COLS || ty < 0 || ty >= WORLD_ROWS) return undefined;
         return st.tiles[ty * WORLD_COLS + tx];
       };
+
+      const treeBlocksTile = (tx: number, ty: number) =>
+        st.trees.some((tr) => tr.x === tx && tr.y === ty && tr.stumpDaysLeft === 0);
 
       const canWalk = (t?: FarmTile) => {
         if (!t) return false;
@@ -1963,6 +3177,10 @@ export default function BerkebunGame({
           t.kind === 'jaka_cabin' ||
           t.kind === 'maya_hut' ||
           t.kind === 'lighthouse' ||
+          t.kind === 'forge' ||
+          t.kind === 'dewi_hut' ||
+          t.kind === 'explorer_post' ||
+          t.kind === 'mine_entrance' ||
           t.kind === 'ship' ||
           t.kind === 'sacred_tree' ||
           t.kind === 'windmill' ||
@@ -1971,9 +3189,11 @@ export default function BerkebunGame({
         ) {
           return false;
         }
-        // Story-gated map barriers!
-        if (t.kind === 'bridge' && t.y >= 25 && st.storyChapter < 2) return false; // Southern Bridge broken in Bab 1
-        if (t.kind === 'cliff_pass' && st.storyChapter < 3) return false; // Eastern Quarry pass blocked until Bab 3
+        // Story-gated map barriers
+        if (t.kind === 'bridge' && t.x >= 41 && t.x <= 43 && t.y >= 28 && t.y <= 31 && st.storyChapter < 2) {
+          return false;
+        }
+        if (t.kind === 'cliff_pass' && st.storyChapter < 3) return false;
         if (
           t.debris === 'stone' ||
           t.debris === 'wood' ||
@@ -1983,6 +3203,7 @@ export default function BerkebunGame({
         ) {
           return false;
         }
+        if (treeBlocksTile(t.x, t.y)) return false;
         return true;
       };
 
@@ -1991,7 +3212,7 @@ export default function BerkebunGame({
       const keys = keysPressedRef.current;
       let vx = 0;
       let vy = 0;
-      if (!activeNpcRef.current && !fishingRef.current && !showSleepModal) {
+      if (!activeNpcRef.current && !fishingRef.current && !showSleepModal && !showCraft && !showBasket && !showJournal) {
         if (keys['w'] || keys['arrowup']) vy -= 1;
         if (keys['s'] || keys['arrowdown']) vy += 1;
         if (keys['a'] || keys['arrowleft']) vx -= 1;
@@ -2000,7 +3221,7 @@ export default function BerkebunGame({
 
       if (vx !== 0 || vy !== 0) {
         const len = Math.hypot(vx, vy);
-        const speed = 0.095;
+        const speed = 0.095 * speedMult;
         const nx = Math.max(0.6, Math.min(WORLD_COLS - 0.6, p.x + (vx / len) * speed));
         const ny = Math.max(0.6, Math.min(WORLD_ROWS - 0.6, p.y + (vy / len) * speed));
         if (canWalk(tileAt(nx, p.y))) p.x = nx;
@@ -2025,8 +3246,9 @@ export default function BerkebunGame({
       cam.x += (targetCamX - cam.x) * 0.16;
       cam.y += (targetCamY - cam.y) * 0.16;
 
-      // Update Roaming NPCs & Farm Chickens
+      // Update Roaming OUTDOOR NPCs & Farm Chickens
       for (const npcId of Object.keys(NPCS) as NpcId[]) {
+        if (getNpcExclusiveLocation(npcId, minuteOfDay, st.weather) !== 'outdoor') continue;
         const cfg = NPCS[npcId];
         const rt = npcRuntimeRef.current[npcId];
         if (activeNpcRef.current === npcId) continue;
@@ -2071,7 +3293,7 @@ export default function BerkebunGame({
           ch.timer = 55 + Math.floor(Math.random() * 60);
         }
         const nx = ch.x + ch.dir * 0.012;
-        if (nx >= 12.6 && nx <= 16.4) ch.x = nx;
+        if (nx >= 26.8 && nx <= 30.2) ch.x = nx;
         else ch.dir *= -1;
       });
 
@@ -2090,7 +3312,6 @@ export default function BerkebunGame({
         ctx.save();
         ctx.translate(-camX, -camY);
 
-        // 1. Visible Terrain Pass (Viewport Culled + Organic Surf Shoreline!)
         const grassSet = atlas.grass[curSeason];
         const isLandTile = (gx: number, gy: number) => {
           const t = tileAt(gx + 0.5, gy + 0.5);
@@ -2109,7 +3330,6 @@ export default function BerkebunGame({
               ctx.fillStyle = 'rgba(224, 247, 255, 0.35)';
               if ((x + y) % 2 === 0) ctx.fillRect(px + 10 + wave, py + 20, 14, 3);
 
-              // Natural coastal shallow water & animated surf foam on every coastline direction
               const lT = isLandTile(x, y - 1);
               const lB = isLandTile(x, y + 1);
               const lL = isLandTile(x - 1, y);
@@ -2134,7 +3354,7 @@ export default function BerkebunGame({
               ctx.drawImage(atlas.sand[(x + y) % 2], px, py, TILE_SIZE, TILE_SIZE);
             } else if (tile.kind === 'forest_floor') {
               ctx.drawImage(atlas.forestFloor[(x + y) % 2], px, py, TILE_SIZE, TILE_SIZE);
-            } else if (tile.kind === 'plaza' || tile.kind === 'cliff_pass') {
+            } else if (tile.kind === 'plaza' || tile.kind === 'cliff_pass' || tile.kind === 'mine_entrance') {
               ctx.drawImage(atlas.plaza[(x + y) % 2], px, py, TILE_SIZE, TILE_SIZE);
             } else {
               const gVar = (x * 7 + y * 13) % grassSet.length;
@@ -2145,7 +3365,7 @@ export default function BerkebunGame({
               ctx.drawImage(atlas.path[(x + y) % 2], px, py, TILE_SIZE, TILE_SIZE);
             } else if (tile.kind === 'bridge' || tile.kind === 'pier') {
               ctx.drawImage(tile.kind === 'pier' ? atlas.oceanWater : atlas.pondWater, px, py, TILE_SIZE, TILE_SIZE);
-              const isBroken = tile.kind === 'bridge' && y >= 25 && st.storyChapter < 2;
+              const isBroken = tile.kind === 'bridge' && x >= 41 && x <= 43 && y >= 28 && y <= 31 && st.storyChapter < 2;
               if (isBroken) {
                 ctx.fillStyle = '#4a220c';
                 ctx.fillRect(px + 2, py + 4, 14, TILE_SIZE - 8);
@@ -2168,14 +3388,12 @@ export default function BerkebunGame({
               }
             }
 
-            // Story-gated Cliff Pass Boulders before Chapter 3
             if (tile.kind === 'cliff_pass' && st.storyChapter < 3) {
               ctx.drawImage(atlas.stone, px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
               ctx.fillStyle = '#dc2626';
               ctx.fillRect(px + 10, py + 32, TILE_SIZE - 20, 6);
             }
 
-            // Auto-tiled Tilled Soil & Watered Soil
             if (tile.tilled) {
               const nT = tileAt(x + 0.5, y - 0.5)?.tilled;
               const nB = tileAt(x + 0.5, y + 1.5)?.tilled;
@@ -2209,8 +3427,8 @@ export default function BerkebunGame({
               }
             }
 
-            // Mystic Waterfall Spray on Pond at (5..7, 3)
-            if (tile.kind === 'pond' && y === 3 && x >= 5 && x <= 7) {
+            // Mystic Waterfall Spray on Pond at (20..22, 5)
+            if (tile.kind === 'pond' && y === 5 && x >= 20 && x <= 22) {
               const spray = Math.floor(Math.sin(now * 0.012 + x) * 3);
               ctx.fillStyle = '#e0f2fe';
               ctx.fillRect(px + 6, py, TILE_SIZE - 12, 24 + spray);
@@ -2268,8 +3486,8 @@ export default function BerkebunGame({
           });
         };
 
-        // Enterable Buildings & Homestead Landmarks
-        addSpriteLandmark(7.5, 16, 146, sprites.farmhouse, 'RUMAH (MASUK)', (cx, by) => {
+        // Enterable Buildings & Homestead Landmarks (78x52 layout)
+        addSpriteLandmark(22.5, 20, 146, sprites.farmhouse, 'RUMAH (MASUK)', (cx, by) => {
           for (let s = 0; s < 3; s++) {
             const t = (now * 0.0005 + s * 0.33) % 1;
             ctx.fillStyle = `rgba(255, 252, 245, ${(1 - t) * 0.55})`;
@@ -2281,22 +3499,22 @@ export default function BerkebunGame({
             );
           }
         });
-        addSpriteLandmark(10.5, 15.8, 56, sprites.bin, 'PETI JUAL');
+        addSpriteLandmark(25.5, 19.8, 56, sprites.bin, 'PETI JUAL');
         addSpriteLandmark(
-          14.5,
-          16,
+          28.5,
+          20,
           134,
           sprites.coop,
           st.coopEggsReady > 0 ? `KANDANG (${st.coopEggsReady} TELUR · MASUK)` : 'KANDANG (MASUK)'
         );
 
-        // Workbench (x: 17, y: 14..15)
-        if (isVisibleX(17.5) && isVisibleY(15.5)) {
+        // Workbench (x: 31, y: 18..19)
+        if (isVisibleX(31.5) && isVisibleY(19.5)) {
           queue.push({
-            sortY: 15.8 * TILE_SIZE,
+            sortY: 19.8 * TILE_SIZE,
             render: () => {
-              const wx = 17 * TILE_SIZE;
-              const wy = 14.7 * TILE_SIZE;
+              const wx = 31 * TILE_SIZE;
+              const wy = 18.7 * TILE_SIZE;
               ctx.drawImage(atlas.workbench, wx, wy, 48, 48);
               ctx.fillStyle = '#4a220c';
               ctx.fillRect(wx - 10, wy + 44, 68, 13);
@@ -2310,26 +3528,36 @@ export default function BerkebunGame({
           });
         }
 
-        // Village Enterable Buildings
-        addSpriteLandmark(26.5, 16, 146, sprites.shop, 'TOKO BENIH (MASUK)');
-        addSpriteLandmark(32.5, 16, 142, sprites.farmhouse, 'BALAI TETUA (MASUK)');
-        if (isVisibleX(29.5) && isVisibleY(18)) {
+        // Village Town Buildings
+        addSpriteLandmark(40.5, 20, 146, sprites.shop, 'TOKO BENIH (MASUK)');
+        addSpriteLandmark(45.5, 20, 142, sprites.farmhouse, 'BALAI TETUA (MASUK)');
+        addSpriteLandmark(50.5, 20, 136, sprites.coop, 'BENGKEL TEMPA (MASUK)', (cx, by) => {
+          if (sprites.forgeEmblem) ctx.drawImage(sprites.forgeEmblem, cx - 16, by - 122, 32, 32);
+        });
+        addSpriteLandmark(54.5, 20, 136, sprites.farmhouse, 'POS PETUALANG (MASUK)');
+
+        if (isVisibleX(43.5) && isVisibleY(22)) {
           queue.push({
-            sortY: 18 * TILE_SIZE,
+            sortY: 22 * TILE_SIZE,
             render: () => {
-              ctx.drawImage(atlas.well, 29 * TILE_SIZE + 2, 17 * TILE_SIZE + 2, 44, 44);
+              ctx.drawImage(atlas.well, 43 * TILE_SIZE + 2, 21 * TILE_SIZE + 2, 44, 44);
             },
           });
         }
 
-        // Forest Enterable Buildings
-        addSpriteLandmark(8.5, 10, 128, sprites.farmhouse, 'PONDOK MAYA (MASUK)');
-        addSpriteLandmark(15.5, 7, 134, sprites.coop, 'BENGKEL JAKA (MASUK)');
+        // Forest & West Island Buildings
+        addSpriteLandmark(24.5, 11, 128, sprites.farmhouse, 'PONDOK MAYA (MASUK)');
+        addSpriteLandmark(30.5, 8, 134, sprites.coop, 'BENGKEL JAKA (MASUK)');
+        addSpriteLandmark(8.5, 22, 132, sprites.farmhouse, 'SAUNG DEWI (MASUK)');
+
+        // Mine Entrances (North & East Quarry)
+        addSpriteLandmark(55, 8, 108, sprites.mineEntrance || sprites.coop, 'GUA TAMBANG (MASUK)');
+        addSpriteLandmark(68, 14, 108, sprites.mineEntrance || sprites.coop, 'GUA TIMUR (MASUK)');
 
         // Sacred Tree & 4 Mustika Pedestals
         addSpriteLandmark(
-          27.5,
-          7,
+          40.5,
+          8,
           178,
           sprites.sacredTree,
           st.islandHealed ? 'POHON CAHAYA ABADI' : 'POHON CAHAYA',
@@ -2345,10 +3573,10 @@ export default function BerkebunGame({
         );
 
         const altarCoords = [
-          { x: 24, y: 8, chNeeded: 2, color: '#84cc16', label: 'TANAH' },
-          { x: 25, y: 9, chNeeded: 3, color: '#38bdf8', label: 'TIRTA' },
-          { x: 29, y: 9, chNeeded: 4, color: '#a855f7', label: 'ANGIN' },
-          { x: 30, y: 8, chNeeded: 5, color: '#facc15', label: 'MENTARI' },
+          { x: 37, y: 9, chNeeded: 2, color: '#84cc16', label: 'TANAH' },
+          { x: 38, y: 10, chNeeded: 3, color: '#38bdf8', label: 'TIRTA' },
+          { x: 42, y: 10, chNeeded: 4, color: '#a855f7', label: 'ANGIN' },
+          { x: 43, y: 9, chNeeded: 5, color: '#facc15', label: 'MENTARI' },
         ];
         altarCoords.forEach((al) => {
           if (!isVisibleX(al.x) || !isVisibleY(al.y)) return;
@@ -2375,13 +3603,13 @@ export default function BerkebunGame({
           });
         });
 
-        // Spinning Windmill (x: 38..40, y: 4..6)
-        if (isVisibleX(39.5) && isVisibleY(7)) {
+        // Spinning Windmill (x: 49..51, y: 5..7)
+        if (isVisibleX(50.5) && isVisibleY(8)) {
           queue.push({
-            sortY: 7 * TILE_SIZE,
+            sortY: 8 * TILE_SIZE,
             render: () => {
-              const wx = 39.5 * TILE_SIZE;
-              const wy = 7 * TILE_SIZE;
+              const wx = 50.5 * TILE_SIZE;
+              const wy = 8 * TILE_SIZE;
               ctx.fillStyle = '#572d14';
               ctx.fillRect(wx - 24, wy - 76, 48, 74);
               ctx.fillStyle = '#d97706';
@@ -2411,14 +3639,14 @@ export default function BerkebunGame({
           });
         }
 
-        // Harbor Lighthouse (Enterable!) & Captain's Sailing Ship
-        addSpriteLandmark(43.5, 32, 165, sprites.lighthouse, 'MERCUSUAR (MASUK)');
-        if (isVisibleX(32.5) && isVisibleY(36)) {
+        // Harbor Lighthouse & Captain's Sailing Ship
+        addSpriteLandmark(53.5, 36, 165, sprites.lighthouse, 'MERCUSUAR (MASUK)');
+        if (isVisibleX(47) && isVisibleY(40.5)) {
           queue.push({
-            sortY: 36.2 * TILE_SIZE,
+            sortY: 40.5 * TILE_SIZE,
             render: () => {
-              const sx = 32.5 * TILE_SIZE;
-              const sy = 35.8 * TILE_SIZE + Math.sin(now * 0.003) * 3;
+              const sx = 47 * TILE_SIZE;
+              const sy = 40.2 * TILE_SIZE + Math.sin(now * 0.003) * 3;
               ctx.fillStyle = '#4a220c';
               ctx.beginPath();
               ctx.moveTo(sx - 54, sy - 22);
@@ -2444,42 +3672,44 @@ export default function BerkebunGame({
           });
         }
 
-        // Apple & Coconut Palm Trees framing Pulau TIK
-        const orchardTrees = [
-          { gx: 4.5, gy: 15 },
-          { gx: 4.5, gy: 24.5 },
-          { gx: 19.5, gy: 14 },
-          { gx: 4.5, gy: 10 },
-          { gx: 12.5, gy: 4.5 },
-          { gx: 18.5, gy: 9 },
-          { gx: 23.5, gy: 4.5 },
-          { gx: 31.5, gy: 4.5 },
-          { gx: 37.5, gy: 21 },
-          { gx: 43.5, gy: 16 },
-        ];
-        orchardTrees.forEach((tr, i) => {
-          if (!isVisibleX(tr.gx) || !isVisibleY(tr.gy)) return;
-          addSpriteLandmark(tr.gx + Math.sin(now * 0.0015 + i) * 0.015, tr.gy, 92, sprites.tree);
-        });
-
-        const palmSpots = [
-          { gx: 6.5, gy: 30.5 },
-          { gx: 14.5, gy: 30 },
-          { gx: 22.5, gy: 30.5 },
-          { gx: 36.5, gy: 30.5 },
-          { gx: 47.5, gy: 30.5 },
-        ];
-        palmSpots.forEach((pm, i) => {
-          if (!isVisibleX(pm.gx) || !isVisibleY(pm.gy)) return;
-          addSpriteLandmark(pm.gx + Math.sin(now * 0.002 + i) * 0.02, pm.gy, 102, sprites.palmTree);
+        // Dynamic Choppable Trees & Stumps across all 5 islands!
+        st.trees.forEach((tr, i) => {
+          if (tr.stumpDaysLeft > 0) return; // Chopped & regrowing
+          if (!isVisibleX(tr.x + 0.5) || !isVisibleY(tr.y + 1)) return;
+          if (tr.hp === 0) {
+            queue.push({
+              sortY: (tr.y + 0.9) * TILE_SIZE,
+              render: () => {
+                ctx.drawImage(atlas.stump, tr.x * TILE_SIZE + 4, tr.y * TILE_SIZE + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+              },
+            });
+          } else {
+            const sp = tr.kind === 'palm' ? sprites.palmTree : sprites.tree;
+            const hPx = tr.kind === 'palm' ? 100 : 92;
+            addSpriteLandmark(
+              tr.x + 0.5 + Math.sin(now * 0.0015 + i) * 0.012,
+              tr.y + 1,
+              hPx,
+              sp,
+              undefined,
+              tr.hp < tr.maxHp
+                ? (cx, by) => {
+                    ctx.fillStyle = '#18181b';
+                    ctx.fillRect(cx - 14, by - 12, 28, 5);
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(cx - 13, by - 11, Math.round((26 * tr.hp) / tr.maxHp), 3);
+                  }
+                : undefined
+            );
+          }
         });
 
         // Scarecrow in Homestead
-        if (isVisibleX(8.5) && isVisibleY(19)) {
+        if (isVisibleX(20.5) && isVisibleY(23)) {
           queue.push({
-            sortY: 19 * TILE_SIZE,
+            sortY: 23 * TILE_SIZE,
             render: () => {
-              ctx.drawImage(atlas.scarecrow, 8 * TILE_SIZE + 4, 18 * TILE_SIZE - 8, 40, 50);
+              ctx.drawImage(atlas.scarecrow, 20 * TILE_SIZE + 4, 22 * TILE_SIZE - 8, 40, 50);
             },
           });
         }
@@ -2562,10 +3792,11 @@ export default function BerkebunGame({
           }
         }
 
-        // Roaming NPCs with AI Directional Walk Poses & Quest Markers (!)
+        // Roaming EXCLUSIVE OUTDOOR NPCs with AI Directional Walk Poses & Quest Markers (!)
         const activeStoryCh = STORY_CHAPTERS.find((c) => c.chapter === st.storyChapter);
         const chapterReady = isChapterConditionMet(st);
         (Object.keys(NPCS) as NpcId[]).forEach((npcId) => {
+          if (getNpcExclusiveLocation(npcId, minuteOfDay, st.weather) !== 'outdoor') return;
           const rt = npcRuntimeRef.current[npcId];
           if (!isVisibleX(rt.x) || !isVisibleY(rt.y)) return;
           const isWalking = rt.pauseTimer === 0;
@@ -2622,7 +3853,7 @@ export default function BerkebunGame({
           });
         });
 
-        // Player Farmer Character with Full AI 4-Directional & Multi-Action Poses!
+        // Player Farmer Character with Full AI 4-Directional & Improved 4-Step Walking Stride!
         queue.push({
           sortY: p.y * TILE_SIZE + 8,
           render: () => {
@@ -2636,10 +3867,10 @@ export default function BerkebunGame({
             } else if (p.actionTimer > 0) {
               pose = p.actionPose === 'swing_up' && p.actionTimer <= 9 ? 'swing_down' : p.actionPose;
             } else if (p.moving) {
-              pose = Math.floor(now / 150) % 2 === 0 ? 'walk1' : 'walk2';
+              pose = walkPoseNow;
             }
 
-            const stride = p.moving && !fs && p.actionTimer === 0 ? Math.abs(Math.sin(now * 0.016)) * 2 : 0;
+            const stride = p.moving && !fs && p.actionTimer === 0 ? Math.abs(Math.sin(now * 0.017)) * 2.5 : 0;
             const poseSp = getAiFarmerPoseSprite(sprites, pose, p.dir);
             const hasAiPose = Boolean(sprites.farmerPoses[`${pose}_${p.dir}`] || sprites.farmerPoses[`idle_${p.dir}`]);
             const drawH = 56;
@@ -2652,7 +3883,6 @@ export default function BerkebunGame({
 
             ctx.drawImage(poseSp, Math.round(cx - drawW / 2), Math.round(cy - drawH + 14 - stride), drawW, drawH);
 
-            // Fallback rod/tool overlays only while AI sprites are still loading
             if (!hasAiPose && fs) {
               const rodTipX = fs.status === 'bite' ? cx + (p.dir === 2 ? -22 : 22) : cx + (p.dir === 2 ? -26 : 26);
               const rodTipY = fs.status === 'bite' ? cy - 28 : cy - 18;
@@ -2736,7 +3966,7 @@ export default function BerkebunGame({
           }
         }
 
-        // 5. Ambient Butterflies / Fireflies (vibrant at Night or when Pulau TIK is healed!)
+        // 5. Ambient Butterflies / Fireflies
         const isNight = minuteOfDay >= 1080 || minuteOfDay < 360;
         const fireflyCount = isNight || st.islandHealed ? 24 : 8;
         for (let b = 0; b < fireflyCount; b++) {
@@ -2772,7 +4002,7 @@ export default function BerkebunGame({
 
         ctx.restore();
 
-        // 7. Screen-Space Rain, Golden Sunset (16:30-17:59) & Starry Night (18:00-05:59) with Warm Lantern Halos
+        // 7. Rain, Sunset & Night Warm Lantern Halos
         if (st.weather === 'Hujan') {
           ctx.fillStyle = 'rgba(20, 42, 72, 0.14)';
           ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -2798,18 +4028,20 @@ export default function BerkebunGame({
           ctx.fillStyle = `rgba(10, 18, 44, ${nightAlpha.toFixed(2)})`;
           ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
-          // Warm Lantern Glow Halos around Buildings, Player & Lighthouse Beacon!
+          const hasTorch = torchUntilRef.current > Date.now();
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
           const lanterns = [
-            { wx: 7.5, wy: 15.2, r: 78, col: 'rgba(251, 191, 36, 0.25)' },
-            { wx: 26.5, wy: 15.2, r: 76, col: 'rgba(251, 191, 36, 0.24)' },
-            { wx: 32.5, wy: 15.2, r: 74, col: 'rgba(251, 191, 36, 0.22)' },
-            { wx: 8.5, wy: 9.2, r: 68, col: 'rgba(192, 132, 252, 0.24)' },
-            { wx: 15.5, wy: 6.4, r: 68, col: 'rgba(251, 146, 60, 0.24)' },
-            { wx: 27.5, wy: 5.8, r: 105, col: 'rgba(244, 114, 182, 0.26)' },
-            { wx: 43.5, wy: 29.5, r: 115, col: 'rgba(254, 240, 138, 0.34)' },
-            { wx: p.x, wy: p.y - 0.3, r: 75, col: 'rgba(253, 224, 71, 0.16)' },
+            { wx: 22.5, wy: 19, r: 78, col: 'rgba(251, 191, 36, 0.25)' },
+            { wx: 40.5, wy: 19, r: 76, col: 'rgba(251, 191, 36, 0.24)' },
+            { wx: 45.5, wy: 19, r: 74, col: 'rgba(251, 191, 36, 0.22)' },
+            { wx: 50.5, wy: 19, r: 76, col: 'rgba(251, 146, 60, 0.26)' },
+            { wx: 24.5, wy: 10, r: 68, col: 'rgba(192, 132, 252, 0.24)' },
+            { wx: 30.5, wy: 7, r: 68, col: 'rgba(251, 146, 60, 0.24)' },
+            { wx: 8.5, wy: 21, r: 68, col: 'rgba(134, 239, 172, 0.24)' },
+            { wx: 40.5, wy: 6.5, r: 105, col: 'rgba(244, 114, 182, 0.26)' },
+            { wx: 53.5, wy: 33.5, r: 118, col: 'rgba(254, 240, 138, 0.34)' },
+            { wx: p.x, wy: p.y - 0.3, r: hasTorch ? 155 : 78, col: hasTorch ? 'rgba(253, 224, 71, 0.28)' : 'rgba(253, 224, 71, 0.16)' },
           ];
           lanterns.forEach((lt) => {
             const sx = lt.wx * TILE_SIZE - camX;
@@ -2827,7 +4059,7 @@ export default function BerkebunGame({
         }
       }
 
-      // Update Live Corner Minimap
+      // Update Live Corner Minimap (78x52)
       const mm = minimapRef.current;
       const mCtx = mm?.getContext('2d');
       if (mm && mCtx) {
@@ -2849,7 +4081,7 @@ export default function BerkebunGame({
                 ? '#edd08f'
                 : tk === 'forest_floor'
                 ? '#3f782d'
-                : tk === 'plaza'
+                : tk === 'plaza' || tk === 'mine_entrance'
                 ? '#9ca3af'
                 : tk === 'path' || tk === 'bridge' || tk === 'pier'
                 ? '#d9a464'
@@ -2858,7 +4090,6 @@ export default function BerkebunGame({
           }
         }
 
-        // Camera Viewport Box
         mCtx.strokeStyle = 'rgba(255,255,255,0.7)';
         mCtx.lineWidth = 1;
         mCtx.strokeRect(
@@ -2868,14 +4099,13 @@ export default function BerkebunGame({
           (VIEW_H / TILE_SIZE) * sy
         );
 
-        // NPC Dots
         (Object.keys(NPCS) as NpcId[]).forEach((nid) => {
+          if (getNpcExclusiveLocation(nid, minuteOfDay, st.weather) !== 'outdoor') return;
           const rt = npcRuntimeRef.current[nid];
           mCtx.fillStyle = NPCS[nid].color;
           mCtx.fillRect(rt.x * sx - 1.5, rt.y * sy - 1.5, 3, 3);
         });
 
-        // Player Blinking Dot
         if (Math.floor(now / 260) % 2 === 0) {
           mCtx.fillStyle = '#ffffff';
           mCtx.fillRect(p.x * sx - 2.5, p.y * sy - 2.5, 5, 5);
@@ -2889,7 +4119,22 @@ export default function BerkebunGame({
 
     rafId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafId);
-  }, [viewMode, minuteOfDay, showSleepModal, exitBuilding, isChapterConditionMet]);
+  }, [
+    viewMode,
+    minuteOfDay,
+    showSleepModal,
+    showShop,
+    showCraft,
+    showBasket,
+    showJournal,
+    showUpgradeModal,
+    showChest,
+    exitBuilding,
+    explodeMineBombAt,
+    isChapterConditionMet,
+    soundMuted,
+    spawnParticles,
+  ]);
 
   // Draw crisp Pixel-Art World Map whenever World Map modal [M] opens
   useEffect(() => {
@@ -2899,11 +4144,12 @@ export default function BerkebunGame({
       saveState.tiles,
       currentSeason,
       saveState.storyChapter,
-      saveState.islandHealed
+      saveState.islandHealed,
+      saveState.trees
     );
-  }, [showWorldMap, saveState.tiles, currentSeason, saveState.storyChapter, saveState.islandHealed]);
+  }, [showWorldMap, saveState.tiles, saveState.trees, currentSeason, saveState.storyChapter, saveState.islandHealed]);
 
-  // Canvas Click -> translate to Interior Grid OR Outdoor World Grid!
+  // Canvas Click -> translate to Interior Grid OR Underground Mine Grid OR Outdoor World Grid!
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -2926,6 +4172,19 @@ export default function BerkebunGame({
       const dy = gy + 0.5 - ip.y;
       if (Math.abs(dx) >= Math.abs(dy)) ip.dir = dx >= 0 ? 0 : 2;
       else ip.dir = dy >= 0 ? 1 : 3;
+      interactAtTile(gx, gy);
+      return;
+    }
+
+    if (undergroundFloorRef.current !== null) {
+      const mp = minePosRef.current;
+      const mCamY = Math.max(0, Math.min(MINE_ROWS * TILE_SIZE - VIEW_H, mp.y * TILE_SIZE - VIEW_H / 2));
+      const gx = Math.floor(viewX / TILE_SIZE);
+      const gy = Math.floor((viewY + Math.round(mCamY)) / TILE_SIZE);
+      const dx = gx + 0.5 - mp.x;
+      const dy = gy + 0.5 - mp.y;
+      if (Math.abs(dx) >= Math.abs(dy)) mp.dir = dx >= 0 ? 0 : 2;
+      else mp.dir = dy >= 0 ? 1 : 3;
       interactAtTile(gx, gy);
       return;
     }
@@ -3008,18 +4267,6 @@ export default function BerkebunGame({
     setToastMsg(`Menjual 1 ${BAG_ITEMS[itemId].name} (+${price}G)!`);
   };
 
-  const eatBagItem = (itemId: BagItemId) => {
-    const def = BAG_ITEMS[itemId];
-    const qty = saveState.bagItems[itemId] || 0;
-    if (qty <= 0 || !def.energyRestore) return;
-    playFarmSound('plant', soundMuted);
-    setSaveState((prev) => ({
-      ...prev,
-      stamina: Math.min(100, prev.stamina + def.energyRestore!),
-      bagItems: { ...prev.bagItems, [itemId]: qty - 1 },
-    }));
-    setToastMsg(`Memakan ${def.name}! Energi pulih +${def.energyRestore}.`);
-  };
 
   const craftItem = (recipeId: string) => {
     const rec = CRAFT_RECIPES.find((r) => r.id === recipeId);
@@ -3161,15 +4408,16 @@ export default function BerkebunGame({
     setSaveState(fresh);
     setConfirmReset(false);
     setCurrentInterior(null);
-    playerRef.current = { x: 9.5, y: 17.5, dir: 1, moving: false, swingTimer: 0, actionPose: 'idle', actionTimer: 0 };
+    setUndergroundFloor(null);
+    playerRef.current = { x: 22.5, y: 21.2, dir: 1, moving: false, swingTimer: 0, actionPose: 'idle', actionTimer: 0 };
     cameraRef.current = {
-      x: Math.max(0, 9.5 * TILE_SIZE - VIEW_W / 2),
-      y: Math.max(0, 17.5 * TILE_SIZE - VIEW_H / 2),
+      x: Math.max(0, 22.5 * TILE_SIZE - VIEW_W / 2),
+      y: Math.max(0, 21.2 * TILE_SIZE - VIEW_H / 2),
     };
     floatMinuteRef.current = 360;
     setMinuteOfDay(360);
     setViewMode('play');
-    setToastMsg('Petualangan Pulau TIK dimulai dari Hari ke-1!');
+    setToastMsg('Petualangan Kepulauan Pulau TIK dimulai dari Hari ke-1!');
   };
 
   // ================= VIEW 1: COZY TITLE MENU AWAL =================
@@ -3190,13 +4438,13 @@ export default function BerkebunGame({
 
             <div className="relative z-10 space-y-2.5">
               <div className="flex items-center gap-2 text-xs font-bold text-amber-300 flex-wrap">
-                <span>Petualangan Kebun & Pulau Fiksi</span>
+                <span>5 Pulau Kepulauan</span>
                 <span aria-hidden="true" className="text-slate-400">·</span>
-                <span>5 Bab Cerita</span>
+                <span>10 Gedung & 10 Warga</span>
                 <span aria-hidden="true" className="text-slate-400">·</span>
-                <span>7 Gedung Bisa Dimasuki</span>
+                <span>Gua Tambang & Monster</span>
                 <span aria-hidden="true" className="text-slate-400">·</span>
-                <span>Siang & Malam 12 Jam</span>
+                <span>Upgrade Alat Lv.1–4</span>
               </div>
 
               <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight drop-shadow">
@@ -3204,7 +4452,7 @@ export default function BerkebunGame({
               </h2>
 
               <p className="text-xs sm:text-sm text-slate-200 max-w-xl leading-relaxed">
-                Jelajahi Pulau TIK yang asri! Rawat kebun warisan kakek, masuki rumah & toko ber-perabot lengkap, tidur di ranjang untuk mempercepat waktu siang/malam, memancing di pelabuhan, dan satukan 4 Mustika!
+                Jelajahi 5 pulau luas di Kepulauan Pulau TIK! Tebang pohon dengan Kapak untuk kayu, tempa alat Lv.1–4 di Bengkel Pandai Besi, jelajahi Gua Bawah Tanah & kalahkan monster demi drop langka, serta simpan progres kapan saja!
               </p>
 
               {hasExistingProgress && (
@@ -3353,27 +4601,27 @@ export default function BerkebunGame({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="p-3.5 rounded-2xl bg-[#ffecc7] border-2 border-[#b97336] space-y-1">
-                  <p className="font-black text-emerald-800">1. Masuk Gedung & Ranjang Tidur</p>
+                  <p className="font-black text-emerald-800">1. Masuk Gedung, Toko & Peti Rumah</p>
                   <p className="text-[#5c2c0e] leading-relaxed">
-                    Dekati pintu <strong>Rumah, Toko, Balai Tetua, Pondok Maya, Bengkel Jaka, Kandang Ayam, & Mercusuar</strong> lalu tekan <strong>Spasi/Klik</strong> untuk masuk! Gunakan kasur di rumah untuk tidur & mempercepat waktu.
+                    Belanja benih langsung di dalam <strong>Toko Desa Mbak Sari</strong> (siang hari). Di rumahmu ada <strong>Peti Penyimpanan, TV Cuaca, Perapian, & Ranjang</strong> yang semuanya bisa digunakan!
                   </p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#ffecc7] border-2 border-[#b97336] space-y-1">
-                  <p className="font-black text-amber-800">2. Siang & Malam (Masing-masing 20 Menit)</p>
+                  <p className="font-black text-amber-800">2. Tebang Pohon [3] & Upgrade Alat</p>
                   <p className="text-[#5c2c0e] leading-relaxed">
-                    Waktu berjalan dengan jam 12-jam: <strong>12 jam Siang (20m)</strong> & <strong>12 jam Malam (20m)</strong>. Tekan <strong>[M]</strong> untuk melihat Peta Pixel Pulau TIK yang asri!
+                    Gunakan <strong>Kapak [3]</strong> untuk menebang pohon & tunggul menjadi <strong>Kayu Keras</strong>. Tempa semua alat ke <strong>Lv.2–Lv.4</strong> di Bengkel Kiran atau Pos Bagas!
                   </p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#ffecc7] border-2 border-[#b97336] space-y-1">
-                  <p className="font-black text-sky-800">3. Memancing, Tambang & Ternak</p>
+                  <p className="font-black text-sky-800">3. Gua Bawah Tanah, Pedang [5] & Monster</p>
                   <p className="text-[#5c2c0e] leading-relaxed">
-                    Pakai <strong>Pancing [8]</strong> di kolam/sungai/dermaga, pakai <strong>Beliung [3]</strong> di Tambang Timur untuk bijih tembaga/perak/kristal, dan ambil telur di dalam <strong>Kandang Ayam</strong>!
+                    Masuk lewat <strong>2 Pintu Gua Tambang</strong>. Tebas Slime, Kelelawar & Golem pakai <strong>Pedang [5]</strong> untuk drop <strong>Ramuan, Obor, Inti Monster & Bijih</strong>.
                   </p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#ffecc7] border-2 border-[#b97336] space-y-1">
-                  <p className="font-black text-rose-800">4. Meja Kerajinan [C] & Hadiah</p>
+                  <p className="font-black text-rose-800">4. Item MC, Kerajinan [C] & Simpan</p>
                   <p className="text-[#5c2c0e] leading-relaxed">
-                    Tekan <strong>[C]</strong> untuk merakit <strong>Sprinkler Emas 3x3</strong>, <strong>Selai</strong>, <strong>Kopi</strong>, & <strong>Jamu Energi</strong>. Beri hasil kebun sebagai hadiah ke warga untuk menambah Hati!
+                    Pakai <strong>Bom Mini, Obor, Jimat Pulang, Umpan Ikan, & Kopi Cepat</strong> dari bar cepat atau Tas [C]. Jangan lupa tekan <strong>Simpan</strong> di atas untuk menyimpan progres!
                   </p>
                 </div>
               </div>
@@ -3399,7 +4647,7 @@ export default function BerkebunGame({
     <div className="w-full h-full flex flex-col gap-2 max-w-7xl mx-auto text-[#3b1a07] overflow-hidden select-none">
       {/* Top Stardew Wooden HUD Bar */}
       <div className="bg-[#f5d59c] border-[3px] border-[#6f3615] ring-2 ring-[#d98a42] rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2 flex-wrap shrink-0 shadow-lg">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <button
             type="button"
             onClick={() => setViewMode('menu')}
@@ -3421,18 +4669,37 @@ export default function BerkebunGame({
             <span className="font-mono text-[#6f3615]">{formattedClock}</span>
           </div>
 
-          <span className="px-2.5 py-1 rounded-xl bg-[#ffdf8e] border-2 border-[#b7791f] text-[#744210] font-black text-xs flex items-center gap-1 tabular-nums">
+          <span className="px-2 py-1 rounded-xl bg-[#ffdf8e] border-2 border-[#b7791f] text-[#744210] font-black text-xs flex items-center gap-1 tabular-nums">
             <Coins size={13} className="text-amber-700" /> {saveState.gold}G
+          </span>
+          <span className="px-2 py-1 rounded-xl bg-[#ffe4e6] border-2 border-[#be123c] text-[#881337] font-black text-xs flex items-center gap-1 tabular-nums">
+            <HeartPulse size={12} /> {saveState.hp}/{saveState.maxHp}
           </span>
           <span className="px-2 py-1 rounded-xl bg-[#dcfce7] border-2 border-[#2f855a] text-[#14532d] font-black text-xs flex items-center gap-1 tabular-nums">
             <Zap size={12} /> {saveState.stamina}
           </span>
           <span className="px-2 py-1 rounded-xl bg-[#e0f2fe] border-2 border-[#0369a1] text-[#0c4a6e] font-black text-xs flex items-center gap-1 tabular-nums">
-            <Droplets size={12} /> {saveState.waterLevel}/20
+            <Droplets size={12} /> {saveState.waterLevel}/{WATER_CAPS[Math.min(3, (saveState.toolLevels.water || 1) - 1)]}
           </span>
+          {torchUntilRef.current > Date.now() && (
+            <span className="px-2 py-1 rounded-xl bg-amber-100 border border-amber-500 text-amber-800 font-black text-[10px] flex items-center gap-1">
+              <Flame size={11} className="text-orange-600" /> Obor
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap text-xs font-black tabular-nums">
+          {undergroundFloor !== null && (
+            <button
+              type="button"
+              onClick={exitMine}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border-2 border-amber-500 flex items-center gap-1 shadow-sm"
+              title="Keluar dari Gua Bawah Tanah ke permukaan"
+            >
+              <ShieldAlert size={13} /> Gua Lt.{undergroundFloor} · Keluar
+            </button>
+          )}
+
           {currentInterior && (
             <button
               type="button"
@@ -3456,7 +4723,7 @@ export default function BerkebunGame({
             type="button"
             onClick={() => setShowWorldMap(true)}
             className="px-2.5 py-1.5 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white border-2 border-[#075985] flex items-center gap-1 shadow-sm"
-            title="Peta Pulau TIK [M]"
+            title="Peta Kepulauan Pulau TIK [M]"
           >
             <MapIcon size={13} /> Peta [M]
           </button>
@@ -3472,18 +4739,24 @@ export default function BerkebunGame({
 
           <button
             type="button"
-            onClick={() => setShowShop(true)}
-            className="px-2.5 py-1.5 rounded-xl bg-[#d97706] hover:bg-[#b45309] text-white border-2 border-[#78350f] flex items-center gap-1 shadow-sm"
-          >
-            <ShoppingBag size={13} /> Toko
-          </button>
-
-          <button
-            type="button"
             onClick={() => setShowBasket(true)}
             className="px-2.5 py-1.5 rounded-xl bg-[#4f46e5] hover:bg-[#4338ca] text-white border-2 border-[#312e81] flex items-center gap-1 shadow-sm"
           >
             <Package size={13} /> Panen ({basketTotalCount})
+          </button>
+
+          <button
+            type="button"
+            onClick={handleManualSave}
+            className={cn(
+              'px-2.5 py-1.5 rounded-xl border-2 flex items-center gap-1 shadow-sm transition-colors',
+              saveFeedback
+                ? 'bg-emerald-500 text-slate-950 border-emerald-800'
+                : 'bg-[#0f766e] hover:bg-[#0d9488] text-white border-[#134e4a]'
+            )}
+            title="Simpan progres permainan ke perangkat & cloud"
+          >
+            <Save size={13} /> {saveFeedback || 'Simpan'}
           </button>
 
           <button
@@ -3619,30 +4892,32 @@ export default function BerkebunGame({
             </div>
           </div>
 
-          {/* Bottom 8-Slot Stardew Wooden Hotbar */}
+          {/* Bottom 10-Slot Stardew Wooden Hotbar */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 shrink-0 custom-scrollbar bg-[#8c4a1c] p-1.5 rounded-xl border-2 border-[#421c07]">
             {(
               [
-                { id: 'hoe', keyNum: '1', label: 'Cangkul' },
-                { id: 'water', keyNum: '2', label: `Siram (${saveState.waterLevel})` },
-                { id: 'pick', keyNum: '3', label: 'Beliung' },
-                { id: 'harvest', keyNum: '4', label: 'Panen' },
+                { id: 'hoe', keyNum: '1', label: `Cangkul L${saveState.toolLevels.hoe}` },
+                { id: 'water', keyNum: '2', label: `Siram L${saveState.toolLevels.water}` },
+                { id: 'axe', keyNum: '3', label: `Kapak L${saveState.toolLevels.axe}` },
+                { id: 'pick', keyNum: '4', label: `Beliung L${saveState.toolLevels.pick}` },
+                { id: 'sword', keyNum: '5', label: `Pedang L${saveState.toolLevels.sword}` },
+                { id: 'harvest', keyNum: '6', label: 'Panen' },
                 {
                   id: 'seed',
-                  keyNum: '5',
+                  keyNum: '7',
                   label: `Benih (${saveState.seeds[selectedSeed] || 0})`,
                   cropId: selectedSeed,
                 },
-                { id: 'fertilizer', keyNum: '6', label: `Pupuk (${saveState.fertilizerCount})` },
+                { id: 'fertilizer', keyNum: '8', label: `Pupuk (${saveState.fertilizerCount})` },
                 {
                   id: 'sprinkler',
-                  keyNum: '7',
+                  keyNum: '9',
                   label: saveState.useGoldSprinklerMode
                     ? `Emas (${saveState.goldSprinklerCount})`
-                    : `Sprinkler (${saveState.sprinklerCount})`,
+                    : `Sprink (${saveState.sprinklerCount})`,
                   isGoldSp: Boolean(saveState.useGoldSprinklerMode && saveState.goldSprinklerCount > 0),
                 },
-                { id: 'rod', keyNum: '8', label: 'Pancing' },
+                { id: 'rod', keyNum: '0', label: `Pancing L${saveState.toolLevels.rod}` },
               ] as Array<{
                 id: ToolMode;
                 keyNum: string;
@@ -3662,7 +4937,7 @@ export default function BerkebunGame({
                   }
                 }}
                 className={cn(
-                  'px-2.5 py-1.5 rounded-lg border-2 text-xs font-black flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-all',
+                  'px-2 py-1 rounded-lg border-2 text-[11px] font-black flex items-center gap-1 whitespace-nowrap shrink-0 transition-all',
                   activeTool === tool.id
                     ? 'bg-[#ffeaa7] text-[#3b1a07] border-[#dc2626] ring-2 ring-[#facc15] shadow-md -translate-y-0.5'
                     : 'bg-[#f1cb8f] text-[#4a220c] border-[#5c2c0e] hover:bg-[#ffe1b0]'
@@ -3685,6 +4960,52 @@ export default function BerkebunGame({
               </button>
             ))}
           </div>
+
+          {/* Slim Quick-Use MC Items Strip */}
+          {(['hp_potion', 'mine_bomb', 'torch_item', 'home_totem', 'fish_bait', 'artisan_coffee', 'artisan_tonic', 'artisan_jam', 'forage_berry', 'forage_mushroom', 'egg_normal', 'egg_gold'] as BagItemId[]).some(
+            (bid) => (saveState.bagItems[bid] || 0) > 0
+          ) && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 shrink-0 custom-scrollbar bg-[#5c2c0e] px-2 py-1 rounded-xl border border-[#3b1a07]">
+              <span className="text-[10px] font-black text-[#ffecc7] whitespace-nowrap flex items-center gap-1">
+                <Bomb size={11} className="text-amber-300" /> Item MC:
+              </span>
+              {(
+                [
+                  'hp_potion',
+                  'mine_bomb',
+                  'torch_item',
+                  'home_totem',
+                  'fish_bait',
+                  'artisan_coffee',
+                  'artisan_tonic',
+                  'artisan_jam',
+                  'forage_berry',
+                  'forage_mushroom',
+                  'egg_normal',
+                  'egg_gold',
+                ] as BagItemId[]
+              )
+                .filter((bid) => (saveState.bagItems[bid] || 0) > 0)
+                .map((bid) => (
+                  <button
+                    key={bid}
+                    type="button"
+                    onClick={() => useMcItem(bid)}
+                    title={BAG_ITEMS[bid].desc}
+                    className="px-2 py-0.5 rounded-lg bg-[#ffecc7] hover:bg-[#fef08a] border border-[#b97336] text-[10px] font-black text-[#3b1a07] flex items-center gap-1 whitespace-nowrap shrink-0"
+                  >
+                    <img
+                      src={getPixelBagItemDataUrl(bid)}
+                      alt={BAG_ITEMS[bid].name}
+                      style={{ imageRendering: 'pixelated' }}
+                      className="w-3.5 h-3.5 object-contain"
+                    />
+                    <span>{BAG_ITEMS[bid].name.split(' ')[0]}</span>
+                    <span className="text-[#92400e]">x{saveState.bagItems[bid]}</span>
+                  </button>
+                ))}
+            </div>
+          )}
         </div>
 
         {/* Right Panel: Active Story Tracker + Seed Pouch + Village Quests (4 cols) */}
@@ -3723,13 +5044,9 @@ export default function BerkebunGame({
           <div className="space-y-1.5 shrink-0">
             <div className="flex items-center justify-between text-xs font-black text-[#4a220c]">
               <span>Tas Benih Pulau</span>
-              <button
-                type="button"
-                onClick={() => setShowShop(true)}
-                className="text-[#b45309] hover:underline font-black"
-              >
-                + Toko Benih
-              </button>
+              <span className="text-[10px] text-[#92400e] font-bold">
+                Beli di Toko Desa (Siang)
+              </span>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
               {(Object.keys(CROPS) as CropId[]).map((cid) => {
@@ -3976,19 +5293,33 @@ export default function BerkebunGame({
                     <Gift size={13} /> Beri Hadiah
                   </button>
 
-                  {activeNpcId === 'sari' && (
+                  {activeNpcId === 'sari' && currentInterior === 'shop' && (
                     <button
                       type="button"
                       onClick={() => {
                         setActiveNpcId(null);
                         setShowShop(true);
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-[#d97706] text-white border-2 border-[#78350f] text-xs font-black"
+                      className="px-3 py-1.5 rounded-xl bg-[#d97706] text-white border-2 border-[#78350f] text-xs font-black flex items-center gap-1"
                     >
-                      Buka Toko Benih
+                      <ShoppingBag size={13} /> Buka Toko Benih
                     </button>
                   )}
-                  {(activeNpcId === 'jaka' || activeNpcId === 'maya') && (
+                  {((activeNpcId === 'kiran' && currentInterior === 'forge') ||
+                    (activeNpcId === 'jaka' && currentInterior === 'jaka_cabin') ||
+                    (activeNpcId === 'bagas' && currentInterior === 'explorer_post')) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveNpcId(null);
+                        setShowUpgradeModal(true);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] text-white border-2 border-[#7f1d1d] text-xs font-black flex items-center gap-1"
+                    >
+                      <Sword size={13} /> Upgrade Alat (Lv.1–4)
+                    </button>
+                  )}
+                  {(activeNpcId === 'jaka' || activeNpcId === 'maya' || activeNpcId === 'bagas') && (
                     <button
                       type="button"
                       onClick={() => {
@@ -4090,11 +5421,16 @@ export default function BerkebunGame({
             </div>
 
             <div className="space-y-2 pt-2 border-t-2 border-[#c88d4f]">
-              <h4 className="font-black text-sm text-[#5c2c0e]">Daftar Karakter Warga Pulau</h4>
+              <h4 className="font-black text-sm text-[#5c2c0e]">Daftar Karakter Warga Kepulauan (10 Karakter)</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {(Object.keys(NPCS) as NpcId[]).map((nid) => {
                   const npc = NPCS[nid];
                   const hearts = saveState.npcHearts[nid] || 0;
+                  const excLoc = getNpcExclusiveLocation(nid, minuteOfDay, saveState.weather);
+                  const locText =
+                    excLoc === 'outdoor'
+                      ? 'Di Luar Pulau'
+                      : `Di ${INTERIORS[excLoc]?.title || 'Dalam Gedung'}`;
                   return (
                     <div
                       key={nid}
@@ -4111,8 +5447,20 @@ export default function BerkebunGame({
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-black text-[#3b1a07] truncate">{npc.name}</p>
-                        <p className="text-[10px] font-bold text-[#7a3f1a] truncate">{npc.homeRegion}</p>
+                        <div className="flex items-center justify-between gap-1">
+                          <p className="font-black text-[#3b1a07] truncate">{npc.name}</p>
+                          <span
+                            className={cn(
+                              'text-[9px] font-black px-1.5 py-0.5 rounded shrink-0',
+                              excLoc === 'outdoor'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-400'
+                                : 'bg-amber-100 text-amber-900 border border-amber-400'
+                            )}
+                          >
+                            {excLoc === 'outdoor' ? 'Di Luar' : 'Di Gedung'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] font-bold text-[#7a3f1a] truncate">{locText}</p>
                         <div className="flex items-center gap-0.5 mt-1">
                           {[0, 1, 2, 3, 4].map((idx) => (
                             <Heart
@@ -4139,10 +5487,10 @@ export default function BerkebunGame({
             <div className="flex items-center justify-between border-b-2 border-[#c88d4f] pb-3">
               <div>
                 <h3 className="font-black text-lg flex items-center gap-2">
-                  <MapIcon className="text-sky-700" size={20} /> Peta Pixel Pulau TIK (54 × 38)
+                  <MapIcon className="text-sky-700" size={20} /> Peta Pixel Kepulauan Pulau TIK (78 × 52)
                 </h3>
                 <p className="text-[11px] font-bold text-[#7a3f1a]">
-                  Musim {currentSeason} · {formattedClock} · Posisi langsung kamu & warga pulau
+                  Musim {currentSeason} · {formattedClock} · 5 Pulau, 10 Gedung, & 2 Pintu Gua Tambang
                 </p>
               </div>
               <button
@@ -4154,11 +5502,11 @@ export default function BerkebunGame({
               </button>
             </div>
 
-            <div className="relative w-full aspect-[54/38] bg-[#1d6fa5] rounded-2xl border-4 border-[#4a220c] overflow-hidden shadow-inner">
+            <div className="relative w-full aspect-[78/52] bg-[#1d6fa5] rounded-2xl border-4 border-[#4a220c] overflow-hidden shadow-inner">
               <canvas
                 ref={worldMapCanvasRef}
-                width={540}
-                height={380}
+                width={624}
+                height={416}
                 style={{ imageRendering: 'pixelated' }}
                 className="w-full h-full block"
               />
@@ -4179,28 +5527,30 @@ export default function BerkebunGame({
                 </div>
               ))}
 
-              {/* NPC Pins */}
-              {(Object.keys(NPCS) as NpcId[]).map((nid) => {
-                const rt = npcRuntimeRef.current[nid];
-                return (
-                  <div
-                    key={nid}
-                    style={{
-                      left: `${(rt.x / WORLD_COLS) * 100}%`,
-                      top: `${(rt.y / WORLD_ROWS) * 100}%`,
-                    }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none"
-                  >
-                    <span
-                      style={{ backgroundColor: NPCS[nid].color }}
-                      className="w-3 h-3 rounded-full border-2 border-white shadow"
-                    />
-                    <span className="text-[8px] font-black text-white bg-slate-950/75 px-1 rounded mt-0.5">
-                      {NPCS[nid].name.split(' ')[0]}
-                    </span>
-                  </div>
-                );
-              })}
+              {/* Outdoor-Exclusive NPC Pins */}
+              {(Object.keys(NPCS) as NpcId[])
+                .filter((nid) => getNpcExclusiveLocation(nid, minuteOfDay, saveState.weather) === 'outdoor')
+                .map((nid) => {
+                  const rt = npcRuntimeRef.current[nid];
+                  return (
+                    <div
+                      key={nid}
+                      style={{
+                        left: `${(rt.x / WORLD_COLS) * 100}%`,
+                        top: `${(rt.y / WORLD_ROWS) * 100}%`,
+                      }}
+                      className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none"
+                    >
+                      <span
+                        style={{ backgroundColor: NPCS[nid].color }}
+                        className="w-3 h-3 rounded-full border-2 border-white shadow"
+                      />
+                      <span className="text-[8px] font-black text-white bg-slate-950/75 px-1 rounded mt-0.5">
+                        {NPCS[nid].name.split(' ')[0]}
+                      </span>
+                    </div>
+                  );
+                })}
 
               {/* Player Pin */}
               <div
@@ -4213,7 +5563,7 @@ export default function BerkebunGame({
                 <span className="w-4 h-4 rounded-full bg-rose-500 border-2 border-yellow-300 animate-ping absolute" />
                 <span className="w-4 h-4 rounded-full bg-rose-600 border-2 border-white relative shadow" />
                 <span className="text-[9px] font-black text-yellow-200 bg-rose-900/90 px-1.5 rounded mt-0.5">
-                  {currentInterior ? 'DI DALAM' : 'KAMU'}
+                  {undergroundFloor !== null ? `GUA LT.${undergroundFloor}` : currentInterior ? 'DI DALAM' : 'KAMU'}
                 </span>
               </div>
             </div>
@@ -4344,13 +5694,23 @@ export default function BerkebunGame({
                           </div>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          {def.energyRestore && (
+                          {(def.energyRestore || def.hpRestore || def.usableEffect) && (
                             <button
                               type="button"
-                              onClick={() => eatBagItem(bid)}
-                              className="px-2 py-1 rounded-lg bg-[#16a34a] text-white font-black text-[10px]"
+                              onClick={() => useMcItem(bid)}
+                              className="px-2 py-1 rounded-lg bg-[#16a34a] hover:bg-[#15803d] text-white font-black text-[10px]"
                             >
-                              +{def.energyRestore} E
+                              {def.usableEffect === 'bomb'
+                                ? 'Pasang Bom'
+                                : def.usableEffect === 'torch'
+                                ? 'Nyalakan'
+                                : def.usableEffect === 'totem'
+                                ? 'Teleport'
+                                : def.usableEffect === 'bait'
+                                ? 'Pasang Umpan'
+                                : def.hpRestore
+                                ? `+${def.hpRestore} HP`
+                                : `+${def.energyRestore} E`}
                             </button>
                           )}
                           <button
@@ -4368,7 +5728,7 @@ export default function BerkebunGame({
                   (bid) => (saveState.bagItems[bid] || 0) === 0
                 ) && (
                   <p className="text-xs text-[#7a3f1a] col-span-full py-3 text-center font-bold">
-                    Tas kosong! Coba memancing [8], menambang [3], atau memungut buah hutan & kerang pantai.
+                    Tas kosong! Coba memancing [0], menebang pohon [3], menambang [4], atau kalahkan monster gua [5].
                   </p>
                 )}
               </div>
@@ -4650,6 +6010,196 @@ export default function BerkebunGame({
             >
               Mulai Aktivitas Pagi →
             </button>
+          </div>
+        </div>
+      )}
+      {/* ================= TOOL UPGRADE BLACKSMITH MODAL (EXCLUSIVE TO FORGE / WORKSHOPS) ================= */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#f5d59c] border-4 border-[#6f3615] ring-2 ring-[#d98a42] rounded-3xl max-w-3xl w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar text-[#3b1a07]">
+            <div className="flex items-center justify-between border-b-2 border-[#c88d4f] pb-3">
+              <div>
+                <h3 className="font-black text-lg flex items-center gap-2">
+                  <Trophy className="text-[#dc2626]" size={20} /> Bengkel Tempa & Upgrade Peralatan
+                </h3>
+                <p className="text-xs font-bold text-[#7a3f1a] tabular-nums">
+                  Gold: {saveState.gold}G · Kayu Keras: {saveState.bagItems.wood_res || 0} · Tembaga: {saveState.bagItems.ore_copper || 0} · Perak: {saveState.bagItems.ore_silver || 0} · Kristal: {saveState.bagItems.ore_star || 0}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(false)}
+                className="p-1.5 rounded-xl bg-[#8c4a1c] text-[#fff3d6]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {(Object.keys(TOOL_UPGRADE_NAMES) as UpgradeableToolId[]).map((toolId) => {
+                const curLvl = saveState.toolLevels[toolId] || 1;
+                const nextTier = TOOL_UPGRADE_TIERS.find((t) => t.level === curLvl + 1);
+                const canAfford =
+                  nextTier &&
+                  saveState.gold >= nextTier.goldCost &&
+                  (saveState.bagItems.wood_res || 0) >= nextTier.woodCost &&
+                  (saveState.bagItems[nextTier.oreId] || 0) >= nextTier.oreQty;
+                return (
+                  <div
+                    key={toolId}
+                    className="p-3.5 rounded-2xl bg-[#ffecc7] border-2 border-[#b97336] flex flex-col justify-between gap-2.5"
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-sm flex items-center gap-2">
+                          <img
+                            src={getPixelToolDataUrl(toolId)}
+                            alt={TOOL_UPGRADE_NAMES[toolId]}
+                            style={{ imageRendering: 'pixelated' }}
+                            className="w-6 h-6 object-contain"
+                          />
+                          {TOOL_UPGRADE_NAMES[toolId]}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-lg bg-[#8c4a1c] text-[#fff3d6] font-black text-[10px]">
+                          Lv.{curLvl} / 4
+                        </span>
+                      </div>
+
+                      {nextTier ? (
+                        <>
+                          <p className="font-black text-emerald-800">
+                            Berikutnya: {nextTier.tierName}
+                          </p>
+                          <p className="text-[11px] text-[#5c2c0e] leading-snug">{nextTier.bonusDesc}</p>
+                          <div className="flex flex-wrap gap-1 pt-1 text-[10px] font-black">
+                            <span className="px-2 py-0.5 rounded bg-[#ffdf8e] border border-[#b7791f]">
+                              {nextTier.goldCost}G
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-[#f5d59c] border border-[#8c4a1c]">
+                              Kayu x{nextTier.woodCost}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-[#f5d59c] border border-[#8c4a1c]">
+                              {BAG_ITEMS[nextTier.oreId].name} x{nextTier.oreQty}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="font-black text-amber-700 py-2">
+                          ★ Sudah mencapai level maksimal (Bintang Kristal)!
+                        </p>
+                      )}
+                    </div>
+
+                    {nextTier && (
+                      <button
+                        type="button"
+                        disabled={!canAfford}
+                        onClick={() => handleUpgradeTool(toolId)}
+                        className="w-full py-2 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] disabled:opacity-45 text-white border border-[#7f1d1d] font-black"
+                      >
+                        Tempa ke {nextTier.tierName}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= HOUSE STORAGE CHEST MODAL ================= */}
+      {showChest && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#f5d59c] border-4 border-[#6f3615] ring-2 ring-[#d98a42] rounded-3xl max-w-3xl w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar text-[#3b1a07]">
+            <div className="flex items-center justify-between border-b-2 border-[#c88d4f] pb-3">
+              <h3 className="font-black text-lg flex items-center gap-2">
+                <Package className="text-[#92400e]" size={20} /> Peti Penyimpanan Rumah
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowChest(false)}
+                className="p-1.5 rounded-xl bg-[#8c4a1c] text-[#fff3d6]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              {/* Tas Ransel -> Deposit */}
+              <div className="p-3 rounded-2xl bg-[#ffecc7] border-2 border-[#b97336] space-y-2">
+                <p className="font-black text-sm text-[#4a220c]">Tas Ransel (Klik untuk Simpan)</p>
+                <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar pr-1">
+                  {(Object.keys(BAG_ITEMS) as BagItemId[])
+                    .filter((bid) => (saveState.bagItems[bid] || 0) > 0)
+                    .map((bid) => (
+                      <div
+                        key={bid}
+                        className="p-2 rounded-xl bg-[#fff5e1] border border-[#c88d4f] flex items-center justify-between gap-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img
+                            src={getPixelBagItemDataUrl(bid)}
+                            alt={BAG_ITEMS[bid].name}
+                            style={{ imageRendering: 'pixelated' }}
+                            className="w-5 h-5 object-contain shrink-0"
+                          />
+                          <span className="font-black truncate">
+                            {BAG_ITEMS[bid].name} (x{saveState.bagItems[bid]})
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleChestTransfer(bid, 'deposit')}
+                          className="px-2 py-1 rounded-lg bg-[#d97706] hover:bg-[#b45309] text-white font-black text-[10px] shrink-0"
+                        >
+                          Simpan 1 →
+                        </button>
+                      </div>
+                    ))}
+                  {(Object.keys(BAG_ITEMS) as BagItemId[]).every((bid) => (saveState.bagItems[bid] || 0) === 0) && (
+                    <p className="text-center text-[#7a3f1a] py-6 font-bold">Tas kosong.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Isi Peti -> Withdraw */}
+              <div className="p-3 rounded-2xl bg-[#ffecc7] border-2 border-[#b97336] space-y-2">
+                <p className="font-black text-sm text-[#4a220c]">Isi Peti Rumah (Klik untuk Ambil)</p>
+                <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar pr-1">
+                  {(Object.keys(BAG_ITEMS) as BagItemId[])
+                    .filter((bid) => (saveState.chestItems[bid] || 0) > 0)
+                    .map((bid) => (
+                      <div
+                        key={bid}
+                        className="p-2 rounded-xl bg-[#fff5e1] border border-[#c88d4f] flex items-center justify-between gap-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img
+                            src={getPixelBagItemDataUrl(bid)}
+                            alt={BAG_ITEMS[bid].name}
+                            style={{ imageRendering: 'pixelated' }}
+                            className="w-5 h-5 object-contain shrink-0"
+                          />
+                          <span className="font-black truncate">
+                            {BAG_ITEMS[bid].name} (x{saveState.chestItems[bid]})
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleChestTransfer(bid, 'withdraw')}
+                          className="px-2 py-1 rounded-lg bg-[#16a34a] hover:bg-[#15803d] text-white font-black text-[10px] shrink-0"
+                        >
+                          ← Ambil 1
+                        </button>
+                      </div>
+                    ))}
+                  {(Object.keys(BAG_ITEMS) as BagItemId[]).every((bid) => (saveState.chestItems[bid] || 0) === 0) && (
+                    <p className="text-center text-[#7a3f1a] py-6 font-bold">Peti penyimpanan masih kosong.</p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
