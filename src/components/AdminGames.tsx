@@ -57,6 +57,8 @@ import bossCpuIdleImg from '../assets/images/boss_cpu_idle_1795341958591.jpg';
 import bossCpuActionImg from '../assets/images/boss_cpu_action_1795341958520.jpg';
 import bossKujangIdleImg from '../assets/images/boss_kujang_idle_1795342609678.jpg';
 import bossKujangActionImg from '../assets/images/boss_kujang_action_1795342609635.jpg';
+import bossIkanIdleImg from '../assets/images/boss_ikan_idle_1795343414006.jpg';
+import bossIkanActionImg from '../assets/images/boss_ikan_action_1795343414410.jpg';
 
 const GAME_ART_MAP: Record<string, { image: string; fallbackGradient: string; accentClass: string; badgeText: string }> = {
   'infokombat': {
@@ -75,7 +77,7 @@ const GAME_ART_MAP: Record<string, { image: string; fallbackGradient: string; ac
     image: petualanganSmpBg,
     fallbackGradient: 'from-blue-800 via-indigo-900 to-slate-950',
     accentClass: 'bg-blue-600',
-    badgeText: 'Platformer 5 Stage'
+    badgeText: 'Platformer 6 Stage'
   },
   'pattern-master': {
     image: patternMasterBg,
@@ -209,7 +211,7 @@ export const GAMES_LIST: GameItem[] = [
     id: 'petualangan-smp',
     title: 'Petualangan Ke Sekolah',
     category: 'Permainan 2D Platformer Edukatif',
-    description: 'Petualangan seru siswa SMP menuju sekolah, bumi perkemahan, museum sains, Alun-Alun Ciamis, hingga Gedung Sate Kota Bandung lengkap dengan aksi Bos Battle!',
+    description: 'Petualangan seru siswa SMP menuju sekolah, bumi perkemahan, museum sains, Ciamis, Bandung, hingga Pantai Pangandaran lengkap dengan aksi Bos Battle!',
     iconName: 'Gamepad2',
     difficulty: 'Tantangan',
     defaultTimerSec: 90
@@ -306,11 +308,17 @@ const BOSS5_POSE_PATHS = [
   bossKujangActionImg,   // 1: lompat / tembak / kaget
 ];
 
+const BOSS6_POSE_PATHS = [
+  bossIkanIdleImg,       // 0: idle / jalan
+  bossIkanActionImg,     // 1: lompat / tembak / kaget
+];
+
 function getBossAreaX(stage: number): number {
   if (stage === 2) return 4900;
   if (stage === 3) return 5300;
   if (stage === 4) return 5800;
   if (stage === 5) return 6300;
+  if (stage === 6) return 6800;
   return 5400;
 }
 
@@ -581,7 +589,7 @@ interface AdminGamesProps {
 export default function AdminGames({ isAdmin, currentStudent, studentsList = [] }: AdminGamesProps) {
   const [activeTab, setActiveTab] = useState<'manage' | 'leaderboard' | 'play'>('manage');
   const [selectedGameId, setSelectedGameId] = useState<string>(GAMES_LIST[0].id);
-  const [gameConfigs, setGameConfigs] = useState<Record<string, { isActive: boolean; timerSec?: number; materiId?: string; stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string; stage5MateriId?: string }>>({});
+  const [gameConfigs, setGameConfigs] = useState<Record<string, { isActive: boolean; timerSec?: number; materiId?: string; stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string; stage5MateriId?: string; stage6MateriId?: string }>>({});
   const [gameScores, setGameScores] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterKelas, setFilterKelas] = useState('all');
@@ -786,7 +794,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
     return matchSearch && matchKelas && matchGame && matchStage;
   });
 
-  // Highest score per stage (1-5) for current student on Petualangan SMP
+  // Highest score per stage (1-6) for current student on Petualangan SMP
   const currentStudentStageHighScores: Record<number, number> = (() => {
     const map: Record<number, number> = {};
     if (!currentStudent) return map;
@@ -1060,7 +1068,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                         {game.id === 'petualangan-smp' && (
                           <details className="group/det bg-slate-950/75 rounded-xl border border-white/20 overflow-hidden">
                             <summary className="cursor-pointer list-none px-3 py-1.5 flex items-center justify-between text-[11px] font-bold text-white select-none">
-                              <span>Atur Materi 5 Stage</span>
+                              <span>Atur Materi 6 Stage</span>
                               <ChevronDown size={13} className="text-white/80 group-open/det:rotate-180 transition-transform" />
                             </summary>
                             <div className="p-2 pt-1.5 border-t border-white/15 grid grid-cols-2 gap-1.5 text-[10px]">
@@ -1112,11 +1120,23 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                                   ))}
                                 </select>
                               </div>
-                              <div className="col-span-2">
+                              <div>
                                 <span className="font-bold text-white/90 block mb-0.5">Stage 5: Kota Bandung</span>
                                 <select
                                   value={gameConfigs['petualangan-smp']?.stage5MateriId ?? 'tik'}
                                   onChange={(e) => updateStageMateri('stage5MateriId', e.target.value)}
+                                  className="bg-white border border-slate-200 text-[10px] font-semibold rounded-md p-1 text-slate-900 w-full"
+                                >
+                                  {COURSES.map(c => (
+                                    <option key={c.id} value={c.id}>{c.title}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <span className="font-bold text-white/90 block mb-0.5">Stage 6: Pangandaran</span>
+                                <select
+                                  value={gameConfigs['petualangan-smp']?.stage6MateriId ?? 'algoritma-smp'}
+                                  onChange={(e) => updateStageMateri('stage6MateriId', e.target.value)}
                                   className="bg-white border border-slate-200 text-[10px] font-semibold rounded-md p-1 text-slate-900 w-full"
                                 >
                                   {COURSES.map(c => (
@@ -1201,7 +1221,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                         {game.id === 'petualangan-smp' && (
                           <>
                             <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">·</span>
-                            <span className="text-blue-700 dark:text-blue-400">5 Stage</span>
+                            <span className="text-blue-700 dark:text-blue-400">6 Stage</span>
                           </>
                         )}
                         {game.id === 'contra-snes' && (
@@ -1228,7 +1248,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
                       {game.id === 'petualangan-smp' && Object.keys(currentStudentStageHighScores).length > 0 && (
                         <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-3 tabular-nums">
-                          {[1, 2, 3, 4, 5].map(st => {
+                          {[1, 2, 3, 4, 5, 6].map(st => {
                             const stScore = currentStudentStageHighScores[st];
                             if (!stScore) return null;
                             return (
@@ -1329,6 +1349,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                     <>
                       <option value="4">Stage 4</option>
                       <option value="5">Stage 5</option>
+                      <option value="6">Stage 6</option>
                     </>
                   )}
                 </select>
@@ -2818,18 +2839,18 @@ function generateStageEngine(stageNum: number) {
       ],
       obstacles: [
         { id: 1, x: 350, y: 360, w: 75, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 2, x: 1250, y: 330, w: 52, h: 50, type: 'computer_evil', vx: 2, minX: 1150, maxX: 1650, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 2, x: 1250, y: 328, w: 54, h: 52, type: 'chip_evil', vx: 2.1, minX: 1150, maxX: 1650, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 3, x: 1450, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 4, x: 1950, y: 328, w: 52, h: 52, type: 'phone_evil', vx: -2.3, minX: 1870, maxX: 2380, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 4, x: 1950, y: 328, w: 54, h: 52, type: 'chip_evil', vx: -2.3, minX: 1870, maxX: 2380, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 5, x: 2600, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
         { id: 6, x: 3100, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 7, x: 3350, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.5, minX: 2950, maxX: 3500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 7, x: 3350, y: 328, w: 54, h: 52, type: 'chip_evil', vx: 2.5, minX: 2950, maxX: 3500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 8, x: 3800, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 9, x: 4050, y: 328, w: 52, h: 52, type: 'phone_evil', vx: -2.4, minX: 3880, maxX: 4320, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4050, y: 328, w: 54, h: 52, type: 'chip_evil', vx: -2.4, minX: 3880, maxX: 4320, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 10, x: 4400, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
         { id: 11, x: 4900, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 12, x: 5150, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.8, minX: 4750, maxX: 5300, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 13, x: 5600, y: 330, w: 52, h: 50, type: 'computer_evil', vx: -2.6, minX: 5520, maxX: 5720, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 12, x: 5150, y: 328, w: 54, h: 52, type: 'chip_evil', vx: 2.7, minX: 4750, maxX: 5300, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 13, x: 5600, y: 328, w: 54, h: 52, type: 'chip_evil', vx: -2.5, minX: 5520, maxX: 5720, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
       schoolGateX: 6800,
       boss: {
@@ -2935,18 +2956,18 @@ function generateStageEngine(stageNum: number) {
       ],
       obstacles: [
         { id: 1, x: 350, y: 360, w: 75, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 2, x: 1280, y: 330, w: 52, h: 50, type: 'computer_evil', vx: 2.2, minX: 1180, maxX: 1700, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 2, x: 1280, y: 326, w: 58, h: 54, type: 'maung_bot_evil', vx: 2.3, minX: 1180, maxX: 1700, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 3, x: 1480, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 4, x: 2020, y: 328, w: 52, h: 52, type: 'phone_evil', vx: -2.4, minX: 1930, maxX: 2500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 4, x: 2020, y: 326, w: 58, h: 54, type: 'maung_bot_evil', vx: -2.5, minX: 1930, maxX: 2500, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 5, x: 2640, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2.2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
         { id: 6, x: 3180, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 7, x: 3420, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.6, minX: 2950, maxX: 3560, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 7, x: 3420, y: 326, w: 58, h: 54, type: 'maung_bot_evil', vx: 2.6, minX: 2950, maxX: 3560, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 8, x: 3880, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 9, x: 4120, y: 328, w: 52, h: 52, type: 'phone_evil', vx: -2.6, minX: 3940, maxX: 4400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4120, y: 326, w: 58, h: 54, type: 'maung_bot_evil', vx: -2.6, minX: 3940, maxX: 4400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
         { id: 10, x: 4520, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2.2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
         { id: 11, x: 4980, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 12, x: 5220, y: 332, w: 60, h: 48, type: 'keyboard_evil', vx: 2.8, minX: 4820, maxX: 5400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
-        { id: 13, x: 6020, y: 330, w: 52, h: 50, type: 'computer_evil', vx: -2.6, minX: 5930, maxX: 6180, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 12, x: 5220, y: 326, w: 58, h: 54, type: 'maung_bot_evil', vx: 2.8, minX: 4820, maxX: 5400, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 13, x: 6020, y: 326, w: 58, h: 54, type: 'maung_bot_evil', vx: -2.6, minX: 5930, maxX: 6180, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
       ],
       schoolGateX: 7300,
       boss: {
@@ -2960,6 +2981,125 @@ function generateStageEngine(stageNum: number) {
         vy: 0,
         minX: 6300,
         maxX: 7150,
+        shootTimer: 0,
+        state: 'idle' as 'idle' | 'moving' | 'shooting' | 'jumping' | 'dying' | 'dead',
+        jumpPhase: 'none' as 'none' | 'prep' | 'air' | 'land',
+        stateTimer: 0,
+        lasers: [] as Array<{ x: number; y: number; vx: number; vy?: number; w: number; h: number; type?: string }>,
+        fightStarted: false,
+        countdown: 0,
+        pattern: [1, 4, 2, 3, 4, 2, 1, 4, 3, 4, 2],
+        patternIndex: 0,
+        direction: 'left' as 'left' | 'right',
+        targetX: 0,
+        bossRetries: 3,
+        invulnerableFrames: 0,
+        itemDropTimer: 0,
+        hpDropTimer: 0
+      }
+    };
+  }
+
+  if (stageNum === 6) {
+    // Stage 6: Menuju Pantai Pangandaran (Tugu Ikan Marlin & Boss Ikan Pokemon Imut - 260m)
+    return {
+      player: {
+        x: 100,
+        y: 300,
+        width: 45,
+        height: 65,
+        vx: 0,
+        vy: 0,
+        isGrounded: false,
+        direction: 'right' as 'left' | 'right',
+        invulnerableFrames: 0,
+        superPowerFrames: 0,
+        keyboardGunFrames: 0,
+        bulletsLeft: 0,
+        shootCooldown: 0,
+        animFrame: 0,
+      },
+      bullets: [] as Array<{ x: number; y: number; vx: number; w: number; h: number }>,
+      cameraX: 0,
+      worldWidth: 8200,
+      platforms: [
+        { x: 0, y: 380, w: 500, h: 100, type: 'ground' },
+        { x: 560, y: 300, w: 130, h: 20, type: 'platform' },
+        { x: 750, y: 225, w: 140, h: 20, type: 'platform' },
+        { x: 940, y: 165, w: 140, h: 20, type: 'platform' },
+        { x: 1140, y: 380, w: 680, h: 100, type: 'ground' },
+        { x: 1340, y: 270, w: 150, h: 20, type: 'platform' },
+        { x: 1560, y: 195, w: 150, h: 20, type: 'platform' },
+        { x: 1940, y: 380, w: 690, h: 100, type: 'ground' },
+        { x: 2100, y: 275, w: 150, h: 20, type: 'platform' },
+        { x: 2330, y: 205, w: 150, h: 20, type: 'platform' },
+        { x: 2640, y: 150, w: 160, h: 20, type: 'platform' },
+        { x: 2920, y: 380, w: 780, h: 100, type: 'ground' },
+        { x: 3120, y: 275, w: 140, h: 20, type: 'platform' },
+        { x: 3340, y: 200, w: 140, h: 20, type: 'platform' },
+        { x: 3560, y: 265, w: 140, h: 20, type: 'platform' },
+        { x: 3820, y: 380, w: 740, h: 100, type: 'ground' },
+        { x: 4020, y: 260, w: 150, h: 20, type: 'platform' },
+        { x: 4260, y: 185, w: 150, h: 20, type: 'platform' },
+        { x: 4520, y: 245, w: 150, h: 20, type: 'platform' },
+        { x: 4820, y: 380, w: 780, h: 100, type: 'ground' },
+        { x: 5020, y: 280, w: 140, h: 20, type: 'platform' },
+        { x: 5260, y: 205, w: 140, h: 20, type: 'platform' },
+        { x: 5500, y: 150, w: 150, h: 20, type: 'platform' },
+        { x: 5760, y: 380, w: 500, h: 100, type: 'ground' },
+        { x: 5980, y: 265, w: 150, h: 20, type: 'platform' },
+        { x: 6400, y: 380, w: 1800, h: 100, type: 'ground' }
+      ],
+      items: [
+        { id: 1, x: 230, y: 330, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 2, x: 595, y: 255, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 101, x: 790, y: 180, w: 30, h: 26, type: 'ammo', collected: false },
+        { id: 3, x: 975, y: 120, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 4, x: 1390, y: 225, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 5, x: 1610, y: 150, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 6, x: 2150, y: 230, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 102, x: 2280, y: 330, w: 30, h: 26, type: 'ammo', collected: false },
+        { id: 7, x: 2380, y: 160, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
+        { id: 8, x: 2690, y: 105, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 3 },
+        { id: 9, x: 3170, y: 230, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 10, x: 3390, y: 155, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 0 },
+        { id: 103, x: 3610, y: 220, w: 30, h: 26, type: 'ammo', collected: false },
+        { id: 11, x: 4070, y: 215, w: 26, h: 24, type: 'laptop', collected: false },
+        { id: 12, x: 4310, y: 140, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 104, x: 4570, y: 200, w: 30, h: 26, type: 'ammo', collected: false },
+        { id: 13, x: 5070, y: 235, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 1 },
+        { id: 105, x: 5550, y: 105, w: 30, h: 26, type: 'ammo', collected: false },
+        { id: 14, x: 6030, y: 220, w: 28, h: 22, type: 'ram', collected: false },
+        { id: 15, x: 6600, y: 330, w: 30, h: 30, type: 'mystery_box', collected: false, quizIdx: 2 },
+      ],
+      obstacles: [
+        { id: 1, x: 350, y: 360, w: 75, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 2, x: 1300, y: 332, w: 58, h: 48, type: 'crab_cyber_evil', vx: 2.3, minX: 1190, maxX: 1740, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 3, x: 1520, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 4, x: 2080, y: 332, w: 58, h: 48, type: 'crab_cyber_evil', vx: -2.5, minX: 1980, maxX: 2540, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 5, x: 2700, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2.2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
+        { id: 6, x: 3250, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 7, x: 3500, y: 332, w: 58, h: 48, type: 'crab_cyber_evil', vx: 2.6, minX: 3000, maxX: 3640, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 8, x: 3960, y: 340, w: 34, h: 40, type: 'cone', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 9, x: 4200, y: 332, w: 58, h: 48, type: 'crab_cyber_evil', vx: -2.6, minX: 4020, maxX: 4480, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 10, x: 4600, y: 160, w: 38, h: 42, type: 'homework', vx: 0, minX: 0, maxX: 0, vy: 2.2, minY: 100, maxY: 260, yDir: 1, destroyed: false },
+        { id: 11, x: 5080, y: 360, w: 80, h: 20, type: 'fire', vx: 0, minX: 0, maxX: 0, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 12, x: 5340, y: 332, w: 58, h: 48, type: 'crab_cyber_evil', vx: 2.8, minX: 4900, maxX: 5520, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 13, x: 5900, y: 332, w: 58, h: 48, type: 'crab_cyber_evil', vx: -2.6, minX: 5800, maxX: 6200, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+        { id: 14, x: 6490, y: 332, w: 58, h: 48, type: 'crab_cyber_evil', vx: 2.7, minX: 6430, maxX: 6720, vy: 0, minY: 0, maxY: 0, yDir: 1, destroyed: false },
+      ],
+      schoolGateX: 7800,
+      boss: {
+        x: 7500,
+        y: 380 - 160,
+        w: 115,
+        h: 140,
+        hp: 10,
+        maxHp: 10,
+        vx: 2,
+        vy: 0,
+        minX: 6800,
+        maxX: 7650,
         shootTimer: 0,
         state: 'idle' as 'idle' | 'moving' | 'shooting' | 'jumping' | 'dying' | 'dead',
         jumpPhase: 'none' as 'none' | 'prep' | 'air' | 'land',
@@ -4219,6 +4359,172 @@ function drawGedungSateBandung(ctx: CanvasRenderingContext2D, x: number, groundY
   ctx.restore();
 }
 
+function drawPantaiPangandaran(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  groundY: number,
+  animFrame: number
+) {
+  ctx.save();
+
+  // Rolling Ocean Surf Behind Landmark
+  const surfShift = Math.sin(animFrame * 2.4) * 5;
+  const seaGrad = ctx.createLinearGradient(x - 60, groundY - 68, x - 60, groundY - 10);
+  seaGrad.addColorStop(0, '#0284c7');
+  seaGrad.addColorStop(0.6, '#06b6d4');
+  seaGrad.addColorStop(1, '#bae6fd');
+  ctx.fillStyle = seaGrad;
+  ctx.fillRect(x - 50, groundY - 56, 360, 44);
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.beginPath();
+  ctx.moveTo(x - 50, groundY - 14 + surfShift * 0.4);
+  for (let wx = -50; wx <= 310; wx += 30) {
+    ctx.quadraticCurveTo(x + wx + 15, groundY - 22 + Math.sin(animFrame * 3 + wx * 0.05) * 4, x + wx + 30, groundY - 14);
+  }
+  ctx.lineTo(x + 310, groundY - 8);
+  ctx.lineTo(x - 50, groundY - 8);
+  ctx.closePath();
+  ctx.fill();
+
+  // Golden Coastal Sand Terrace & Stone Promenade
+  const deckGrad = ctx.createLinearGradient(x - 35, groundY - 14, x - 35, groundY);
+  deckGrad.addColorStop(0, '#fde68a');
+  deckGrad.addColorStop(1, '#d97706');
+  ctx.fillStyle = deckGrad;
+  ctx.fillRect(x - 35, groundY - 12, 330, 12);
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(x - 35, groundY - 14, 330, 3);
+
+  // Swaying Coastal Coconut Palms (Left & Right)
+  const drawPalm = (px: number, tilt: number, height: number) => {
+    const topX = px + tilt + Math.sin(animFrame * 1.8) * 3;
+    const topY = groundY - height;
+    ctx.strokeStyle = '#78350f';
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(px, groundY - 12);
+    ctx.quadraticCurveTo(px + tilt * 0.4, groundY - height * 0.55, topX, topY);
+    ctx.stroke();
+
+    // Coconuts cluster
+    ctx.fillStyle = '#451a03';
+    ctx.beginPath();
+    ctx.arc(topX - 4, topY + 6, 4.5, 0, Math.PI * 2);
+    ctx.arc(topX + 4, topY + 7, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Lush Fronds
+    for (let f = 0; f < 6; f++) {
+      const ang = (f / 6) * Math.PI * 2 + Math.sin(animFrame * 1.6 + f) * 0.08;
+      const fx = topX + Math.cos(ang) * 34;
+      const fy = topY + Math.sin(ang) * 20 + 6;
+      ctx.strokeStyle = f % 2 === 0 ? '#15803d' : '#16a34a';
+      ctx.lineWidth = 4.5;
+      ctx.beginPath();
+      ctx.moveTo(topX, topY);
+      ctx.quadraticCurveTo(topX + Math.cos(ang) * 18, topY + Math.sin(ang) * 8 - 8, fx, fy);
+      ctx.stroke();
+    }
+  };
+  drawPalm(x - 10, -14, 150);
+  drawPalm(x + 275, 16, 158);
+
+  // Iconic Pangandaran Welcome Gateway Arch
+  const archX = x + 36;
+  const archW = 196;
+  ctx.fillStyle = '#b45309';
+  ctx.fillRect(archX, groundY - 134, 18, 122);
+  ctx.fillRect(archX + archW - 18, groundY - 134, 18, 122);
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(archX + 3, groundY - 126, 12, 108);
+  ctx.fillRect(archX + archW - 15, groundY - 126, 12, 108);
+
+  // Carved Sunda Coastal Roof Beam
+  const beamGrad = ctx.createLinearGradient(archX - 10, groundY - 166, archX - 10, groundY - 126);
+  beamGrad.addColorStop(0, '#0f766e');
+  beamGrad.addColorStop(1, '#115e59');
+  ctx.fillStyle = beamGrad;
+  ctx.beginPath();
+  ctx.moveTo(archX - 14, groundY - 132);
+  ctx.lineTo(archX + archW / 2, groundY - 170);
+  ctx.lineTo(archX + archW + 14, groundY - 132);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Landmark Signboard
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(archX + 12, groundY - 142, archW - 24, 30);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(archX + 12, groundY - 142, archW - 24, 30);
+  ctx.fillStyle = '#fde047';
+  ctx.font = 'bold 10px sans-serif';
+  ctx.fillText('🌊 PANTAI PANGANDARAN', archX + 28, groundY - 128);
+  ctx.fillStyle = '#7dd3fc';
+  ctx.font = 'bold 8px sans-serif';
+  ctx.fillText('PESONA PESISIR JAWA BARAT', archX + 31, groundY - 117);
+
+  // Sculpted Blue Marlin Fish Monument in Center Plaza
+  const marlinX = archX + archW / 2;
+  const marlinY = groundY - 64 + Math.sin(animFrame * 2) * 2.5;
+  ctx.fillStyle = '#0369a1';
+  ctx.fillRect(marlinX - 28, groundY - 34, 56, 22);
+  ctx.fillStyle = '#38bdf8';
+  ctx.beginPath();
+  ctx.ellipse(marlinX, marlinY, 30, 12, -0.35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#0284c7';
+  ctx.beginPath();
+  ctx.moveTo(marlinX - 22, marlinY + 12);
+  ctx.lineTo(marlinX - 42, marlinY + 4);
+  ctx.lineTo(marlinX - 34, marlinY + 20);
+  ctx.closePath();
+  ctx.fill();
+  // Dorsal Sail Fin & Spear Bill
+  ctx.fillStyle = '#0ea5e9';
+  ctx.beginPath();
+  ctx.moveTo(marlinX - 10, marlinY - 6);
+  ctx.lineTo(marlinX + 6, marlinY - 26);
+  ctx.lineTo(marlinX + 14, marlinY - 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#e0f2fe';
+  ctx.beginPath();
+  ctx.moveTo(marlinX + 24, marlinY - 11);
+  ctx.lineTo(marlinX + 46, marlinY - 18);
+  ctx.lineTo(marlinX + 26, marlinY - 6);
+  ctx.closePath();
+  ctx.fill();
+
+  // Parked Traditional Outrigger Boat (Perahu Jukung) on Sand
+  const boatX = x + 208;
+  ctx.fillStyle = '#f97316';
+  ctx.beginPath();
+  ctx.moveTo(boatX, groundY - 22);
+  ctx.quadraticCurveTo(boatX + 28, groundY - 6, boatX + 58, groundY - 22);
+  ctx.lineTo(boatX + 48, groundY - 12);
+  ctx.lineTo(boatX + 10, groundY - 12);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#0ea5e9';
+  ctx.fillRect(boatX + 8, groundY - 22, 42, 4);
+  ctx.fillStyle = '#facc15';
+  ctx.fillRect(boatX + 28, groundY - 56, 3, 36);
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(boatX + 31, groundY - 54);
+  ctx.lineTo(boatX + 52, groundY - 34);
+  ctx.lineTo(boatX + 31, groundY - 30);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
 function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, onClose }: { isAdmin: boolean; currentStudent: any; studentStageHighScores?: Record<number, number>; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const poseImagesRef = useRef<(ProcessedSprite | null)[]>(
@@ -4239,8 +4545,11 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
   const boss5ImagesRef = useRef<(ProcessedSprite | null)[]>(
     BOSS5_POSE_PATHS.map((p) => PROCESSED_SPRITE_CACHE.get(`edge:${p}`) ?? null)
   );
+  const boss6ImagesRef = useRef<(ProcessedSprite | null)[]>(
+    BOSS6_POSE_PATHS.map((p) => PROCESSED_SPRITE_CACHE.get(`edge:${p}`) ?? null)
+  );
 
-  const [currentStage, setCurrentStage] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [currentStage, setCurrentStage] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [posesLoadedCount, setPosesLoadedCount] = useState<number>(() =>
     PLAYER_POSE_PATHS.filter((p) => PROCESSED_SPRITE_CACHE.has(p)).length
   );
@@ -4333,6 +4642,17 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           if (!cancelled) boss5ImagesRef.current[idx] = sprite;
         });
       });
+    } else if (currentStage === 6) {
+      BOSS6_POSE_PATHS.forEach((path, idx) => {
+        const cached = PROCESSED_SPRITE_CACHE.get(`edge:${path}`);
+        if (cached) {
+          boss6ImagesRef.current[idx] = cached;
+          return;
+        }
+        void loadEdgeCleanSprite(path, 280).then((sprite) => {
+          if (!cancelled) boss6ImagesRef.current[idx] = sprite;
+        });
+      });
     }
 
     return () => {
@@ -4381,7 +4701,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
   const usedQuizQuestionIndicesRef = useRef<Set<number>>(new Set());
 
   // Firestore Config for Stage Materi
-  const [stageConfigs, setStageConfigs] = useState<{ stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string; stage5MateriId?: string }>({});
+  const [stageConfigs, setStageConfigs] = useState<{ stage1MateriId?: string; stage2MateriId?: string; stage3MateriId?: string; stage4MateriId?: string; stage5MateriId?: string; stage6MateriId?: string }>({});
   const [completedStages, setCompletedStages] = useState<number[]>([]);
 
   useEffect(() => {
@@ -4408,7 +4728,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
     if (stageNum === 2) return stageConfigs.stage2MateriId || 'bk-pengenalan-pola';
     if (stageNum === 3) return stageConfigs.stage3MateriId || 'scratch';
     if (stageNum === 4) return stageConfigs.stage4MateriId || 'bk-algoritma';
-    return stageConfigs.stage5MateriId || 'tik';
+    if (stageNum === 5) return stageConfigs.stage5MateriId || 'tik';
+    return stageConfigs.stage6MateriId || 'algoritma-smp';
   };
 
   const currentMateriId = getActiveMateriIdForStage(currentStage);
@@ -4638,7 +4959,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
     resetEngineForStage(stageNum);
     setScore(s => (gameState === 'win' ? s : 0)); // accumulate score across stages or start fresh
     setLives(3);
-    const initialDist = stageNum === 1 ? 175 : stageNum === 2 ? 190 : stageNum === 3 ? 200 : stageNum === 4 ? 220 : 240;
+    const initialDist = stageNum === 1 ? 175 : stageNum === 2 ? 190 : stageNum === 3 ? 200 : stageNum === 4 ? 220 : stageNum === 5 ? 240 : 260;
     lastDistanceRef.current = initialDist;
     setDistanceRemaining(initialDist);
     setActiveQuiz(null);
@@ -4757,6 +5078,28 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
     // Position player just before boss area (6300)
     engineRef.current.player.x = 6250;
     engineRef.current.cameraX = 6250 - 300;
+
+    setGameState('playing');
+  };
+
+  const startBossFightStage6 = () => {
+    resetKeys();
+    setCurrentStage(6);
+    resetEngineForStage(6);
+    setScore(0);
+    setLives(3);
+    setDistanceRemaining(30);
+    setActiveQuiz(null);
+    setQuizFeedback(null);
+    setShowRewardPicker(false);
+    setSelectedRewardMsg(null);
+    setSuperPowerActive(false);
+    setKeyboardGunActive(false);
+    setBossBulletsCount(0);
+
+    // Position player just before boss area (6800)
+    engineRef.current.player.x = 6750;
+    engineRef.current.cameraX = 6750 - 300;
 
     setGameState('playing');
   };
@@ -4988,7 +5331,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         fxPopupsRef.current.push({ x, y, text, color, life: 40 });
       };
 
-      const isFrozen = currentStage >= 1 && currentStage <= 5 && engine.boss && engine.boss.countdown > 0;
+      const isFrozen = currentStage >= 1 && currentStage <= 6 && engine.boss && engine.boss.countdown > 0;
       // Fire keyboard gun bullet when shoot key, tap buffer, or button is active
       if ((keysRef.current.shoot || meta.shootBufferFrames > 0) && (p.keyboardGunFrames > 0 || (p.bulletsLeft && p.bulletsLeft > 0)) && !isFrozen) {
         if (!p.shootCooldown || p.shootCooldown <= 0) {
@@ -5030,7 +5373,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         let bulletRemoved = false;
 
         // Bullet vs Boss Laser / Projectile (Counter Attack)
-        if (currentStage >= 1 && currentStage <= 5 && engine.boss && engine.boss.state !== 'dead') {
+        if (currentStage >= 1 && currentStage <= 6 && engine.boss && engine.boss.state !== 'dead') {
            const boss = engine.boss;
            for (let lIdx = boss.lasers.length - 1; lIdx >= 0; lIdx--) {
               const l = boss.lasers[lIdx];
@@ -5052,7 +5395,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         if (bulletRemoved) continue;
 
         // Bullet vs Boss hit
-        if (currentStage >= 1 && currentStage <= 5 && engine.boss && engine.boss.state !== 'dead' && engine.boss.state !== 'dying' && (!engine.boss.countdown || engine.boss.countdown <= 0)) {
+        if (currentStage >= 1 && currentStage <= 6 && engine.boss && engine.boss.state !== 'dead' && engine.boss.state !== 'dying' && (!engine.boss.countdown || engine.boss.countdown <= 0)) {
            const boss = engine.boss;
            const bossTopY = boss.y - 45;
            if (
@@ -5246,7 +5589,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       for (const obs of engine.obstacles) {
         if (obs.destroyed) continue;
 
-        if (['computer_evil', 'phone_evil', 'keyboard_evil'].includes(obs.type)) {
+        if (['computer_evil', 'phone_evil', 'keyboard_evil', 'chip_evil', 'maung_bot_evil', 'crab_cyber_evil'].includes(obs.type)) {
           obs.x += obs.vx;
           if (obs.x <= obs.minX || obs.x + obs.w >= obs.maxX) {
             obs.vx = -obs.vx;
@@ -5290,8 +5633,8 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         setDistanceRemaining(remainingMeters);
       }
 
-      // Boss Logic (Stage 1, Stage 2, Stage 3, Stage 4 & Stage 5)
-      if (currentStage >= 1 && currentStage <= 5 && engine.boss) {
+      // Boss Logic (Stage 1, Stage 2, Stage 3, Stage 4, Stage 5 & Stage 6)
+      if (currentStage >= 1 && currentStage <= 6 && engine.boss) {
         const boss = engine.boss;
         if (boss.invulnerableFrames > 0) boss.invulnerableFrames--;
         const bossAreaX = getBossAreaX(currentStage);
@@ -5672,7 +6015,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       }
 
       const activeBossAreaX = getBossAreaX(currentStage);
-      const isBossArenaLocked = currentStage >= 1 && currentStage <= 5 && engine.boss && p.x > activeBossAreaX && engine.boss.state !== 'dead';
+      const isBossArenaLocked = currentStage >= 1 && currentStage <= 6 && engine.boss && p.x > activeBossAreaX && engine.boss.state !== 'dead';
       if (isBossArenaLocked) {
         engine.cameraX = activeBossAreaX;
       } else {
@@ -5742,31 +6085,40 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
-      // Render Backdrop per Stage (High-Detail Multi-Layer Parallax & Atmospheric Effects)
+      // Render Backdrop per Stage (Realistic High-Detail Multi-Layer Parallax, Atmospheric Depth & Shading)
       if (currentStage === 2) {
-        // Stage 2: Sunset Forest & Bumi Perkemahan
+        // Stage 2: Realistic Sunset Forest & Bumi Perkemahan
         const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
-        skyGradient.addColorStop(0, '#2e0f04');
-        skyGradient.addColorStop(0.35, '#7c2d12');
-        skyGradient.addColorStop(0.72, '#ea580c');
-        skyGradient.addColorStop(1, '#fde047');
+        skyGradient.addColorStop(0, '#1e0a04');
+        skyGradient.addColorStop(0.28, '#6b1d0f');
+        skyGradient.addColorStop(0.58, '#c2410c');
+        skyGradient.addColorStop(0.84, '#f59e0b');
+        skyGradient.addColorStop(1, '#fef08a');
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, 800, 450);
 
+        // Soft Dusk Horizon Glow
+        const horizonGlow = ctx.createRadialGradient(540, 290, 20, 540, 290, 320);
+        horizonGlow.addColorStop(0, 'rgba(254, 240, 138, 0.42)');
+        horizonGlow.addColorStop(0.5, 'rgba(251, 146, 60, 0.16)');
+        horizonGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = horizonGlow;
+        ctx.fillRect(0, 80, 800, 320);
+
         // Luminous Crescent Moon Halo & Stars
-        const moonHalo = ctx.createRadialGradient(680, 70, 8, 680, 70, 60);
-        moonHalo.addColorStop(0, 'rgba(254, 240, 138, 0.35)');
+        const moonHalo = ctx.createRadialGradient(680, 70, 8, 680, 70, 64);
+        moonHalo.addColorStop(0, 'rgba(254, 240, 138, 0.38)');
         moonHalo.addColorStop(1, 'rgba(254, 240, 138, 0)');
         ctx.fillStyle = moonHalo;
         ctx.beginPath();
-        ctx.arc(680, 70, 60, 0, Math.PI * 2);
+        ctx.arc(680, 70, 64, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.fillStyle = '#fef08a';
         ctx.beginPath();
         ctx.arc(680, 70, 18, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#5c1f0b';
+        ctx.fillStyle = '#47150a';
         ctx.beginPath();
         ctx.arc(674, 66, 15, 0, Math.PI * 2);
         ctx.fill();
@@ -5781,117 +6133,161 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.fill();
         }
 
-        // Far Mountain Silhouettes + Warm Rim Highlight
-        ctx.fillStyle = '#451a03';
+        // Far & Mid Mountain Silhouettes with Atmospheric Gradient
+        const mtnFarGrad = ctx.createLinearGradient(0, 185, 0, 365);
+        mtnFarGrad.addColorStop(0, '#581c0c');
+        mtnFarGrad.addColorStop(1, '#290d05');
+        ctx.fillStyle = mtnFarGrad;
         ctx.beginPath();
-        for (let m = 0; m < 6; m++) {
-          const mx = m * 300 - (camX * 0.14) % 300;
+        for (let m = -1; m < 6; m++) {
+          const mx = m * 300 - (camX * 0.12) % 300;
           ctx.moveTo(mx - 80, 365);
-          ctx.lineTo(mx + 70, 200);
-          ctx.lineTo(mx + 220, 365);
+          ctx.lineTo(mx + 60, 195);
+          ctx.lineTo(mx + 135, 232);
+          ctx.lineTo(mx + 225, 365);
         }
         ctx.fill();
 
-        // Layered Tiered Pine Trees in Background (3 depth tiers)
-        const drawPine = (tx: number, baseH: number, col: string) => {
-          ctx.fillStyle = col;
-          for (let tier = 0; tier < 3; tier++) {
-            const topY = 365 - baseH + tier * (baseH * 0.22);
-            const botY = 365 - baseH * (0.48 - tier * 0.24);
-            const halfW = 18 + tier * 9;
+        // Layered Tiered Pine Trees in Background (3 depth tiers with trunk & sunlit crown edge)
+        const drawPine = (tx: number, baseH: number, colDark: string, colLit: string) => {
+          ctx.fillStyle = '#271206';
+          ctx.fillRect(tx - 3, 345, 6, 35);
+          for (let tier = 0; tier < 4; tier++) {
+            const topY = 368 - baseH + tier * (baseH * 0.19);
+            const botY = 368 - baseH * (0.58 - tier * 0.2);
+            const halfW = 16 + tier * 8;
+            ctx.fillStyle = colDark;
             ctx.beginPath();
             ctx.moveTo(tx, topY);
             ctx.lineTo(tx - halfW, botY);
             ctx.lineTo(tx + halfW, botY);
             ctx.closePath();
             ctx.fill();
+            ctx.fillStyle = colLit;
+            ctx.beginPath();
+            ctx.moveTo(tx, topY);
+            ctx.lineTo(tx + halfW * 0.45, botY);
+            ctx.lineTo(tx + halfW, botY);
+            ctx.closePath();
+            ctx.fill();
           }
         };
         for (let i = -1; i < 16; i++) {
-          drawPine(i * 170 - (camX * 0.3) % 170, 165 + (i % 3) * 18, '#064e3b');
+          drawPine(i * 155 - (camX * 0.28) % 155, 172 + (i % 3) * 18, '#022c22', '#064e3b');
         }
         for (let i = -1; i < 14; i++) {
-          drawPine(i * 210 + 75 - (camX * 0.42) % 210, 135 + (i % 2) * 20, '#065f46');
+          drawPine(i * 195 + 75 - (camX * 0.42) % 195, 140 + (i % 2) * 20, '#064e3b', '#047857');
         }
 
         // Evening Forest Mist Band
-        const mistGrad = ctx.createLinearGradient(0, 315, 0, 380);
+        const mistGrad = ctx.createLinearGradient(0, 305, 0, 385);
         mistGrad.addColorStop(0, 'rgba(254, 215, 170, 0)');
-        mistGrad.addColorStop(1, 'rgba(254, 215, 170, 0.16)');
+        mistGrad.addColorStop(0.7, 'rgba(254, 215, 170, 0.18)');
+        mistGrad.addColorStop(1, 'rgba(254, 215, 170, 0.05)');
         ctx.fillStyle = mistGrad;
-        ctx.fillRect(0, 315, 800, 65);
+        ctx.fillRect(0, 305, 800, 80);
 
-        // Distant Camping Tents, Lanterns, Campfires & Glowing Fireflies
+        // Distant Camping Tents, Wooden Lantern Posts, Campfires & Glowing Fireflies
         for (let i = 0; i < 7; i++) {
           const tentX = i * 540 + 110 - camX * 0.52;
           if (tentX > -120 && tentX < 920) {
             ctx.fillStyle = '#047857';
             ctx.beginPath();
-            ctx.moveTo(tentX + 26, 304);
-            ctx.lineTo(tentX, 362);
-            ctx.lineTo(tentX + 52, 362);
+            ctx.moveTo(tentX + 28, 300);
+            ctx.lineTo(tentX - 2, 364);
+            ctx.lineTo(tentX + 58, 364);
+            ctx.closePath();
             ctx.fill();
             ctx.fillStyle = '#fbbf24';
             ctx.beginPath();
-            ctx.moveTo(tentX + 26, 304);
-            ctx.lineTo(tentX + 13, 362);
-            ctx.lineTo(tentX + 26, 362);
+            ctx.moveTo(tentX + 28, 300);
+            ctx.lineTo(tentX + 12, 364);
+            ctx.lineTo(tentX + 28, 364);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.moveTo(tentX + 28, 326);
+            ctx.lineTo(tentX + 19, 364);
+            ctx.lineTo(tentX + 28, 364);
+            ctx.closePath();
             ctx.fill();
 
-            // Small Campfire with glow
-            const fireX = tentX + 76;
-            const fireGlow = ctx.createRadialGradient(fireX, 348, 2, fireX, 348, 24);
-            fireGlow.addColorStop(0, 'rgba(251, 146, 60, 0.42)');
+            // Small Campfire with realistic warm glow & stones
+            const fireX = tentX + 82;
+            const fireGlow = ctx.createRadialGradient(fireX, 348, 2, fireX, 348, 32);
+            fireGlow.addColorStop(0, 'rgba(251, 146, 60, 0.52)');
             fireGlow.addColorStop(1, 'rgba(251, 146, 60, 0)');
             ctx.fillStyle = fireGlow;
             ctx.beginPath();
-            ctx.arc(fireX, 348, 24, 0, Math.PI * 2);
+            ctx.arc(fireX, 348, 32, 0, Math.PI * 2);
             ctx.fill();
 
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(fireX - 9, 360, 18, 4);
             ctx.fillStyle = '#78350f';
             ctx.fillRect(fireX - 6, 356, 12, 4);
             const flicker = Math.sin(p.animFrame * 5 + i) * 3;
             ctx.fillStyle = '#ea580c';
             ctx.beginPath();
-            ctx.arc(fireX, 349 + flicker, 6, 0, Math.PI * 2);
+            ctx.arc(fireX, 349 + flicker, 7, 0, Math.PI * 2);
             ctx.fill();
             ctx.fillStyle = '#fde047';
             ctx.beginPath();
-            ctx.arc(fireX, 350 + flicker, 3, 0, Math.PI * 2);
+            ctx.arc(fireX, 350 + flicker, 3.5, 0, Math.PI * 2);
             ctx.fill();
           }
         }
 
         // Bobbing Golden Forest Fireflies (Kunang-kunang)
-        for (let ff = 0; ff < 14; ff++) {
+        for (let ff = 0; ff < 16; ff++) {
           const fx = ((ff * 83 - camX * 0.5 + Math.sin(p.animFrame * 1.4 + ff) * 18) % 820 + 820) % 820 - 10;
-          const fy = 265 + ((ff * 37) % 95) + Math.cos(p.animFrame * 2.2 + ff) * 10;
+          const fy = 255 + ((ff * 37) % 105) + Math.cos(p.animFrame * 2.2 + ff) * 10;
           const alpha = 0.4 + 0.6 * Math.abs(Math.sin(p.animFrame * 3 + ff));
           ctx.fillStyle = `rgba(253, 224, 71, ${alpha.toFixed(2)})`;
           ctx.beginPath();
-          ctx.arc(fx, fy, 2.2, 0, Math.PI * 2);
+          ctx.arc(fx, fy, 2.4, 0, Math.PI * 2);
           ctx.fill();
         }
 
       } else if (currentStage === 3) {
-        // Stage 3: Museum Wisata Edukasi Cyber Night Sky
+        // Stage 3: Realistic Museum Wisata Edukasi Cyber Night Sky
         const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
-        skyGradient.addColorStop(0, '#09090b');
-        skyGradient.addColorStop(0.4, '#1e1b4b');
-        skyGradient.addColorStop(0.78, '#1e3a8a');
-        skyGradient.addColorStop(1, '#0284c7');
+        skyGradient.addColorStop(0, '#050814');
+        skyGradient.addColorStop(0.35, '#171547');
+        skyGradient.addColorStop(0.72, '#1e3a8a');
+        skyGradient.addColorStop(1, '#0369a1');
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, 800, 450);
 
-        // Cosmic Nebula Glow Band
-        const nebGrad = ctx.createRadialGradient(420, 130, 20, 420, 130, 280);
-        nebGrad.addColorStop(0, 'rgba(56, 189, 248, 0.18)');
-        nebGrad.addColorStop(0.5, 'rgba(168, 85, 247, 0.1)');
+        // Cosmic Nebula & Horizon City Light Dome
+        const nebGrad = ctx.createRadialGradient(420, 130, 20, 420, 130, 300);
+        nebGrad.addColorStop(0, 'rgba(56, 189, 248, 0.24)');
+        nebGrad.addColorStop(0.5, 'rgba(168, 85, 247, 0.14)');
         nebGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = nebGrad;
-        ctx.fillRect(0, 0, 800, 340);
+        ctx.fillRect(0, 0, 800, 350);
 
-        // Twinkling Space Stars + Occasional Shooting Star
+        // Sweeping Observatory Searchlights
+        ctx.save();
+        for (let sl = 0; sl < 2; sl++) {
+          const baseX = sl === 0 ? 190 : 610;
+          const sweep = Math.sin(p.animFrame * 0.9 + sl * 2) * 85;
+          const beamGrad = ctx.createLinearGradient(baseX, 370, baseX + sweep, 40);
+          beamGrad.addColorStop(0, 'rgba(125, 211, 252, 0.18)');
+          beamGrad.addColorStop(1, 'rgba(125, 211, 252, 0)');
+          ctx.fillStyle = beamGrad;
+          ctx.beginPath();
+          ctx.moveTo(baseX - 8, 370);
+          ctx.lineTo(baseX + sweep - 42, 30);
+          ctx.lineTo(baseX + sweep + 42, 30);
+          ctx.lineTo(baseX + 8, 370);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // Twinkling Space Stars
         ctx.fillStyle = '#ffffff';
         const sciStars = [[55, 38], [130, 62], [200, 45], [275, 24], [350, 52], [430, 32], [510, 68], [620, 35], [710, 58], [780, 28]];
         for (const [sx, sy] of sciStars) {
@@ -5901,40 +6297,62 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.fill();
         }
 
-        // Elevated Cyber Monorail Track & Gliding Train in Distance
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, 250, 800, 5);
-        for (let px = -((camX * 0.25) % 160); px < 840; px += 160) {
-          ctx.fillRect(px, 255, 8, 125);
-        }
-        const trainX = ((p.animFrame * 90) % 1100) - 200;
-        ctx.fillStyle = '#0ea5e9';
-        ctx.fillRect(trainX, 240, 110, 10);
-        ctx.fillStyle = '#e0f2fe';
-        for (let tw = 0; tw < 5; tw++) {
-          ctx.fillRect(trainX + 10 + tw * 20, 242, 12, 5);
+        // Far Skyline Layer for Urban Depth
+        ctx.fillStyle = '#0c1633';
+        for (let fb = -1; fb < 12; fb++) {
+          const fx = fb * 110 - (camX * 0.16) % 110;
+          const fh = 85 + (fb % 4) * 28;
+          ctx.fillRect(fx, 365 - fh, 72, fh);
         }
 
-        // Futuristic Modern City Skyline Silhouettes
+        // Elevated Cyber Monorail Track & Illuminated Gliding Train
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, 250, 800, 6);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(0, 250, 800, 1.5);
+        for (let px = -((camX * 0.25) % 160); px < 840; px += 160) {
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(px, 256, 9, 124);
+        }
+        const trainX = ((p.animFrame * 95) % 1120) - 200;
+        const trainGrad = ctx.createLinearGradient(trainX, 238, trainX + 124, 250);
+        trainGrad.addColorStop(0, '#38bdf8');
+        trainGrad.addColorStop(1, '#0284c7');
+        ctx.fillStyle = trainGrad;
+        ctx.beginPath();
+        ctx.roundRect(trainX, 238, 124, 12, 4);
+        ctx.fill();
+        ctx.fillStyle = '#e0f2fe';
+        for (let tw = 0; tw < 5; tw++) {
+          ctx.fillRect(trainX + 12 + tw * 21, 241, 14, 5);
+        }
+
+        // Futuristic Modern Glass-Facade City Skyline Silhouettes
         for (let i = 0; i < 12; i++) {
           const bldgX = i * 360 + 25 - camX * 0.35;
           if (bldgX < -130 || bldgX > 900) continue;
-          const bldgH = 125 + (i % 3) * 38;
-          ctx.fillStyle = '#0f172a';
+          const bldgH = 128 + (i % 3) * 38;
+          const bGrad = ctx.createLinearGradient(bldgX, 365 - bldgH, bldgX + 98, 365);
+          bGrad.addColorStop(0, '#0f172a');
+          bGrad.addColorStop(0.5, '#1e293b');
+          bGrad.addColorStop(1, '#090d16');
+          ctx.fillStyle = bGrad;
           ctx.fillRect(bldgX, 365 - bldgH, 98, bldgH);
-          ctx.strokeStyle = '#1e293b';
+          ctx.strokeStyle = '#334155';
           ctx.lineWidth = 1.5;
           ctx.strokeRect(bldgX, 365 - bldgH, 98, bldgH);
 
-          // Glowing Cyber Windows & Neon Trim Lines
-          ctx.fillStyle = i % 2 === 0 ? '#0284c7' : '#38bdf8';
+          // Glowing Cyber Curtain-Wall Windows
           for (let wy = 365 - bldgH + 16; wy < 342; wy += 20) {
             for (let wx = 0; wx < 3; wx++) {
+              ctx.fillStyle = (wx + wy) % 2 === 0 ? '#38bdf8' : '#0284c7';
               ctx.fillRect(bldgX + 12 + wx * 26, wy, 16, 9);
+              ctx.fillStyle = 'rgba(255,255,255,0.35)';
+              ctx.fillRect(bldgX + 12 + wx * 26, wy, 16, 2);
             }
           }
           // Spire Antenna with blinking beacon
-          ctx.fillStyle = '#38bdf8';
+          ctx.fillStyle = '#64748b';
           ctx.fillRect(bldgX + 46, 365 - bldgH - 26, 4, 26);
           if (Math.sin(p.animFrame * 4 + i) > 0) {
             ctx.fillStyle = '#ec4899';
@@ -5945,22 +6363,28 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         }
 
       } else if (currentStage === 4) {
-        // Stage 4: Sunset Sky & Mount Sawal Priangan over Alun-Alun Ciamis
+        // Stage 4: Realistic Golden-Violet Dusk & Mount Sawal Priangan over Alun-Alun Ciamis
         const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
-        skyGradient.addColorStop(0, '#2e1065');
-        skyGradient.addColorStop(0.35, '#701a75');
-        skyGradient.addColorStop(0.7, '#d946ef');
+        skyGradient.addColorStop(0, '#1e0845');
+        skyGradient.addColorStop(0.32, '#581c87');
+        skyGradient.addColorStop(0.65, '#c026d3');
+        skyGradient.addColorStop(0.86, '#fb923c');
         skyGradient.addColorStop(1, '#fef08a');
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, 800, 450);
 
-        // Radiant Golden Dusk Sun Glow
-        const duskSun = ctx.createRadialGradient(640, 170, 12, 640, 170, 120);
-        duskSun.addColorStop(0, 'rgba(254, 240, 138, 0.55)');
+        // Radiant Golden Dusk Sun & Glow
+        const duskSun = ctx.createRadialGradient(640, 175, 14, 640, 175, 135);
+        duskSun.addColorStop(0, 'rgba(254, 249, 195, 0.85)');
+        duskSun.addColorStop(0.35, 'rgba(253, 224, 71, 0.35)');
         duskSun.addColorStop(1, 'rgba(254, 240, 138, 0)');
         ctx.fillStyle = duskSun;
         ctx.beginPath();
-        ctx.arc(640, 170, 120, 0, Math.PI * 2);
+        ctx.arc(640, 175, 135, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fef9c3';
+        ctx.beginPath();
+        ctx.arc(640, 175, 22, 0, Math.PI * 2);
         ctx.fill();
 
         // Evening Stars
@@ -5973,31 +6397,45 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.fill();
         }
 
-        // Mount Sawal Twin-Peak Silhouette in Background
-        ctx.fillStyle = '#4c1d95';
+        // Layered Mount Sawal Twin-Peak Silhouette + Ridges
+        const sawalGrad = ctx.createLinearGradient(0, 185, 0, 365);
+        sawalGrad.addColorStop(0, '#581c87');
+        sawalGrad.addColorStop(1, '#2e1065');
+        ctx.fillStyle = sawalGrad;
         ctx.beginPath();
-        for (let m = 0; m < 6; m++) {
+        for (let m = -1; m < 6; m++) {
           const mx = m * 340 - (camX * 0.14) % 340;
           ctx.moveTo(mx - 100, 365);
-          ctx.lineTo(mx + 65, 188);
+          ctx.lineTo(mx + 65, 184);
           ctx.lineTo(mx + 125, 232);
-          ctx.lineTo(mx + 175, 198);
+          ctx.lineTo(mx + 175, 194);
           ctx.lineTo(mx + 275, 365);
         }
         ctx.fill();
+
+        // Atmospheric Valley Mist
+        const valleyMist = ctx.createLinearGradient(0, 310, 0, 370);
+        valleyMist.addColorStop(0, 'rgba(253, 186, 116, 0)');
+        valleyMist.addColorStop(1, 'rgba(253, 186, 116, 0.22)');
+        ctx.fillStyle = valleyMist;
+        ctx.fillRect(0, 310, 800, 60);
 
         // Priangan Town Silhouette with Lit Golden Windows & Mosque Dome
         for (let i = 0; i < 14; i++) {
           const bX = i * 250 + 40 - camX * 0.36;
           if (bX < -100 || bX > 900) continue;
-          const bH = 95 + (i % 4) * 24;
-          ctx.fillStyle = '#581c87';
+          const bH = 98 + (i % 4) * 24;
+          const tbGrad = ctx.createLinearGradient(bX, 365 - bH, bX + 74, 365);
+          tbGrad.addColorStop(0, '#4c1d95');
+          tbGrad.addColorStop(1, '#2e1065');
+          ctx.fillStyle = tbGrad;
           ctx.fillRect(bX, 365 - bH, 74, bH);
           if (i % 3 === 0) {
-            // Traditional dome accent
             ctx.beginPath();
             ctx.arc(bX + 37, 365 - bH, 20, Math.PI, 0);
             ctx.fill();
+            ctx.fillStyle = '#fde047';
+            ctx.fillRect(bX + 36, 365 - bH - 28, 2, 9);
           }
           ctx.fillStyle = '#fde047';
           for (let wy = 365 - bH + 14; wy < 345; wy += 18) {
@@ -6008,33 +6446,40 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         }
 
       } else if (currentStage === 5) {
-        // Stage 5: Kota Bandung (Gunung Tangkuban Perahu, Jembatan Pasupati & Gedung Heritage)
+        // Stage 5: Realistic Kota Bandung (Gunung Tangkuban Perahu, Jembatan Pasupati & Gedung Heritage)
         const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
-        skyGradient.addColorStop(0, '#0f172a');
-        skyGradient.addColorStop(0.32, '#0c4a6e');
-        skyGradient.addColorStop(0.68, '#0284c7');
-        skyGradient.addColorStop(1, '#bae6fd');
+        skyGradient.addColorStop(0, '#0c2461');
+        skyGradient.addColorStop(0.32, '#0369a1');
+        skyGradient.addColorStop(0.68, '#38bdf8');
+        skyGradient.addColorStop(1, '#e0f2fe');
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, 800, 450);
 
         // Bright Afternoon Sun over Parahyangan Highlands
-        const sunHalo = ctx.createRadialGradient(650, 92, 10, 650, 92, 95);
-        sunHalo.addColorStop(0, 'rgba(254, 240, 138, 0.72)');
+        const sunHalo = ctx.createRadialGradient(650, 92, 10, 650, 92, 108);
+        sunHalo.addColorStop(0, 'rgba(254, 249, 195, 0.82)');
+        sunHalo.addColorStop(0.45, 'rgba(254, 240, 138, 0.25)');
         sunHalo.addColorStop(1, 'rgba(254, 240, 138, 0)');
         ctx.fillStyle = sunHalo;
         ctx.beginPath();
-        ctx.arc(650, 92, 95, 0, Math.PI * 2);
+        ctx.arc(650, 92, 108, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#fef08a';
+        ctx.fillStyle = '#fef9c3';
         ctx.beginPath();
         ctx.arc(650, 92, 24, 0, Math.PI * 2);
         ctx.fill();
 
-        // Soft Bandung Morning Clouds
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        // Volumetric Shaded Bandung Morning Clouds
         for (let c = 0; c < 5; c++) {
           const cx = (((c * 320 + 60 - camX * 0.12 - p.animFrame * 6) % 980) + 980) % 980 - 90;
           const cy = 62 + (c % 2) * 30;
+          ctx.fillStyle = 'rgba(186, 230, 253, 0.85)';
+          ctx.beginPath();
+          ctx.arc(cx, cy + 4, 18, 0, Math.PI * 2);
+          ctx.arc(cx + 18, cy - 2, 22, 0, Math.PI * 2);
+          ctx.arc(cx + 38, cy + 4, 16, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
           ctx.beginPath();
           ctx.arc(cx, cy, 18, 0, Math.PI * 2);
           ctx.arc(cx + 18, cy - 6, 22, 0, Math.PI * 2);
@@ -6042,46 +6487,65 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.fill();
         }
 
-        // Gunung Tangkuban Perahu (Flat-Topped Upturned Boat Silhouette)
-        ctx.fillStyle = '#1e3a8a';
+        // Gunung Tangkuban Perahu (Layered Upturned Boat Silhouette + Forest Foothills)
+        const tpGrad = ctx.createLinearGradient(0, 195, 0, 365);
+        tpGrad.addColorStop(0, '#1e40af');
+        tpGrad.addColorStop(0.6, '#1e3a8a');
+        tpGrad.addColorStop(1, '#0f172a');
+        ctx.fillStyle = tpGrad;
         ctx.beginPath();
-        for (let m = 0; m < 5; m++) {
+        for (let m = -1; m < 5; m++) {
           const mx = m * 420 - (camX * 0.14) % 420;
           ctx.moveTo(mx - 120, 365);
-          ctx.lineTo(mx + 20, 212);
-          ctx.lineTo(mx + 150, 198);
+          ctx.lineTo(mx + 20, 210);
+          ctx.lineTo(mx + 150, 196);
           ctx.lineTo(mx + 220, 224);
           ctx.lineTo(mx + 330, 365);
         }
         ctx.fill();
 
-        // Jembatan Pasupati Cable-Stayed Pylons & Deck in Midground
+        // Jembatan Pasupati Cable-Stayed Pylons, Deck & Moving Traffic Lights in Midground
         const pasupatiY = 262;
         ctx.fillStyle = '#334155';
-        ctx.fillRect(0, pasupatiY, 800, 6);
+        ctx.fillRect(0, pasupatiY, 800, 7);
+        ctx.fillStyle = '#64748b';
+        ctx.fillRect(0, pasupatiY, 800, 2);
         for (let py = 0; py < 4; py++) {
           const pylonX = (((py * 380 + 180 - camX * 0.28) % 1140) + 1140) % 1140 - 150;
-          ctx.fillStyle = '#e2e8f0';
-          ctx.fillRect(pylonX - 4, 158, 8, 125);
-          ctx.strokeStyle = 'rgba(248, 250, 252, 0.45)';
+          ctx.fillStyle = '#f1f5f9';
+          ctx.fillRect(pylonX - 4, 156, 8, 130);
+          ctx.fillStyle = '#94a3b8';
+          ctx.fillRect(pylonX + 1, 156, 3, 130);
+          ctx.strokeStyle = 'rgba(248, 250, 252, 0.55)';
           ctx.lineWidth = 1.2;
           for (let cb = 1; cb <= 4; cb++) {
             ctx.beginPath();
-            ctx.moveTo(pylonX, 165 + cb * 6);
+            ctx.moveTo(pylonX, 164 + cb * 6);
             ctx.lineTo(pylonX - cb * 22, pasupatiY);
-            ctx.moveTo(pylonX, 165 + cb * 6);
+            ctx.moveTo(pylonX, 164 + cb * 6);
             ctx.lineTo(pylonX + cb * 22, pasupatiY);
             ctx.stroke();
           }
+        }
+        // Subtle tiny vehicles on Pasupati
+        for (let c = 0; c < 4; c++) {
+          const carX = (((c * 240 + p.animFrame * 32) % 900) + 900) % 900 - 50;
+          ctx.fillStyle = c % 2 === 0 ? '#fde047' : '#ef4444';
+          ctx.fillRect(carX, pasupatiY - 4, 12, 4);
         }
 
         // Bandung Art Deco Heritage Skyline
         for (let i = 0; i < 12; i++) {
           const bX = i * 280 + 40 - camX * 0.38;
           if (bX < -110 || bX > 920) continue;
-          const bH = 92 + (i % 3) * 24;
-          ctx.fillStyle = i % 2 === 0 ? '#0f766e' : '#1e293b';
+          const bH = 94 + (i % 3) * 24;
+          const bhGrad = ctx.createLinearGradient(bX, 365 - bH, bX + 76, 365);
+          bhGrad.addColorStop(0, i % 2 === 0 ? '#0f766e' : '#1e293b');
+          bhGrad.addColorStop(1, i % 2 === 0 ? '#115e59' : '#0f172a');
+          ctx.fillStyle = bhGrad;
           ctx.fillRect(bX, 365 - bH, 76, bH);
+          ctx.fillStyle = '#e2e8f0';
+          ctx.fillRect(bX - 2, 365 - bH, 80, 4);
           ctx.fillStyle = '#fde047';
           for (let wy = 365 - bH + 14; wy < 345; wy += 18) {
             ctx.fillRect(bX + 12, wy, 10, 8);
@@ -6090,26 +6554,199 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           }
         }
 
-      } else {
-        // Stage 1: Home to School Bright Morning Sky (Multi-Depth Hills, Birds, Electric Poles & Houses)
-        const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
+      } else if (currentStage === 6) {
+        // Stage 6: Realistic Pantai Pangandaran (Tropical Sunlit Sky, Cagar Alam Cape, Animated Ocean Waves, Jukung Boats & Coconut Palms)
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, 290);
         skyGradient.addColorStop(0, '#0284c7');
-        skyGradient.addColorStop(0.38, '#38bdf8');
-        skyGradient.addColorStop(0.76, '#bae6fd');
+        skyGradient.addColorStop(0.45, '#38bdf8');
+        skyGradient.addColorStop(0.78, '#bae6fd');
+        skyGradient.addColorStop(1, '#fef3c7');
+        ctx.fillStyle = skyGradient;
+        ctx.fillRect(0, 0, 800, 290);
+
+        // Luminous Tropical Golden Sun & Atmospheric Halo
+        const sunX = 640;
+        const sunY = 104;
+        const sunHalo = ctx.createRadialGradient(sunX, sunY, 12, sunX, sunY, 125);
+        sunHalo.addColorStop(0, 'rgba(254, 249, 195, 0.92)');
+        sunHalo.addColorStop(0.35, 'rgba(253, 224, 71, 0.42)');
+        sunHalo.addColorStop(1, 'rgba(253, 224, 71, 0)');
+        ctx.fillStyle = sunHalo;
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, 125, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fef9c3';
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, 26, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Gliding Coastal Seagulls
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.6;
+        for (let sg = 0; sg < 5; sg++) {
+          const bx = ((sg * 175 - camX * 0.08 + p.animFrame * 22) % 860 + 860) % 860 - 30;
+          const by = 64 + (sg % 3) * 26 + Math.sin(p.animFrame * 2.2 + sg) * 4;
+          const wing = Math.sin(p.animFrame * 5.5 + sg) * 4;
+          ctx.beginPath();
+          ctx.moveTo(bx - 8, by + wing);
+          ctx.quadraticCurveTo(bx - 3, by - 4, bx, by);
+          ctx.quadraticCurveTo(bx + 3, by - 4, bx + 8, by + wing);
+          ctx.stroke();
+        }
+
+        // Fluffy Tropical Trade-Wind Clouds
+        for (let c = 0; c < 5; c++) {
+          const cx = (((c * 310 + 70 - camX * 0.1 - p.animFrame * 6) % 980) + 980) % 980 - 90;
+          const cy = 54 + (c % 2) * 26;
+          ctx.fillStyle = 'rgba(254, 243, 199, 0.65)';
+          ctx.beginPath();
+          ctx.arc(cx, cy + 4, 20, 0, Math.PI * 2);
+          ctx.arc(cx + 22, cy - 2, 24, 0, Math.PI * 2);
+          ctx.arc(cx + 44, cy + 4, 18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+          ctx.beginPath();
+          ctx.arc(cx, cy, 19, 0, Math.PI * 2);
+          ctx.arc(cx + 22, cy - 6, 23, 0, Math.PI * 2);
+          ctx.arc(cx + 44, cy, 17, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Distant Cagar Alam Pangandaran Coastal Headland Silhouette
+        const capeGrad = ctx.createLinearGradient(0, 210, 0, 285);
+        capeGrad.addColorStop(0, '#0f766e');
+        capeGrad.addColorStop(1, '#115e59');
+        ctx.fillStyle = capeGrad;
+        ctx.beginPath();
+        for (let h = -1; h < 4; h++) {
+          const hx = h * 460 - (camX * 0.12) % 460;
+          ctx.moveTo(hx - 60, 285);
+          ctx.quadraticCurveTo(hx + 80, 212, hx + 220, 236);
+          ctx.quadraticCurveTo(hx + 320, 252, hx + 390, 285);
+        }
+        ctx.fill();
+
+        // Deep Indian Ocean Horizon & Sun-Path Shimmer
+        const seaGrad = ctx.createLinearGradient(0, 275, 0, 385);
+        seaGrad.addColorStop(0, '#0369a1');
+        seaGrad.addColorStop(0.45, '#0284c7');
+        seaGrad.addColorStop(0.8, '#06b6d4');
+        seaGrad.addColorStop(1, '#67e8f9');
+        ctx.fillStyle = seaGrad;
+        ctx.fillRect(0, 275, 800, 110);
+
+        // Sparkling Sun Reflections on Ocean Surface
+        for (let r = 0; r < 10; r++) {
+          const rw = 58 - r * 4;
+          const rx = sunX - rw / 2 + Math.sin(p.animFrame * 3 + r) * 8;
+          const ry = 282 + r * 7.5;
+          ctx.fillStyle = `rgba(254, 240, 138, ${(0.58 - r * 0.045).toFixed(2)})`;
+          ctx.fillRect(rx, ry, rw, 2.5);
+        }
+
+        // Sailing Perahu Jukung Outrigger Fishing Boats on Ocean
+        for (let b = 0; b < 4; b++) {
+          const bx = (((b * 290 + 90 - camX * 0.22 - p.animFrame * 14) % 1040) + 1040) % 1040 - 120;
+          const by = 296 + (b % 2) * 14 + Math.sin(p.animFrame * 2.4 + b) * 2;
+          ctx.fillStyle = '#ea580c';
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.quadraticCurveTo(bx + 18, by + 9, bx + 36, by);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(bx + 17, by - 22, 2, 22);
+          ctx.fillStyle = b % 2 === 0 ? '#ffffff' : '#fef08a';
+          ctx.beginPath();
+          ctx.moveTo(bx + 19, by - 21);
+          ctx.lineTo(bx + 32, by - 6);
+          ctx.lineTo(bx + 19, by - 4);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // Animated Rolling Ocean Wave Crests & Seafoam Wash onto Beach
+        for (let wLayer = 0; wLayer < 2; wLayer++) {
+          const waveY = 328 + wLayer * 18;
+          ctx.fillStyle = wLayer === 0 ? 'rgba(14, 165, 233, 0.55)' : 'rgba(224, 242, 254, 0.72)';
+          ctx.beginPath();
+          ctx.moveTo(0, 385);
+          for (let wx = 0; wx <= 820; wx += 40) {
+            const crest = Math.sin(p.animFrame * (2.6 + wLayer * 0.5) + (wx + camX * (0.25 + wLayer * 0.12)) * 0.025) * 5;
+            ctx.lineTo(wx, waveY + crest);
+          }
+          ctx.lineTo(800, 385);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // Coastal Promenade Coconut Palm Trees & Beach Cabanas in Midground
+        for (let pt = 0; pt < 9; pt++) {
+          const palmX = pt * 360 + 80 - camX * 0.42;
+          if (palmX < -90 || palmX > 890) continue;
+          const sway = Math.sin(p.animFrame * 1.7 + pt) * 3.5;
+          ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 7;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(palmX, 372);
+          ctx.quadraticCurveTo(palmX + (pt % 2 === 0 ? -10 : 10), 320, palmX + sway, 268);
+          ctx.stroke();
+
+          for (let f = 0; f < 5; f++) {
+            const ang = (f / 5) * Math.PI * 2 + Math.sin(p.animFrame * 1.4 + f) * 0.07;
+            ctx.strokeStyle = f % 2 === 0 ? '#15803d' : '#16a34a';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(palmX + sway, 268);
+            ctx.quadraticCurveTo(
+              palmX + sway + Math.cos(ang) * 16,
+              268 + Math.sin(ang) * 7 - 6,
+              palmX + sway + Math.cos(ang) * 30,
+              268 + Math.sin(ang) * 18 + 5
+            );
+            ctx.stroke();
+          }
+
+          // Beach Umbrella every 2 palms
+          if (pt % 2 === 0) {
+            const umbX = palmX + 68;
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(umbX - 1.5, 336, 3, 34);
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(umbX, 336, 20, Math.PI, 0);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(umbX, 316);
+            ctx.lineTo(umbX - 8, 336);
+            ctx.lineTo(umbX + 8, 336);
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
+
+      } else {
+        // Stage 1: Realistic Morning Sky, Sunbeams, Distant Mountains, Layered Hills & Neighborhood
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, 450);
+        skyGradient.addColorStop(0, '#0369a1');
+        skyGradient.addColorStop(0.36, '#38bdf8');
+        skyGradient.addColorStop(0.75, '#bae6fd');
         skyGradient.addColorStop(1, '#f0fdf4');
         ctx.fillStyle = skyGradient;
         ctx.fillRect(0, 0, 800, 450);
 
-        // Morning Sun with Soft Radial Glow & Warm Rays
-        const sunGrad = ctx.createRadialGradient(705, 78, 18, 705, 78, 86);
-        sunGrad.addColorStop(0, 'rgba(254, 240, 138, 0.65)');
-        sunGrad.addColorStop(0.5, 'rgba(254, 240, 138, 0.22)');
+        // Morning Sun with Soft Radial Glow & Subtle Volumetric Rays
+        const sunGrad = ctx.createRadialGradient(705, 78, 18, 705, 78, 96);
+        sunGrad.addColorStop(0, 'rgba(254, 249, 195, 0.85)');
+        sunGrad.addColorStop(0.45, 'rgba(254, 240, 138, 0.28)');
         sunGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
         ctx.fillStyle = sunGrad;
         ctx.beginPath();
-        ctx.arc(705, 78, 86, 0, Math.PI * 2);
+        ctx.arc(705, 78, 96, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#fde047';
+        ctx.fillStyle = '#fef08a';
         ctx.beginPath();
         ctx.arc(705, 78, 27, 0, Math.PI * 2);
         ctx.fill();
@@ -6128,7 +6765,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.stroke();
         }
 
-        // Fluffy Two-Tone Clouds
+        // Fluffy Two-Tone Volumetric Clouds
         for (let c = 0; c < 6; c++) {
           const cx = (((c * 340 + 80 - camX * 0.14 - p.animFrame * 8) % 1040) + 1040) % 1040 - 120;
           const cy = 58 + (c % 2) * 34;
@@ -6146,8 +6783,25 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.fill();
         }
 
-        // Layered Green Rolling Hills with Soft Sunlit Rim
-        ctx.fillStyle = '#86efac';
+        // Distant Atmospheric Blue-Green Mountain Range
+        const farMtnGrad = ctx.createLinearGradient(0, 195, 0, 360);
+        farMtnGrad.addColorStop(0, 'rgba(14, 116, 144, 0.35)');
+        farMtnGrad.addColorStop(1, 'rgba(186, 230, 253, 0.15)');
+        ctx.fillStyle = farMtnGrad;
+        ctx.beginPath();
+        for (let m = -1; m < 6; m++) {
+          const mx = m * 320 - (camX * 0.11) % 320;
+          ctx.moveTo(mx - 80, 360);
+          ctx.lineTo(mx + 90, 205);
+          ctx.lineTo(mx + 250, 360);
+        }
+        ctx.fill();
+
+        // Layered Green Rolling Hills with Shaded Gradient
+        const hill1Grad = ctx.createLinearGradient(0, 200, 0, 380);
+        hill1Grad.addColorStop(0, '#86efac');
+        hill1Grad.addColorStop(1, '#22c55e');
+        ctx.fillStyle = hill1Grad;
         ctx.beginPath();
         for (let i = 0; i < 12; i++) {
           const hillX = i * 360 - camX * 0.2;
@@ -6155,7 +6809,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         }
         ctx.fill();
 
-        ctx.fillStyle = '#4ade80';
+        const hill2Grad = ctx.createLinearGradient(0, 230, 0, 390);
+        hill2Grad.addColorStop(0, '#4ade80');
+        hill2Grad.addColorStop(1, '#15803d');
+        ctx.fillStyle = hill2Grad;
         ctx.beginPath();
         for (let i = 0; i < 10; i++) {
           const hillX = i * 450 + 80 - camX * 0.3;
@@ -6181,12 +6838,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         for (let i = 0; i < 10; i++) {
           const houseX = i * 480 + 120 - camX * 0.45;
           if (houseX < -120 || houseX > 920) continue;
-          // House body + trim
           ctx.fillStyle = i % 2 === 0 ? '#fef08a' : '#fed7aa';
           ctx.fillRect(houseX, 295, 78, 68);
           ctx.fillStyle = 'rgba(0,0,0,0.08)';
           ctx.fillRect(houseX, 295, 78, 6);
-          // Roof with eaves
           ctx.fillStyle = i % 2 === 0 ? '#dc2626' : '#b45309';
           ctx.beginPath();
           ctx.moveTo(houseX - 9, 297);
@@ -6194,7 +6849,6 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.lineTo(houseX + 87, 297);
           ctx.closePath();
           ctx.fill();
-          // Door & Window
           ctx.fillStyle = '#78350f';
           ctx.fillRect(houseX + 12, 324, 18, 39);
           ctx.fillStyle = '#38bdf8';
@@ -6202,7 +6856,6 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 1.5;
           ctx.strokeRect(houseX + 42, 312, 24, 21);
-          // Garden tree beside house
           ctx.fillStyle = '#78350f';
           ctx.fillRect(houseX + 90, 310, 9, 53);
           ctx.fillStyle = '#15803d';
@@ -6214,7 +6867,6 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.arc(houseX + 91, 299, 13, 0, Math.PI * 2);
           ctx.fill();
 
-          // Roadside School Zone Signpost every 2 houses
           if (i % 2 === 1) {
             const signX = houseX + 130;
             ctx.fillStyle = '#475569';
@@ -6239,60 +6891,103 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       const startX = 40 - camX;
       if (startX > -400 && startX < canvas.width + 400) {
         if (currentStage === 1) {
-          // Stage 1 Start: RUMAH TINGGAL SISWA SMP
           drawRumah(ctx, startX, 380, p.animFrame);
         } else if (currentStage === 2) {
-          // Stage 2 Start: SMPN 1 KAWALI (Titik Kumpul Keberangkatan Pramuka)
           drawSekolah(ctx, startX, 380, p.animFrame, true, 'KEBERANGKATAN PRAMUKA');
         } else if (currentStage === 3) {
-          // Stage 3 Start: SMPN 1 KAWALI (Titik Kumpul Keberangkatan Study Tour)
           drawSekolah(ctx, startX, 380, p.animFrame, true, 'KEBERANGKATAN STUDY TOUR');
         } else if (currentStage === 4) {
-          // Stage 4 Start: SMPN 1 KAWALI (Menuju Alun-Alun Ciamis)
           drawSekolah(ctx, startX, 380, p.animFrame, true, 'MENUJU ALUN-ALUN CIAMIS');
-        } else {
-          // Stage 5 Start: SMPN 1 KAWALI (Menuju Kota Bandung)
+        } else if (currentStage === 5) {
           drawSekolah(ctx, startX, 380, p.animFrame, true, 'MENUJU KOTA BANDUNG');
+        } else {
+          drawSekolah(ctx, startX, 380, p.animFrame, true, 'MENUJU PANTAI PANGANDARAN');
         }
       }
 
-      // Draw Detailed Beveled Ground Strata & Steel/Wood Floating Platforms
+      // Draw Realistic Shaded Ground Strata & Stage-Themed Floating Platforms
       for (const plat of engine.platforms) {
         const px = plat.x - camX;
         if (px + plat.w < -50 || px > canvas.width + 50) continue;
 
         if (plat.type === 'ground') {
-          const soilDark = currentStage === 2 ? '#3b1605' : currentStage === 3 || currentStage === 5 ? '#1e293b' : currentStage === 4 ? '#3f1d2b' : '#92400e';
-          const soilLight = currentStage === 2 ? '#52220c' : currentStage === 3 || currentStage === 5 ? '#334155' : currentStage === 4 ? '#581c87' : '#b45309';
-          const turfTop = currentStage === 2 ? '#15803d' : currentStage === 3 ? '#0284c7' : currentStage === 5 ? '#059669' : currentStage === 4 ? '#16a34a' : '#22c55e';
-          const turfHighlight = currentStage === 2 ? '#4ade80' : currentStage === 3 ? '#7dd3fc' : currentStage === 5 ? '#6ee7b7' : '#86efac';
+          const soilDark =
+            currentStage === 6
+              ? '#92400e'
+              : currentStage === 2
+              ? '#3b1605'
+              : currentStage === 3 || currentStage === 5
+              ? '#1e293b'
+              : currentStage === 4
+              ? '#3f1d2b'
+              : '#78350f';
+          const soilLight =
+            currentStage === 6
+              ? '#d97706'
+              : currentStage === 2
+              ? '#52220c'
+              : currentStage === 3 || currentStage === 5
+              ? '#334155'
+              : currentStage === 4
+              ? '#581c87'
+              : '#b45309';
+          const turfTop =
+            currentStage === 6
+              ? '#fbbf24'
+              : currentStage === 2
+              ? '#15803d'
+              : currentStage === 3
+              ? '#0284c7'
+              : currentStage === 5
+              ? '#059669'
+              : currentStage === 4
+              ? '#16a34a'
+              : '#22c55e';
+          const turfHighlight =
+            currentStage === 6
+              ? '#fef3c7'
+              : currentStage === 2
+              ? '#4ade80'
+              : currentStage === 3
+              ? '#7dd3fc'
+              : currentStage === 5
+              ? '#6ee7b7'
+              : '#86efac';
 
-          // Underground Soil / Concrete Strata
-          ctx.fillStyle = soilLight;
-          ctx.fillRect(px, plat.y + 14, plat.w, plat.h - 14);
-          ctx.fillStyle = soilDark;
-          ctx.fillRect(px, plat.y + 34, plat.w, plat.h - 34);
+          // Gradient Underground Soil / Coastal Sandstone Strata
+          const earthGrad = ctx.createLinearGradient(0, plat.y + 12, 0, plat.y + plat.h);
+          earthGrad.addColorStop(0, soilLight);
+          earthGrad.addColorStop(1, soilDark);
+          ctx.fillStyle = earthGrad;
+          ctx.fillRect(px, plat.y + 12, plat.w, plat.h - 12);
 
-          // Embedded Stones / Cyber Circuit Seams
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-          for (let sx = 8; sx < plat.w - 16; sx += 36) {
-            ctx.fillRect(px + sx, plat.y + 24, 14, 6);
-            ctx.fillRect(px + sx + 16, plat.y + 44, 10, 5);
+          // Natural Embedded Stones, Shells (Stage 6) or Cyber Circuit Seams
+          for (let sx = 10; sx < plat.w - 18; sx += 38) {
+            ctx.fillStyle = currentStage === 6 ? 'rgba(254, 243, 199, 0.35)' : 'rgba(0, 0, 0, 0.22)';
+            ctx.beginPath();
+            ctx.roundRect(px + sx, plat.y + 24, 14, 6, 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+            ctx.beginPath();
+            ctx.roundRect(px + sx + 18, plat.y + 44, 11, 5, 2);
+            ctx.fill();
           }
 
-          // Top Turf / Cyber Tile Layer + Overhang Contact Shadow
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+          // Top Turf / Golden Beach Sand Surface + Overhang Shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.24)';
           ctx.fillRect(px, plat.y + 14, plat.w, 4);
-          ctx.fillStyle = turfTop;
+          const turfGrad = ctx.createLinearGradient(0, plat.y, 0, plat.y + 14);
+          turfGrad.addColorStop(0, turfHighlight);
+          turfGrad.addColorStop(0.28, turfTop);
+          turfGrad.addColorStop(1, turfTop);
+          ctx.fillStyle = turfGrad;
           ctx.fillRect(px, plat.y, plat.w, 14);
-          ctx.fillStyle = turfHighlight;
-          ctx.fillRect(px, plat.y, plat.w, 3);
 
-          // Grass Tufts / Scalloped Turf Border
-          ctx.fillStyle = currentStage === 3 ? '#38bdf8' : turfTop;
+          // Grass Tufts / Beach Shells & Scalloped Edge
+          ctx.fillStyle = currentStage === 3 ? '#38bdf8' : currentStage === 6 ? '#f59e0b' : turfTop;
           for (let gx = 0; gx < plat.w - 10; gx += 20) {
             ctx.fillRect(px + gx, plat.y + 11, 10, 5);
-            if (currentStage !== 3 && gx % 40 === 0) {
+            if (currentStage !== 3 && currentStage !== 6 && gx % 40 === 0) {
               ctx.fillRect(px + gx + 4, plat.y - 3, 4, 3);
             }
           }
@@ -6300,23 +6995,36 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.lineWidth = 1.5;
           ctx.strokeRect(px, plat.y, plat.w, plat.h);
         } else {
-          // Elevated Beveled Ledge Platform with Drop Shadow & Riveted Metal Brackets
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-          ctx.fillRect(px + 3, plat.y + 4, plat.w, plat.h);
+          // Elevated Shaded Beveled Platform with Drop Shadow & Stage-Themed Trims
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+          ctx.fillRect(px + 3, plat.y + 5, plat.w, plat.h);
 
-          const ledgeFill = currentStage === 3 ? '#0284c7' : '#d97706';
-          const ledgeDark = currentStage === 3 ? '#0f172a' : '#92400e';
-          ctx.fillStyle = ledgeFill;
-          ctx.fillRect(px, plat.y, plat.w, plat.h);
-          ctx.fillStyle = currentStage === 3 ? '#7dd3fc' : '#fde047';
-          ctx.fillRect(px, plat.y, plat.w, 4);
-          ctx.fillStyle = ledgeDark;
-          ctx.fillRect(px, plat.y + plat.h - 4, plat.w, 4);
-          // Plank / Brick Vertical Seams & End Brackets
-          for (let sx = 24; sx < plat.w - 8; sx += 24) {
-            ctx.fillRect(px + sx, plat.y + 4, 2, plat.h - 8);
+          const platGrad = ctx.createLinearGradient(0, plat.y, 0, plat.y + plat.h);
+          if (currentStage === 3) {
+            platGrad.addColorStop(0, '#38bdf8');
+            platGrad.addColorStop(0.3, '#0284c7');
+            platGrad.addColorStop(1, '#0f172a');
+          } else if (currentStage === 6) {
+            platGrad.addColorStop(0, '#fbbf24');
+            platGrad.addColorStop(0.28, '#b45309');
+            platGrad.addColorStop(1, '#78350f');
+          } else {
+            platGrad.addColorStop(0, '#f59e0b');
+            platGrad.addColorStop(0.3, '#d97706');
+            platGrad.addColorStop(1, '#78350f');
           }
-          ctx.fillStyle = '#334155';
+          ctx.fillStyle = platGrad;
+          ctx.fillRect(px, plat.y, plat.w, plat.h);
+
+          ctx.fillStyle = currentStage === 3 ? '#bae6fd' : currentStage === 6 ? '#fef3c7' : '#fde047';
+          ctx.fillRect(px, plat.y, plat.w, 3);
+
+          // Plank / Steel Joint Seams & End Brackets
+          ctx.fillStyle = 'rgba(0,0,0,0.28)';
+          for (let sx = 24; sx < plat.w - 8; sx += 24) {
+            ctx.fillRect(px + sx, plat.y + 3, 2, plat.h - 6);
+          }
+          ctx.fillStyle = currentStage === 6 ? '#0d9488' : '#334155';
           ctx.fillRect(px, plat.y, 7, plat.h);
           ctx.fillRect(px + plat.w - 7, plat.y, 7, plat.h);
           ctx.strokeStyle = '#0f172a';
@@ -6486,17 +7194,20 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         }
       }
 
-      // Render Boss (Stage 1, Stage 2, Stage 3, Stage 4 & Stage 5) & Projectiles
-      if (currentStage >= 1 && currentStage <= 5 && engine.boss) {
+      // Render Boss (Stage 1, Stage 2, Stage 3, Stage 4, Stage 5 & Stage 6) & Projectiles
+      if (currentStage >= 1 && currentStage <= 6 && engine.boss) {
         const boss = engine.boss;
         const bx = boss.x - camX;
         const by = boss.y;
 
         let bossImg: HTMLCanvasElement | HTMLImageElement | null = null;
-        const isAiCartoonBoss = currentStage === 3 || currentStage === 4 || currentStage === 5;
-        if (currentStage === 3 || currentStage === 4 || currentStage === 5) {
+        const isAiCartoonBoss =
+          currentStage === 3 || currentStage === 4 || currentStage === 5 || currentStage === 6;
+        if (isAiCartoonBoss) {
           const arr =
-            currentStage === 5
+            currentStage === 6
+              ? boss6ImagesRef.current
+              : currentStage === 5
               ? boss5ImagesRef.current
               : currentStage === 3
               ? boss3ImagesRef.current
@@ -6556,7 +7267,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
 
         if (!isSpriteReady(bossImg)) {
           const fallbackArr =
-            currentStage === 5
+            currentStage === 6
+              ? boss6ImagesRef.current
+              : currentStage === 5
               ? boss5ImagesRef.current
               : currentStage === 4
               ? boss4ImagesRef.current
@@ -6587,7 +7300,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
            }
            if (boss.state === 'shooting' && boss.shootTimer > 0 && boss.shootTimer < 22) {
              ctx.fillStyle =
-               currentStage === 5
+               currentStage === 6
+                 ? 'rgba(14, 165, 233, 0.30)'
+                 : currentStage === 5
                  ? 'rgba(20, 184, 166, 0.28)'
                  : currentStage === 4
                  ? 'rgba(6, 182, 212, 0.28)'
@@ -6728,7 +7443,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             
             // Ultra Glow
             const glowColor =
-              currentStage === 5
+              currentStage === 6
+                ? '#0ea5e9'
+                : currentStage === 5
                 ? '#14b8a6'
                 : currentStage === 4
                 ? '#06b6d4'
@@ -6738,7 +7455,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                 ? '#a855f7'
                 : '#3b82f6';
             const strokeColor =
-              currentStage === 5
+              currentStage === 6
+                ? '#7dd3fc'
+                : currentStage === 5
                 ? '#5eead4'
                 : currentStage === 4
                 ? '#67e8f9'
@@ -6769,7 +7488,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             ctx.shadowColor = '#000';
             ctx.shadowBlur = 15;
             const bossCountdownLabel =
-              currentStage === 5
+              currentStage === 6
+                ? 'PERSIAPAN BERTARUNG! (BOS IKAN LUCU - STAGE 6)'
+                : currentStage === 5
                 ? 'PERSIAPAN BERTARUNG! (BOS KUJANG IMUT - STAGE 5)'
                 : currentStage === 4
                 ? 'PERSIAPAN BERTARUNG! (BOS CPU LUCU - STAGE 4)'
@@ -6977,7 +7698,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         }
       }
 
-      // Draw Obstacles (Komputer Jahat, Telepon Jahat, Keyboard Terbakar, Puddle, Cone)
+      // Draw High-Detail Unique Stage Monsters & Shaded Obstacles (Stages 1-6)
       for (const obs of engine.obstacles) {
         if (obs.destroyed) continue;
         const ox = obs.x - camX;
@@ -6986,58 +7707,69 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
         const animOffset = Math.sin(p.animFrame * 3) * 3;
         const legStep = Math.sin(p.animFrame * 4) * 4;
 
+        // Ground Contact Shadow under every obstacle
+        if (obs.type !== 'homework') {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+          ctx.beginPath();
+          ctx.ellipse(ox + obs.w / 2, obs.y + obs.h + 1, obs.w * 0.48, 4.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
         if (obs.type === 'computer_evil') {
-          // Stage 1: Komputer Jahat (Scaled cleanly to obs.w x obs.h)
+          // Stage 1 Exclusive Monster: Realistic 3D CRT Monitor Bug Monster
           ctx.save();
           ctx.translate(ox, obs.y);
           ctx.scale(obs.w / 34, obs.h / 34);
 
-          ctx.fillStyle = '#334155';
+          // Metallic Servo Claw Arms
+          ctx.fillStyle = '#475569';
           ctx.fillRect(-8, 10 + animOffset, 9, 4);
+          ctx.fillRect(33, 10 - animOffset, 9, 4);
           ctx.fillStyle = '#dc2626';
           ctx.beginPath();
           ctx.moveTo(-8, 8 + animOffset);
           ctx.lineTo(-13, 12 + animOffset);
           ctx.lineTo(-8, 16 + animOffset);
-          ctx.fill();
-
-          ctx.fillStyle = '#334155';
-          ctx.fillRect(33, 10 - animOffset, 9, 4);
-          ctx.fillStyle = '#dc2626';
-          ctx.beginPath();
           ctx.moveTo(42, 8 - animOffset);
           ctx.lineTo(47, 12 - animOffset);
           ctx.lineTo(42, 16 - animOffset);
           ctx.fill();
 
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(-1, -1, 36, 28);
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(0, 0, 34, 26);
+          // Shaded CRT Chassis & Glass Highlight
+          const crtGrad = ctx.createLinearGradient(0, 0, 0, 26);
+          crtGrad.addColorStop(0, '#334155');
+          crtGrad.addColorStop(1, '#0f172a');
+          ctx.fillStyle = crtGrad;
+          ctx.beginPath();
+          ctx.roundRect(-1, -1, 36, 28, 4);
+          ctx.fill();
           ctx.fillStyle = '#991b1b';
-          ctx.fillRect(3, 3, 28, 20);
+          ctx.beginPath();
+          ctx.roundRect(3, 3, 28, 20, 3);
+          ctx.fill();
+          // Glossy glass sheen
+          ctx.fillStyle = 'rgba(255,255,255,0.16)';
+          ctx.fillRect(4, 4, 26, 4);
 
+          // Glowing LED Eyes & Fangs
           ctx.fillStyle = '#fef08a';
           ctx.beginPath();
           ctx.moveTo(6, 5);
           ctx.lineTo(13, 9);
           ctx.lineTo(6, 11);
-          ctx.fill();
-
-          ctx.beginPath();
           ctx.moveTo(28, 5);
           ctx.lineTo(21, 9);
           ctx.lineTo(28, 11);
           ctx.fill();
 
-          ctx.fillStyle = '#000000';
-          ctx.fillRect(5, 12, 24, 9);
+          ctx.fillStyle = '#09090b';
+          ctx.fillRect(5, 13, 24, 8);
           ctx.fillStyle = '#ffffff';
           for (let tx = 0; tx < 4; tx++) {
             ctx.beginPath();
-            ctx.moveTo(6 + tx * 5.5, 12);
-            ctx.lineTo(8.5 + tx * 5.5, 16);
-            ctx.lineTo(11 + tx * 5.5, 12);
+            ctx.moveTo(6 + tx * 5.5, 13);
+            ctx.lineTo(8.5 + tx * 5.5, 17);
+            ctx.lineTo(11 + tx * 5.5, 13);
             ctx.fill();
           }
 
@@ -7047,38 +7779,46 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.restore();
 
         } else if (obs.type === 'phone_evil') {
-          // Stage 2: Telepon Jahat (Scaled cleanly to obs.w x obs.h)
+          // Stage 2 Exclusive Monster: Glossy Cyber Smartphone Mimic
           ctx.save();
           ctx.translate(ox, obs.y);
           ctx.scale(obs.w / 36, obs.h / 38);
 
-          ctx.fillStyle = '#7f1d1d';
-          ctx.fillRect(2, 10, 32, 20);
-          ctx.fillStyle = '#4c0519';
-          ctx.fillRect(5, 6, 26, 6);
-
-          ctx.fillStyle = '#991b1b';
+          const bodyGrad = ctx.createLinearGradient(2, 6, 34, 30);
+          bodyGrad.addColorStop(0, '#991b1b');
+          bodyGrad.addColorStop(1, '#4c0519');
+          ctx.fillStyle = bodyGrad;
           ctx.beginPath();
-          ctx.arc(8, 2, 6, 0, Math.PI * 2);
-          ctx.arc(28, 2, 6, 0, Math.PI * 2);
+          ctx.roundRect(2, 8, 32, 22, 5);
           ctx.fill();
-          ctx.fillRect(8, -1, 20, 5);
-
-          ctx.strokeStyle = '#450a0a';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(6, 12);
-          ctx.lineTo(2, 6);
+          ctx.strokeStyle = '#fda4af';
+          ctx.lineWidth = 1;
           ctx.stroke();
 
+          // Ringing Twin Alarm Bells
+          ctx.fillStyle = '#be123c';
+          ctx.beginPath();
+          ctx.arc(8, 2, 5.5, 0, Math.PI * 2);
+          ctx.arc(28, 2, 5.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#fecdd3';
+          ctx.fillRect(8, -1, 20, 4);
+
+          // Glowing Cyclops Camera Lens Eye
           ctx.fillStyle = '#fde047';
           ctx.beginPath();
-          ctx.arc(18, 18, 7, 0, Math.PI * 2);
+          ctx.arc(18, 17, 7, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = '#dc2626';
-          ctx.fillRect(16, 16, 4, 4);
+          ctx.beginPath();
+          ctx.arc(18, 17, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(16.5, 15.5, 1.3, 0, Math.PI * 2);
+          ctx.fill();
 
-          ctx.fillStyle = '#000000';
+          ctx.fillStyle = '#09090b';
           ctx.fillRect(6, 22, 24, 7);
           ctx.fillStyle = '#ffffff';
           for (let tx = 0; tx < 4; tx++) {
@@ -7095,7 +7835,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.restore();
 
         } else if (obs.type === 'keyboard_evil') {
-          // Stage 3: Keyboard Terbakar (Scaled cleanly to obs.w x obs.h)
+          // Stage 3 Exclusive Monster: Mechanical RGB Blazer Keyboard Monster
           ctx.save();
           ctx.translate(ox, obs.y);
           ctx.scale(obs.w / 38, obs.h / 34);
@@ -7105,23 +7845,27 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             const flickerY = Math.sin(p.animFrame * 6 + f) * 5;
             ctx.fillStyle = f % 2 === 0 ? '#ef4444' : '#f59e0b';
             ctx.beginPath();
-            ctx.arc(fireOffsetX, -4 + flickerY, 5, 0, Math.PI * 2);
+            ctx.arc(fireOffsetX, -3 + flickerY, 5, 0, Math.PI * 2);
             ctx.fill();
             ctx.fillStyle = '#fde047';
             ctx.beginPath();
-            ctx.arc(fireOffsetX, -2 + flickerY, 2.5, 0, Math.PI * 2);
+            ctx.arc(fireOffsetX, -1 + flickerY, 2.5, 0, Math.PI * 2);
             ctx.fill();
           }
 
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(-2, 4, 42, 24);
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(0, 6, 38, 20);
+          const kbGrad = ctx.createLinearGradient(0, 4, 0, 26);
+          kbGrad.addColorStop(0, '#334155');
+          kbGrad.addColorStop(1, '#0f172a');
+          ctx.fillStyle = kbGrad;
+          ctx.beginPath();
+          ctx.roundRect(-2, 4, 42, 23, 3);
+          ctx.fill();
 
-          ctx.fillStyle = '#dc2626';
+          // Individual RGB Backlit Keycaps
           for (let ky = 0; ky < 2; ky++) {
             for (let kx = 0; kx < 6; kx++) {
-              ctx.fillRect(3 + kx * 6, 8 + ky * 5, 4, 3);
+              ctx.fillStyle = (kx + ky) % 2 === 0 ? '#ef4444' : '#38bdf8';
+              ctx.fillRect(2.5 + kx * 6, 7.5 + ky * 5, 4.5, 3.5);
             }
           }
 
@@ -7145,23 +7889,218 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.fillRect(25 - legStep, 26, 5, 8);
           ctx.restore();
 
+        } else if (obs.type === 'chip_evil') {
+          // Stage 4 Exclusive Monster: Silicon Microchip Sentinel (Gold IC Pins & Hologram Core)
+          ctx.save();
+          ctx.translate(ox, obs.y);
+          ctx.scale(obs.w / 40, obs.h / 40);
+
+          // Gold IC Contact Pins on Both Sides
+          ctx.fillStyle = '#facc15';
+          for (let pin = 0; pin < 5; pin++) {
+            ctx.fillRect(-4, 7 + pin * 5, 5, 2.5);
+            ctx.fillRect(39, 7 + pin * 5, 5, 2.5);
+          }
+
+          // Dark Silicon Die Body + Beveled Heat Spreader
+          const chipGrad = ctx.createLinearGradient(3, 3, 37, 31);
+          chipGrad.addColorStop(0, '#312e81');
+          chipGrad.addColorStop(1, '#090d16');
+          ctx.fillStyle = chipGrad;
+          ctx.beginPath();
+          ctx.roundRect(3, 3, 34, 28, 4);
+          ctx.fill();
+          ctx.strokeStyle = '#22d3ee';
+          ctx.lineWidth = 1.6;
+          ctx.stroke();
+
+          // Glowing Holographic Core Visor & Angry Circuit Brows
+          ctx.fillStyle = '#06b6d4';
+          ctx.beginPath();
+          ctx.roundRect(7, 8, 26, 11, 3);
+          ctx.fill();
+          ctx.fillStyle = '#fef08a';
+          ctx.beginPath();
+          ctx.arc(14, 13.5, 2.5, 0, Math.PI * 2);
+          ctx.arc(26, 13.5, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          // Razor Tooth Vent
+          ctx.fillStyle = '#090d16';
+          ctx.fillRect(10, 22, 20, 6);
+          ctx.fillStyle = '#67e8f9';
+          for (let t = 0; t < 4; t++) {
+            ctx.fillRect(11.5 + t * 4.6, 22, 2.4, 4);
+          }
+
+          // Spider Servo Legs
+          ctx.strokeStyle = '#facc15';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(10, 31);
+          ctx.lineTo(7 + legStep * 0.7, 39);
+          ctx.moveTo(30, 31);
+          ctx.lineTo(33 - legStep * 0.7, 39);
+          ctx.stroke();
+          ctx.restore();
+
+        } else if (obs.type === 'maung_bot_evil') {
+          // Stage 5 Exclusive Monster: Mecha Maung Bandung Guardian (Teal-Gold Armor & Visor)
+          ctx.save();
+          ctx.translate(ox, obs.y);
+          ctx.scale(obs.w / 44, obs.h / 42);
+
+          // Mecha Tiger Ears
+          ctx.fillStyle = '#0f766e';
+          ctx.beginPath();
+          ctx.moveTo(5, 10);
+          ctx.lineTo(10, 0);
+          ctx.lineTo(17, 8);
+          ctx.moveTo(39, 10);
+          ctx.lineTo(34, 0);
+          ctx.lineTo(27, 8);
+          ctx.fill();
+
+          // Sculpted Steel-Teal Tiger Chassis
+          const maungGrad = ctx.createLinearGradient(4, 6, 40, 34);
+          maungGrad.addColorStop(0, '#14b8a6');
+          maungGrad.addColorStop(0.6, '#0f766e');
+          maungGrad.addColorStop(1, '#1e293b');
+          ctx.fillStyle = maungGrad;
+          ctx.beginPath();
+          ctx.roundRect(4, 6, 36, 27, 7);
+          ctx.fill();
+          ctx.strokeStyle = '#facc15';
+          ctx.lineWidth = 1.6;
+          ctx.stroke();
+
+          // Gold Sunda Batik Forehead Crest
+          ctx.fillStyle = '#facc15';
+          ctx.beginPath();
+          ctx.moveTo(22, 7);
+          ctx.lineTo(26, 13);
+          ctx.lineTo(22, 16);
+          ctx.lineTo(18, 13);
+          ctx.closePath();
+          ctx.fill();
+
+          // Fierce Amber Visor Eyes
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(8, 16, 28, 7);
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.moveTo(10, 17);
+          ctx.lineTo(18, 20);
+          ctx.lineTo(11, 22);
+          ctx.moveTo(34, 17);
+          ctx.lineTo(26, 20);
+          ctx.lineTo(33, 22);
+          ctx.fill();
+
+          // Fanged Snarl
+          ctx.fillStyle = '#09090b';
+          ctx.fillRect(11, 25, 22, 6);
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(13, 25);
+          ctx.lineTo(15.5, 30);
+          ctx.lineTo(18, 25);
+          ctx.moveTo(26, 25);
+          ctx.lineTo(28.5, 30);
+          ctx.lineTo(31, 25);
+          ctx.fill();
+
+          // Armored Cyber Paws
+          ctx.fillStyle = '#334155';
+          ctx.fillRect(9 + legStep * 0.8, 33, 7, 8);
+          ctx.fillRect(28 - legStep * 0.8, 33, 7, 8);
+          ctx.restore();
+
+        } else if (obs.type === 'crab_cyber_evil') {
+          // Stage 6 Exclusive Monster: Pangandaran Coastal Glossy Crab Monster
+          ctx.save();
+          ctx.translate(ox, obs.y);
+          ctx.scale(obs.w / 46, obs.h / 38);
+
+          const clawSnap = Math.abs(Math.sin(p.animFrame * 5)) * 4;
+          // Raised Snapping Pincer Claws
+          ctx.fillStyle = '#ea580c';
+          ctx.beginPath();
+          ctx.arc(3, 12 - animOffset * 0.6, 7, 0.4, Math.PI * 2 - clawSnap * 0.15);
+          ctx.arc(43, 12 + animOffset * 0.6, 7, 0.4, Math.PI * 2 - clawSnap * 0.15);
+          ctx.fill();
+
+          // Scuttling Crab Legs
+          ctx.strokeStyle = '#9a3412';
+          ctx.lineWidth = 2.6;
+          ctx.beginPath();
+          ctx.moveTo(11, 28);
+          ctx.lineTo(5 + legStep * 0.6, 37);
+          ctx.moveTo(17, 29);
+          ctx.lineTo(14 - legStep * 0.6, 37);
+          ctx.moveTo(29, 29);
+          ctx.lineTo(32 + legStep * 0.6, 37);
+          ctx.moveTo(35, 28);
+          ctx.lineTo(41 - legStep * 0.6, 37);
+          ctx.stroke();
+
+          // Glossy Sculpted Carapace Shell
+          const crabGrad = ctx.createRadialGradient(23, 16, 4, 23, 21, 19);
+          crabGrad.addColorStop(0, '#fb923c');
+          crabGrad.addColorStop(0.55, '#ef4444');
+          crabGrad.addColorStop(1, '#991b1b');
+          ctx.fillStyle = crabGrad;
+          ctx.beginPath();
+          ctx.ellipse(23, 21, 16, 11, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#7f1d1d';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Shell Specular Highlight
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+          ctx.beginPath();
+          ctx.ellipse(18, 16, 7, 2.5, -0.3, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Eyestalks & Mischievous Eyes
+          ctx.fillStyle = '#dc2626';
+          ctx.fillRect(15, 7, 3, 6);
+          ctx.fillRect(28, 7, 3, 6);
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(16.5, 7, 3.8, 0, Math.PI * 2);
+          ctx.arc(29.5, 7, 3.8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#0f172a';
+          ctx.beginPath();
+          ctx.arc(16.5, 7, 1.8, 0, Math.PI * 2);
+          ctx.arc(29.5, 7, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Grumpy Crab Mouth
+          ctx.strokeStyle = '#450a0a';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(17, 25);
+          ctx.lineTo(20, 23);
+          ctx.lineTo(23, 25);
+          ctx.lineTo(26, 23);
+          ctx.lineTo(29, 25);
+          ctx.stroke();
+          ctx.restore();
+
         } else if (obs.type === 'fire') {
-          // Stage: Api (Rintangan Api) - Improved Visuals & Slower Speed
-          const flickerSpeed = 4; // Much slower than 22
+          // Stage: Api (Rintangan Api) - Multi-Layered Flame Hazard
+          const flickerSpeed = 4;
           const flicker = Math.sin(p.animFrame * flickerSpeed) * 3;
           const flickerLarge = Math.sin(p.animFrame * (flickerSpeed * 0.8)) * 6;
-          
-          // 1. Dark Red/Smoke Glow (Outer Base)
-          ctx.shadowColor = '#991b1b';
-          ctx.shadowBlur = 15;
-          ctx.fillStyle = '#7f1d1d';
+
+          ctx.fillStyle = 'rgba(153, 27, 27, 0.6)';
           ctx.beginPath();
           ctx.moveTo(ox - 5, obs.y + obs.h);
           ctx.quadraticCurveTo(ox + obs.w / 2, obs.y - 15 + flickerLarge, ox + obs.w + 5, obs.y + obs.h);
           ctx.fill();
-          ctx.shadowBlur = 0;
 
-          // 2. Main Red Body
           ctx.fillStyle = '#ef4444';
           ctx.beginPath();
           ctx.moveTo(ox, obs.y + obs.h);
@@ -7169,7 +8108,6 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.lineTo(ox + obs.w, obs.y + obs.h);
           ctx.fill();
 
-          // 3. Amber Mid-Layer
           ctx.fillStyle = '#f59e0b';
           ctx.beginPath();
           ctx.moveTo(ox + 6, obs.y + obs.h);
@@ -7177,7 +8115,6 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.lineTo(ox + obs.w - 6, obs.y + obs.h);
           ctx.fill();
 
-          // 4. Yellow Core
           ctx.fillStyle = '#fde047';
           ctx.beginPath();
           ctx.moveTo(ox + 12, obs.y + obs.h);
@@ -7185,7 +8122,6 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.lineTo(ox + obs.w - 12, obs.y + obs.h);
           ctx.fill();
 
-          // 5. White Hot Center
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
           ctx.moveTo(ox + 18, obs.y + obs.h);
@@ -7193,28 +8129,26 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.lineTo(ox + obs.w - 18, obs.y + obs.h);
           ctx.fill();
 
-          // 6. Floating Ember Particles
-          const particleCount = 3;
-          for (let pi = 0; particleCount > pi; pi++) {
-            const px = ox + (obs.w / 2) + Math.sin(p.animFrame * (2 + pi)) * 15;
-            const py = obs.y + 10 - ((p.animFrame * 50 + pi * 100) % 60);
-            if (py < obs.y + 15) {
+          for (let pi = 0; pi < 3; pi++) {
+            const epx = ox + obs.w / 2 + Math.sin(p.animFrame * (2 + pi)) * 15;
+            const epy = obs.y + 10 - ((p.animFrame * 50 + pi * 100) % 60);
+            if (epy < obs.y + 15) {
               ctx.fillStyle = '#facc15';
               ctx.beginPath();
-              ctx.arc(px, py, 2, 0, Math.PI * 2);
+              ctx.arc(epx, epy, 2, 0, Math.PI * 2);
               ctx.fill();
             }
           }
         } else if (obs.type === 'cone') {
-          // Upgraded Safety Traffic Cone with Heavy Base & Reflective Bands
+          // Realistic Shaded Safety Traffic Cone with Reflective Collars
           ctx.save();
-          ctx.fillStyle = 'rgba(0,0,0,0.22)';
-          ctx.beginPath();
-          ctx.ellipse(ox + obs.w / 2, obs.y + obs.h, obs.w * 0.55, 4, 0, 0, Math.PI * 2);
-          ctx.fill();
           ctx.fillStyle = '#1e293b';
           ctx.fillRect(ox - 2, obs.y + obs.h - 5, obs.w + 4, 5);
-          ctx.fillStyle = '#f97316';
+          const coneGrad = ctx.createLinearGradient(ox, obs.y, ox + obs.w, obs.y);
+          coneGrad.addColorStop(0, '#fb923c');
+          coneGrad.addColorStop(0.5, '#f97316');
+          coneGrad.addColorStop(1, '#c2410c');
+          ctx.fillStyle = coneGrad;
           ctx.beginPath();
           ctx.moveTo(ox + obs.w / 2 - 3, obs.y);
           ctx.lineTo(ox + obs.w / 2 + 3, obs.y);
@@ -7235,7 +8169,6 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.translate(ox, obs.y);
           ctx.scale(obs.w / 26, obs.h / 30);
           const wingFlap = Math.sin(p.animFrame * 6) * 5;
-          // Little flying wings
           ctx.fillStyle = '#e2e8f0';
           ctx.beginPath();
           ctx.moveTo(0, 12);
@@ -7249,7 +8182,6 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.lineTo(33, 17);
           ctx.closePath();
           ctx.fill();
-          // Notebook page
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, 26, 30);
           ctx.strokeStyle = '#94a3b8';
@@ -7276,6 +8208,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
       // Stage 3: MUSEUM WISATA SAINS & TEKNOLOGI (Tempat Wisata)
       // Stage 4: ALUN-ALUN KOTA CIAMIS (Monumen Bunga Rafflesia)
       // Stage 5: GEDUNG SATE KOTA BANDUNG (Paris van Java)
+      // Stage 6: PANTAI PANGANDARAN (Pesona Pesisir Jawa Barat)
       const gateX = engine.schoolGateX - camX;
       if (gateX > -500 && gateX < canvas.width + 500) {
         if (currentStage === 1) {
@@ -7286,8 +8219,10 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           drawTempatWisata(ctx, gateX - 55, 380, p.animFrame);
         } else if (currentStage === 4) {
           drawAlunAlunCiamis(ctx, gateX - 65, 380, p.animFrame);
-        } else {
+        } else if (currentStage === 5) {
           drawGedungSateBandung(ctx, gateX - 65, 380, p.animFrame);
+        } else {
+          drawPantaiPangandaran(ctx, gateX - 65, 380, p.animFrame);
         }
       }
 
@@ -7373,7 +8308,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           ctx.restore();
         }
 
-        const isFrozen = currentStage >= 1 && currentStage <= 5 && engine.boss && engine.boss.countdown > 0;
+        const isFrozen = currentStage >= 1 && currentStage <= 6 && engine.boss && engine.boss.countdown > 0;
         const isMoving = !isFrozen && Math.abs(p.vx) > 0.5;
         const isJumping = !p.isGrounded;
         const hasGunAmmo = p.keyboardGunFrames > 0 || (p.bulletsLeft !== undefined && p.bulletsLeft > 0);
@@ -7469,7 +8404,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           {/* Stage Badge */}
           <div className="px-3 py-1 bg-brand text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
             <span>Stage {currentStage}:</span>
-            <span>{currentStage === 1 ? 'Berangkat Sekolah' : currentStage === 2 ? 'Kegiatan Pramuka' : currentStage === 3 ? 'Study Tour Edukasi' : currentStage === 4 ? 'Menuju Kota Ciamis' : 'Menuju Kota Bandung'}</span>
+            <span>{currentStage === 1 ? 'Berangkat Sekolah' : currentStage === 2 ? 'Kegiatan Pramuka' : currentStage === 3 ? 'Study Tour Edukasi' : currentStage === 4 ? 'Menuju Kota Ciamis' : currentStage === 5 ? 'Menuju Kota Bandung' : 'Menuju Pangandaran'}</span>
           </div>
 
           <div className="flex items-center gap-1 font-black text-rose-500 text-base">
@@ -7481,7 +8416,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
           </div>
 
           <div className="text-xs font-bold text-slate-300">
-            Jarak: <span className="text-amber-400 font-mono font-black text-sm">{distanceRemaining}m</span> ke {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan' : currentStage === 3 ? 'Museum Wisata' : currentStage === 4 ? 'Alun-Alun Ciamis' : 'Gedung Sate Bandung'}
+            Jarak: <span className="text-amber-400 font-mono font-black text-sm">{distanceRemaining}m</span> ke {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan' : currentStage === 3 ? 'Museum Wisata' : currentStage === 4 ? 'Alun-Alun Ciamis' : currentStage === 5 ? 'Gedung Sate Bandung' : 'Pantai Pangandaran'}
           </div>
 
           {superPowerActive && (
@@ -7543,6 +8478,13 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                 title="Langsung Uji Coba Bos Stage 5 Kota Bandung (Kujang Imut)"
               >
                 🔥 Bos 5
+              </button>
+              <button
+                onClick={() => startBossFightStage6()}
+                className="px-2 py-1 bg-gradient-to-r from-sky-500 to-orange-500 hover:from-sky-400 hover:to-orange-400 text-white text-[10px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                title="Langsung Uji Coba Bos Stage 6 Pangandaran (Ikan Pokemon Imut)"
+              >
+                🔥 Bos 6
               </button>
               <button
                 onClick={() => {
@@ -7688,7 +8630,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             <div className="w-16 h-16 bg-brand rounded-2xl flex items-center justify-center shadow-lg text-3xl animate-bounce">
               🎒
             </div>
-            <h2 className="text-2xl md:text-3xl font-black tracking-tight">Petualangan Ke Sekolah, Ciamis & Bandung</h2>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight">Petualangan Sekolah, Bandung & Pangandaran</h2>
             <p className="text-xs text-slate-300 max-w-md font-medium leading-relaxed">
               Pilih Stage petualangan kamu! Kumpulkan RAM & Laptop, serta jawab Kuis Kotak Emas dari materi <strong className="text-amber-300">{activeCourseObj?.title || 'Informatika'}</strong>!
             </p>
@@ -7778,14 +8720,31 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                   </span>
                 )}
               </button>
+              <button
+                onClick={() => startGame(6)}
+                disabled={!isAdmin && !completedStages.includes(5)}
+                className={cn(
+                  "px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5",
+                  currentStage === 6 ? "bg-sky-600 text-white shadow-md" : "bg-slate-700/80 text-slate-300 hover:bg-slate-700",
+                  !isAdmin && !completedStages.includes(5) && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <span>{!isAdmin && !completedStages.includes(5) ? '🔒' : '🌊'} Stage 6</span>
+                <span className="text-[10px] opacity-80">(260m)</span>
+                {(studentStageHighScores?.[6] || 0) > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-md bg-amber-400 text-amber-950 text-[9px] font-black">
+                    🏆 {studentStageHighScores?.[6]}
+                  </span>
+                )}
+              </button>
             </div>
 
             <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-3 text-xs text-left max-w-md space-y-1 text-slate-300">
               <p className="font-black text-amber-400 uppercase tracking-wider text-[11px]">🎯 Informasi Stage {currentStage}:</p>
               <p className="text-[11px] font-semibold">
                 • <strong>Kuis Materi:</strong> {activeCourseObj?.title || 'Informatika'}<br/>
-                • <strong>Destinasi:</strong> {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan Pramuka' : currentStage === 3 ? 'Museum Wisata Sains' : currentStage === 4 ? 'Alun-Alun Kota Ciamis (Monumen Rafflesia)' : 'Gedung Sate Kota Bandung (Paris van Java)'}<br/>
-                • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat & Boss Core Virus' : currentStage === 2 ? 'Telepon Jahat (Lompat) & Boss Cyber Bot (Senjata Aplikasi)' : currentStage === 3 ? 'Keyboard Terbakar & Boss Monster Keyboard Imut (Lompat & Keycaps)' : currentStage === 4 ? 'Kombinasi Monster Cyber & Boss Monster CPU Lucu (Lompat & Chip Listrik)' : 'Kombinasi Cyber Bandung & Boss Kujang Imut (Lompat & Energi Pusaka)'}
+                • <strong>Destinasi:</strong> {currentStage === 1 ? 'SMPN 1 Kawali' : currentStage === 2 ? 'Bumi Perkemahan Pramuka' : currentStage === 3 ? 'Museum Wisata Sains' : currentStage === 4 ? 'Alun-Alun Kota Ciamis (Monumen Rafflesia)' : currentStage === 5 ? 'Gedung Sate Kota Bandung (Paris van Java)' : 'Pantai Pangandaran (Pesona Pesisir Jawa Barat)'}<br/>
+                • <strong>Monster:</strong> {currentStage === 1 ? 'Komputer Jahat & Boss Core Virus' : currentStage === 2 ? 'Telepon Jahat (Lompat) & Boss Cyber Bot (Senjata Aplikasi)' : currentStage === 3 ? 'Keyboard Terbakar & Boss Monster Keyboard Imut' : currentStage === 4 ? 'Sentinel Microchip & Boss Monster CPU Lucu' : currentStage === 5 ? 'Mecha Maung Bandung & Boss Kujang Imut' : 'Kepiting Cyber Pesisir & Boss Ikan Pokemon Lucu'}
               </p>
             </div>
 
@@ -7844,6 +8803,14 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                     title="Uji coba pertarungan Bos Stage 5 Kota Bandung (Monster Kujang Imut)"
                   >
                     🔥 Coba Bos Stage 5
+                  </button>
+
+                  <button
+                    onClick={() => startBossFightStage6()}
+                    className="px-3.5 py-2.5 bg-gradient-to-r from-sky-500 to-orange-500 hover:from-sky-400 hover:to-orange-400 text-white font-black text-xs rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                    title="Uji coba pertarungan Bos Stage 6 Pangandaran (Monster Ikan Pokemon Lucu)"
+                  >
+                    🔥 Coba Bos Stage 6
                   </button>
                 </div>
               )}
@@ -7947,7 +8914,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
               🏆
             </div>
             <h2 className="text-2xl md:text-3xl font-black text-amber-300">
-              {currentStage === 5 ? "JUARA PETUALANGAN KOTA BANDUNG! 🎉" : `Selamat! Selesai Stage ${currentStage}! 🎉`}
+              {currentStage === 6 ? "JUARA PETUALANGAN PANTAI PANGANDARAN! 🎉" : `Selamat! Selesai Stage ${currentStage}! 🎉`}
             </h2>
             <p className="text-xs md:text-sm text-emerald-200 font-bold max-w-md">
               {currentStage === 1
@@ -7958,7 +8925,9 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
                 ? "Kamu berhasil mencapai Museum Wisata Sains! Lanjut ke Petualangan Kota Ciamis?"
                 : currentStage === 4
                 ? "Kamu berhasil tiba di Alun-Alun Kota Ciamis! Lanjut ke Petualangan Kota Bandung?"
-                : "Selamat! Kamu telah menuntaskan seluruh 5 Stage Petualangan Edukasi Informatika hingga Kota Bandung!"}
+                : currentStage === 5
+                ? "Kamu berhasil tiba di Gedung Sate Kota Bandung! Lanjut ke Petualangan Pantai Pangandaran?"
+                : "Selamat! Kamu telah menuntaskan seluruh 6 Stage Petualangan Edukasi Informatika hingga Pantai Pangandaran!"}
             </p>
 
             <div className="bg-emerald-900/80 border border-emerald-700 p-4 rounded-2xl">
@@ -7967,7 +8936,7 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
             </div>
 
             <div className="flex gap-3 flex-wrap justify-center pt-2">
-              {currentStage < 5 ? (
+              {currentStage < 6 ? (
                 <button
                   onClick={() => startGame(currentStage + 1 as any)}
                   className="px-8 py-3.5 bg-amber-400 text-amber-950 font-black rounded-2xl text-sm hover:bg-amber-300 transition-all shadow-xl animate-pulse"
