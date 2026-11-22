@@ -44,6 +44,8 @@ import { db } from '../firebase';
 import { COURSES } from '../constants';
 import ContraSnesGame from './ContraSnesGame';
 import FightingGame from './FightingGame';
+import KodingMasterGame from './KodingMasterGame';
+import BerkebunGame from './BerkebunGame';
 import infokombatBg from '../assets/images/game_infokombat_bg_1795243068344.jpg';
 import contraSnesBg from '../assets/images/game_infowar_bg_1795243067848.jpg';
 import petualanganSmpBg from '../assets/images/game_petualangan_bg_1795243067941.jpg';
@@ -51,6 +53,7 @@ import patternMasterBg from '../assets/images/game_pattern_bg_1795243068059.jpg'
 import scratchBlocksBg from '../assets/images/game_koding_bg_1795243068875.jpg';
 import dekomposisiBg from '../assets/images/game_dekomposisi_bg_1795243068709.jpg';
 import starCatcherBg from '../assets/images/game_starcatcher_bg_1795243067534.jpg';
+import berkebunBg from '../assets/images/game_berkebun_bg_1795346504800.jpg';
 import bossKeyboardIdleImg from '../assets/images/boss_keyboard_idle_v2_1795342634195.jpg';
 import bossKeyboardActionImg from '../assets/images/boss_keyboard_action_1795341957877.jpg';
 import bossCpuIdleImg from '../assets/images/boss_cpu_idle_1795341958591.jpg';
@@ -89,7 +92,7 @@ const GAME_ART_MAP: Record<string, { image: string; fallbackGradient: string; ac
     image: scratchBlocksBg,
     fallbackGradient: 'from-amber-800 via-orange-900 to-slate-950',
     accentClass: 'bg-amber-600',
-    badgeText: 'Algoritma Labirin'
+    badgeText: '36 Stage · Logika Koding'
   },
   'dekomposisi-puzzle': {
     image: dekomposisiBg,
@@ -102,6 +105,12 @@ const GAME_ART_MAP: Record<string, { image: string; fallbackGradient: string; ac
     fallbackGradient: 'from-violet-900 via-fuchsia-900 to-slate-950',
     accentClass: 'bg-violet-600',
     badgeText: 'Arcade Visual'
+  },
+  'berkebun': {
+    image: berkebunBg,
+    fallbackGradient: 'from-amber-900 via-emerald-900 to-slate-950',
+    accentClass: 'bg-emerald-600',
+    badgeText: 'Simulasi Berkebun'
   }
 };
 
@@ -229,7 +238,7 @@ export const GAMES_LIST: GameItem[] = [
     id: 'scratch-blocks',
     title: 'Koding Master SMP',
     category: 'Algoritma & Pemrograman',
-    description: 'Bantu Robot mencapai Bintang Target! Susun balok perintah logika seefisien mungkin untuk menyelesaikan teka-teki labirin.',
+    description: 'Kuasai algoritma lewat 36 stage interaktif dalam 6 bab! Susun blok sekuens, Loop, Fungsi F1, Portal, Es Licin, dan Debugger langkah demi langkah.',
     iconName: 'Code',
     difficulty: 'Sedang',
     defaultTimerSec: 120
@@ -251,6 +260,15 @@ export const GAMES_LIST: GameItem[] = [
     iconName: 'Gamepad2',
     difficulty: 'Tantangan',
     defaultTimerSec: 60
+  },
+  {
+    id: 'berkebun',
+    title: 'Berkebun',
+    category: 'Simulasi Pertanian • Gaya Stardew Valley',
+    description: 'Kelola kebun impianmu ala Stardew Valley! Cangkul lahan, tanam bibit musiman, siram dari kolam, pasang sprinkler otomatis, dan jual hasil panen di Toko Desa.',
+    iconName: 'Gamepad2',
+    difficulty: 'Sedang',
+    defaultTimerSec: 180
   }
 ];
 
@@ -1230,6 +1248,18 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                             <span className="text-orange-700 dark:text-orange-400">3 Stage</span>
                           </>
                         )}
+                        {game.id === 'scratch-blocks' && (
+                          <>
+                            <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">·</span>
+                            <span className="text-sky-700 dark:text-sky-400">36 Stage</span>
+                          </>
+                        )}
+                        {game.id === 'berkebun' && (
+                          <>
+                            <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">·</span>
+                            <span className="text-emerald-700 dark:text-emerald-400">4 Musim</span>
+                          </>
+                        )}
                       </div>
 
                       {game.id === 'contra-snes' && Object.keys(currentStudentContraHighScores).length > 0 && (
@@ -1623,7 +1653,7 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHig
           "flex-1 w-full min-h-0 bg-slate-950 flex flex-col",
           gameId === 'infokombat'
             ? "p-0 overflow-hidden"
-            : gameId === 'contra-snes' || gameId === 'petualangan-smp' || gameId === 'star-catcher'
+            : gameId === 'contra-snes' || gameId === 'petualangan-smp' || gameId === 'star-catcher' || gameId === 'scratch-blocks' || gameId === 'berkebun'
             ? "p-1.5 sm:p-3 overflow-hidden items-center"
             : isMobile
             ? "p-2 overflow-y-auto items-center custom-scrollbar"
@@ -1635,7 +1665,7 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHig
             <PatternMasterGame isAdmin={isAdmin} currentStudent={currentStudent} onClose={onClose} />
           )}
           {gameId === 'scratch-blocks' && (
-            <ScratchBlocksGame isAdmin={isAdmin} currentStudent={currentStudent} onClose={onClose} />
+            <KodingMasterGame isAdmin={isAdmin} currentStudent={currentStudent} onClose={onClose} />
           )}
           {gameId === 'dekomposisi-puzzle' && (
             <DekomposisiPuzzleGame isAdmin={isAdmin} currentStudent={currentStudent} onClose={onClose} />
@@ -1651,6 +1681,9 @@ function InteractiveGameModal({ gameId, isAdmin, currentStudent, studentStageHig
           )}
           {gameId === 'infokombat' && (
             <FightingGame isAdmin={isAdmin} currentStudent={currentStudent} onExit={onClose} />
+          )}
+          {gameId === 'berkebun' && (
+            <BerkebunGame isAdmin={isAdmin} currentStudent={currentStudent} onClose={onClose} />
           )}
         </div>
       </div>
@@ -1827,221 +1860,6 @@ function PatternMasterGame({ isAdmin, currentStudent, onClose }: { isAdmin: bool
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------
-   Game 2: Scratch Block Builder
-   ------------------------------------------------------------------------- */
-function ScratchBlocksGame({ isAdmin, currentStudent, onClose }: { isAdmin: boolean; currentStudent: any; onClose: () => void }) {
-  const [level, setLevel] = useState(1);
-  const [workspace, setWorkspace] = useState<string[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
-  const [robotPos, setRobotPos] = useState({ x: 0, y: 0, dir: 0 }); // dir: 0=E, 1=S, 2=W, 3=N
-  const [msg, setStepMsg] = useState('Pindahkan Robot ke Bintang dengan susunan balok!');
-  const [isWon, setIsWon] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  const levels = [
-    { grid: [[0, 0, 0], [1, 1, 0], [2, 0, 0]], start: { x: 0, y: 0 }, goal: { x: 0, y: 2 } }, // 0=path, 1=wall, 2=goal
-    { grid: [[0, 0, 1], [1, 0, 0], [1, 1, 2]], start: { x: 0, y: 0 }, goal: { x: 2, y: 2 } },
-    { grid: [[0, 1, 2], [0, 1, 0], [0, 0, 0]], start: { x: 0, y: 2 }, goal: { x: 2, y: 0 } },
-    { grid: [[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 2, 0], [0, 0, 0, 0]], start: { x: 0, y: 0 }, goal: { x: 2, y: 2 } },
-    { grid: [[0, 0, 0, 0, 0], [1, 1, 1, 1, 0], [2, 0, 0, 0, 0], [0, 1, 1, 1, 1], [0, 0, 0, 0, 0]], start: { x: 0, y: 0 }, goal: { x: 0, y: 2 } },
-  ];
-
-  const currentLevelData = levels[level - 1] || levels[0];
-
-  useEffect(() => {
-    setRobotPos({ x: currentLevelData.start.x, y: currentLevelData.start.y, dir: 0 });
-    setIsWon(false);
-    setWorkspace([]);
-    setStepMsg(`Level ${level}: ${level === 1 ? 'Maju terus pantang mundur!' : 'Hati-hati tembok penghalang!'}`);
-  }, [level]);
-
-  useEffect(() => {
-    const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx) return;
-
-    const draw = () => {
-      const gridW = currentLevelData.grid[0].length;
-      const gridH = currentLevelData.grid.length;
-      const cellSize = Math.min(300 / gridW, 300 / gridH);
-      
-      ctx.clearRect(0, 0, 300, 300);
-      
-      // Draw Grid
-      currentLevelData.grid.forEach((row, y) => {
-        row.forEach((cell, x) => {
-          ctx.strokeStyle = '#e2e8f0';
-          ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
-          if (cell === 1) {
-            ctx.fillStyle = '#475569';
-            ctx.fillRect(x * cellSize + 5, y * cellSize + 5, cellSize - 10, cellSize - 10);
-          } else if (cell === 2) {
-            ctx.font = `${cellSize * 0.4}px sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('⭐', x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
-          }
-        });
-      });
-
-      // Draw Robot
-      ctx.save();
-      ctx.translate(robotPos.x * cellSize + cellSize / 2, robotPos.y * cellSize + cellSize / 2);
-      ctx.rotate((robotPos.dir * 90 * Math.PI) / 180);
-      ctx.font = `${cellSize * 0.5}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('🤖', 0, 0);
-      ctx.restore();
-    };
-
-    draw();
-  }, [robotPos, level]);
-
-  const runCode = async () => {
-    if (workspace.length === 0) return;
-    setIsRunning(true);
-    let cur = { ...robotPos, x: currentLevelData.start.x, y: currentLevelData.start.y, dir: 0 };
-    setRobotPos(cur);
-
-    for (const cmd of workspace) {
-      await new Promise(r => setTimeout(r, 600));
-      if (cmd === 'MOVE') {
-        const nx = cur.x + (cur.dir === 0 ? 1 : cur.dir === 2 ? -1 : 0);
-        const ny = cur.y + (cur.dir === 1 ? 1 : cur.dir === 3 ? -1 : 0);
-        const gridH = currentLevelData.grid.length;
-        const gridW = currentLevelData.grid[0].length;
-        if (nx >= 0 && nx < gridW && ny >= 0 && ny < gridH && currentLevelData.grid[ny][nx] !== 1) {
-          cur.x = nx;
-          cur.y = ny;
-        } else {
-          setStepMsg('💥 Robot menabrak tembok!');
-          setIsRunning(false);
-          return;
-        }
-      } else if (cmd === 'RIGHT') {
-        cur.dir = (cur.dir + 1) % 4;
-      } else if (cmd === 'LEFT') {
-        cur.dir = (cur.dir + 3) % 4;
-      }
-      setRobotPos({ ...cur });
-    }
-
-    if (cur.x === currentLevelData.goal.x && cur.y === currentLevelData.goal.y) {
-      setStepMsg('🎉 Level Selesai! Kamu Hebat!');
-      setIsWon(true);
-      if (level === levels.length) {
-        saveScore(100);
-      }
-    } else {
-      setStepMsg('🤔 Robot belum sampai ke tujuan. Coba lagi!');
-    }
-    setIsRunning(false);
-  };
-
-  const saveScore = async (finalScore: number) => {
-    if ((!currentStudent && !isAdmin) || finalScore <= 0) return;
-    const studentId = currentStudent?.id || 'admin-preview';
-    try {
-      const existingSnap = await getDocs(
-        query(
-          collection(db, 'game_scores'),
-          where('studentId', '==', studentId),
-          where('gameId', '==', 'scratch-blocks')
-        )
-      );
-      let prevBest = 0;
-      existingSnap.docs.forEach(d => {
-        const val = Number(d.data()?.score || 0);
-        if (val > prevBest) prevBest = val;
-      });
-      if (finalScore > prevBest) {
-        const nowIso = new Date().toISOString();
-        const studentKelas = currentStudent?.kelas || 'Admin';
-        await setDoc(doc(db, 'game_scores', `${studentId}__scratch-blocks`), {
-          gameId: 'scratch-blocks',
-          gameTitle: 'Koding Master SMP',
-          studentId,
-          studentName: currentStudent?.nama || 'Admin Pratinjau',
-          studentNis: currentStudent?.nis || '-',
-          studentKelas,
-          kelas: studentKelas,
-          score: finalScore,
-          playedAt: nowIso,
-          timestamp: nowIso
-        });
-      }
-    } catch (e) {
-      console.error("Failed saving score", e);
-    }
-  };
-
-  return (
-    <div className="flex flex-col md:flex-row gap-6 h-full p-2">
-      {/* Toolbox */}
-      <div className="flex-1 bg-slate-100 p-4 rounded-2xl border border-slate-300 space-y-4">
-        <h4 className="font-black text-sm uppercase text-slate-700">Balok Perintah</h4>
-        <div className="grid grid-cols-1 gap-2">
-          <button onClick={() => setWorkspace([...workspace, 'MOVE'])} className="p-3 bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-blue-700 transition-all">
-            <ArrowRight size={14} /> Maju 1 Langkah
-          </button>
-          <button onClick={() => setWorkspace([...workspace, 'RIGHT'])} className="p-3 bg-amber-500 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-amber-600 transition-all">
-            <RotateCcw size={14} className="rotate-180" /> Belok Kanan
-          </button>
-          <button onClick={() => setWorkspace([...workspace, 'LEFT'])} className="p-3 bg-amber-500 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-amber-600 transition-all">
-            <RotateCcw size={14} /> Belok Kiri
-          </button>
-        </div>
-
-        <div className="pt-4 border-t border-slate-200">
-          <h4 className="font-black text-xs uppercase text-slate-500 mb-2">Workspace</h4>
-          <div className="min-h-[150px] bg-white rounded-xl border-2 border-dashed border-slate-300 p-2 space-y-1">
-            {workspace.map((w, i) => (
-              <div key={i} className="px-3 py-1.5 bg-slate-200 rounded-lg text-[10px] font-black flex justify-between items-center group">
-                <span>{i + 1}. {w === 'MOVE' ? 'MAJU' : w === 'RIGHT' ? 'KANAN' : 'KIRI'}</span>
-                <button onClick={() => setWorkspace(workspace.filter((_, idx) => idx !== i))} className="text-red-500 opacity-0 group-hover:opacity-100">
-                  <X size={12} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          <button onClick={() => setWorkspace([])} className="flex-1 py-3 bg-slate-300 text-slate-700 rounded-xl font-black text-xs">Reset</button>
-          <button onClick={runCode} disabled={isRunning} className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-md shadow-emerald-600/20">JALANKAN</button>
-        </div>
-      </div>
-
-      {/* Stage */}
-      <div className="flex-[1.5] bg-white rounded-3xl border-4 border-slate-900 shadow-xl overflow-hidden flex flex-col items-center justify-center p-4 space-y-4">
-        <div className="text-center">
-          <span className="text-[10px] font-black bg-brand/10 text-brand px-2 py-0.5 rounded-full uppercase tracking-tighter">Level {level}</span>
-          <p className="text-xs font-bold text-slate-600 mt-1">{msg}</p>
-        </div>
-        
-        <canvas ref={canvasRef} width={300} height={300} className="bg-slate-50 rounded-xl border border-slate-200 shadow-inner" />
-
-        {isWon && (
-          <div className="w-full">
-            {level < levels.length ? (
-              <button onClick={() => setLevel(level + 1)} className="w-full py-4 bg-amber-400 text-amber-950 font-black rounded-2xl animate-bounce shadow-xl">
-                LANJUT LEVEL {level + 1} ➔
-              </button>
-            ) : (
-              <div className="p-4 bg-emerald-100 border-2 border-emerald-500 rounded-2xl text-center">
-                <Trophy size={32} className="mx-auto text-amber-500" />
-                <h5 className="font-black text-emerald-900 mt-2">Coding Master Tamat!</h5>
-                <p className="text-[10px] font-bold text-emerald-700">Kamu telah menguasai dasar algoritma.</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
