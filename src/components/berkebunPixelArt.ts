@@ -4,8 +4,8 @@
  */
 
 import farmerSpriteUrl from '../assets/images/berkebun_farmer_pixel_1795346951033.jpg';
-import farmerWalkSheetUrl from '../assets/images/farmer_walk_sheet_v3_1795359286105.jpg';
-import farmerActionsSheetUrl from '../assets/images/berkebun_farmer_actions_sheet_1795352733967.jpg';
+import farmerWalkSheetUrl from '../assets/images/farmer_unified_sheet_v4_1795359923127.jpg';
+import farmerActionsSheetUrl from '../assets/images/farmer_unified_sheet_v4_1795359923127.jpg';
 import farmhouseSpriteUrl from '../assets/images/berkebun_farmhouse_pixel_1795346951463.jpg';
 import shopSpriteUrl from '../assets/images/berkebun_shop_pixel_1795346951275.jpg';
 import binSpriteUrl from '../assets/images/berkebun_bin_pixel_1795346952182.jpg';
