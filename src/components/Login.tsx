@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { motion } from 'motion/react';
+import { getBackgroundPreset } from '../backgrounds';
 
 interface LoginProps {
   setCurrentPage: (page: 'student_dashboard' | 'login' | 'admin' | 'course') => void;
   setIsAdmin: (isAdmin: boolean) => void;
   setCurrentStudent: (student: any) => void;
   setCurrentScore: (score: number) => void;
-  settingsConfig?: { logoUrl?: string };
+  settingsConfig?: { logoUrl?: string; backgroundPreset?: string };
 }
 
 export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, setCurrentScore, settingsConfig }: LoginProps) {
@@ -103,8 +104,10 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
     }
   };
 
+  const bgPreset = getBackgroundPreset(settingsConfig?.backgroundPreset);
+
   return (
-    <div className="min-h-screen bg-slate-300 flex items-center justify-center font-sans p-6 selection:bg-brand/30">
+    <div className={`min-h-screen w-full ${bgPreset.className} flex items-center justify-center font-sans p-6 selection:bg-brand/30 transition-colors duration-300`}>
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <motion.div 

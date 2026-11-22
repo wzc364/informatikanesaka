@@ -38,6 +38,7 @@ import {
   MoveRight
 } from 'lucide-react';
 import { cn } from '../utils';
+import { dedupeHighestGameScores, formatScoreTimestamp } from '../scoreUtils';
 import { doc, setDoc, collection, onSnapshot, deleteDoc, arrayUnion, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { COURSES } from '../constants';
@@ -575,35 +576,15 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
   };
 
   // Deduplicate so each student has ONLY their highest score per unique game/stage
-  const bestScoresAll = (() => {
-    const bestScoresMap: Record<string, any> = {};
-    gameScores.forEach(s => {
-      if ((s.score || 0) <= 0) return;
-      if (!isAdmin && s.studentId === 'admin-preview') return;
-
-      const studentKey = String(s.studentId || s.studentNis || s.studentName || 'unknown').trim().toLowerCase();
-      const stageMatch = typeof s.gameTitle === 'string' ? s.gameTitle.match(/Stage\s*(\d+)/i) : null;
-      const stageKey = stageMatch ? `stage-${stageMatch[1]}` : String(s.gameTitle || s.gameId || 'default').trim().toLowerCase();
-      const key = `${studentKey}__${s.gameId || ''}__${stageKey}`;
-
-      const existing = bestScoresMap[key];
-      if (
-        !existing ||
-        (s.score || 0) > (existing.score || 0) ||
-        ((s.score || 0) === (existing.score || 0) && (s.playedAt || '') > (existing.playedAt || ''))
-      ) {
-        bestScoresMap[key] = s;
-      }
-    });
-    return Object.values(bestScoresMap).sort((a, b) => (b.score || 0) - (a.score || 0));
-  })();
+  const bestScoresAll = dedupeHighestGameScores(gameScores, !isAdmin);
 
   // Filtered leaderboard - only show the best score per student per unique game/stage
   const filteredScores = bestScoresAll.filter(score => {
+    const scoreKelas = score.studentKelas || score.kelas || '';
     const matchSearch = score.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                         score.studentNis?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                         score.gameTitle?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchKelas = filterKelas === 'all' || score.studentKelas === filterKelas;
+    const matchKelas = filterKelas === 'all' || scoreKelas === filterKelas;
     const matchGame = filterGame === 'all' || score.gameId === filterGame;
 
     // Stage Filter for Petualangan SMP & Cyber Contra SNES
@@ -652,7 +633,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
   })();
 
   // Extract unique classes
-  const uniqueClasses = Array.from(new Set(studentsList.map(s => s.kelas).concat(gameScores.map(s => s.studentKelas)))).filter(Boolean).sort();
+  const uniqueClasses = Array.from(new Set(studentsList.map(s => s.kelas).concat(gameScores.map(s => s.studentKelas || s.kelas)))).filter(Boolean).sort();
 
   return (
     <div className={cn("font-sans", isAdmin ? "space-y-4" : "space-y-6")}>
@@ -1183,7 +1164,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                           {score.studentNis && <span className="block text-[11px] font-mono font-normal text-slate-500">NISN: {score.studentNis}</span>}
                         </td>
                         <td className="px-4 py-3 font-semibold text-slate-700">
-                          {score.studentKelas || '-'}
+                          {score.studentKelas || score.kelas || '-'}
                         </td>
                         <td className="px-4 py-3 font-semibold text-indigo-700">
                           {score.gameTitle || 'Game'}
@@ -1195,7 +1176,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
                           {score.durationSec ? `${score.durationSec}s` : '-'}
                         </td>
                         <td className="px-4 py-3 text-slate-500 text-xs">
-                          {score.playedAt ? new Date(score.playedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}
+                          {formatScoreTimestamp(score)}
                         </td>
                         {isAdmin && (
                           <td className="px-4 py-3 text-center">
@@ -1509,18 +1490,37 @@ function PatternMasterGame({ isAdmin, currentStudent, onClose }: { isAdmin: bool
   };
 
   const saveScore = async (finalScore: number) => {
-    if (!currentStudent && !isAdmin) return;
+    if ((!currentStudent && !isAdmin) || finalScore <= 0) return;
+    const studentId = currentStudent?.id || 'admin-preview';
     try {
-      await setDoc(doc(collection(db, 'game_scores')), {
-        gameId: 'pattern-master',
-        gameTitle: 'Detektif Pola Bilangan',
-        studentId: currentStudent?.id || 'admin-preview',
-        studentName: currentStudent?.nama || 'Admin Pratinjau',
-        studentNis: currentStudent?.nis || '-',
-        studentKelas: currentStudent?.kelas || 'Admin',
-        score: finalScore,
-        playedAt: new Date().toISOString()
+      const existingSnap = await getDocs(
+        query(
+          collection(db, 'game_scores'),
+          where('studentId', '==', studentId),
+          where('gameId', '==', 'pattern-master')
+        )
+      );
+      let prevBest = 0;
+      existingSnap.docs.forEach(d => {
+        const val = Number(d.data()?.score || 0);
+        if (val > prevBest) prevBest = val;
       });
+      if (finalScore > prevBest) {
+        const nowIso = new Date().toISOString();
+        const studentKelas = currentStudent?.kelas || 'Admin';
+        await setDoc(doc(db, 'game_scores', `${studentId}__pattern-master`), {
+          gameId: 'pattern-master',
+          gameTitle: 'Detektif Pola Bilangan',
+          studentId,
+          studentName: currentStudent?.nama || 'Admin Pratinjau',
+          studentNis: currentStudent?.nis || '-',
+          studentKelas,
+          kelas: studentKelas,
+          score: finalScore,
+          playedAt: nowIso,
+          timestamp: nowIso
+        });
+      }
     } catch (e) {
       console.error("Failed saving score", e);
     }
@@ -1716,17 +1716,40 @@ function ScratchBlocksGame({ isAdmin, currentStudent, onClose }: { isAdmin: bool
   };
 
   const saveScore = async (finalScore: number) => {
-    if (!currentStudent && !isAdmin) return;
+    if ((!currentStudent && !isAdmin) || finalScore <= 0) return;
+    const studentId = currentStudent?.id || 'admin-preview';
     try {
-      await setDoc(doc(collection(db, 'game_scores')), {
-        gameId: 'scratch-blocks',
-        gameTitle: 'Koding Master SMP',
-        studentId: currentStudent?.id || 'admin-preview',
-        studentName: currentStudent?.nama || 'Admin Pratinjau',
-        score: finalScore,
-        playedAt: new Date().toISOString()
+      const existingSnap = await getDocs(
+        query(
+          collection(db, 'game_scores'),
+          where('studentId', '==', studentId),
+          where('gameId', '==', 'scratch-blocks')
+        )
+      );
+      let prevBest = 0;
+      existingSnap.docs.forEach(d => {
+        const val = Number(d.data()?.score || 0);
+        if (val > prevBest) prevBest = val;
       });
-    } catch (e) {}
+      if (finalScore > prevBest) {
+        const nowIso = new Date().toISOString();
+        const studentKelas = currentStudent?.kelas || 'Admin';
+        await setDoc(doc(db, 'game_scores', `${studentId}__scratch-blocks`), {
+          gameId: 'scratch-blocks',
+          gameTitle: 'Koding Master SMP',
+          studentId,
+          studentName: currentStudent?.nama || 'Admin Pratinjau',
+          studentNis: currentStudent?.nis || '-',
+          studentKelas,
+          kelas: studentKelas,
+          score: finalScore,
+          playedAt: nowIso,
+          timestamp: nowIso
+        });
+      }
+    } catch (e) {
+      console.error("Failed saving score", e);
+    }
   };
 
   return (
@@ -1833,18 +1856,37 @@ function DekomposisiPuzzleGame({ isAdmin, currentStudent, onClose }: { isAdmin: 
   };
 
   const saveScore = async (finalScore: number) => {
-    if (!currentStudent && !isAdmin) return;
+    if ((!currentStudent && !isAdmin) || finalScore <= 0) return;
+    const studentId = currentStudent?.id || 'admin-preview';
     try {
-      await setDoc(doc(collection(db, 'game_scores')), {
-        gameId: 'dekomposisi-puzzle',
-        gameTitle: 'Dekomposisi Master',
-        studentId: currentStudent?.id || 'admin-preview',
-        studentName: currentStudent?.nama || 'Admin Pratinjau',
-        studentNis: currentStudent?.nis || '-',
-        studentKelas: currentStudent?.kelas || 'Admin',
-        score: finalScore,
-        playedAt: new Date().toISOString()
+      const existingSnap = await getDocs(
+        query(
+          collection(db, 'game_scores'),
+          where('studentId', '==', studentId),
+          where('gameId', '==', 'dekomposisi-puzzle')
+        )
+      );
+      let prevBest = 0;
+      existingSnap.docs.forEach(d => {
+        const val = Number(d.data()?.score || 0);
+        if (val > prevBest) prevBest = val;
       });
+      if (finalScore > prevBest) {
+        const nowIso = new Date().toISOString();
+        const studentKelas = currentStudent?.kelas || 'Admin';
+        await setDoc(doc(db, 'game_scores', `${studentId}__dekomposisi-puzzle`), {
+          gameId: 'dekomposisi-puzzle',
+          gameTitle: 'Dekomposisi Master',
+          studentId,
+          studentName: currentStudent?.nama || 'Admin Pratinjau',
+          studentNis: currentStudent?.nis || '-',
+          studentKelas,
+          kelas: studentKelas,
+          score: finalScore,
+          playedAt: nowIso,
+          timestamp: nowIso
+        });
+      }
     } catch (e) {
       console.error("Failed saving score", e);
     }
@@ -2068,18 +2110,37 @@ function StarCatcherArcadeGame({ isAdmin, currentStudent, onClose }: { isAdmin: 
   }, [isPlaying]);
 
   const saveScore = async (finalScore: number) => {
-    if (!currentStudent && !isAdmin) return;
+    if ((!currentStudent && !isAdmin) || finalScore <= 0) return;
+    const studentId = currentStudent?.id || 'admin-preview';
     try {
-      await setDoc(doc(collection(db, 'game_scores')), {
-        gameId: 'star-catcher',
-        gameTitle: 'Star Catcher Arcade',
-        studentId: currentStudent?.id || 'admin-preview',
-        studentName: currentStudent?.nama || 'Admin Pratinjau',
-        studentNis: currentStudent?.nis || '-',
-        studentKelas: currentStudent?.kelas || 'Admin',
-        score: finalScore,
-        playedAt: new Date().toISOString()
+      const existingSnap = await getDocs(
+        query(
+          collection(db, 'game_scores'),
+          where('studentId', '==', studentId),
+          where('gameId', '==', 'star-catcher')
+        )
+      );
+      let prevBest = 0;
+      existingSnap.docs.forEach(d => {
+        const val = Number(d.data()?.score || 0);
+        if (val > prevBest) prevBest = val;
       });
+      if (finalScore > prevBest) {
+        const nowIso = new Date().toISOString();
+        const studentKelas = currentStudent?.kelas || 'Admin';
+        await setDoc(doc(db, 'game_scores', `${studentId}__star-catcher`), {
+          gameId: 'star-catcher',
+          gameTitle: 'Star Catcher Arcade',
+          studentId,
+          studentName: currentStudent?.nama || 'Admin Pratinjau',
+          studentNis: currentStudent?.nis || '-',
+          studentKelas,
+          kelas: studentKelas,
+          score: finalScore,
+          playedAt: nowIso,
+          timestamp: nowIso
+        });
+      }
     } catch (e) {
       console.error("Failed saving score", e);
     }
@@ -4115,15 +4176,20 @@ function PetualanganSMPGame({ isAdmin, currentStudent, studentStageHighScores, o
 
         if (finalScore > prevBest) {
           const docId = `${studentId}_petualangan-smp_stage-${currentStage}`;
+          const nowIso = new Date().toISOString();
+          const studentKelas = currentStudent?.kelas || 'Admin';
           await setDoc(doc(db, 'game_scores', docId), {
             gameId: 'petualangan-smp',
             gameTitle: stageTitle,
+            stage: currentStage,
             studentId,
             studentName: currentStudent?.nama || 'Admin Pratinjau',
             studentNis: currentStudent?.nis || '-',
-            studentKelas: currentStudent?.kelas || 'Admin',
+            studentKelas,
+            kelas: studentKelas,
             score: finalScore,
-            playedAt: new Date().toISOString()
+            playedAt: nowIso,
+            timestamp: nowIso
           });
         }
       }

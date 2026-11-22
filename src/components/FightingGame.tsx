@@ -5504,19 +5504,37 @@ export default function FightingGame({ currentStudent, isAdmin, onExit, onFirest
 
   const saveScoreToDb = useCallback(
     async (finalScore: number) => {
-      if (!currentStudent || isAdmin || isSavingRef.current) return;
+      if (!currentStudent || isAdmin || isSavingRef.current || finalScore <= 0) return;
       isSavingRef.current = true;
       try {
-        const scoreId = `${currentStudent.id}_infokombat_${Date.now()}`;
-        await setDoc(doc(db, 'game_scores', scoreId), {
-          studentId: currentStudent.id,
-          studentName: currentStudent.nama,
-          kelas: currentStudent.kelas,
-          gameId: 'infokombat',
-          gameTitle: 'Informatika Kombat',
-          score: finalScore,
-          timestamp: serverTimestamp(),
+        let prevBest = 0;
+        const existingSnap = await getDocs(
+          query(
+            collection(db, 'game_scores'),
+            where('studentId', '==', currentStudent.id),
+            where('gameId', '==', 'infokombat')
+          )
+        );
+        existingSnap.docs.forEach((d) => {
+          const val = Number(d.data()?.score || 0);
+          if (val > prevBest) prevBest = val;
         });
+
+        if (finalScore > prevBest) {
+          const scoreId = `${currentStudent.id}__infokombat`;
+          await setDoc(doc(db, 'game_scores', scoreId), {
+            studentId: currentStudent.id,
+            studentName: currentStudent.nama,
+            studentNis: currentStudent.nis || '-',
+            studentKelas: currentStudent.kelas || '-',
+            kelas: currentStudent.kelas || '-',
+            gameId: 'infokombat',
+            gameTitle: 'Informatika Kombat',
+            score: finalScore,
+            playedAt: new Date().toISOString(),
+            timestamp: serverTimestamp(),
+          });
+        }
       } catch (err) {
         console.error('Error saving fighting score:', err);
         onFirestoreError?.(err, 'write', 'game_scores');

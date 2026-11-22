@@ -67,7 +67,10 @@ import {
   MonitorPlay,
   ClipboardList,
   GraduationCap,
-  Printer
+  Printer,
+  Trophy,
+  Palette,
+  Check
 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
@@ -87,6 +90,8 @@ import StudentSoalRunner from './components/StudentSoalRunner';
 import { AdminMaterialPrintModal } from './components/AdminMaterialPrintModal';
 import { AdminQuestionAnalysis } from './components/AdminQuestionAnalysis';
 import { resolveCourseImageUrl, getPublicFallbackImageUrl } from './courseImageMap';
+import { APP_BACKGROUNDS, getBackgroundPreset } from './backgrounds';
+import { dedupeHighestGameScores, formatScoreTimestamp, getScoreTimestampMs } from './scoreUtils';
 import courseCoverSystemsFlat from './assets/images/course_cover_systems_flat_1795244678070.jpg';
 import courseCoverCodingFlat from './assets/images/course_cover_coding_flat_1795244677820.jpg';
 import courseCoverDataFlat from './assets/images/course_cover_data_flat_1795244677214.jpg';
@@ -304,7 +309,7 @@ export default function App() {
     defaultQuizAvailableAt?: number;
     useGlobalTimers?: boolean;
   }>>({});
-  const [settingsConfig, setSettingsConfig] = useState<{logoUrl: string}>({ logoUrl: '' });
+  const [settingsConfig, setSettingsConfig] = useState<{logoUrl: string; backgroundPreset?: string}>({ logoUrl: '', backgroundPreset: 'default' });
   const [localMaterialConfig, setLocalMaterialConfig] = useState<any>(null);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [editingMaterialConfigId, setEditingMaterialConfigId] = useState<string | null>(null);
@@ -365,7 +370,8 @@ export default function App() {
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [studentTab, setStudentTab] = useState<'materi' | 'soal' | 'games'>('materi');
+  const [studentTab, setStudentTab] = useState<'materi' | 'soal' | 'games' | 'skor'>('materi');
+  const [studentScoreFilter, setStudentScoreFilter] = useState<'all' | 'materi' | 'soal' | 'game'>('all');
   const [studentCatalogSearch, setStudentCatalogSearch] = useState('');
   const [studentCatalogFilter, setStudentCatalogFilter] = useState<'all' | 'todo' | 'done'>('all');
   const [soalSets, setSoalSets] = useState<SoalSet[]>([]);
@@ -609,6 +615,10 @@ export default function App() {
     }
   }, [groupedAssessments, assessmentNav]);
   const [studentAssessments, setStudentAssessments] = useState<any[]>([]);
+  const [studentGameScores, setStudentGameScores] = useState<any[]>([]);
+  const unreadNotifications = useMemo(() => notifications.filter(n => n.isRead !== true), [notifications]);
+  const bestAdminGameScores = useMemo(() => dedupeHighestGameScores(gameScoresList), [gameScoresList]);
+  const currentBgPreset = useMemo(() => getBackgroundPreset(settingsConfig?.backgroundPreset), [settingsConfig?.backgroundPreset]);
   const [currentScore, setCurrentScore] = useState(100);
   const [courseCompleted, setCourseCompleted] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -1043,6 +1053,7 @@ export default function App() {
           courseId: activeCourse.id,
           courseTitle: activeCourse.title,
           score: scoreToSave,
+          isRead: false,
           timestamp: new Date().toISOString()
         });
 
@@ -1146,7 +1157,7 @@ export default function App() {
 
     const unsubSettings = onSnapshot(doc(db, 'app_settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
-        setSettingsConfig(docSnap.data() as {logoUrl: string});
+        setSettingsConfig({ logoUrl: '', backgroundPreset: 'default', ...(docSnap.data() as any) });
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'app_settings/global');
@@ -1237,6 +1248,18 @@ export default function App() {
         handleFirestoreError(error, OperationType.LIST, 'assessments');
       });
       unsubscribes.push(unsubStudentAssessments);
+
+      // 5. Student Specific Game Scores
+      const qGameScores = query(collection(db, 'game_scores'), where('studentId', '==', currentStudent.id));
+      const unsubStudentGameScores = onSnapshot(qGameScores, (snapshot) => {
+        setStudentGameScores(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'game_scores');
+      });
+      unsubscribes.push(unsubStudentGameScores);
+    } else {
+      setStudentAssessments([]);
+      setStudentGameScores([]);
     }
 
     return () => {
@@ -1425,15 +1448,13 @@ export default function App() {
 
   if (currentPage === 'login') {
     return (
-      <div className="min-h-screen bg-frame flex items-center justify-center p-4">
-        <Login 
-          setCurrentPage={setCurrentPage} 
-          setIsAdmin={setIsAdmin}
-          setCurrentStudent={setCurrentStudent}
-          setCurrentScore={setCurrentScore}
-          settingsConfig={settingsConfig}
-        />
-      </div>
+      <Login 
+        setCurrentPage={setCurrentPage} 
+        setIsAdmin={setIsAdmin}
+        setCurrentStudent={setCurrentStudent}
+        setCurrentScore={setCurrentScore}
+        settingsConfig={settingsConfig}
+      />
     );
   }
 
@@ -1536,7 +1557,7 @@ export default function App() {
     };
 
     return (
-      <div className="flex h-screen bg-slate-50 text-slate-900 flex-col overflow-hidden font-sans">
+      <div className={cn("flex h-screen text-slate-900 flex-col overflow-hidden font-sans transition-colors duration-300", currentBgPreset.className)}>
         {/* Clean 3-Zone Top Bar */}
         <header className="w-full bg-white/95 backdrop-blur-md px-4 md:px-8 h-16 border-b border-slate-200 flex items-center justify-between gap-4 md:gap-8 z-20 shrink-0">
           {/* Zone 1: Single-line Brand Title */}
@@ -1587,6 +1608,18 @@ export default function App() {
               <Gamepad2 size={14} />
               <span>Game Edukasi</span>
             </button>
+            <button
+              onClick={() => setStudentTab('skor')}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer",
+                studentTab === 'skor'
+                  ? "bg-white text-amber-700 shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              <Trophy size={14} />
+              <span>Skor Saya</span>
+            </button>
           </nav>
 
           {/* Zone 3: Student Account & Logout */}
@@ -1610,11 +1643,11 @@ export default function App() {
         </header>
 
         {/* Mobile Segmented Sub-Nav (kept compact within mobile sticky cap) */}
-        <div className="md:hidden bg-white border-b border-slate-200 px-3 py-1.5 flex items-center gap-1 shrink-0">
+        <div className="md:hidden bg-white border-b border-slate-200 px-2.5 py-1.5 flex items-center gap-1 shrink-0">
           <button
             onClick={() => setStudentTab('materi')}
             className={cn(
-              "flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors",
+              "flex-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer transition-colors",
               studentTab === 'materi' ? "bg-brand text-white" : "text-slate-600 hover:bg-slate-100"
             )}
           >
@@ -1624,7 +1657,7 @@ export default function App() {
           <button
             onClick={() => setStudentTab('soal')}
             className={cn(
-              "flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors",
+              "flex-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer transition-colors",
               studentTab === 'soal' ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-100"
             )}
           >
@@ -1634,12 +1667,22 @@ export default function App() {
           <button
             onClick={() => setStudentTab('games')}
             className={cn(
-              "flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors",
+              "flex-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer transition-colors",
               studentTab === 'games' ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100"
             )}
           >
             <Gamepad2 size={13} />
             <span>Game</span>
+          </button>
+          <button
+            onClick={() => setStudentTab('skor')}
+            className={cn(
+              "flex-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer transition-colors",
+              studentTab === 'skor' ? "bg-amber-600 text-white" : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            <Trophy size={13} />
+            <span>Skor Saya</span>
           </button>
         </div>
 
@@ -1770,7 +1813,288 @@ export default function App() {
           {/* Main Tab Content */}
           {studentTab === 'games' ? (
             <AdminGames isAdmin={false} currentStudent={currentStudent} studentsList={students} />
-          ) : (
+          ) : studentTab === 'skor' ? (() => {
+            const isSoalItem = (a: any) => Boolean(a?.isSoal || String(a?.courseId || '').startsWith('soal_'));
+            const materiScores = [...studentAssessments]
+              .filter(a => !isSoalItem(a))
+              .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime());
+            const soalScores = [...studentAssessments]
+              .filter(a => isSoalItem(a))
+              .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime());
+            const gameBestScores = dedupeHighestGameScores(studentGameScores);
+
+            return (
+              <section className="space-y-6 pb-8">
+                {/* Skor Saya Header & Category Filter */}
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-center text-amber-600 shrink-0">
+                      <Trophy size={20} />
+                    </div>
+                    <div>
+                      <h2 className="text-base md:text-lg font-extrabold text-slate-900 tracking-tight">Skor Saya</h2>
+                      <p className="text-xs text-slate-500 font-medium tabular-nums">
+                        Rekap nilai Materi, Latihan Soal, dan Rekor Tertinggi Game Edukasi
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                    {([
+                      { id: 'all', label: 'Semua' },
+                      { id: 'materi', label: `Materi (${materiScores.length})` },
+                      { id: 'soal', label: `Latihan Soal (${soalScores.length})` },
+                      { id: 'game', label: `Game Edukasi (${gameBestScores.length})` },
+                    ] as const).map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setStudentScoreFilter(tab.id)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer tabular-nums",
+                          studentScoreFilter === tab.id
+                            ? "bg-white text-slate-900 shadow-2xs"
+                            : "text-slate-600 hover:text-slate-900"
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 1. Skor Materi */}
+                {(studentScoreFilter === 'all' || studentScoreFilter === 'materi') && (
+                  <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
+                    <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-brand/10 text-brand flex items-center justify-center shrink-0">
+                          <BookOpen size={16} />
+                        </div>
+                        <div>
+                          <h3 className="font-extrabold text-slate-900 text-sm md:text-base">Skor Materi Pembelajaran</h3>
+                          <p className="text-[11px] text-slate-500 font-medium tabular-nums">{materiScores.length} materi selesai</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {materiScores.length > 0 ? (
+                      <>
+                        <div className="hidden md:block overflow-x-auto">
+                          <table className="w-full text-left border-collapse tabular-nums">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                              <tr className="text-xs font-bold text-slate-600">
+                                <th className="px-5 py-3">Judul Materi</th>
+                                <th className="px-5 py-3 text-center">Skor</th>
+                                <th className="px-5 py-3 text-right">Tanggal Selesai</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-sm">
+                              {materiScores.map(a => (
+                                <tr key={a.id} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-5 py-3.5 font-bold text-slate-900">{a.courseTitle}</td>
+                                  <td className="px-5 py-3.5 text-center">
+                                    <span className={cn(
+                                      "font-mono font-extrabold text-sm",
+                                      a.score >= 80 ? "text-emerald-700" : a.score >= 60 ? "text-amber-700" : "text-rose-700"
+                                    )}>
+                                      {a.score}
+                                    </span>
+                                  </td>
+                                  <td className="px-5 py-3.5 text-right text-slate-500 text-xs font-medium">
+                                    {a.completedAt ? new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="md:hidden divide-y divide-slate-100">
+                          {materiScores.map(a => (
+                            <div key={a.id} className="p-4 flex items-center justify-between gap-3 tabular-nums">
+                              <div className="min-w-0">
+                                <h4 className="font-bold text-slate-900 text-sm truncate">{a.courseTitle}</h4>
+                                <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                                  {a.completedAt ? new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                                </p>
+                              </div>
+                              <span className={cn(
+                                "font-mono font-extrabold text-base shrink-0",
+                                a.score >= 80 ? "text-emerald-700" : a.score >= 60 ? "text-amber-700" : "text-rose-700"
+                              )}>
+                                {a.score}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="p-8 text-center text-slate-400 text-xs md:text-sm font-medium">
+                        Belum ada skor materi pembelajaran yang tersimpan.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 2. Skor Latihan Soal */}
+                {(studentScoreFilter === 'all' || studentScoreFilter === 'soal') && (
+                  <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
+                    <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                          <ClipboardList size={16} />
+                        </div>
+                        <div>
+                          <h3 className="font-extrabold text-slate-900 text-sm md:text-base">Skor Latihan Soal & Ujian</h3>
+                          <p className="text-[11px] text-slate-500 font-medium tabular-nums">{soalScores.length} paket soal dikerjakan</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {soalScores.length > 0 ? (
+                      <>
+                        <div className="hidden md:block overflow-x-auto">
+                          <table className="w-full text-left border-collapse tabular-nums">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                              <tr className="text-xs font-bold text-slate-600">
+                                <th className="px-5 py-3">Judul Paket Soal</th>
+                                <th className="px-5 py-3 text-center">Skor</th>
+                                <th className="px-5 py-3 text-right">Tanggal Selesai</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-sm">
+                              {soalScores.map(a => {
+                                const matchedSoal = soalSets.find(s => `soal_${s.id}` === a.courseId);
+                                const showScore = matchedSoal?.isScoreVisible ?? true;
+                                return (
+                                  <tr key={a.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-5 py-3.5 font-bold text-slate-900">{a.courseTitle}</td>
+                                    <td className="px-5 py-3.5 text-center">
+                                      {showScore ? (
+                                        <span className={cn(
+                                          "font-mono font-extrabold text-sm",
+                                          a.score >= 80 ? "text-emerald-700" : a.score >= 60 ? "text-amber-700" : "text-rose-700"
+                                        )}>
+                                          {a.score}
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs font-semibold text-slate-400">Disembunyikan</span>
+                                      )}
+                                    </td>
+                                    <td className="px-5 py-3.5 text-right text-slate-500 text-xs font-medium">
+                                      {a.completedAt ? new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="md:hidden divide-y divide-slate-100">
+                          {soalScores.map(a => {
+                            const matchedSoal = soalSets.find(s => `soal_${s.id}` === a.courseId);
+                            const showScore = matchedSoal?.isScoreVisible ?? true;
+                            return (
+                              <div key={a.id} className="p-4 flex items-center justify-between gap-3 tabular-nums">
+                                <div className="min-w-0">
+                                  <h4 className="font-bold text-slate-900 text-sm truncate">{a.courseTitle}</h4>
+                                  <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                                    {a.completedAt ? new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                                  </p>
+                                </div>
+                                <span className={cn(
+                                  "font-mono font-extrabold text-base shrink-0",
+                                  !showScore ? "text-xs text-slate-400 font-sans" :
+                                  a.score >= 80 ? "text-emerald-700" : a.score >= 60 ? "text-amber-700" : "text-rose-700"
+                                )}>
+                                  {showScore ? a.score : 'Tersimpan'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="p-8 text-center text-slate-400 text-xs md:text-sm font-medium">
+                        Belum ada skor latihan soal yang tersimpan.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 3. Skor Game Edukasi (Rekor Tertinggi per Game/Stage) */}
+                {(studentScoreFilter === 'all' || studentScoreFilter === 'game') && (
+                  <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
+                    <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0">
+                          <Gamepad2 size={16} />
+                        </div>
+                        <div>
+                          <h3 className="font-extrabold text-slate-900 text-sm md:text-base">Skor Tertinggi Game Edukasi</h3>
+                          <p className="text-[11px] text-slate-500 font-medium tabular-nums">
+                            Hanya mencatat skor tertinggi per game / stage ({gameBestScores.length} rekor)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {gameBestScores.length > 0 ? (
+                      <>
+                        <div className="hidden md:block overflow-x-auto">
+                          <table className="w-full text-left border-collapse tabular-nums">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                              <tr className="text-xs font-bold text-slate-600">
+                                <th className="px-5 py-3">Nama Permainan & Stage</th>
+                                <th className="px-5 py-3 text-center">Rekor Tertinggi</th>
+                                <th className="px-5 py-3 text-right">Diperbarui</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-sm">
+                              {gameBestScores.map(g => (
+                                <tr key={g.id} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-5 py-3.5 font-bold text-slate-900 flex items-center gap-2">
+                                    <Trophy size={14} className="text-amber-500 shrink-0" />
+                                    <span>{g.gameTitle || g.gameId || 'Game Edukasi'}</span>
+                                  </td>
+                                  <td className="px-5 py-3.5 text-center">
+                                    <span className="font-mono font-extrabold text-sm text-indigo-700">
+                                      {g.score} Poin
+                                    </span>
+                                  </td>
+                                  <td className="px-5 py-3.5 text-right text-slate-500 text-xs font-medium">
+                                    {formatScoreTimestamp(g)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="md:hidden divide-y divide-slate-100">
+                          {gameBestScores.map(g => (
+                            <div key={g.id} className="p-4 flex items-center justify-between gap-3 tabular-nums">
+                              <div className="min-w-0">
+                                <h4 className="font-bold text-slate-900 text-sm truncate">{g.gameTitle || g.gameId || 'Game Edukasi'}</h4>
+                                <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                                  {formatScoreTimestamp(g)}
+                                </p>
+                              </div>
+                              <span className="font-mono font-extrabold text-sm text-indigo-700 shrink-0">
+                                {g.score} Poin
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="p-8 text-center text-slate-400 text-xs md:text-sm font-medium">
+                        Belum ada rekor game edukasi. Mainkan game untuk mencetak skor tertinggi!
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            );
+          })() : (
             <>
               {/* Workspace Filter & Search Toolbar */}
               <section className="space-y-5">
@@ -2127,109 +2451,6 @@ export default function App() {
                   )
                 )}
               </section>
-
-              {/* Riwayat Skor */}
-              <section className="pb-6">
-                <div className="flex items-center justify-between gap-3 mb-3.5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-center text-brand">
-                      <TrendingUp size={18} />
-                    </div>
-                    <div>
-                      <h2 className="text-base md:text-lg font-extrabold text-slate-900 tracking-tight">Riwayat Skor Belajar</h2>
-                      <p className="text-xs text-slate-500 font-medium tabular-nums">
-                        {studentAssessments.length} catatan penyelesaian materi dan soal
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Desktop Table */}
-                <div className="hidden md:block bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse tabular-nums">
-                      <thead className="bg-slate-50 border-b border-slate-200">
-                        <tr className="text-xs font-bold text-slate-600">
-                          <th className="px-6 py-3.5">Judul Materi / Paket Soal</th>
-                          <th className="px-6 py-3.5 text-center">Kategori</th>
-                          <th className="px-6 py-3.5 text-center">Skor</th>
-                          <th className="px-6 py-3.5 text-right">Tanggal Selesai</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 text-sm">
-                        {studentAssessments.length > 0 ? [...studentAssessments]
-                          .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
-                          .map((a) => {
-                            const isSoal = String(a.courseId || '').startsWith('soal_');
-                            const matchedSoal = isSoal ? soalSets.find(s => `soal_${s.id}` === a.courseId) : null;
-                            const showScore = !isSoal || (matchedSoal?.isScoreVisible ?? true);
-                            return (
-                              <tr key={a.id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-6 py-3.5 font-bold text-slate-900">{a.courseTitle}</td>
-                                <td className="px-6 py-3.5 text-center text-xs font-semibold text-slate-600">
-                                  {isSoal ? 'Paket Soal' : 'Materi'}
-                                </td>
-                                <td className="px-6 py-3.5 text-center">
-                                  {showScore ? (
-                                    <span className={cn(
-                                      "font-mono font-extrabold text-sm",
-                                      a.score >= 80 ? "text-emerald-700" : a.score >= 60 ? "text-amber-700" : "text-rose-700"
-                                    )}>
-                                      {a.score}
-                                    </span>
-                                  ) : (
-                                    <span className="text-xs font-semibold text-slate-400">Disembunyikan</span>
-                                  )}
-                                </td>
-                                <td className="px-6 py-3.5 text-right text-slate-500 text-xs font-medium">
-                                  {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                </td>
-                              </tr>
-                            );
-                          }) : (
-                          <tr>
-                            <td colSpan={4} className="px-6 py-12 text-center text-slate-400 font-medium text-sm">
-                              Belum ada riwayat pengerjaan materi atau paket soal.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Mobile Cards */}
-                <div className="md:hidden space-y-3">
-                  {studentAssessments.length > 0 ? [...studentAssessments]
-                    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
-                    .map((a) => {
-                      const isSoal = String(a.courseId || '').startsWith('soal_');
-                      const matchedSoal = isSoal ? soalSets.find(s => `soal_${s.id}` === a.courseId) : null;
-                      const showScore = !isSoal || (matchedSoal?.isScoreVisible ?? true);
-                      return (
-                        <div key={a.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between gap-3 tabular-nums">
-                          <div className="min-w-0">
-                            <h3 className="font-bold text-slate-900 text-sm truncate">{a.courseTitle}</h3>
-                            <p className="text-[11px] font-medium text-slate-500 mt-0.5">
-                              {isSoal ? 'Paket Soal' : 'Materi'} · {new Date(a.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            </p>
-                          </div>
-                          <div className={cn(
-                            "font-mono font-extrabold text-base shrink-0",
-                            !showScore ? "text-xs text-slate-400 font-sans" :
-                            a.score >= 80 ? "text-emerald-700" : a.score >= 60 ? "text-amber-700" : "text-rose-700"
-                          )}>
-                            {showScore ? a.score : 'Tersimpan'}
-                          </div>
-                        </div>
-                      );
-                    }) : (
-                    <div className="bg-white py-10 rounded-xl border border-dashed border-slate-300 text-center text-slate-400 font-medium text-xs">
-                      Belum ada riwayat pengerjaan materi atau paket soal.
-                    </div>
-                  )}
-                </div>
-              </section>
             </>
           )}
         </main>
@@ -2245,7 +2466,7 @@ export default function App() {
     const isScoreVisible = materialConfigs[course.id]?.isScoreVisible ?? true;
 
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col p-4 md:p-8 items-center justify-center overflow-y-auto custom-scrollbar font-sans">
+      <div className={cn("min-h-screen text-slate-900 flex flex-col p-4 md:p-8 items-center justify-center overflow-y-auto custom-scrollbar font-sans transition-colors duration-300", currentBgPreset.className)}>
         <motion.div
           initial={{ scale: 0.97, opacity: 0, y: 12 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -2357,7 +2578,7 @@ export default function App() {
     const selectedSoalSet = soalSets.find(s => s.id === activeSoalSetId);
     if (!selectedSoalSet) {
       return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
+        <div className={cn("min-h-screen flex items-center justify-center p-6 font-sans", currentBgPreset.className)}>
           <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center space-y-4 max-w-md w-full shadow-md">
             <h3 className="font-extrabold text-lg text-slate-900">Paket Soal Tidak Ditemukan</h3>
             <button
@@ -2379,7 +2600,7 @@ export default function App() {
     const isScoreVisible = selectedSoalSet.isScoreVisible ?? true;
 
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col p-4 md:p-8 items-center justify-center overflow-y-auto custom-scrollbar font-sans">
+      <div className={cn("min-h-screen text-slate-900 flex flex-col p-4 md:p-8 items-center justify-center overflow-y-auto custom-scrollbar font-sans transition-colors duration-300", currentBgPreset.className)}>
         <motion.div
           initial={{ scale: 0.97, opacity: 0, y: 12 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -2537,15 +2758,16 @@ export default function App() {
       { id: 'games', label: 'Kelola Game', icon: Gamepad2, color: 'bg-brand/10 text-brand' },
       { id: 'questions', label: 'Kelola Soal', icon: ClipboardList, color: 'bg-brand/10 text-brand' },
       { id: 'assessments', label: 'Hasil Asesmen', icon: TrendingUp, color: 'bg-brand/10 text-brand' },
+      { id: 'student_management', label: 'Siswa & Kelas', icon: Users, color: 'bg-brand/10 text-brand' },
       { id: 'announcements', label: 'Pengumuman', icon: Megaphone, color: 'bg-brand/10 text-brand' },
       { id: 'history', label: 'Riwayat Akses', icon: GitBranch, color: 'bg-brand/10 text-brand' },
-      { id: 'student_management', label: 'Siswa & Kelas', icon: Users, color: 'bg-brand/10 text-brand' },
       { id: 'settings', label: 'Pengaturan', icon: Settings, color: 'bg-brand/10 text-brand' },
     ] as const;
 
     return (
       <div className={cn(
-        "flex h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/40 text-slate-900 overflow-hidden",
+        "flex h-screen text-slate-900 overflow-hidden transition-colors duration-300",
+        currentBgPreset.className,
         (printingMaterialCourseId || (adminTab === 'materials' && materialSubTab === 'analisis_soal' && hasPrintableQuestionAnalysis)) && "print:hidden"
       )}>
         {/* Mobile Header */}
@@ -2670,13 +2892,23 @@ export default function App() {
               {/* Notification Bell */}
               <div className="relative">
                 <button 
-                  onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                  className="w-8 h-8 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-lg flex items-center justify-center text-slate-600 shadow-2xs transition-all duration-200 relative group"
+                  onClick={() => {
+                    const opening = !isNotificationsOpen;
+                    setIsNotificationsOpen(opening);
+                    if (opening && unreadNotifications.length > 0) {
+                      Promise.all(
+                        unreadNotifications.map(n => updateDoc(doc(db, 'notifications', n.id), { isRead: true }))
+                      ).catch(error => {
+                        handleFirestoreError(error, OperationType.UPDATE, 'notifications');
+                      });
+                    }
+                  }}
+                  className="w-8 h-8 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-lg flex items-center justify-center text-slate-600 shadow-2xs transition-all duration-200 relative group cursor-pointer"
                 >
                   <Bell size={16} className="group-hover:rotate-12 transition-transform duration-200 text-brand" />
-                  {notifications.length > 0 && (
+                  {unreadNotifications.length > 0 && (
                     <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-rose-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center border border-white px-1 tabular-nums">
-                      {notifications.length}
+                      {unreadNotifications.length}
                     </span>
                   )}
                 </button>
@@ -2699,9 +2931,9 @@ export default function App() {
                         className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] md:translate-x-0 md:translate-y-0 md:absolute md:inset-auto md:right-0 md:top-full md:mt-3 md:w-96 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-slate-900/15 border border-slate-200/80 z-50 overflow-hidden origin-center md:origin-top-right"
                       >
                         <div className="px-5 py-4 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/90">
-                          <h3 className="font-extrabold text-slate-900 tracking-tight text-sm md:text-base">Notifikasi Baru</h3>
+                          <h3 className="font-extrabold text-slate-900 tracking-tight text-sm md:text-base">Notifikasi</h3>
                           <span className="text-[10px] font-bold bg-brand/10 text-brand px-2.5 py-1 rounded-lg uppercase tracking-wider tabular-nums">
-                            {notifications.length} Pesan
+                            {unreadNotifications.length > 0 ? `${unreadNotifications.length} Baru` : `${notifications.length} Dibaca`}
                           </span>
                         </div>
                         <div className="max-h-[70vh] overflow-y-auto custom-scrollbar">
@@ -2711,7 +2943,10 @@ export default function App() {
                                 <div 
                                   key={notif.id}
                                   onClick={() => handleNotificationClick(notif)}
-                                  className="p-4 hover:bg-slate-50 transition-colors duration-200 cursor-pointer group relative"
+                                  className={cn(
+                                    "p-4 hover:bg-slate-50 transition-colors duration-200 cursor-pointer group relative",
+                                    notif.isRead !== true && "bg-blue-50/40"
+                                  )}
                                 >
                                   <div className="flex gap-3.5">
                                     <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
@@ -3513,7 +3748,8 @@ export default function App() {
                       </div>
                     </div>
                     
-                    <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs mb-4">
+                    {/* Desktop Table */}
+                    <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs mb-4">
                       <div className="min-w-full">
                         <table className="w-full text-left border-collapse min-w-[800px]">
                           <thead>
@@ -3645,9 +3881,160 @@ export default function App() {
                       </table>
                     </div>
                   </div>
-                  {/* Horizontal scroll indicator for mobile */}
-                  <div className="md:hidden flex items-center justify-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-6">
-                    <ArrowRight size={12} className="animate-pulse" /> geser tabel ke samping <ArrowRight size={12} className="animate-pulse" />
+
+                  {/* Mobile Responsive Card View (All Data Visible Without Horizontal Scroll) */}
+                  <div className="md:hidden space-y-2.5 mb-6">
+                    <div className="bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 flex items-center justify-between shadow-2xs">
+                      <label className="flex items-center gap-2.5 text-xs font-bold text-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={filteredStudents.length > 0 && selectedStudentIds.length === filteredStudents.length}
+                          onChange={toggleSelectAll}
+                          className="rounded border-slate-300 text-brand focus:ring-brand w-4 h-4"
+                        />
+                        <span>Pilih Semua</span>
+                      </label>
+                      <span className="text-[11px] font-bold text-slate-500 tabular-nums">
+                        {sortedFilteredStudents.length} Siswa
+                      </span>
+                    </div>
+
+                    {sortedFilteredStudents.length > 0 ? sortedFilteredStudents.map((s, index) => (
+                      <div
+                        key={s.id}
+                        className={cn(
+                          "bg-white border border-slate-200 rounded-2xl p-3.5 shadow-2xs space-y-2.5",
+                          selectedStudentIds.includes(s.id) && "ring-2 ring-brand/30 border-brand/50"
+                        )}
+                      >
+                        {editingStudentId === s.id ? (
+                          <div className="space-y-2.5">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">NISN</label>
+                                <input
+                                  value={editFormData.nis}
+                                  onChange={e => setEditFormData({...editFormData, nis: e.target.value})}
+                                  className="bg-slate-50 border border-slate-200 p-2 rounded-lg w-full outline-brand text-xs font-mono"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Kelas</label>
+                                <input
+                                  value={editFormData.kelas}
+                                  onChange={e => setEditFormData({...editFormData, kelas: e.target.value})}
+                                  className="bg-slate-50 border border-slate-200 p-2 rounded-lg w-full outline-brand text-xs uppercase font-bold"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nama Lengkap</label>
+                              <input
+                                value={editFormData.nama}
+                                onChange={e => setEditFormData({...editFormData, nama: e.target.value})}
+                                className="bg-slate-50 border border-slate-200 p-2 rounded-lg w-full outline-brand text-xs font-bold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jenis Kelamin</label>
+                              <select
+                                value={editFormData.jenisKelamin}
+                                onChange={e => setEditFormData({...editFormData, jenisKelamin: e.target.value})}
+                                className="bg-slate-50 border border-slate-200 p-2 rounded-lg w-full outline-brand text-xs"
+                              >
+                                <option value="L">Laki-laki (L)</option>
+                                <option value="P">Perempuan (P)</option>
+                              </select>
+                            </div>
+                            <div className="flex items-center justify-end gap-2 pt-1">
+                              <button
+                                onClick={() => setEditingStudentId(null)}
+                                className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200"
+                              >
+                                Batal
+                              </button>
+                              <button
+                                onClick={saveEditStudent}
+                                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700"
+                              >
+                                Simpan
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-start justify-between gap-2.5">
+                              <div className="flex items-start gap-2.5 min-w-0">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedStudentIds.includes(s.id)}
+                                  onChange={() => toggleSelectStudent(s.id)}
+                                  className="mt-0.5 rounded border-slate-300 text-brand focus:ring-brand w-4 h-4 shrink-0"
+                                />
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-400 tabular-nums">
+                                    <span>#{index + 1}</span>
+                                    <span>·</span>
+                                    <span>NISN {s.nis || '-'}</span>
+                                  </div>
+                                  <button
+                                    onClick={() => setStudentDetail({ student: s, score: getStudentScore(s.id) })}
+                                    className="text-left block w-full"
+                                  >
+                                    <h4 className={cn(
+                                      "font-extrabold text-sm leading-snug break-words",
+                                      s.jenisKelamin === 'P' ? 'text-rose-700' : 'text-slate-900'
+                                    )}>
+                                      {s.nama}
+                                    </h4>
+                                  </button>
+                                </div>
+                              </div>
+                              <span className="px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-lg text-xs font-extrabold text-slate-800 shrink-0">
+                                {s.kelas}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                              <span className={cn(
+                                "text-[11px] font-bold px-2.5 py-0.5 rounded-lg border",
+                                s.jenisKelamin === 'L' ? "bg-blue-50 text-brand border-blue-100" : "bg-rose-50 text-rose-600 border-rose-100"
+                              )}>
+                                {s.jenisKelamin === 'L' ? 'Laki-laki (L)' : 'Perempuan (P)'}
+                              </span>
+
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => startEditStudent(s)}
+                                  className="px-2.5 py-1.5 bg-slate-50 hover:bg-brand/10 text-slate-600 hover:text-brand rounded-lg text-[11px] font-bold flex items-center gap-1 border border-slate-200"
+                                >
+                                  <Edit2 size={12} />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => setStudentDetail({ student: s, score: getStudentScore(s.id) })}
+                                  className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] font-bold flex items-center gap-1 border border-indigo-200"
+                                >
+                                  <User size={12} />
+                                  Profil
+                                </button>
+                                <button
+                                  onClick={() => deleteStudent(s.id)}
+                                  className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-200"
+                                  title="Hapus Siswa"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )) : (
+                      <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-400 text-xs font-bold">
+                        Tidak ada siswa yang ditemukan.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -3929,7 +4316,7 @@ export default function App() {
                     )}
                   >
                     <Gamepad2 size={16} />
-                    Hasil Skor Game ({gameScoresList.length})
+                    Hasil Skor Game ({bestAdminGameScores.length})
                   </button>
                   <button
                     onClick={() => { setAssessmentCategory('soal'); setAssessmentNav({ course: null, kelas: null }); }}
@@ -4082,13 +4469,13 @@ export default function App() {
                 {/* CATEGORY 2: HASIL SKOR GAME */}
                 {assessmentCategory === 'game' && (
                   <div className="space-y-6 animate-in fade-in duration-300">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <h3 className="text-lg font-extrabold text-slate-900">Hasil Skor Game Edukasi Siswa</h3>
-                        <p className="text-xs text-slate-500">Daftar skor perolehan siswa dari berbagai game edukasi dan fighting arena.</p>
+                        <h3 className="text-lg font-extrabold text-slate-900">Hasil Skor Tertinggi Game Edukasi</h3>
+                        <p className="text-xs text-slate-500">Hanya menampilkan 1 skor tertinggi per siswa untuk setiap game atau stage permainan.</p>
                       </div>
-                      <span className="px-3 py-1 bg-indigo-50 text-indigo-700 font-extrabold text-xs rounded-xl border border-indigo-200">
-                        Total {gameScoresList.length} Skor Game
+                      <span className="px-3 py-1 bg-indigo-50 text-indigo-700 font-extrabold text-xs rounded-xl border border-indigo-200 tabular-nums">
+                        Total {bestAdminGameScores.length} Rekor Game
                       </span>
                     </div>
 
@@ -4099,22 +4486,24 @@ export default function App() {
                             <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-extrabold tracking-wider">
                               <th className="p-4 pl-6">Siswa</th>
                               <th className="p-4">Kelas</th>
-                              <th className="p-4">Judul Game</th>
-                              <th className="p-4 text-center">Skor / Level</th>
-                              <th className="p-4 text-center">Waktu Main</th>
+                              <th className="p-4">Judul Game & Stage</th>
+                              <th className="p-4 text-center">Skor Tertinggi</th>
+                              <th className="p-4 text-center">Diperbarui</th>
                               <th className="p-4 text-right pr-6">Aksi</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
-                            {gameScoresList.length > 0 ? (
-                              [...gameScoresList].sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()).map(scoreItem => (
+                            {bestAdminGameScores.length > 0 ? (
+                              [...bestAdminGameScores]
+                                .sort((a, b) => Number(b.score || 0) - Number(a.score || 0) || getScoreTimestampMs(b) - getScoreTimestampMs(a))
+                                .map(scoreItem => (
                                 <tr key={scoreItem.id} className="hover:bg-indigo-50/30 transition-colors">
                                   <td className="p-4 pl-6 font-bold text-slate-900 text-sm">
                                     {scoreItem.studentName || 'Siswa'}
                                   </td>
                                   <td className="p-4">
                                     <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold">
-                                      Kelas {scoreItem.kelas || '-'}
+                                      Kelas {scoreItem.kelas || scoreItem.studentKelas || '-'}
                                     </span>
                                   </td>
                                   <td className="p-4 font-semibold text-slate-800 text-xs flex items-center gap-1.5">
@@ -4127,7 +4516,7 @@ export default function App() {
                                     </span>
                                   </td>
                                   <td className="p-4 text-center text-xs text-slate-500 tabular-nums">
-                                    {scoreItem.timestamp ? new Date(scoreItem.timestamp).toLocaleString('id-ID') : '-'}
+                                    {formatScoreTimestamp(scoreItem)}
                                   </td>
                                   <td className="p-4 text-right pr-6">
                                     <button
@@ -4427,10 +4816,11 @@ export default function App() {
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Pengaturan Website</h3>
-                    <p className="text-sm text-slate-500 font-medium">Konfigurasi tampilan visual seperti logo dan nama instansi.</p>
+                    <p className="text-sm text-slate-500 font-medium">Konfigurasi tampilan visual seperti logo instansi dan gaya latar belakang aplikasi.</p>
                   </div>
                 </div>
 
+                {/* Card 1: Logo Sekolah */}
                 <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs p-6 md:p-8">
                   <div className="max-w-md space-y-4">
                     <div>
@@ -4536,6 +4926,89 @@ export default function App() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Card 2: Background Customization (10 Distinct Styles) */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs p-6 md:p-8 space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center shrink-0">
+                        <Palette size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-extrabold text-slate-900">Gaya Latar Belakang Aplikasi</h4>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">
+                          Pilih salah satu dari 10 gaya background berbeda untuk halaman Admin, Siswa, dan Login.
+                        </p>
+                      </div>
+                    </div>
+
+                    {(settingsConfig.backgroundPreset && settingsConfig.backgroundPreset !== 'default') && (
+                      <button
+                        onClick={async () => {
+                          setSettingsConfig(prev => ({ ...prev, backgroundPreset: 'default' }));
+                          try {
+                            await setDoc(doc(db, 'app_settings', 'global'), { backgroundPreset: 'default' }, { merge: true });
+                          } catch (err) {
+                            handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                          }
+                        }}
+                        className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+                      >
+                        <RotateCcw size={13} />
+                        Reset Default
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                    {APP_BACKGROUNDS.map((bg, idx) => {
+                      const isSelected = (settingsConfig.backgroundPreset || 'default') === bg.id;
+                      return (
+                        <button
+                          key={bg.id}
+                          type="button"
+                          onClick={async () => {
+                            setSettingsConfig(prev => ({ ...prev, backgroundPreset: bg.id }));
+                            try {
+                              await setDoc(doc(db, 'app_settings', 'global'), { backgroundPreset: bg.id }, { merge: true });
+                            } catch (err) {
+                              handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                            }
+                          }}
+                          className={cn(
+                            "text-left rounded-2xl border p-2.5 transition-all duration-200 flex flex-col gap-2.5 group cursor-pointer",
+                            isSelected
+                              ? "border-brand ring-2 ring-brand/25 bg-blue-50/40 shadow-sm"
+                              : "border-slate-200 hover:border-slate-300 bg-white hover:shadow-xs"
+                          )}
+                        >
+                          {/* Mini App Canvas Preview */}
+                          <div className={cn("h-24 w-full rounded-xl border border-slate-200/80 p-2.5 relative overflow-hidden flex flex-col justify-between", bg.className)}>
+                            <div className="flex items-center justify-between gap-1.5">
+                              <span className="text-[10px] font-bold text-slate-600 bg-white/90 px-2 py-0.5 rounded-md border border-slate-200/70">
+                                {idx + 1}. {bg.category}
+                              </span>
+                              {isSelected && (
+                                <span className="w-5 h-5 rounded-full bg-brand text-white flex items-center justify-center shadow-xs shrink-0">
+                                  <Check size={12} />
+                                </span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-3 gap-1.5">
+                              <div className="h-6 rounded-md bg-white/90 border border-slate-200/70 shadow-2xs" />
+                              <div className="h-6 rounded-md bg-white/90 border border-slate-200/70 shadow-2xs col-span-2" />
+                            </div>
+                          </div>
+
+                          <div className="px-0.5">
+                            <p className="text-xs font-extrabold text-slate-900 truncate">{bg.name}</p>
+                            <p className="text-[11px] text-slate-500 line-clamp-2 leading-snug mt-0.5">{bg.description}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -5392,26 +5865,12 @@ export default function App() {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-1 custom-scrollbar">
-          {isAdmin ? (
+          {isAdmin && (
             <button 
               onClick={() => { setCurrentPage('admin'); setAdminTab('materials'); }} 
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-700 mb-3 font-bold text-xs transition-colors cursor-pointer"
             >
               <Home size={16} /> Kembali ke Dashboard
-            </button>
-          ) : (
-            <button 
-              onClick={() => {
-                setLocalCheatingAttempts(0);
-                setLocalCheatingDetails([]);
-                if (document.fullscreenElement) {
-                  document.exitFullscreen().catch(() => {});
-                }
-                setCurrentPage('student_dashboard');
-              }} 
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 mb-3 font-bold text-xs transition-colors cursor-pointer"
-            >
-              <Home size={15} /> Kembali ke Beranda Siswa
             </button>
           )}
           

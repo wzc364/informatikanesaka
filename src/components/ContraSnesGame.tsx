@@ -14,7 +14,7 @@ import {
 import { cn } from '../utils';
 import { COURSES } from '../constants';
 import { db } from '../firebase';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, getDocs, onSnapshot, query, setDoc, where } from 'firebase/firestore';
 
 const MAX_HP = 6;
 
@@ -817,19 +817,43 @@ export default function ContraSnesGame({
       const stageLabel = `Informatika War - Stage ${stageWon}`;
       const docId = `${studentId}__contra-snes__stage-${stageWon}`;
 
-      // Keep highest score only
-      const existingHigh = studentStageHighScores?.[stageWon] || 0;
-      if (isAdmin || finalScore >= existingHigh) {
+      // Verify highest existing score in Firestore for this student + stage
+      let prevBest = studentStageHighScores?.[stageWon] || 0;
+      const existingSnap = await getDocs(
+        query(
+          collection(db, 'game_scores'),
+          where('studentId', '==', studentId),
+          where('gameId', '==', 'contra-snes')
+        )
+      );
+      existingSnap.docs.forEach((d) => {
+        const data = d.data();
+        const isSameStage =
+          data.stage === stageWon ||
+          data.gameTitle === stageLabel ||
+          new RegExp(`Stage\\s*${stageWon}\\b`, 'i').test(String(data.gameTitle || ''));
+        if (isSameStage && Number(data.score || 0) > prevBest) {
+          prevBest = Number(data.score || 0);
+        }
+      });
+
+      // Only persist if the new score strictly beats the previous high score
+      if (finalScore > prevBest) {
+        const nowIso = new Date().toISOString();
+        const studentKelas = isAdmin ? 'Admin' : (currentStudent?.kelas || '-');
         await setDoc(doc(db, 'game_scores', docId), {
           gameId: 'contra-snes',
           gameTitle: stageLabel,
+          stage: stageWon,
           studentId,
           studentName: isAdmin ? 'Admin (Pratinjau)' : (currentStudent?.nama || 'Siswa'),
-          studentKelas: isAdmin ? 'Admin' : (currentStudent?.kelas || '-'),
+          studentKelas,
+          kelas: studentKelas,
           studentNis: isAdmin ? '-' : (currentStudent?.nis || '-'),
-          score: Math.max(finalScore, existingHigh),
+          score: finalScore,
           durationSec,
-          playedAt: new Date().toISOString(),
+          playedAt: nowIso,
+          timestamp: nowIso,
         });
       }
 
