@@ -843,7 +843,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
       {/* Panel Input & Konfigurasi Analisis */}
       <form
         onSubmit={runAnalysis}
-        className="bg-slate-50/90 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-5 md:p-6 shadow-xs space-y-5"
+        className="admin-glass-card rounded-2xl p-5 md:p-6 space-y-5"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200/80 dark:border-slate-800 pb-4">
           <div>
@@ -1057,7 +1057,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
 
       {/* Riwayat Analisis Tersimpan */}
       {savedHistory.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+        <div className="admin-glass-card rounded-2xl p-4">
           <div className="flex items-center justify-between gap-2 mb-2.5">
             <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
               <History size={14} className="text-brand dark:text-blue-400" />
@@ -1202,7 +1202,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
           </div>
         </div>
       ) : (
-        <div className="bg-slate-50 dark:bg-slate-900/70 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-10 text-center text-slate-500 dark:text-slate-400 space-y-2">
+        <div className="admin-glass-card border-dashed rounded-2xl p-10 text-center text-slate-500 dark:text-slate-400 space-y-2">
           <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 mx-auto flex items-center justify-center text-slate-400 dark:text-slate-500">
             <BookOpen size={22} />
           </div>

@@ -1060,7 +1060,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
       {/* Main Tab 2: Leaderboard */}
       {activeTab === 'leaderboard' && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs p-5 md:p-6 space-y-5">
+        <div className="admin-glass-card rounded-2xl p-5 md:p-6 space-y-5">
           {/* Controls Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
             <div>
@@ -1131,10 +1131,10 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
 
           {/* Scores Table */}
           {filteredScores.length > 0 ? (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <div className="overflow-x-auto rounded-xl admin-glass-card">
               <table className="w-full text-left border-collapse text-xs md:text-sm tabular-nums">
                 <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300">
+                  <tr className="bg-white/25 dark:bg-white/5 border-b border-white/40 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-200">
                     <th className="px-4 py-3 text-center w-12">#</th>
                     <th className="px-4 py-3">Siswa</th>
                     <th className="px-4 py-3">Kelas</th>
@@ -1196,7 +1196,7 @@ export default function AdminGames({ isAdmin, currentStudent, studentsList = [] 
               </table>
             </div>
           ) : (
-            <div className="p-12 text-center bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
+            <div className="p-12 text-center admin-glass-card border-dashed rounded-2xl">
               <Gamepad2 size={36} className="mx-auto text-slate-400 dark:text-slate-500 mb-3" />
               <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base mb-1">Belum Ada Catatan Skor Permainan</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">

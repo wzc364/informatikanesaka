@@ -58,12 +58,12 @@ interface AdminSoalProps {
 }
 
 const CARD_THEMES = [
-  { bg: 'bg-blue-100/90 dark:bg-blue-950/45 border-blue-200 dark:border-blue-800/70', title: 'text-blue-950 dark:text-blue-100', accent: 'bg-blue-600 text-white', pill: 'bg-blue-200/80 dark:bg-blue-900/70 text-blue-900 dark:text-blue-200' },
-  { bg: 'bg-emerald-100/90 dark:bg-emerald-950/45 border-emerald-200 dark:border-emerald-800/70', title: 'text-emerald-950 dark:text-emerald-100', accent: 'bg-emerald-600 text-white', pill: 'bg-emerald-200/80 dark:bg-emerald-900/70 text-emerald-900 dark:text-emerald-200' },
-  { bg: 'bg-purple-100/90 dark:bg-purple-950/45 border-purple-200 dark:border-purple-800/70', title: 'text-purple-950 dark:text-purple-100', accent: 'bg-purple-600 text-white', pill: 'bg-purple-200/80 dark:bg-purple-900/70 text-purple-900 dark:text-purple-200' },
-  { bg: 'bg-amber-100/90 dark:bg-amber-950/45 border-amber-200 dark:border-amber-800/70', title: 'text-amber-950 dark:text-amber-100', accent: 'bg-amber-600 text-white', pill: 'bg-amber-200/80 dark:bg-amber-900/70 text-amber-900 dark:text-amber-200' },
-  { bg: 'bg-indigo-100/90 dark:bg-indigo-950/45 border-indigo-200 dark:border-indigo-800/70', title: 'text-indigo-950 dark:text-indigo-100', accent: 'bg-indigo-600 text-white', pill: 'bg-indigo-200/80 dark:bg-indigo-900/70 text-indigo-900 dark:text-indigo-200' },
-  { bg: 'bg-rose-100/90 dark:bg-rose-950/45 border-rose-200 dark:border-rose-800/70', title: 'text-rose-950 dark:text-rose-100', accent: 'bg-rose-600 text-white', pill: 'bg-rose-200/80 dark:bg-rose-900/70 text-rose-900 dark:text-rose-200' },
+  { bg: 'bg-blue-500/10 dark:bg-blue-950/30 border-white/55 dark:border-blue-800/50', title: 'text-blue-950 dark:text-blue-100', accent: 'bg-blue-600 text-white', pill: 'bg-blue-500/15 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200' },
+  { bg: 'bg-emerald-500/10 dark:bg-emerald-950/30 border-white/55 dark:border-emerald-800/50', title: 'text-emerald-950 dark:text-emerald-100', accent: 'bg-emerald-600 text-white', pill: 'bg-emerald-500/15 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200' },
+  { bg: 'bg-purple-500/10 dark:bg-purple-950/30 border-white/55 dark:border-purple-800/50', title: 'text-purple-950 dark:text-purple-100', accent: 'bg-purple-600 text-white', pill: 'bg-purple-500/15 dark:bg-purple-900/60 text-purple-900 dark:text-purple-200' },
+  { bg: 'bg-amber-500/10 dark:bg-amber-950/30 border-white/55 dark:border-amber-800/50', title: 'text-amber-950 dark:text-amber-100', accent: 'bg-amber-600 text-white', pill: 'bg-amber-500/15 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200' },
+  { bg: 'bg-indigo-500/10 dark:bg-indigo-950/30 border-white/55 dark:border-indigo-800/50', title: 'text-indigo-950 dark:text-indigo-100', accent: 'bg-indigo-600 text-white', pill: 'bg-indigo-500/15 dark:bg-indigo-900/60 text-indigo-900 dark:text-indigo-200' },
+  { bg: 'bg-rose-500/10 dark:bg-rose-950/30 border-white/55 dark:border-rose-800/50', title: 'text-rose-950 dark:text-rose-100', accent: 'bg-rose-600 text-white', pill: 'bg-rose-500/15 dark:bg-rose-900/60 text-rose-900 dark:text-rose-200' },
 ];
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D'] as const;
@@ -1605,7 +1605,7 @@ export default function AdminSoal({
                 return (
                   <div
                     key={set.id}
-                    className={`p-6 border-2 rounded-3xl shadow-sm hover:shadow-lg transition-all flex flex-col ${theme.bg}`}
+                    className={`admin-glass-card p-6 border rounded-3xl hover:shadow-lg transition-all flex flex-col ${theme.bg}`}
                   >
                     {/* Header Row */}
                     <div className="flex items-start justify-between gap-3 mb-3">
@@ -1650,7 +1650,7 @@ export default function AdminSoal({
                     </p>
 
                     {/* Info Badges */}
-                    <div className="bg-white/75 dark:bg-slate-900/75 border border-slate-300/80 dark:border-slate-700/80 rounded-2xl p-3 space-y-2 text-xs font-bold text-slate-700 dark:text-slate-300 mb-5">
+                    <div className="bg-white/25 dark:bg-white/5 border border-white/45 dark:border-white/12 rounded-2xl p-3 space-y-2 text-xs font-bold text-slate-700 dark:text-slate-200 mb-5">
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
                           <ClipboardList size={14} className="text-brand" />
@@ -1745,7 +1745,7 @@ export default function AdminSoal({
               })}
             </div>
           ) : (
-            <div className="py-20 bg-slate-200/60 dark:bg-slate-900/60 rounded-[2rem] border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-center p-8">
+            <div className="py-20 admin-glass-card rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center text-center p-8">
               <div className="w-20 h-20 bg-blue-100 dark:bg-blue-950/60 text-brand rounded-full flex items-center justify-center mb-4 border border-blue-200 dark:border-blue-800">
                 <ClipboardList size={38} />
               </div>
@@ -1775,7 +1775,7 @@ export default function AdminSoal({
           return (
             <div className="space-y-6">
               {/* Top Navigation & Card Controls */}
-              <div className="bg-slate-200/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-800 rounded-3xl p-5 md:p-6 space-y-4">
+              <div className="admin-glass-card rounded-3xl p-5 md:p-6 space-y-4">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex items-start gap-3">
                     <button
@@ -1927,8 +1927,8 @@ export default function AdminSoal({
                     return (
                       <div
                         key={q.id}
-                        className={`bg-slate-100 dark:bg-slate-900 border-2 rounded-2xl p-5 transition-all ${
-                          isActiveQ ? 'border-slate-300 dark:border-slate-700 shadow-xs' : 'border-slate-300/60 dark:border-slate-800 opacity-70 bg-slate-200/70 dark:bg-slate-900/50'
+                        className={`admin-glass-card rounded-2xl p-5 transition-all ${
+                          isActiveQ ? '' : 'opacity-70'
                         }`}
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-200 dark:border-slate-800">

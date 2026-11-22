@@ -2795,12 +2795,12 @@ export default function App() {
 
     return (
       <div className={cn(
-        "flex h-screen text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-300",
+        "relative flex h-screen text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-300",
         currentBgPreset.className,
         (printingMaterialCourseId || (adminTab === 'materials' && materialSubTab === 'analisis_soal' && hasPrintableQuestionAnalysis)) && "print:hidden"
       )}>
         {/* Mobile Header */}
-        <div className="md:hidden fixed top-2 left-2 right-2 h-12 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-sm z-50 flex items-center justify-between px-3 transition-all duration-200">
+        <div className="md:hidden fixed top-2 left-2 right-2 h-12 admin-glass-card rounded-xl z-50 flex items-center justify-between px-3 transition-all duration-200">
           <div className="flex items-center gap-2">
             <div className="bg-slate-100 dark:bg-slate-800 w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden relative border border-slate-200/80 dark:border-slate-700">
               <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
@@ -2826,85 +2826,91 @@ export default function App() {
           </div>
         </div>
 
-        {/* Sidebar Backdrop (Mobile) */}
+        {/* Sidebar Backdrop (Mobile) — ultra-light tint so content behind glass sidebar remains clearly visible */}
         <AnimatePresence>
           {isAdminSidebarOpen && (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/70 backdrop-blur-sm z-50 md:hidden"
+              className="fixed inset-0 bg-slate-900/8 dark:bg-black/20 z-50 md:hidden"
               onClick={() => setIsAdminSidebarOpen(false)}
             />
           )}
         </AnimatePresence>
 
-        {/* Sidebar Navigation */}
+        {/* Sidebar Navigation (Clear Frosted Glass) */}
         <aside className={cn(
-          "fixed inset-y-3 left-3 z-50 w-72 bg-white/85 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-2xl shadow-slate-900/10 dark:shadow-black/40 p-5 flex flex-col transition-all duration-300 transform md:relative md:inset-auto md:m-4 md:mr-0 md:h-[calc(100vh-2rem)] md:shadow-xl md:shadow-slate-900/[0.04] md:translate-x-0",
+          "admin-glass-sidebar fixed inset-y-3 left-3 z-50 w-72 rounded-3xl overflow-hidden transition-all duration-300 transform md:relative md:inset-auto md:z-20 md:m-4 md:mr-0 md:h-[calc(100vh-2rem)] md:translate-x-0",
           isAdminSidebarOpen ? "translate-x-0" : "-translate-x-[calc(100%+1.5rem)]"
         )}>
-          <div className="flex items-center justify-between pb-5 mb-5 border-b border-slate-200/70 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="bg-slate-100 dark:bg-slate-800 w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden relative border border-slate-200/80 dark:border-slate-700 ring-2 ring-white dark:ring-slate-800">
-                <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
-              </div>
-              <div>
-                <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100 leading-tight uppercase tracking-tight">SMPN 1 KAWALI</h2>
-                <p className="text-[10px] font-bold text-brand dark:text-blue-400 uppercase tracking-widest mt-0.5">Informatika</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => setIsAdminSidebarOpen(false)}
-              className="md:hidden p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all duration-300"
-            >
-              <X size={20} />
-            </button>
-          </div>
-          <nav className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-1">
-            {menuItems.map(item => (
-              <button 
-                key={item.id}
-                onClick={() => {
-                  setAdminTab(item.id);
-                  if (item.id === 'student_management') {
-                    setStudentSubTab('classes');
-                  }
-                  setIsAdminSidebarOpen(false);
-                }}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-300 font-bold text-sm group relative",
-                  adminTab === item.id 
-                    ? "bg-gradient-to-r from-brand to-blue-600 text-white shadow-lg shadow-brand/25" 
-                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100/90 dark:hover:bg-slate-800/80 hover:text-brand dark:hover:text-blue-400 hover:translate-x-0.5"
-                )}
-              >
-                {adminTab === item.id && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-accent rounded-r-full shadow-xs" />}
-                <div className={cn(
-                  "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0",
-                  adminTab === item.id ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-brand/10 dark:group-hover:bg-blue-950/60 group-hover:text-brand dark:group-hover:text-blue-400"
-                )}>
-                  <item.icon size={16} />
+          {/* Subtle specular glass reflection along top/diagonal edge */}
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/12 via-transparent to-transparent dark:from-white/6 dark:via-transparent dark:to-transparent" />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/85 dark:via-white/30 to-transparent" />
+
+          <div className="relative z-10 p-5 flex flex-col h-full">
+            <div className="flex items-center justify-between pb-5 mb-5 border-b border-white/35 dark:border-white/12">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/15 dark:bg-white/8 backdrop-blur-xs w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden relative border border-white/55 dark:border-white/18">
+                  <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
                 </div>
-                <span className="truncate">{item.label}</span>
-              </button>
-            ))}
-          </nav>
-          <div className="pt-4 mt-4 border-t border-slate-200/70 dark:border-slate-800">
-            <button 
-              onClick={() => { setIsAdmin(false); setCurrentPage('login'); }} 
-              className="w-full flex items-center gap-3 text-rose-600 dark:text-rose-400 hover:bg-rose-50/90 dark:hover:bg-rose-950/50 border border-transparent hover:border-rose-200/70 dark:hover:border-rose-800/60 p-3 rounded-2xl transition-all duration-300 font-bold text-sm group"
-            >
-              <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 group-hover:bg-rose-100 dark:group-hover:bg-rose-900/70 flex items-center justify-center transition-colors duration-300">
-                <LogOut size={16} />
+                <div>
+                  <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100 leading-tight uppercase tracking-tight drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">SMPN 1 KAWALI</h2>
+                  <p className="text-[10px] font-bold text-brand dark:text-blue-400 uppercase tracking-widest mt-0.5">Informatika</p>
+                </div>
               </div>
-              Logout Admin
-            </button>
+              <button 
+                onClick={() => setIsAdminSidebarOpen(false)}
+                className="md:hidden p-1.5 text-slate-600 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-white/20 dark:hover:bg-white/10 rounded-xl transition-all duration-300"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <nav className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-1">
+              {menuItems.map(item => (
+                <button 
+                  key={item.id}
+                  onClick={() => {
+                    setAdminTab(item.id);
+                    if (item.id === 'student_management') {
+                      setStudentSubTab('classes');
+                    }
+                    setIsAdminSidebarOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-all duration-300 font-bold text-sm group relative",
+                    adminTab === item.id 
+                      ? "bg-gradient-to-r from-brand/80 to-blue-600/75 backdrop-blur-xs text-white shadow-lg shadow-brand/20 border border-white/35" 
+                      : "text-slate-900 dark:text-slate-100 border border-transparent hover:bg-white/20 dark:hover:bg-white/10 hover:backdrop-blur-xs hover:border-white/45 dark:hover:border-white/18 hover:text-brand dark:hover:text-blue-300 hover:translate-x-0.5 drop-shadow-[0_1px_1px_rgba(255,255,255,0.55)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]"
+                  )}
+                >
+                  {adminTab === item.id && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-accent rounded-r-full shadow-xs" />}
+                  <div className={cn(
+                    "w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0",
+                    adminTab === item.id ? "bg-white/20 text-white" : "bg-white/15 dark:bg-white/8 border border-white/45 dark:border-white/12 text-slate-800 dark:text-slate-200 group-hover:bg-brand/15 dark:group-hover:bg-blue-500/20 group-hover:text-brand dark:group-hover:text-blue-300"
+                  )}>
+                    <item.icon size={16} />
+                  </div>
+                  <span className="truncate">{item.label}</span>
+                </button>
+              ))}
+            </nav>
+            <div className="pt-4 mt-4 border-t border-white/35 dark:border-white/12">
+              <button 
+                onClick={() => { setIsAdmin(false); setCurrentPage('login'); }} 
+                className="w-full flex items-center gap-3 text-rose-600 dark:text-rose-400 hover:bg-rose-500/12 dark:hover:bg-rose-500/18 backdrop-blur-xs border border-transparent hover:border-rose-300/55 dark:hover:border-rose-500/30 p-3 rounded-2xl transition-all duration-300 font-bold text-sm group"
+              >
+                <div className="w-8 h-8 rounded-xl bg-rose-500/10 dark:bg-rose-500/12 border border-rose-200/50 dark:border-rose-500/20 group-hover:bg-rose-500/20 flex items-center justify-center transition-colors duration-300">
+                  <LogOut size={16} />
+                </div>
+                Logout Admin
+              </button>
+            </div>
           </div>
         </aside>
 
-        <main className="flex-1 p-3 md:p-5 lg:p-6 pt-16 md:pt-4 overflow-y-auto w-full custom-scrollbar">
-          <header className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 rounded-xl px-3.5 py-2 md:px-4 md:py-2 shadow-xs flex items-center justify-between gap-3 mb-4 transition-all duration-200">
+        <main className="relative z-10 flex-1 p-3 md:p-5 lg:p-6 pt-16 md:pt-4 overflow-y-auto w-full custom-scrollbar">
+          <header className="sticky top-0 z-30 admin-glass-card rounded-2xl px-3.5 py-2 md:px-4 md:py-2 flex items-center justify-between gap-3 mb-4 transition-all duration-200">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className={cn(
                 "w-8 h-8 rounded-lg flex items-center justify-center border border-brand/15 dark:border-blue-500/25 shrink-0",
@@ -3078,10 +3084,11 @@ export default function App() {
             )}
           </header>
           
-          <div className={cn(
-            "rounded-2xl transition-colors duration-200",
-            adminTab === 'dashboard' ? "" : "bg-white dark:bg-slate-900 p-4 md:p-6 shadow-xs border border-slate-200/80 dark:border-slate-800"
-          )}>
+          <div className="admin-glass-sidebar relative overflow-hidden rounded-3xl p-4 md:p-6 transition-all duration-300">
+            {/* Subtle specular glass reflection along top/diagonal edge matching sidebar */}
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/12 via-transparent to-transparent dark:from-white/6 dark:via-transparent dark:to-transparent" />
+            <div aria-hidden="true" className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/85 dark:via-white/30 to-transparent" />
+            <div className="relative z-10">
             {adminTab === 'dashboard' && (() => {
               const activeSessionList = activeSessions.filter(s => {
                 if (!s.lastActive) return true;
@@ -3102,9 +3109,9 @@ export default function App() {
                 <div className="space-y-6 animate-in fade-in duration-500">
                   {/* Kartu Kelola Game, Kelola Materi & Kelola Soal */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                    <div className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl p-3.5 shadow-sm transition-colors flex items-center justify-between gap-3">
+                    <div className="bg-indigo-600/80 hover:bg-indigo-600/90 backdrop-blur-md border border-white/40 shadow-[0_12px_26px_-10px_rgba(79,70,229,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.45)] text-white rounded-2xl p-3.5 transition-all flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 rounded-lg bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
                           <Gamepad2 size={20} className="text-amber-300" />
                         </div>
                         <div className="min-w-0">
@@ -3114,16 +3121,16 @@ export default function App() {
                       </div>
                       <button
                         onClick={() => setAdminTab('games')}
-                        className="px-3 py-1.5 bg-white text-indigo-900 hover:bg-indigo-50 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
+                        className="px-3 py-1.5 bg-white/90 hover:bg-white text-indigo-900 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
                       >
                         <span>Kelola</span>
                         <ArrowRight size={13} />
                       </button>
                     </div>
 
-                    <div className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl p-3.5 shadow-sm transition-colors flex items-center justify-between gap-3">
+                    <div className="bg-emerald-600/80 hover:bg-emerald-600/90 backdrop-blur-md border border-white/40 shadow-[0_12px_26px_-10px_rgba(5,150,105,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.45)] text-white rounded-2xl p-3.5 transition-all flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 rounded-lg bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
                           <GraduationCap size={20} className="text-yellow-300" />
                         </div>
                         <div className="min-w-0">
@@ -3133,16 +3140,16 @@ export default function App() {
                       </div>
                       <button
                         onClick={() => setAdminTab('materials')}
-                        className="px-3 py-1.5 bg-white text-emerald-950 hover:bg-emerald-50 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
+                        className="px-3 py-1.5 bg-white/90 hover:bg-white text-emerald-950 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
                       >
                         <span>Kelola</span>
                         <ArrowRight size={13} />
                       </button>
                     </div>
 
-                    <div className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl p-3.5 shadow-sm transition-colors flex items-center justify-between gap-3">
+                    <div className="bg-amber-600/80 hover:bg-amber-600/90 backdrop-blur-md border border-white/40 shadow-[0_12px_26px_-10px_rgba(217,119,6,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.45)] text-white rounded-2xl p-3.5 transition-all flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 rounded-lg bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
                           <ClipboardList size={20} className="text-yellow-200" />
                         </div>
                         <div className="min-w-0">
@@ -3152,7 +3159,7 @@ export default function App() {
                       </div>
                       <button
                         onClick={() => setAdminTab('questions')}
-                        className="px-3 py-1.5 bg-white text-amber-950 hover:bg-amber-50 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
+                        className="px-3 py-1.5 bg-white/90 hover:bg-white text-amber-950 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
                       >
                         <span>Kelola</span>
                         <ArrowRight size={13} />
@@ -3162,7 +3169,7 @@ export default function App() {
 
                   {/* Top Modern KPI Highlights Bar */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-                    <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-slate-300/90 dark:hover:border-slate-700 transition-all duration-300 group">
+                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 hover:shadow-md transition-all duration-300 group">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform duration-300 group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-blue-600 text-white flex items-center justify-center shadow-md shadow-brand/20">
@@ -3181,7 +3188,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-slate-300/90 dark:hover:border-slate-700 transition-all duration-300 group">
+                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 hover:shadow-md transition-all duration-300 group">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform duration-300 group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-blue-600 text-white flex items-center justify-center shadow-md shadow-brand/20">
@@ -3201,7 +3208,7 @@ export default function App() {
                     </div>
 
                     {/* Card 3: Monitoring Kecurangan */}
-                    <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-slate-300/90 dark:hover:border-slate-700 transition-all duration-300 group">
+                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 hover:shadow-md transition-all duration-300 group">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-rose-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform duration-300 group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
                         <div className={cn(
@@ -3233,7 +3240,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-slate-300/90 dark:hover:border-slate-700 transition-all duration-300 group">
+                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 hover:shadow-md transition-all duration-300 group">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none transition-transform duration-300 group-hover:scale-110" />
                       <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-blue-600 text-white flex items-center justify-center shadow-md shadow-brand/20">
@@ -3259,9 +3266,9 @@ export default function App() {
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
                     
                     {/* LEFT COLUMN: KARTU PARTICIPANT */}
-                    <div className="xl:col-span-7 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col transition-all duration-300">
+                    <div className="xl:col-span-7 admin-glass-card rounded-3xl overflow-hidden flex flex-col transition-all duration-300">
                       {/* Vibrant Gradient Header */}
-                      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="bg-gradient-to-r from-blue-700/80 via-blue-600/75 to-indigo-600/80 backdrop-blur-md border-b border-white/25 p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3.5">
                           <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shadow-inner">
                             <Users size={24} />
@@ -3286,7 +3293,7 @@ export default function App() {
 
                       {/* Class Quick Filter Tabs */}
                       {distinctClasses.length > 0 && (
-                        <div className="px-6 py-3.5 bg-slate-50/90 dark:bg-slate-800/70 border-b border-slate-200/80 dark:border-slate-800 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                        <div className="px-6 py-3.5 bg-white/15 dark:bg-white/5 border-b border-white/35 dark:border-white/10 flex items-center gap-2 overflow-x-auto custom-scrollbar">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0 mr-1">Filter Kelas:</span>
                           <button
                             onClick={() => setDashboardClassFilter('all')}
@@ -3334,17 +3341,17 @@ export default function App() {
                               .sort((a, b) => a.studentName.localeCompare(b.studentName));
 
                             const classThemes = [
-                              { bg: "bg-blue-50/50 dark:bg-blue-950/30", border: "border-blue-200/70 dark:border-blue-800/60", header: "text-blue-900 dark:text-blue-200", badge: "bg-blue-600 text-white", icon: "text-brand" },
-                              { bg: "bg-indigo-50/50 dark:bg-indigo-950/30", border: "border-indigo-200/70 dark:border-indigo-800/60", header: "text-indigo-900 dark:text-indigo-200", badge: "bg-indigo-600 text-white", icon: "text-brand" },
-                              { bg: "bg-sky-50/50 dark:bg-sky-950/30", border: "border-sky-200/70 dark:border-sky-800/60", header: "text-sky-900 dark:text-sky-200", badge: "bg-sky-600 text-white", icon: "text-sky-600" },
-                              { bg: "bg-emerald-50/50 dark:bg-emerald-950/30", border: "border-emerald-200/70 dark:border-emerald-800/60", header: "text-emerald-900 dark:text-emerald-200", badge: "bg-emerald-600 text-white", icon: "text-emerald-600" },
-                              { bg: "bg-amber-50/50 dark:bg-amber-950/30", border: "border-amber-200/70 dark:border-amber-800/60", header: "text-amber-900 dark:text-amber-200", badge: "bg-amber-500 text-white", icon: "text-amber-600" },
-                              { bg: "bg-rose-50/50 dark:bg-rose-950/30", border: "border-rose-200/70 dark:border-rose-800/60", header: "text-rose-900 dark:text-rose-200", badge: "bg-rose-600 text-white", icon: "text-rose-600" },
+                              { bg: "bg-blue-500/10 dark:bg-blue-950/30", border: "border-white/50 dark:border-blue-800/50", header: "text-blue-900 dark:text-blue-200", badge: "bg-blue-600 text-white", icon: "text-brand" },
+                              { bg: "bg-indigo-500/10 dark:bg-indigo-950/30", border: "border-white/50 dark:border-indigo-800/50", header: "text-indigo-900 dark:text-indigo-200", badge: "bg-indigo-600 text-white", icon: "text-brand" },
+                              { bg: "bg-sky-500/10 dark:bg-sky-950/30", border: "border-white/50 dark:border-sky-800/50", header: "text-sky-900 dark:text-sky-200", badge: "bg-sky-600 text-white", icon: "text-sky-600" },
+                              { bg: "bg-emerald-500/10 dark:bg-emerald-950/30", border: "border-white/50 dark:border-emerald-800/50", header: "text-emerald-900 dark:text-emerald-200", badge: "bg-emerald-600 text-white", icon: "text-emerald-600" },
+                              { bg: "bg-amber-500/10 dark:bg-amber-950/30", border: "border-white/50 dark:border-amber-800/50", header: "text-amber-900 dark:text-amber-200", badge: "bg-amber-500 text-white", icon: "text-amber-600" },
+                              { bg: "bg-rose-500/10 dark:bg-rose-950/30", border: "border-white/50 dark:border-rose-800/50", header: "text-rose-900 dark:text-rose-200", badge: "bg-rose-600 text-white", icon: "text-rose-600" },
                             ];
                             const theme = classThemes[idx % classThemes.length];
 
                             return (
-                              <div key={className} className={cn("rounded-2xl border p-4 transition-all duration-300 shadow-xs", theme.bg, theme.border)}>
+                              <div key={className} className={cn("rounded-2xl border backdrop-blur-xs p-4 transition-all duration-300 shadow-xs", theme.bg, theme.border)}>
                                 <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-200/60 dark:border-slate-700/60">
                                   <div className="flex items-center gap-2">
                                     <span className={cn("px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider shadow-xs", theme.badge)}>
@@ -3368,7 +3375,7 @@ export default function App() {
                                     return (
                                       <div 
                                         key={s.id} 
-                                        className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-brand/40 dark:hover:border-blue-500/50 p-3.5 rounded-xl shadow-xs hover:shadow-md transition-all duration-300 flex flex-col gap-2.5 group"
+                                        className="admin-glass-card hover:border-brand/40 dark:hover:border-blue-500/50 p-3.5 rounded-xl hover:shadow-md transition-all duration-300 flex flex-col gap-2.5 group"
                                       >
                                         <div className="flex items-start justify-between gap-2">
                                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -3428,9 +3435,9 @@ export default function App() {
                     </div>
 
                     {/* RIGHT COLUMN: MONITORING KECURANGAN */}
-                    <div className="xl:col-span-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col transition-all duration-300">
+                    <div className="xl:col-span-5 admin-glass-card rounded-3xl overflow-hidden flex flex-col transition-all duration-300">
                       {/* Vibrant Red Gradient Header */}
-                      <div className="bg-gradient-to-r from-rose-600 via-red-600 to-orange-500 p-6 text-white flex items-center justify-between gap-3">
+                      <div className="bg-gradient-to-r from-rose-600/80 via-red-600/75 to-orange-500/80 backdrop-blur-md border-b border-white/25 p-6 text-white flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3.5">
                           <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shadow-inner">
                             <ShieldAlert size={24} />
@@ -3543,7 +3550,7 @@ export default function App() {
                   </div>
 
                   {/* BOTTOM SECTION: STATUS AKTIVASI MATERI (MODERN COLORFUL SWITCHBOARD) */}
-                  <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm transition-colors">
+                  <div className="admin-glass-card p-6 md:p-8 rounded-3xl transition-colors">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7 pb-5 border-b border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-3.5">
                         <div className="w-12 h-12 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-2xl flex items-center justify-center text-white shadow-md shadow-blue-500/20">
@@ -3584,7 +3591,7 @@ export default function App() {
                           <div 
                             key={course.id} 
                             className={cn(
-                              "bg-slate-50/70 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-300 hover:bg-white dark:hover:bg-slate-800 hover:shadow-md",
+                              "admin-glass-card rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-300 hover:shadow-md",
                               theme.bg
                             )}
                           >
@@ -3608,7 +3615,7 @@ export default function App() {
 
                             <div className="space-y-2.5 pt-3 border-t border-slate-200/70 dark:border-slate-700/70">
                               {/* Toggle 1: Akses Materi */}
-                              <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+                              <div className="flex items-center justify-between bg-white/25 dark:bg-white/5 backdrop-blur-xs p-2.5 rounded-xl border border-white/45 dark:border-white/12 shadow-2xs">
                                 <div>
                                   <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 dark:text-slate-400 block">Akses Siswa</span>
                                   <span className={cn("text-xs font-bold", isActive ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500")}>
@@ -3632,7 +3639,7 @@ export default function App() {
                               </div>
 
                               {/* Toggle 2: Wajib Fullscreen */}
-                              <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+                              <div className="flex items-center justify-between bg-white/25 dark:bg-white/5 backdrop-blur-xs p-2.5 rounded-xl border border-white/45 dark:border-white/12 shadow-2xs">
                                 <div>
                                   <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 dark:text-slate-400 block">Mode Ujian</span>
                                   <span className={cn("text-xs font-bold", isFullScreen ? "text-brand dark:text-blue-400" : "text-slate-400 dark:text-slate-500")}>
@@ -3656,7 +3663,7 @@ export default function App() {
                               </div>
 
                               {/* Toggle 3: Poin Nilai */}
-                              <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+                              <div className="flex items-center justify-between bg-white/25 dark:bg-white/5 backdrop-blur-xs p-2.5 rounded-xl border border-white/45 dark:border-white/12 shadow-2xs">
                                 <div>
                                   <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 dark:text-slate-400 block">Poin Nilai</span>
                                   <span className={cn("text-xs font-bold", isScoreVisible ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500")}>
@@ -3690,7 +3697,7 @@ export default function App() {
             })()}
             {adminTab === 'student_management' && (
               <div className="space-y-6">
-                <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-xs w-fit">
+                <div className="flex bg-white/20 dark:bg-white/5 backdrop-blur-xs p-1.5 rounded-2xl border border-white/45 dark:border-white/12 shadow-xs w-fit">
                   <button
                     onClick={() => setStudentSubTab('classes')}
                     className={cn(
@@ -3717,12 +3724,12 @@ export default function App() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {Object.entries(groupedClasses).sort((a, b) => a[0].localeCompare(b[0])).map(([className, studentCount], idx) => {
                       const colors = [
-                        { bg: "bg-blue-50/70 dark:bg-blue-950/35", border: "border-blue-200/70 dark:border-blue-800/60", text: "text-blue-700 dark:text-blue-400", icon: "bg-blue-100/90 dark:bg-blue-900/50", hover: "hover:border-blue-300 dark:hover:border-blue-600" },
-                        { bg: "bg-purple-50/70 dark:bg-purple-950/35", border: "border-purple-200/70 dark:border-purple-800/60", text: "text-purple-700 dark:text-purple-400", icon: "bg-purple-100/90 dark:bg-purple-900/50", hover: "hover:border-purple-300 dark:hover:border-purple-600" },
-                        { bg: "bg-emerald-50/70 dark:bg-emerald-950/35", border: "border-emerald-200/70 dark:border-emerald-800/60", text: "text-emerald-700 dark:text-emerald-400", icon: "bg-emerald-100/90 dark:bg-emerald-900/50", hover: "hover:border-emerald-300 dark:hover:border-emerald-600" },
-                        { bg: "bg-amber-50/70 dark:bg-amber-950/35", border: "border-amber-200/70 dark:border-amber-800/60", text: "text-amber-700 dark:text-amber-400", icon: "bg-amber-100/90 dark:bg-amber-900/50", hover: "hover:border-amber-300 dark:hover:border-amber-600" },
-                        { bg: "bg-rose-50/70 dark:bg-rose-950/35", border: "border-rose-200/70 dark:border-rose-800/60", text: "text-rose-700 dark:text-rose-400", icon: "bg-rose-100/90 dark:bg-rose-900/50", hover: "hover:border-rose-300 dark:hover:border-rose-600" },
-                        { bg: "bg-indigo-50/70 dark:bg-indigo-950/35", border: "border-indigo-200/70 dark:border-indigo-800/60", text: "text-indigo-700 dark:text-indigo-400", icon: "bg-indigo-100/90 dark:bg-indigo-900/50", hover: "hover:border-indigo-300 dark:hover:border-indigo-600" },
+                        { bg: "bg-blue-500/10 dark:bg-blue-950/30", border: "border-white/55 dark:border-blue-800/50", text: "text-blue-700 dark:text-blue-400", icon: "bg-blue-500/15 dark:bg-blue-900/50", hover: "hover:border-blue-300 dark:hover:border-blue-600" },
+                        { bg: "bg-purple-500/10 dark:bg-purple-950/30", border: "border-white/55 dark:border-purple-800/50", text: "text-purple-700 dark:text-purple-400", icon: "bg-purple-500/15 dark:bg-purple-900/50", hover: "hover:border-purple-300 dark:hover:border-purple-600" },
+                        { bg: "bg-emerald-500/10 dark:bg-emerald-950/30", border: "border-white/55 dark:border-emerald-800/50", text: "text-emerald-700 dark:text-emerald-400", icon: "bg-emerald-500/15 dark:bg-emerald-900/50", hover: "hover:border-emerald-300 dark:hover:border-emerald-600" },
+                        { bg: "bg-amber-500/10 dark:bg-amber-950/30", border: "border-white/55 dark:border-amber-800/50", text: "text-amber-700 dark:text-amber-400", icon: "bg-amber-500/15 dark:bg-amber-900/50", hover: "hover:border-amber-300 dark:hover:border-amber-600" },
+                        { bg: "bg-rose-500/10 dark:bg-rose-950/30", border: "border-white/55 dark:border-rose-800/50", text: "text-rose-700 dark:text-rose-400", icon: "bg-rose-500/15 dark:bg-rose-900/50", hover: "hover:border-rose-300 dark:hover:border-rose-600" },
+                        { bg: "bg-indigo-500/10 dark:bg-indigo-950/30", border: "border-white/55 dark:border-indigo-800/50", text: "text-indigo-700 dark:text-indigo-400", icon: "bg-indigo-500/15 dark:bg-indigo-900/50", hover: "hover:border-indigo-300 dark:hover:border-indigo-600" },
                       ];
                       const color = colors[idx % colors.length];
 
@@ -3731,7 +3738,7 @@ export default function App() {
                           whileHover={{ y: -4 }}
                           key={className}
                           className={cn(
-                            "p-6 rounded-2xl border transition-all duration-300 text-left flex flex-col gap-4 group relative overflow-hidden shadow-xs hover:shadow-md",
+                            "admin-glass-card p-6 rounded-2xl border transition-all duration-300 text-left flex flex-col gap-4 group relative overflow-hidden hover:shadow-md",
                             color.bg, color.border, color.hover
                           )}
                           onClick={() => {
@@ -3800,11 +3807,11 @@ export default function App() {
                     </div>
                     
                     {/* Desktop Table */}
-                    <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs mb-4">
+                    <div className="hidden md:block overflow-x-auto rounded-2xl admin-glass-card mb-4">
                       <div className="min-w-full">
                         <table className="w-full text-left border-collapse min-w-[800px]">
                           <thead>
-                            <tr className="bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-[10px] uppercase tracking-widest font-extrabold">
+                            <tr className="bg-white/25 dark:bg-white/5 border-b border-white/40 dark:border-white/10 text-slate-600 dark:text-slate-300 text-[10px] uppercase tracking-widest font-extrabold">
                             <th className="px-6 py-4 w-10">
                               <input 
                                 type="checkbox" 
@@ -3935,7 +3942,7 @@ export default function App() {
 
                   {/* Mobile Responsive Card View (All Data Visible Without Horizontal Scroll) */}
                   <div className="md:hidden space-y-2.5 mb-6">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 flex items-center justify-between shadow-2xs">
+                    <div className="admin-glass-card rounded-xl px-3.5 py-2.5 flex items-center justify-between">
                       <label className="flex items-center gap-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
                         <input
                           type="checkbox"
@@ -3954,7 +3961,7 @@ export default function App() {
                       <div
                         key={s.id}
                         className={cn(
-                          "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-2xs space-y-2.5",
+                          "admin-glass-card rounded-2xl p-3.5 space-y-2.5",
                           selectedStudentIds.includes(s.id) && "ring-2 ring-brand/30 border-brand/50"
                         )}
                       >
@@ -4082,7 +4089,7 @@ export default function App() {
                         )}
                       </div>
                     )) : (
-                      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center text-slate-400 dark:text-slate-500 text-xs font-bold">
+                      <div className="admin-glass-card rounded-2xl border-dashed p-8 text-center text-slate-500 dark:text-slate-400 text-xs font-bold">
                         Tidak ada siswa yang ditemukan.
                       </div>
                     )}
@@ -4229,7 +4236,7 @@ export default function App() {
                   </div>
 
                   {/* Navigasi Sub-Halaman di Kelola Materi */}
-                  <div className="inline-flex items-center gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700 w-fit shrink-0">
+                  <div className="inline-flex items-center gap-1.5 p-1.5 bg-white/20 dark:bg-white/5 backdrop-blur-xs rounded-2xl border border-white/45 dark:border-white/12 w-fit shrink-0">
                     <button
                       type="button"
                       onClick={() => setMaterialSubTab('list')}
@@ -4270,9 +4277,9 @@ export default function App() {
                   {COURSES.map((course, index) => {
                     const isActive = materialConfigs[course.id]?.isActive ?? true;
                     const colorVariants = [
-                      { bg: "bg-blue-50/70 dark:bg-blue-950/30 border-blue-200/80 dark:border-blue-800/60 hover:border-blue-300 dark:hover:border-blue-700", text: "text-blue-950 dark:text-blue-100", badge: "bg-blue-100 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200" },
-                      { bg: "bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-300 dark:hover:border-emerald-700", text: "text-emerald-950 dark:text-emerald-100", badge: "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200" },
-                      { bg: "bg-purple-50/70 dark:bg-purple-950/30 border-purple-200/80 dark:border-purple-800/60 hover:border-purple-300 dark:hover:border-purple-700", text: "text-purple-950 dark:text-purple-100", badge: "bg-purple-100 dark:bg-purple-900/60 text-purple-900 dark:text-purple-200" },
+                      { bg: "bg-blue-500/10 dark:bg-blue-950/30 border-white/55 dark:border-blue-800/50 hover:border-blue-300 dark:hover:border-blue-700", text: "text-blue-950 dark:text-blue-100", badge: "bg-blue-100 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200" },
+                      { bg: "bg-emerald-500/10 dark:bg-emerald-950/30 border-white/55 dark:border-emerald-800/50 hover:border-emerald-300 dark:hover:border-emerald-700", text: "text-emerald-950 dark:text-emerald-100", badge: "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200" },
+                      { bg: "bg-purple-500/10 dark:bg-purple-950/30 border-white/55 dark:border-purple-800/50 hover:border-purple-300 dark:hover:border-purple-700", text: "text-purple-950 dark:text-purple-100", badge: "bg-purple-100 dark:bg-purple-900/60 text-purple-900 dark:text-purple-200" },
                     ];
                     const variant = colorVariants[index % colorVariants.length];
                         const courseConfig = materialConfigs[course.id];
@@ -4287,7 +4294,7 @@ export default function App() {
                              return (
                       <div 
                         key={course.id} 
-                        className={cn("p-6 border rounded-2xl shadow-xs hover:shadow-md transition-all duration-300 flex flex-col", variant.bg)}
+                        className={cn("admin-glass-card p-6 border rounded-2xl hover:shadow-md transition-all duration-300 flex flex-col", variant.bg)}
                       >
                         <div className="flex items-start justify-between mb-4 gap-4">
                           <h3 className={cn("font-extrabold text-xl leading-tight", variant.text)}>{course.title}</h3>
@@ -4296,7 +4303,7 @@ export default function App() {
                           </div>
                       </div>
                         <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2 mb-3 flex-1">{course.description}</p>
-                        <div className="flex flex-wrap gap-3 text-xs font-bold text-slate-600 dark:text-slate-300 mb-6 bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 p-2.5 rounded-xl tabular-nums">
+                        <div className="flex flex-wrap gap-3 text-xs font-bold text-slate-700 dark:text-slate-200 mb-6 bg-white/25 dark:bg-white/5 border border-white/45 dark:border-white/12 p-2.5 rounded-xl tabular-nums">
                           <span>{tM}m {tS}s materi</span>
                           <span>{qM}m {qS}s kuis</span>
                           <span>{availSeconds}s kuis ready</span>
@@ -4348,7 +4355,7 @@ export default function App() {
             {adminTab === 'assessments' && (
               <div className="space-y-6">
                 {/* 3 Categories Switcher Pills */}
-                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700 w-fit">
+                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white/20 dark:bg-white/5 backdrop-blur-xs rounded-2xl border border-white/45 dark:border-white/12 w-fit">
                   <button
                     onClick={() => { setAssessmentCategory('materi'); setAssessmentNav({ course: null, kelas: null }); }}
                     className={cn(
@@ -4423,7 +4430,7 @@ export default function App() {
                             <button 
                               key={courseData.title}
                               onClick={() => setAssessmentNav({ course: courseData.title, kelas: null })}
-                              className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 text-left hover:border-brand/40 dark:hover:border-blue-500/50 group hover:shadow-lg hover:shadow-brand/10 transition-all duration-300 flex flex-col relative overflow-hidden shadow-xs"
+                              className="admin-glass-card p-6 rounded-3xl text-left hover:border-brand/40 dark:hover:border-blue-500/50 group hover:shadow-lg hover:shadow-brand/10 transition-all duration-300 flex flex-col relative overflow-hidden"
                             >
                               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity dark:text-slate-400">
                                 <BookOpen size={64} />
@@ -4459,7 +4466,7 @@ export default function App() {
                             </button>
                           );
                         }) : (
-                          <div className="col-span-full py-20 bg-slate-50/80 dark:bg-slate-800/40 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+                          <div className="col-span-full py-20 admin-glass-card rounded-3xl border-2 border-dashed flex flex-col items-center justify-center text-slate-500 dark:text-slate-400">
                             <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
                               <TrendingUp size={40} className="opacity-30" />
                             </div>
@@ -4478,7 +4485,7 @@ export default function App() {
                             <button 
                               key={classData.name}
                               onClick={() => setAssessmentNav({ ...assessmentNav, kelas: classData.name })}
-                              className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 text-left hover:border-brand/40 dark:hover:border-blue-500/50 group hover:shadow-lg hover:shadow-brand/5 transition-all duration-300 flex flex-col relative shadow-xs"
+                              className="admin-glass-card p-6 rounded-3xl text-left hover:border-brand/40 dark:hover:border-blue-500/50 group hover:shadow-lg hover:shadow-brand/5 transition-all duration-300 flex flex-col relative"
                             >
                               <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl flex items-center justify-center mb-6 group-hover:bg-brand group-hover:text-white transition-all duration-300">
                                 <Users size={24} />
@@ -4530,11 +4537,11 @@ export default function App() {
                       </span>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs">
+                    <div className="admin-glass-card rounded-3xl overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[700px]">
                           <thead>
-                            <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-[10px] uppercase font-extrabold tracking-wider">
+                            <tr className="bg-white/25 dark:bg-white/5 border-b border-white/40 dark:border-white/10 text-slate-600 dark:text-slate-300 text-[10px] uppercase font-extrabold tracking-wider">
                               <th className="p-4 pl-6">Siswa</th>
                               <th className="p-4">Kelas</th>
                               <th className="p-4">Judul Game & Stage</th>
@@ -4614,11 +4621,11 @@ export default function App() {
                       </span>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs">
+                    <div className="admin-glass-card rounded-3xl overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[700px]">
                           <thead>
-                            <tr className="bg-slate-50 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-[10px] uppercase font-extrabold tracking-wider">
+                            <tr className="bg-white/25 dark:bg-white/5 border-b border-white/40 dark:border-white/10 text-slate-600 dark:text-slate-300 text-[10px] uppercase font-extrabold tracking-wider">
                               <th className="p-4 pl-6">Siswa</th>
                               <th className="p-4">Kelas</th>
                               <th className="p-4">Paket Soal</th>
@@ -4689,11 +4696,11 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs">
+                <div className="admin-glass-card rounded-2xl overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50/90 dark:bg-slate-800/70 border-b border-slate-200/80 dark:border-slate-800">
+                        <tr className="bg-white/25 dark:bg-white/5 border-b border-white/40 dark:border-white/10">
                           <th className="p-4 pl-8 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Siswa</th>
                           <th className="p-4 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Waktu Akses</th>
                           <th className="p-4 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Alamat IP</th>
@@ -4777,11 +4784,11 @@ export default function App() {
                   </button>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs">
+                <div className="admin-glass-card rounded-2xl overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[700px]">
                       <thead>
-                        <tr className="bg-slate-50/90 dark:bg-slate-800/70 border-b border-slate-200/80 dark:border-slate-800">
+                        <tr className="bg-white/25 dark:bg-white/5 border-b border-white/40 dark:border-white/10">
                           <th className="p-4 pl-8 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Waktu</th>
                           <th className="p-4 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Target</th>
                           <th className="p-4 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Isi Pengumuman</th>
@@ -4872,7 +4879,7 @@ export default function App() {
                 </div>
 
                 {/* Card 0: Theme Mode (Light / Dark) */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="admin-glass-card rounded-2xl overflow-hidden p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start gap-3">
                     <div className={cn(
                       "w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-colors",
@@ -4920,7 +4927,7 @@ export default function App() {
                 </div>
 
                 {/* Card 1: Logo Sekolah */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs p-6 md:p-8">
+                <div className="admin-glass-card rounded-2xl overflow-hidden p-6 md:p-8">
                   <div className="max-w-md space-y-4">
                     <div>
                       <label className="block text-sm font-extrabold text-slate-800 dark:text-slate-100 mb-1">Upload Logo Sekolah</label>
@@ -5029,7 +5036,7 @@ export default function App() {
                 </div>
 
                 {/* Card 2: Background Customization (10 Distinct Styles) */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs p-6 md:p-8 space-y-5">
+                <div className="admin-glass-card rounded-2xl overflow-hidden p-6 md:p-8 space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800/70 text-indigo-700 dark:text-indigo-400 flex items-center justify-center shrink-0">
@@ -5079,8 +5086,8 @@ export default function App() {
                           className={cn(
                             "text-left rounded-2xl border p-2.5 transition-all duration-200 flex flex-col gap-2.5 group cursor-pointer",
                             isSelected
-                              ? "border-brand ring-2 ring-brand/25 bg-blue-50/40 dark:bg-blue-950/30 shadow-sm"
-                              : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900 hover:shadow-xs"
+                              ? "border-brand ring-2 ring-brand/25 bg-blue-500/12 dark:bg-blue-950/35 backdrop-blur-xs shadow-sm"
+                              : "admin-glass-card hover:shadow-xs"
                           )}
                         >
                           {/* Mini App Canvas Preview */}
@@ -5140,6 +5147,7 @@ export default function App() {
                 }}
               />
             )}
+            </div>
           </div>
 
           <AnimatePresence>
