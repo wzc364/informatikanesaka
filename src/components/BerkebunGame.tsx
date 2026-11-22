@@ -301,10 +301,11 @@ function createInitialSave(): FarmSaveState {
 
 function normalizeSaveState(raw: Partial<FarmSaveState>): FarmSaveState {
   const fresh = createInitialSave();
-  const hasValidTiles = Array.isArray(raw.tiles) && raw.tiles.length === WORLD_COLS * WORLD_ROWS;
+  const hasValidTiles =
+    raw.version === 4 && Array.isArray(raw.tiles) && raw.tiles.length === WORLD_COLS * WORLD_ROWS;
   const tiles = hasValidTiles ? raw.tiles! : fresh.tiles;
   const trees =
-    Array.isArray(raw.trees) && raw.trees.length > 0 ? raw.trees : createInitialTrees(tiles);
+    hasValidTiles && Array.isArray(raw.trees) && raw.trees.length > 0 ? raw.trees : fresh.trees;
   return {
     ...fresh,
     ...raw,
