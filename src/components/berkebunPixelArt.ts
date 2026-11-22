@@ -13,7 +13,16 @@ import palmTreeUrl from '../assets/images/berkebun_palm_tree_pixel_1795348518032
 import coopSpriteUrl from '../assets/images/berkebun_coop_pixel_1795348518625.jpg';
 import sacredTreeUrl from '../assets/images/berkebun_sacred_tree_pixel_1795348518161.jpg';
 import lighthouseUrl from '../assets/images/berkebun_lighthouse_pixel_1795348518004.jpg';
-import type { BagItemId, CropId, NpcId, Season } from './berkebunWorldData';
+import {
+  WORLD_COLS,
+  WORLD_ROWS,
+  type BagItemId,
+  type CropId,
+  type FarmTile,
+  type FurnitureKind,
+  type NpcId,
+  type Season,
+} from './berkebunWorldData';
 
 export type StardewToolId =
   | 'hoe'
@@ -416,6 +425,7 @@ export interface PixelAtlas {
   crops: Record<CropId, HTMLCanvasElement[]>;
   tools: Record<StardewToolId, HTMLCanvasElement>;
   bagItems: Record<BagItemId, HTMLCanvasElement>;
+  furniture: Record<Exclude<FurnitureKind, 'rug'>, HTMLCanvasElement>;
 }
 
 let CACHED_ATLAS: PixelAtlas | null = null;
@@ -1446,6 +1456,466 @@ export function getStardewPixelAtlas(): PixelAtlas {
     }),
   };
 
+  // 7. Interior Themed Pixel-Art Furniture (16x16 / 24x16)
+  const furniture: Record<Exclude<FurnitureKind, 'rug'>, HTMLCanvasElement> = {
+    bed: makePixelCanvas(24, 24, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBWWWWWWooWWWWWWWWWBo..',
+          '.oBWWWWWWooGGGGGGGGGGBo.',
+          '.oBSSSSSSooGGGGGGGGGGGo.',
+          '.oBGGGGGGGGGGLLLLGGGGBo.',
+          '.oBGGGGGGGGGGLLLLGGGGBo.',
+          '.oBGGGGGGGGGGGGGGGGGGBo.',
+          '.oBDDDDDDDDDDDDDDDDDDBo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBBoo............ooBBo.',
+          '.oooo..............oooo.',
+        ],
+        {
+          o: '#241206',
+          B: '#9a5223',
+          W: '#f8fafc',
+          S: '#cbd5e1',
+          G: '#22c55e',
+          L: '#86efac',
+          D: '#15803d',
+        },
+        0,
+        5
+      );
+    }),
+    fireplace: makePixelCanvas(24, 24, (px) => {
+      drawMatrix(
+        px,
+        [
+          '..oooooooooooooooooooo..',
+          '..oSSSSSSSSSSSSSSSSSSo..',
+          '..oSDDDSSSDDDSSSDDDSSo..',
+          '..oSSSSSSSSSSSSSSSSSSo..',
+          '..oSSSooooooooooooSSSo..',
+          '..oSSSooooooooooooSSSo..',
+          '..oSSSoooOOOOOOoooSSSo..',
+          '..oSSSooOOYYYYOOooSSSo..',
+          '..oSSSoORROYYOORRoSSSo..',
+          '..oSSSooooooooooooSSSo..',
+          '.oooooooooooooooooooooo.',
+        ],
+        {
+          o: '#1e293b',
+          S: '#94a3b8',
+          D: '#64748b',
+          O: '#f97316',
+          Y: '#fde047',
+          R: '#dc2626',
+        },
+        0,
+        6
+      );
+    }),
+    bookshelf: makePixelCanvas(24, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBRRBBGGYYBBPPBBRRBBBo.',
+          '.oBRRBBGGYYBBPPBBRRBBBo.',
+          '.oBDDDDDDDDDDDDDDDDDDBo.',
+          '.oBPPYYBBRRGGBBYYBBPPBo.',
+          '.oBPPYYBBRRGGBBYYBBPPBo.',
+          '.oBDDDDDDDDDDDDDDDDDDBo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oooooooooooooooooooooo.',
+        ],
+        {
+          o: '#261307',
+          B: '#b45309',
+          D: '#78350f',
+          R: '#ef4444',
+          G: '#22c55e',
+          Y: '#facc15',
+          P: '#6366f1',
+        },
+        0,
+        4
+      );
+    }),
+    tv: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '...o......o...',
+          '....o....o....',
+          '..oooooooooo..',
+          '.oBBBBBBBBBBoo',
+          '.oBCCCCCCCCBBo',
+          '.oBCWWCCCCCBBo',
+          '.oBCCCCCCCCBBo',
+          '.oBBBBBBBRRBBo',
+          '..ooooooooooo.',
+          '...oo....oo...',
+        ],
+        { o: '#1e1b4b', B: '#78350f', C: '#38bdf8', W: '#e0f2fe', R: '#facc15' },
+        1,
+        3
+      );
+    }),
+    table_food: makePixelCanvas(24, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBBYYBBWWBBBRRBBBBBBBo.',
+          '.oBYYOOBWWBBBRRBBBBBBBo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oDDDDDDDDDDDDDDDDDDDDo.',
+          '..oBBo............oBBo..',
+          '..oBBo............oBBo..',
+          '..oooo............oooo..',
+        ],
+        { o: '#261307', B: '#d98a42', D: '#8c4a1c', Y: '#facc15', O: '#b45309', W: '#f8fafc', R: '#ef4444' },
+        0,
+        5
+      );
+    }),
+    plant: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.....oo..oo.....',
+          '...ooLLooLLoo...',
+          '..oLLGGLLGGLLo..',
+          '..oGGDDDDDDGGo..',
+          '...ooDDDDDDoo...',
+          '....oBBBBBBoo...',
+          '....oBRRRRBBo...',
+          '.....oBBBBo.....',
+          '.....oooooo.....',
+        ],
+        { o: '#1b2b0a', L: '#86efac', G: '#22c55e', D: '#15803d', B: '#b45309', R: '#9a3412' },
+        0,
+        4
+      );
+    }),
+    chest: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '..oooooooooooo..',
+          '.oBBBBBBBBBBBBo.',
+          '.oBBBBYYYYBBBBo.',
+          '.oBDDDDYYDDDDBo.',
+          '.oBBBBBBBBBBBBo.',
+          '.oBDDDDDDDDDDBo.',
+          '..oooooooooooo..',
+        ],
+        { o: '#261307', B: '#b45309', D: '#78350f', Y: '#facc15' },
+        0,
+        5
+      );
+    }),
+    counter: makePixelCanvas(32, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooooooooooo.',
+          '.oLLLLLLLLLLLLLLLLLLLLLLLLLLLLo.',
+          '.oLBBBBBBBBBBYYBBBBBBBBBBBBBBLo.',
+          '.oDDDDDDDDDDDDDDDDDDDDDDDDDDDDo.',
+          '.oBBBBBBBBBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBDDDDDDDDDDDDDDDDDDDDDDDDDDBo.',
+          '.oooooooooooooooooooooooooooooo.',
+        ],
+        { o: '#261307', L: '#f5d59c', B: '#b45309', D: '#78350f', Y: '#facc15' },
+        0,
+        4
+      );
+    }),
+    seed_rack: makePixelCanvas(24, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBGGGBBYYYBBRRRBBOOOBo.',
+          '.oBGGGBBYYYBBRRRBBOOOBo.',
+          '.oBDDDDDDDDDDDDDDDDDDBo.',
+          '.oBPPPBBCCCBBRRRBBGGGBo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oooooooooooooooooooooo.',
+        ],
+        { o: '#261307', B: '#9a5223', D: '#5c2c0e', G: '#4ade80', Y: '#facc15', R: '#f87171', O: '#fb923c', P: '#c084fc', C: '#38bdf8' },
+        0,
+        4
+      );
+    }),
+    crate: makePixelCanvas(20, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '..oooooooooooooooo..',
+          '.oBRRBBYYBBGGBBBBBo.',
+          '.oBBBBBBBBBBBBBBBBo.',
+          '.oDDDDDDDDDDDDDDDDo.',
+          '.oBBBBBBBBBBBBBBBBo.',
+          '.oBDDDDDDDDDDDDDDBo.',
+          '..oooooooooooooooo..',
+        ],
+        { o: '#261307', B: '#c27d38', D: '#78350f', R: '#ef4444', Y: '#fde047', G: '#22c55e' },
+        0,
+        6
+      );
+    }),
+    map_table: makePixelCanvas(24, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBCCCCCCCCCCCCCCCCCCBo.',
+          '.oBCCGGGGGGGGGGGGGGCCBo.',
+          '.oBCCGGYYGGGGGGGGGGCCBo.',
+          '.oBCCCCCCCCCCCCCCCCCCBo.',
+          '.oBDDDDDDDDDDDDDDDDDDBo.',
+          '..oBBo............oBBo..',
+          '..oooo............oooo..',
+        ],
+        { o: '#261307', B: '#9a5223', D: '#5c2c0e', C: '#38bdf8', G: '#4ade80', Y: '#facc15' },
+        0,
+        4
+      );
+    }),
+    elder_throne: makePixelCanvas(20, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '....oooooooooooo....',
+          '...oYYYYYYYYYYYYo...',
+          '...oYRRRRRRRRRRYo...',
+          '...oYRRRRYYRRRRYo...',
+          '..ooBBBBBBBBBBBBoo..',
+          '.oBBYYYYYYYYYYYYBBo.',
+          '.oBDDDDDDDDDDDDDDBo.',
+          '..oooo........oooo..',
+        ],
+        { o: '#261307', Y: '#facc15', R: '#b91c1c', B: '#9a5223', D: '#5c2c0e' },
+        0,
+        5
+      );
+    }),
+    altar_lamp: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.....oooooo.....',
+          '....oCCCCCCo....',
+          '...oCCWWWWCCo...',
+          '....oCCCCCCo....',
+          '....oSSSSSSo....',
+          '....oSDDDSSo....',
+          '...ooSSSSSSoo...',
+          '...oooooooooo...',
+        ],
+        { o: '#1e293b', C: '#38bdf8', W: '#fef08a', S: '#94a3b8', D: '#475569' },
+        0,
+        4
+      );
+    }),
+    cauldron: makePixelCanvas(20, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '....oooooooooooo....',
+          '...oGGGGGGGGGGGGo...',
+          '..oDDDDDDDDDDDDDDo..',
+          '..oDDMMMMMMMMMMmDo..',
+          '..oDDDDDDDDDDDDDDo..',
+          '...ooDDDDDDDDDDoo...',
+          '..oRRoOOOOOOOOoRRo..',
+          '...oooooooooooooooo.',
+        ],
+        { o: '#0f172a', D: '#334155', M: '#64748b', m: '#94a3b8', G: '#a855f7', R: '#dc2626', O: '#f97316' },
+        0,
+        6
+      );
+    }),
+    potion_shelf: makePixelCanvas(24, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBPPBBCCBBGGBBRRBBYYBo.',
+          '.oBPPBBCCBBGGBBRRBBYYBo.',
+          '.oBDDDDDDDDDDDDDDDDDDBo.',
+          '.oooooooooooooooooooooo.',
+        ],
+        { o: '#1e1b4b', B: '#7c3aed', D: '#4c1d95', P: '#e879f9', C: '#38bdf8', G: '#4ade80', R: '#f87171', Y: '#facc15' },
+        0,
+        4
+      );
+    }),
+    herb_table: makePixelCanvas(24, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBRRWWBBGGBBCCCBBGGGBo.',
+          '.oBDDDDDDDDDDDDDDDDDDBo.',
+          '..oBBo............oBBo..',
+          '..oooo............oooo..',
+        ],
+        { o: '#261307', B: '#9a5223', D: '#5c2c0e', R: '#ef4444', W: '#fef2f2', G: '#22c55e', C: '#3b82f6' },
+        0,
+        4
+      );
+    }),
+    carpenter_bench: workbench,
+    anvil: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooo.',
+          'oSSSSSSSSSSSSSSo',
+          '.oooDDDDDDDDooo.',
+          '....oDDDDDDo....',
+          '...ooDDDDDDoo...',
+          '..oBBBBBBBBBBo..',
+          '..oooooooooooo..',
+        ],
+        { o: '#1e293b', S: '#cbd5e1', D: '#64748b', B: '#78350f' },
+        0,
+        5
+      );
+    }),
+    wood_stack: wood,
+    tool_rack: makePixelCanvas(24, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBSSBBSSBBYYBBSSBBBBBo.',
+          '.oBWWBBWWBBWWBBWWBBBBBo.',
+          '.oBDDDDDDDDDDDDDDDDDDBo.',
+          '.oooooooooooooooooooooo.',
+        ],
+        { o: '#261307', B: '#9a5223', D: '#5c2c0e', S: '#cbd5e1', W: '#78350f', Y: '#facc15' },
+        0,
+        4
+      );
+    }),
+    nav_table: makePixelCanvas(24, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBCCCCYYCCCCCCCCCCCCBo.',
+          '.oBCCYYWWYYCCGGGGCCCCBo.',
+          '.oBCCCCYYCCCCCCCCCCCCBo.',
+          '.oBDDDDDDDDDDDDDDDDDDBo.',
+          '..oBBo............oBBo..',
+          '..oooo............oooo..',
+        ],
+        { o: '#172554', B: '#9a5223', D: '#5c2c0e', C: '#38bdf8', Y: '#facc15', W: '#ffffff', G: '#4ade80' },
+        0,
+        4
+      );
+    }),
+    telescope: makePixelCanvas(16, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.........oooo...',
+          '......oooYYYYo..',
+          '...oooYYYYDDYo..',
+          '..oCCYYYYoooo...',
+          '...oooooo.......',
+          '.....oBBo.......',
+          '....oBo.oBo.....',
+          '...oBo...oBo....',
+          '..ooo.....ooo...',
+        ],
+        { o: '#1e293b', Y: '#facc15', D: '#b45309', C: '#7dd3fc', B: '#78350f' },
+        0,
+        4
+      );
+    }),
+    beacon_lamp: makePixelCanvas(20, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '....oooooooooooo....',
+          '...oYYYYWWWWYYYYo...',
+          '..oYYWWWWWWWWWWYYo..',
+          '...oYYYYWWWWYYYYo...',
+          '....ooSSSSSSSSoo....',
+          '.....oDDDDDDDDo.....',
+          '....ooSSSSSSSSoo....',
+          '....oooooooooooo....',
+        ],
+        { o: '#1e293b', Y: '#facc15', W: '#fef9c3', S: '#94a3b8', D: '#475569' },
+        0,
+        4
+      );
+    }),
+    nest_box: makePixelCanvas(24, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBYYYYYYBYYYYYYBYYYYBo.',
+          '.oBYWWYYWBYYWWYYBYWWYBo.',
+          '.oBDDDDDDDDDDDDDDDDDDBo.',
+          '.oooooooooooooooooooooo.',
+        ],
+        { o: '#291408', B: '#b45309', D: '#78350f', Y: '#facc15', W: '#fef9c3' },
+        0,
+        4
+      );
+    }),
+    feed_trough: makePixelCanvas(24, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBYYYYYYYYYYYYYYYYYYBo.',
+          '.oBOOOOOOOOOOOOOOOOOOBo.',
+          '.oBDDDDDDDDDDDDDDDDDDBo.',
+          '.oooooooooooooooooooooo.',
+        ],
+        { o: '#291408', B: '#9a5223', D: '#5c2c0e', Y: '#fde047', O: '#eab308' },
+        0,
+        4
+      );
+    }),
+    hay_bale: makePixelCanvas(20, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '..oooooooooooooooo..',
+          '.oYYYYYYYYYYYYYYYYo.',
+          '.oYOOOOYYYYOOOOYYYo.',
+          '.oYYYYYYYYYYYYYYYYo.',
+          '.oOOOOOYYYYOOOOOOYo.',
+          '..oooooooooooooooo..',
+        ],
+        { o: '#451a03', Y: '#fde047', O: '#ca8a04' },
+        0,
+        5
+      );
+    }),
+  };
+
   CACHED_ATLAS = {
     grass,
     forestFloor,
@@ -1473,9 +1943,546 @@ export function getStardewPixelAtlas(): PixelAtlas {
     crops,
     tools,
     bagItems,
+    furniture,
   };
 
   return CACHED_ATLAS;
+}
+
+// ---------- Complete 4-Direction + Multi-Action Pixel-Art Farmer Poses ----------
+
+export type FarmerPose =
+  | 'idle'
+  | 'walk1'
+  | 'walk2'
+  | 'swing_up'
+  | 'swing_down'
+  | 'plant'
+  | 'water'
+  | 'harvest'
+  | 'fish_cast'
+  | 'fish_pull'
+  | 'sleep';
+
+export type FarmerDir = 0 | 1 | 2 | 3; // 0: right, 1: down, 2: left, 3: up
+
+const FARMER_PAL: Record<string, string> = {
+  o: '#1c0e06', // Dark outline
+  Y: '#facc15', // Straw hat bright
+  H: '#ca8a04', // Straw hat band/brim
+  R: '#dc2626', // Red shirt / bandana
+  r: '#991b1b', // Red shadow
+  S: '#f3c49b', // Skin tone
+  s: '#d69e74', // Skin shadow
+  K: '#3b1d0c', // Hair / eyes
+  B: '#2563eb', // Blue overalls
+  b: '#1d4ed8', // Overalls shadow
+  G: '#fde047', // Brass button
+  W: '#78350f', // Boots
+  w: '#451a03', // Dark boot sole
+  C: '#38bdf8', // Watering can / fish glint
+  L: '#fef3c7', // Seed / light
+};
+
+const FARMER_MATRICES: Record<string, string[]> = {
+  // DOWN (Facing Camera)
+  down_idle: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '..oooSSSSSSSSooo..',
+    '....oSKSSSSKSo....',
+    '....oSSSSSSSSo....',
+    '...ooRRRRRRRRoo...',
+    '..oSSoRBBBBBRoSSo.',
+    '..oSSoBGBBBGBoSSo.',
+    '..ooooBBBBBBBoooo.',
+    '.....oBBBBBBBo....',
+    '.....oBBooBBBo....',
+    '.....oBBo.oBBo....',
+    '.....oWWo.oWWo....',
+    '.....oooo.oooo....',
+  ],
+  down_walk1: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '..oooSSSSSSSSooo..',
+    '....oSKSSSSKSo....',
+    '....oSSSSSSSSo....',
+    '...ooRRRRRRRRoo...',
+    '..oSSoRBBBBBRo....',
+    '..ooooBGBBBGBoSSo.',
+    '.....oBBBBBBBoSSo.',
+    '.....oBBBBBBBoSSo.',
+    '.....oBBooBBBoooo.',
+    '.....oWWo.oBBo....',
+    '.....oooo.oWWo....',
+    '..........oooo....',
+  ],
+  down_walk2: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '..oooSSSSSSSSooo..',
+    '....oSKSSSSKSo....',
+    '....oSSSSSSSSo....',
+    '...ooRRRRRRRRoo...',
+    '....oRBBBBBRoSSo..',
+    '..oSSoBGBBBGBoooo.',
+    '..oSSoBBBBBBBo....',
+    '..oSSoBBBBBBBo....',
+    '..ooooBBooBBBo....',
+    '.....oBBo.oWWo....',
+    '.....oWWo.oooo....',
+    '.....oooo.........',
+  ],
+  // UP (Facing North - Back View with Straw Hat + Overalls + Backpack)
+  up_idle: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '..oooKKKKKKKKooo..',
+    '....oKKKKKKKKo....',
+    '....oKKKKKKKRo....',
+    '...ooRRRRRRRRoo...',
+    '..oSSoBBBBBBBoSSo.',
+    '..oSSoBWWWWWWoSSo.',
+    '..ooooBWWWWWWoooo.',
+    '.....oBBBBBBBo....',
+    '.....oBBooBBBo....',
+    '.....oBBo.oBBo....',
+    '.....oWWo.oWWo....',
+    '.....oooo.oooo....',
+  ],
+  up_walk1: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '..oooKKKKKKKKooo..',
+    '....oKKKKKKKKo....',
+    '....oKKKKKKKRo....',
+    '...ooRRRRRRRRoo...',
+    '..oSSoBBBBBBBo....',
+    '..ooooBWWWWWWoSSo.',
+    '.....oBWWWWWWoSSo.',
+    '.....oBBBBBBBoSSo.',
+    '.....oBBooBBBoooo.',
+    '.....oWwo.oBBo....',
+    '.....oooo.oWWo....',
+    '..........oooo....',
+  ],
+  up_walk2: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '..oooKKKKKKKKooo..',
+    '....oKKKKKKKKo....',
+    '....oKKKKKKKRo....',
+    '...ooRRRRRRRRoo...',
+    '....oBBBBBBBoSSo..',
+    '..oSSoBWWWWWWoooo.',
+    '..oSSoBWWWWWWo....',
+    '..oSSoBBBBBBBo....',
+    '..ooooBBooBBBo....',
+    '.....oBBo.oWwo....',
+    '.....oWWo.oooo....',
+    '.....oooo.........',
+  ],
+  // RIGHT (Side Profile - Left flips horizontally!)
+  right_idle: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '....ooKKKKSSSo....',
+    '.....oKKKKSSKo....',
+    '.....oKKSSSSSo....',
+    '....ooRRRRRRoo....',
+    '....oRRBBSSBRo....',
+    '....oBBBBSSGBo....',
+    '....oBBBBoooo.....',
+    '.....oBBBBBo......',
+    '.....oBBooBBo.....',
+    '.....oBBo.oBBo....',
+    '.....oWWo.oWWo....',
+    '.....oooo.oooo....',
+  ],
+  right_walk1: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '....ooKKKKSSSo....',
+    '.....oKKKKSSKo....',
+    '.....oKKSSSSSo....',
+    '....ooRRRRRRoo....',
+    '....oRRBBBBSSo....',
+    '...oSSoBBBGGSo....',
+    '...oSSoBBBBoo.....',
+    '...ooooBBBBo......',
+    '....oBBo.oBBo.....',
+    '...oBBo...oBBo....',
+    '..oWWo.....oWWo...',
+    '..oooo.....oooo...',
+  ],
+  right_walk2: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '....ooKKKKSSSo....',
+    '.....oKKKKSSKo....',
+    '.....oKKSSSSSo....',
+    '....ooRRRRRRoo....',
+    '....oRRBBBBBRo....',
+    '....oBBBSSBBBo....',
+    '....oBBBSSBBBo....',
+    '.....oooBBBBo.....',
+    '.....oBBooBBo.....',
+    '.....oBBo.oBBo....',
+    '.....oWWo.oWWo....',
+    '.....oooo.oooo....',
+  ],
+  // ACTION POSES!
+  swing_up: [
+    '....oSSo....oSSo..',
+    '....oSSo....oSSo..',
+    '....oYYooooooYYo..',
+    '...ooHHHHHHHHHHoo.',
+    '..oYYYYYYYYYYYYYYo',
+    '....ooSSSSSSSoo...',
+    '.....oSKSSSSKo....',
+    '....ooRRRRRRRoo...',
+    '....oRRBBBBBRRo...',
+    '.....oBGBBBBGo....',
+    '.....oBBBBBBBo....',
+    '.....oBBooBBBo....',
+    '.....oBBo.oBBo....',
+    '.....oWWo.oWWo....',
+    '.....oooo.oooo....',
+  ],
+  swing_down: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '....ooKKKKSSSo....',
+    '.....oKKKKSSKo....',
+    '....ooRRRRRRoo....',
+    '....oRRBBBBSSSo...',
+    '....oBBBBBBSSSo...',
+    '.....oBBBBBBooo...',
+    '.....oBBooBBBo....',
+    '....oBBo...oBBo...',
+    '....oWWo...oWWo...',
+    '....oooo...oooo...',
+  ],
+  plant: [
+    '..................',
+    '..................',
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '....ooKKKKSSSo....',
+    '.....oKKKKSSKo....',
+    '....ooRRRRRRoo....',
+    '....oRRBBBBBBRo...',
+    '....oBBBBBBBBSSo..',
+    '...oBBoBBBBooSSLo.',
+    '...oWWooWWo..ooo..',
+    '...ooooooo........',
+  ],
+  water: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '....ooKKKKSSSo....',
+    '.....oKKKKSSKo....',
+    '....ooRRRRRRoo....',
+    '....oRRBBSSSo.....',
+    '....oBBBBSSCCCo...',
+    '....oBBBBBCCCCCo..',
+    '.....oBBooBBoo.C..',
+    '.....oBBo.oBBo.C..',
+    '.....oWWo.oWWo....',
+    '.....oooo.oooo....',
+  ],
+  harvest: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '....ooSSSSSSSo....',
+    '....oSKSSSSKSo....',
+    '..oooRRRRRRRRooo..',
+    '.oSSoRBBBBBBBoSSo.',
+    '.oSSoBBGGGGGBoSSo.',
+    '..oooBBBBBBBBoooo.',
+    '.....oBBooBBBo....',
+    '.....oWWo.oWWo....',
+    '.....oooo.oooo....',
+  ],
+  fish_cast: [
+    '.....oooooooo.....',
+    '....oYYYYYYYYo....',
+    '..ooHHHHHHHHHHoo..',
+    '.oYYYYYYYYYYYYYYo.',
+    '....ooKKKKSSSo....',
+    '.....oKKKKSSKo....',
+    '....ooRRRRRRoo....',
+    '....oRRBBBBSSSo...',
+    '....oBBBBBBSSWwo..',
+    '.....oBBBBBBooo...',
+    '.....oBBooBBo.....',
+    '.....oBBo.oBBo....',
+    '.....oWWo.oWWo....',
+    '.....oooo.oooo....',
+  ],
+  fish_pull: [
+    '....oooooooo......',
+    '...oYYYYYYYYo.....',
+    '.ooHHHHHHHHHHoo...',
+    'oYYYYYYYYYYYYYYo..',
+    '...ooKKKKSSSo.....',
+    '....oKKKKSSKo.....',
+    '...ooRRRRRRoo.....',
+    '..oSSRRBBBBBRo....',
+    '.oWWSSBBBBBBBo....',
+    '..oooBBBBBBBoo....',
+    '.....oBBooBBo.....',
+    '....oBBo..oBBo....',
+    '....oWWo..oWWo....',
+    '....oooo..oooo....',
+  ],
+  sleep: [
+    '..................',
+    '..................',
+    '..................',
+    '....oooooo........',
+    '...oKKKKKSo.......',
+    '...oKKSSKSooooo...',
+    '...oSSSSRBBBBBRo..',
+    '...ooooooooooooo..',
+  ],
+};
+
+const FARMER_POSE_CACHE = new Map<string, HTMLCanvasElement>();
+
+export function getFarmerPoseSprite(pose: FarmerPose, dir: FarmerDir): HTMLCanvasElement {
+  const key = `${pose}_${dir}`;
+  const cached = FARMER_POSE_CACHE.get(key);
+  if (cached) return cached;
+
+  let matrixKey = 'down_idle';
+  if (pose === 'idle' || pose === 'walk1' || pose === 'walk2') {
+    if (dir === 1) matrixKey = `down_${pose}`;
+    else if (dir === 3) matrixKey = `up_${pose}`;
+    else matrixKey = `right_${pose}`;
+  } else {
+    matrixKey = pose;
+  }
+
+  const rows = FARMER_MATRICES[matrixKey] || FARMER_MATRICES.down_idle;
+  const sprite = makePixelCanvas(18, 18, (px) => {
+    drawMatrix(px, rows, FARMER_PAL, 0, 1);
+  });
+
+  if (dir === 2) {
+    const flipped = document.createElement('canvas');
+    flipped.width = sprite.width;
+    flipped.height = sprite.height;
+    const fCtx = flipped.getContext('2d');
+    if (fCtx) {
+      fCtx.imageSmoothingEnabled = false;
+      fCtx.translate(sprite.width, 0);
+      fCtx.scale(-1, 1);
+      fCtx.drawImage(sprite, 0, 0);
+    }
+    FARMER_POSE_CACHE.set(key, flipped);
+    return flipped;
+  }
+
+  FARMER_POSE_CACHE.set(key, sprite);
+  return sprite;
+}
+
+// ---------- Detailed Pixel-Art World Map Renderer for Pulau TIK ----------
+
+export function renderPixelWorldMapCanvas(
+  canvas: HTMLCanvasElement,
+  tiles: FarmTile[],
+  season: Season,
+  storyChapter: number,
+  islandHealed: boolean
+): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.imageSmoothingEnabled = false;
+
+  const scale = 10; // 54*10 = 540 x 38*10 = 380 crisp pixels!
+  if (canvas.width !== WORLD_COLS * scale) canvas.width = WORLD_COLS * scale;
+  if (canvas.height !== WORLD_ROWS * scale) canvas.height = WORLD_ROWS * scale;
+
+  const pal = SEASON_PALETTES[season];
+
+  for (let y = 0; y < WORLD_ROWS; y++) {
+    for (let x = 0; x < WORLD_COLS; x++) {
+      const tile = tiles[y * WORLD_COLS + x];
+      if (!tile) continue;
+      const px = x * scale;
+      const py = y * scale;
+
+      if (tile.kind === 'ocean') {
+        const edgeDist =
+          (tiles[y * WORLD_COLS + Math.max(0, x - 1)]?.kind !== 'ocean' ? 1 : 0) +
+          (tiles[y * WORLD_COLS + Math.min(WORLD_COLS - 1, x + 1)]?.kind !== 'ocean' ? 1 : 0) +
+          (tiles[Math.max(0, y - 1) * WORLD_COLS + x]?.kind !== 'ocean' ? 1 : 0) +
+          (tiles[Math.min(WORLD_ROWS - 1, y + 1) * WORLD_COLS + x]?.kind !== 'ocean' ? 1 : 0);
+        ctx.fillStyle = edgeDist > 0 ? '#2b86bf' : (x + y) % 5 === 0 ? '#185e8c' : '#1d6fa5';
+        ctx.fillRect(px, py, scale, scale);
+        if (edgeDist > 0) {
+          ctx.fillStyle = '#bae6fd';
+          ctx.fillRect(px + 1, py + 1, scale - 2, 2);
+        } else if ((x * 7 + y * 13) % 9 === 0) {
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(px + 2, py + 4, 4, 2);
+        }
+      } else if (tile.kind === 'river' || tile.kind === 'pond') {
+        ctx.fillStyle = '#328bc4';
+        ctx.fillRect(px, py, scale, scale);
+        ctx.fillStyle = '#7dd3fc';
+        ctx.fillRect(px + 2, py + 3, 5, 2);
+      } else if (tile.kind === 'sand') {
+        ctx.fillStyle = '#edd08f';
+        ctx.fillRect(px, py, scale, scale);
+        if ((x + y) % 3 === 0) {
+          ctx.fillStyle = '#d7ad62';
+          ctx.fillRect(px + 2, py + 6, 3, 2);
+        }
+      } else if (tile.kind === 'forest_floor') {
+        ctx.fillStyle = '#3c732b';
+        ctx.fillRect(px, py, scale, scale);
+        if ((x * 3 + y * 5) % 4 === 0) {
+          ctx.fillStyle = '#245218';
+          ctx.fillRect(px + 1, py + 1, 7, 7);
+          ctx.fillStyle = '#4f9438';
+          ctx.fillRect(px + 2, py + 2, 4, 4);
+        }
+      } else if (tile.kind === 'plaza' || tile.kind === 'cliff_pass') {
+        ctx.fillStyle = x >= 35 ? '#78716c' : '#a8a29e';
+        ctx.fillRect(px, py, scale, scale);
+        ctx.fillStyle = x >= 35 ? '#57534e' : '#d6d3d1';
+        ctx.fillRect(px + 1, py + 1, scale - 2, scale - 2);
+        if (tile.kind === 'cliff_pass' && storyChapter < 3) {
+          ctx.fillStyle = '#dc2626';
+          ctx.fillRect(px + 1, py + 1, scale - 2, scale - 2);
+        }
+      } else if (tile.kind === 'path') {
+        ctx.fillStyle = '#dfb577';
+        ctx.fillRect(px, py, scale, scale);
+        ctx.fillStyle = '#c79554';
+        ctx.fillRect(px + 2, py + 2, 3, 3);
+      } else if (tile.kind === 'bridge' || tile.kind === 'pier') {
+        const broken = tile.kind === 'bridge' && y >= 25 && storyChapter < 2;
+        ctx.fillStyle = broken ? '#dc2626' : '#9a5223';
+        ctx.fillRect(px, py, scale, scale);
+        ctx.fillStyle = broken ? '#fef08a' : '#dfb577';
+        ctx.fillRect(px + 1, py + 2, scale - 2, scale - 4);
+      } else {
+        ctx.fillStyle = tile.tilled ? '#7c3f16' : pal.base;
+        ctx.fillRect(px, py, scale, scale);
+        if (!tile.tilled && (x * 7 + y * 11) % 6 === 0) {
+          ctx.fillStyle = pal.flowerA;
+          ctx.fillRect(px + 3, py + 3, 2, 2);
+        }
+        if (tile.crop) {
+          ctx.fillStyle = tile.crop.ready ? '#fde047' : '#4ade80';
+          ctx.fillRect(px + 2, py + 2, 5, 5);
+        }
+      }
+
+      // Tiny mining ore / forage sparkle dots on map
+      if (tile.debris === 'ore_star') {
+        ctx.fillStyle = '#c084fc';
+        ctx.fillRect(px + 3, py + 3, 4, 4);
+      } else if (tile.debris === 'ore_silver') {
+        ctx.fillStyle = '#7dd3fc';
+        ctx.fillRect(px + 3, py + 3, 4, 4);
+      } else if (tile.debris === 'ore_copper') {
+        ctx.fillStyle = '#fb923c';
+        ctx.fillRect(px + 3, py + 3, 4, 4);
+      }
+    }
+  }
+
+  // Pixel-art miniature building blocks on the map!
+  const drawMiniRoof = (tx: number, ty: number, tw: number, th: number, roof: string, trim: string) => {
+    const rx = tx * scale;
+    const ry = ty * scale;
+    const rw = tw * scale;
+    const rh = th * scale;
+    ctx.fillStyle = '#241206';
+    ctx.fillRect(rx - 2, ry - 2, rw + 4, rh + 4);
+    ctx.fillStyle = trim;
+    ctx.fillRect(rx, ry, rw, rh);
+    ctx.fillStyle = roof;
+    ctx.fillRect(rx + 2, ry + 2, rw - 4, rh - 6);
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillRect(rx + Math.floor(rw / 2) - 3, ry + rh - 5, 6, 5);
+  };
+
+  drawMiniRoof(6, 13, 3, 3, '#b91c1c', '#f59e0b'); // Rumah Kebun
+  drawMiniRoof(13, 13, 3, 3, '#d97706', '#fef08a'); // Kandang Ayam
+  drawMiniRoof(25, 13, 3, 3, '#ec4899', '#f8fafc'); // Toko Benih
+  drawMiniRoof(31, 13, 3, 3, '#4f46e5', '#facc15'); // Balai Tetua
+  drawMiniRoof(7, 7, 3, 3, '#9333ea', '#e9d5ff'); // Pondok Maya
+  drawMiniRoof(14, 4, 3, 3, '#c2410c', '#fed7aa'); // Bengkel Jaka
+  drawMiniRoof(38, 4, 3, 3, '#b45309', '#fef3c7'); // Kincir Angin
+  drawMiniRoof(42, 29, 3, 3, '#0284c7', '#f8fafc'); // Mercusuar
+  drawMiniRoof(31, 34, 4, 3, '#78350f', '#fffbeb'); // Kapal Bima
+
+  // Sacred Pohon Cahaya Abadi + 4 Mustika Gems
+  ctx.fillStyle = islandHealed ? '#f472b6' : '#ec4899';
+  ctx.fillRect(26 * scale - 2, 4 * scale - 2, 3 * scale + 4, 3 * scale + 4);
+  ctx.fillStyle = '#fbcfe8';
+  ctx.fillRect(26 * scale + 4, 4 * scale + 4, 3 * scale - 8, 3 * scale - 8);
+  const gemCoords = [
+    { x: 24, y: 8, lit: storyChapter >= 2, c: '#84cc16' },
+    { x: 25, y: 9, lit: storyChapter >= 3, c: '#38bdf8' },
+    { x: 29, y: 9, lit: storyChapter >= 4, c: '#a855f7' },
+    { x: 30, y: 8, lit: storyChapter >= 5, c: '#facc15' },
+  ];
+  gemCoords.forEach((g) => {
+    ctx.fillStyle = g.lit || islandHealed ? g.c : '#475569';
+    ctx.fillRect(g.x * scale + 2, g.y * scale + 2, 6, 6);
+  });
+
+  // Pixel-art Compass Rose in Top-Left Ocean Corner
+  const cx = 28;
+  const cy = 28;
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+  ctx.fillRect(cx - 18, cy - 18, 36, 36);
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(cx - 18, cy - 18, 36, 36);
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(cx - 1, cy - 12, 2, 24);
+  ctx.fillRect(cx - 12, cy - 1, 24, 2);
+  ctx.fillStyle = '#ef4444';
+  ctx.fillRect(cx - 2, cy - 14, 4, 8);
+  ctx.font = 'bold 9px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fef08a';
+  ctx.fillText('U', cx, cy - 18 + 9);
 }
 
 const DATA_URL_CACHE = new Map<string, string>();

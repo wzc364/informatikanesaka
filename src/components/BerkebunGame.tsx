@@ -52,12 +52,15 @@ import {
   STORY_CHAPTERS,
   NPCS,
   ISLAND_REGIONS,
+  INTERIORS,
   createInitialIslandGrid,
   type Season,
   type Weather,
   type CropId,
   type BagItemId,
   type NpcId,
+  type InteriorId,
+  type FurnitureItem,
   type FarmTile,
 } from './berkebunWorldData';
 import {
@@ -67,9 +70,13 @@ import {
   getPixelToolDataUrl,
   getPixelBagItemDataUrl,
   getPixelGoldSprinklerDataUrl,
+  getFarmerPoseSprite,
+  renderPixelWorldMapCanvas,
   type StardewSprites,
   type PixelAtlas,
   type StardewToolId,
+  type FarmerPose,
+  type FarmerDir,
 } from './berkebunPixelArt';
 
 type ToolMode = StardewToolId;
@@ -177,7 +184,7 @@ interface FarmSaveState {
 
 function createInitialSave(): FarmSaveState {
   return {
-    version: 2,
+    version: 3,
     day: 1,
     seasonIdx: 0,
     weather: 'Cerah',
@@ -347,15 +354,45 @@ export default function BerkebunGame({
   currentStudent: any;
   onClose: () => void;
 }) {
-  const storageKey = `berkebun_swarnadwipa_v2_${currentStudent?.id || (isAdmin ? 'admin' : 'guest')}`;
+  const storageKey = `berkebun_pulau_tik_v3_${currentStudent?.id || (isAdmin ? 'admin' : 'guest')}`;
+  const legacyKey = `berkebun_swarnadwipa_v2_${currentStudent?.id || (isAdmin ? 'admin' : 'guest')}`;
 
   const [saveState, setSaveState] = useState<FarmSaveState>(() => {
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
         const parsed = JSON.parse(raw) as FarmSaveState;
-        if (parsed && parsed.version === 2 && Array.isArray(parsed.tiles) && parsed.tiles.length === WORLD_COLS * WORLD_ROWS) {
+        if (parsed && parsed.version === 3 && Array.isArray(parsed.tiles) && parsed.tiles.length === WORLD_COLS * WORLD_ROWS) {
           return parsed;
+        }
+      }
+      // Safe migration from v2 so existing player progress transfers to organic Pulau TIK!
+      const oldRaw = localStorage.getItem(legacyKey);
+      if (oldRaw) {
+        const old = JSON.parse(oldRaw) as FarmSaveState;
+        if (old && old.version === 2) {
+          return {
+            ...createInitialSave(),
+            day: old.day,
+            seasonIdx: old.seasonIdx,
+            weather: old.weather,
+            gold: old.gold,
+            totalEarnedGold: old.totalEarnedGold,
+            stamina: old.stamina,
+            waterLevel: old.waterLevel,
+            sprinklerCount: old.sprinklerCount,
+            goldSprinklerCount: old.goldSprinklerCount,
+            fertilizerCount: old.fertilizerCount,
+            storyChapter: old.storyChapter,
+            islandHealed: old.islandHealed,
+            coopEggsReady: old.coopEggsReady,
+            seeds: old.seeds,
+            harvestBasket: old.harvestBasket,
+            bagItems: old.bagItems,
+            npcHearts: old.npcHearts,
+            stats: old.stats,
+            claimedQuests: old.claimedQuests,
+          };
         }
       }
     } catch {
@@ -378,8 +415,10 @@ export default function BerkebunGame({
   const [showCraft, setShowCraft] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showWorldMap, setShowWorldMap] = useState(false);
+  const [showSleepModal, setShowSleepModal] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [soundMuted, setSoundMuted] = useState(false);
+  const [currentInterior, setCurrentInterior] = useState<InteriorId | null>(null);
 
   // Interactive NPC Dialogue state
   const [activeNpcId, setActiveNpcId] = useState<NpcId | null>(null);
@@ -414,17 +453,29 @@ export default function BerkebunGame({
   const [activeTool, setActiveTool] = useState<ToolMode>('hoe');
   const [selectedSeed, setSelectedSeed] = useState<CropId>('turnip');
   const [toastMsg, setToastMsg] = useState<string>(
-    'Jelajahi Pulau Swarnadwipa! Cangkul, tanam, bicara dengan Tetua Raka di Desa Timur.'
+    'Selamat datang di Pulau TIK! Masuk ke Rumah untuk tidur/percepat waktu, atau jelajahi pulau.'
   );
+  // 0..1439 internal minute (360 = 06:00 Siang, 1080 = 06:00 Malam). 20 min real = 12 game hours (720 mins) -> 0.6 game min/real sec
   const [minuteOfDay, setMinuteOfDay] = useState<number>(360);
+  const floatMinuteRef = useRef<number>(360);
 
-  // Player & Smooth Camera Refs
+  // Player & Smooth Camera Refs + Full Action Pose State
   const playerRef = useRef({
     x: 9.5,
     y: 17.5, // Right outside Farmhouse front porch!
-    dir: 1 as 0 | 1 | 2 | 3,
+    dir: 1 as FarmerDir,
     moving: false,
     swingTimer: 0,
+    actionPose: 'idle' as FarmerPose,
+    actionTimer: 0,
+  });
+  const interiorPosRef = useRef({
+    x: 6.5,
+    y: 7.2,
+    dir: 3 as FarmerDir,
+    moving: false,
+    actionPose: 'idle' as FarmerPose,
+    actionTimer: 0,
   });
   const cameraRef = useRef({
     x: Math.max(0, 9.5 * TILE_SIZE - VIEW_W / 2),
@@ -433,7 +484,7 @@ export default function BerkebunGame({
 
   // Living roaming NPCs & Farm Chickens
   const npcRuntimeRef = useRef<
-    Record<NpcId, { x: number; y: number; dir: 0 | 1 | 2 | 3; targetX: number; targetY: number; pauseTimer: number }>
+    Record<NpcId, { x: number; y: number; dir: FarmerDir; targetX: number; targetY: number; pauseTimer: number }>
   >({
     raka: { x: NPCS.raka.baseX, y: NPCS.raka.baseY, dir: 1, targetX: NPCS.raka.baseX, targetY: NPCS.raka.baseY, pauseTimer: 60 },
     sari: { x: NPCS.sari.baseX, y: NPCS.sari.baseY, dir: 1, targetX: NPCS.sari.baseX, targetY: NPCS.sari.baseY, pauseTimer: 90 },
@@ -454,6 +505,9 @@ export default function BerkebunGame({
   const particleIdRef = useRef(1);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const minimapRef = useRef<HTMLCanvasElement | null>(null);
+  const worldMapCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const currentInteriorRef = useRef<InteriorId | null>(null);
+  currentInteriorRef.current = currentInterior;
   const spritesRef = useRef<StardewSprites>({
     farmer: null,
     farmhouse: null,
@@ -664,7 +718,8 @@ export default function BerkebunGame({
     []
   );
 
-  // Advance clock while exploring
+  // Advance Day/Night Cycle: 12 game hours (720 game mins) = 20 real mins (1200 real secs) => 0.6 game min/sec!
+  const advanceToMorningRef = useRef<() => void>(() => {});
   useEffect(() => {
     if (
       viewMode !== 'play' ||
@@ -673,6 +728,7 @@ export default function BerkebunGame({
       showCraft ||
       showJournal ||
       showWorldMap ||
+      showSleepModal ||
       showTutorial ||
       Boolean(activeNpcId) ||
       Boolean(storyEventModal) ||
@@ -680,9 +736,25 @@ export default function BerkebunGame({
     ) {
       return;
     }
+    let lastTs = performance.now();
     const id = window.setInterval(() => {
-      setMinuteOfDay((m) => (m >= 1320 ? 1320 : m + 4));
-    }, 2600);
+      const nowTs = performance.now();
+      const dtSec = Math.min(2, (nowTs - lastTs) / 1000);
+      lastTs = nowTs;
+      const prevF = floatMinuteRef.current;
+      let nextF = prevF + dtSec * 0.6; // 720 game mins / 1200 real secs = 0.6 game min/sec
+      if (prevF < 360 && nextF >= 360) {
+        // Completed full 20-min night -> roll over to next morning!
+        floatMinuteRef.current = 360;
+        setMinuteOfDay(360);
+        advanceToMorningRef.current();
+        return;
+      }
+      if (nextF >= 1440) nextF -= 1440;
+      floatMinuteRef.current = nextF;
+      const rounded = Math.floor(nextF);
+      setMinuteOfDay((curr) => (curr === rounded ? curr : rounded));
+    }, 500);
     return () => window.clearInterval(id);
   }, [
     viewMode,
@@ -691,6 +763,7 @@ export default function BerkebunGame({
     showCraft,
     showJournal,
     showWorldMap,
+    showSleepModal,
     showTutorial,
     activeNpcId,
     storyEventModal,
@@ -840,13 +913,142 @@ export default function BerkebunGame({
       void syncScoreToCloud(updated);
       return updated;
     });
+    setShowSleepModal(false);
+    floatMinuteRef.current = 360;
     setMinuteOfDay(360);
-    setToastMsg('Selamat pagi di Pulau Swarnadwipa! Energi pulih 100%.');
+    setToastMsg('Selamat pagi di Pulau TIK! Energi pulih 100%.');
   }, [soundMuted, syncScoreToCloud]);
+
+  advanceToMorningRef.current = handleSleepNextDay;
+
+  const fastForwardTime = useCallback(
+    (mode: 'night' | 'plus3h') => {
+      playFarmSound('sleep', soundMuted);
+      setShowSleepModal(false);
+      if (mode === 'night') {
+        floatMinuteRef.current = 1080; // 06:00 Malam
+        setMinuteOfDay(1080);
+        setSaveState((prev) => ({ ...prev, stamina: Math.min(100, prev.stamina + 35) }));
+        setToastMsg('Waktu dipercepat ke Malam Hari (06:00 Malam) · Energi +35!');
+      } else {
+        const cur = floatMinuteRef.current;
+        let next = cur + 180;
+        if (cur < 360 && next >= 360) {
+          handleSleepNextDay();
+          return;
+        }
+        if (next >= 1440) next -= 1440;
+        floatMinuteRef.current = next;
+        setMinuteOfDay(Math.floor(next));
+        setSaveState((prev) => ({ ...prev, stamina: Math.min(100, prev.stamina + 20) }));
+        setToastMsg('Beristirahat sebentar (+3 Jam) · Energi +20!');
+      }
+    },
+    [handleSleepNextDay, soundMuted]
+  );
+
+  const enterBuilding = useCallback((interiorId: InteriorId) => {
+    const def = INTERIORS[interiorId];
+    setFishingState(null);
+    setCurrentInterior(interiorId);
+    interiorPosRef.current = {
+      x: def.exitTile.x + 0.5,
+      y: def.exitTile.y - 0.75,
+      dir: 3,
+      moving: false,
+      actionPose: 'idle',
+      actionTimer: 0,
+    };
+    setToastMsg(`Masuk ke ${def.title} (${def.themeLabel}). Berjalan ke pintu bawah untuk keluar.`);
+  }, []);
+
+  const exitBuilding = useCallback(() => {
+    const intId = currentInteriorRef.current;
+    if (!intId) return;
+    const def = INTERIORS[intId];
+    setCurrentInterior(null);
+    playerRef.current.x = def.outdoorExit.x;
+    playerRef.current.y = def.outdoorExit.y;
+    playerRef.current.dir = 1;
+    playerRef.current.moving = false;
+    setToastMsg('Keluar kembali ke Pulau TIK.');
+  }, []);
+
+  const interactInteriorFurniture = useCallback(
+    (item: FurnitureItem) => {
+      const st = saveStateRef.current;
+      if (item.interactAction === 'sleep') {
+        setShowSleepModal(true);
+      } else if (item.interactAction === 'shop') {
+        setShowShop(true);
+      } else if (item.interactAction === 'craft') {
+        setShowCraft(true);
+      } else if (item.interactAction === 'journal') {
+        setShowJournal(true);
+      } else if (item.interactAction === 'telescope') {
+        setToastMsg(
+          `Teleskop Mercusuar: Cuaca ${st.weather}, Musim ${SEASONS[st.seasonIdx % SEASONS.length]}. Ikan langka muncul di ujung dermaga!`
+        );
+      } else if (item.interactAction === 'eggs') {
+        if (st.coopEggsReady <= 0) {
+          setToastMsg('Sarang jerami masih kosong. Cek lagi besok pagi setelah tidur!');
+          return;
+        }
+        const qty = st.coopEggsReady;
+        const isGoldEgg = st.storyChapter >= 3 && Math.random() < 0.45;
+        const eggKey: BagItemId = isGoldEgg ? 'egg_gold' : 'egg_normal';
+        playFarmSound('harvest', soundMuted);
+        setSaveState((prev) => ({
+          ...prev,
+          coopEggsReady: 0,
+          bagItems: { ...prev.bagItems, [eggKey]: (prev.bagItems[eggKey] || 0) + qty },
+        }));
+        setToastMsg(`Mengambil ${qty} ${BAG_ITEMS[eggKey].name} dari Kotak Sarang!`);
+      } else if (item.infoText) {
+        setToastMsg(item.infoText);
+      } else {
+        setToastMsg(`${item.name} tertata rapi.`);
+      }
+    },
+    [soundMuted]
+  );
 
   // Interact at grid coordinate (NPC, Buildings, Crops, Mining, Foraging, Fishing)
   const interactAtTile = useCallback(
     (tx: number, ty: number) => {
+      // Handle Interior Interaction cleanly if player is inside a building!
+      const intId = currentInteriorRef.current;
+      if (intId) {
+        const def = INTERIORS[intId];
+        if (tx === def.exitTile.x && ty === def.exitTile.y) {
+          exitBuilding();
+          return;
+        }
+        const ip = interiorPosRef.current;
+        if (def.residentNpc && def.residentPos) {
+          const distNpc = Math.hypot(def.residentPos.x - (tx + 0.5), def.residentPos.y - (ty + 0.5));
+          const distP = Math.hypot(def.residentPos.x - ip.x, def.residentPos.y - ip.y);
+          if (distNpc < 1.3 && distP < 2.8) {
+            openNpcDialogue(def.residentNpc);
+            return;
+          }
+        }
+        const clickedFurn = def.furniture.find(
+          (f) => !f.walkable && tx >= f.x && tx < f.x + f.w && ty >= f.y && ty < f.y + f.h
+        );
+        if (clickedFurn) {
+          const fcx = clickedFurn.x + clickedFurn.w / 2;
+          const fcy = clickedFurn.y + clickedFurn.h / 2;
+          if (Math.hypot(fcx - ip.x, fcy - ip.y) > 3.0) {
+            setToastMsg(`Dekati ${clickedFurn.name} terlebih dulu!`);
+            return;
+          }
+          interactInteriorFurniture(clickedFurn);
+          return;
+        }
+        return;
+      }
+
       if (fishingRef.current) {
         reelFishingRod();
         return;
@@ -877,15 +1079,33 @@ export default function BerkebunGame({
         return;
       }
 
-      p.swingTimer = 12;
-
-      // 2. Landmark Interactions
+      // 2. Landmark Interactions (Enter Buildings!)
       if (tile.kind === 'house') {
-        handleSleepNextDay();
+        enterBuilding('house');
         return;
       }
       if (tile.kind === 'shop') {
-        setShowShop(true);
+        enterBuilding('shop');
+        return;
+      }
+      if (tile.kind === 'elder_hall') {
+        enterBuilding('elder_hall');
+        return;
+      }
+      if (tile.kind === 'jaka_cabin') {
+        enterBuilding('jaka_cabin');
+        return;
+      }
+      if (tile.kind === 'maya_hut') {
+        enterBuilding('maya_hut');
+        return;
+      }
+      if (tile.kind === 'lighthouse') {
+        enterBuilding('lighthouse');
+        return;
+      }
+      if (tile.kind === 'coop') {
+        enterBuilding('coop');
         return;
       }
       if (tile.kind === 'bin') {
@@ -896,19 +1116,7 @@ export default function BerkebunGame({
         setShowCraft(true);
         return;
       }
-      if (tile.kind === 'elder_hall') {
-        openNpcDialogue('raka');
-        return;
-      }
-      if (tile.kind === 'jaka_cabin') {
-        openNpcDialogue('jaka');
-        return;
-      }
-      if (tile.kind === 'maya_hut') {
-        openNpcDialogue('maya');
-        return;
-      }
-      if (tile.kind === 'ship' || tile.kind === 'lighthouse') {
+      if (tile.kind === 'ship') {
         openNpcDialogue('bima');
         return;
       }
@@ -922,28 +1130,10 @@ export default function BerkebunGame({
         } else if (st.islandHealed) {
           playFarmSound('story', soundMuted);
           spawnParticles(tx, ty, '#f472b6', 14, 'Cahaya Abadi!');
-          setToastMsg('Pohon Cahaya Abadi bersinar penuh berkat keempat Mustika!');
+          setToastMsg('Pohon Cahaya Abadi bersinar penuh berkat keempat Mustika Pulau TIK!');
         } else {
           setToastMsg(`Pohon Cahaya Abadi menunggu 4 Mustika (Saat ini: Bab ${st.storyChapter}/5).`);
         }
-        return;
-      }
-      if (tile.kind === 'coop') {
-        if (st.coopEggsReady <= 0) {
-          setToastMsg('Belum ada telur baru di Kandang Ayam. Cek lagi besok pagi!');
-          return;
-        }
-        const qty = st.coopEggsReady;
-        const isGoldEgg = st.storyChapter >= 3 && Math.random() < 0.45;
-        const eggKey: BagItemId = isGoldEgg ? 'egg_gold' : 'egg_normal';
-        playFarmSound('harvest', soundMuted);
-        spawnParticles(tx, ty, '#facc15', 8, `+${qty} ${BAG_ITEMS[eggKey].name}!`);
-        setSaveState((prev) => ({
-          ...prev,
-          coopEggsReady: 0,
-          bagItems: { ...prev.bagItems, [eggKey]: (prev.bagItems[eggKey] || 0) + qty },
-        }));
-        setToastMsg(`Mengambil ${qty} ${BAG_ITEMS[eggKey].name} dari Kandang Ayam!`);
         return;
       }
 
@@ -971,12 +1161,20 @@ export default function BerkebunGame({
         return;
       }
 
+      // Trigger explicit tool/action poses on valid outdoor action!
+      const triggerPose = (pose: FarmerPose, ticks = 18) => {
+        p.actionPose = pose;
+        p.actionTimer = ticks;
+        p.swingTimer = ticks;
+      };
+
       // 4. Foraging Wild Items (instant pickup regardless of tool!)
       if (
         tile.debris === 'forage_mushroom' ||
         tile.debris === 'forage_berry' ||
         tile.debris === 'forage_shell'
       ) {
+        triggerPose('harvest', 16);
         const bId = tile.debris as BagItemId;
         playFarmSound('plant', soundMuted);
         spawnParticles(tx, ty, '#4ade80', 7, `+1 ${BAG_ITEMS[bId].name}`);
@@ -995,6 +1193,7 @@ export default function BerkebunGame({
 
       // 5. Ready Crop Harvest
       if (tile.crop?.ready && (activeTool === 'harvest' || activeTool === 'hoe' || activeTool === 'water')) {
+        triggerPose('harvest', 18);
         const cDef = CROPS[tile.crop.id];
         const goldChance = tile.fertilized ? 0.55 : 0.2;
         const isGold = Math.random() < goldChance;
@@ -1053,6 +1252,7 @@ export default function BerkebunGame({
           playFarmSound('error', soundMuted);
           return;
         }
+        triggerPose('swing_up', 18);
         if (tile.debris === 'ore_copper' || tile.debris === 'ore_silver' || tile.debris === 'ore_star') {
           const oreId = tile.debris as BagItemId;
           playFarmSound('clear', soundMuted);
@@ -1121,7 +1321,7 @@ export default function BerkebunGame({
         return;
       }
 
-      // 7. Soil Farming (Allowed only on grass inside Homestead / grass meadows without obstacles)
+      // 7. Soil Farming
       if (tile.kind !== 'grass') {
         setToastMsg('Lahan ini tidak bisa dicangkul! Berkebunlah di padang rumput hijau.');
         return;
@@ -1142,6 +1342,7 @@ export default function BerkebunGame({
           setToastMsg('Tanah sudah siap ditanami! Pilih Benih (Slot 5).');
           return;
         }
+        triggerPose('swing_up', 18);
         playFarmSound('hoe', soundMuted);
         spawnParticles(tx, ty, '#92400e', 6);
         setSaveState((prev) => {
@@ -1163,6 +1364,7 @@ export default function BerkebunGame({
           playFarmSound('error', soundMuted);
           return;
         }
+        triggerPose('water', 16);
         playFarmSound('water', soundMuted);
         spawnParticles(tx, ty, '#38bdf8', 8);
         setSaveState((prev) => {
@@ -1190,6 +1392,7 @@ export default function BerkebunGame({
           playFarmSound('error', soundMuted);
           return;
         }
+        triggerPose('plant', 18);
         playFarmSound('plant', soundMuted);
         spawnParticles(tx, ty, '#4ade80', 6);
         setSaveState((prev) => {
@@ -1215,6 +1418,7 @@ export default function BerkebunGame({
           setToastMsg('Gunakan Pupuk pada tanah cangkul yang belum dipupuk.');
           return;
         }
+        triggerPose('plant', 16);
         playFarmSound('plant', soundMuted);
         spawnParticles(tx, ty, '#fde047', 8, 'Pupuk Emas!');
         setSaveState((prev) => {
@@ -1237,6 +1441,7 @@ export default function BerkebunGame({
           setToastMsg('Pasang Sprinkler di petak rumput kosong.');
           return;
         }
+        triggerPose('plant', 16);
         playFarmSound('water', soundMuted);
         spawnParticles(tx, ty, useGold ? '#facc15' : '#38bdf8', 10);
         setSaveState((prev) => {
@@ -1267,7 +1472,9 @@ export default function BerkebunGame({
       activeTool,
       selectedSeed,
       soundMuted,
-      handleSleepNextDay,
+      enterBuilding,
+      exitBuilding,
+      interactInteriorFurniture,
       openNpcDialogue,
       advanceStoryChapter,
       reelFishingRod,
@@ -1277,6 +1484,14 @@ export default function BerkebunGame({
   );
 
   const triggerFacingAction = useCallback(() => {
+    const intId = currentInteriorRef.current;
+    if (intId) {
+      const ip = interiorPosRef.current;
+      const fx = Math.floor(ip.x + (ip.dir === 0 ? 0.85 : ip.dir === 2 ? -0.85 : 0));
+      const fy = Math.floor(ip.y + (ip.dir === 1 ? 0.85 : ip.dir === 3 ? -0.85 : 0));
+      interactAtTile(fx, fy);
+      return;
+    }
     if (fishingRef.current) {
       reelFishingRod();
       return;
@@ -1310,6 +1525,7 @@ export default function BerkebunGame({
         setShowCraft(false);
         setShowJournal(false);
         setShowWorldMap(false);
+        setShowSleepModal(false);
         setActiveNpcId(null);
         return;
       }
@@ -1322,6 +1538,7 @@ export default function BerkebunGame({
           !showCraft &&
           !showJournal &&
           !showWorldMap &&
+          !showSleepModal &&
           !showTutorial &&
           !activeNpcId &&
           !storyEventModal &&
@@ -1360,6 +1577,7 @@ export default function BerkebunGame({
     showCraft,
     showJournal,
     showWorldMap,
+    showSleepModal,
     showTutorial,
     activeNpcId,
     storyEventModal,
@@ -1367,7 +1585,7 @@ export default function BerkebunGame({
     triggerFacingAction,
   ]);
 
-  // Main 60fps Big-Island Camera-Following Stardew Renderer
+  // Main 60fps Big-Island + Interior Camera-Following Stardew Renderer
   useEffect(() => {
     if (viewMode !== 'play') return;
     let rafId: number;
@@ -1377,7 +1595,337 @@ export default function BerkebunGame({
       const st = saveStateRef.current;
       const atlas = atlasRef.current;
       const sprites = spritesRef.current;
+      const intId = currentInteriorRef.current;
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      const curSeason = SEASONS[st.seasonIdx % SEASONS.length];
 
+      // ---------------- BRANCH A: BUILDING INTERIOR SCENE ----------------
+      if (intId) {
+        const def = INTERIORS[intId];
+        const ip = interiorPosRef.current;
+        const keys = keysPressedRef.current;
+        let vx = 0;
+        let vy = 0;
+        if (!activeNpcRef.current && !showSleepModal) {
+          if (keys['w'] || keys['arrowup']) vy -= 1;
+          if (keys['s'] || keys['arrowdown']) vy += 1;
+          if (keys['a'] || keys['arrowleft']) vx -= 1;
+          if (keys['d'] || keys['arrowright']) vx += 1;
+        }
+
+        const canWalkInterior = (cx: number, cy: number) => {
+          const tx = Math.floor(cx);
+          const ty = Math.floor(cy);
+          if (tx < 1 || tx > def.cols - 2) return false;
+          if (ty === def.exitTile.y && tx === def.exitTile.x) return true;
+          if (ty < 1 || ty > def.rows - 2) return false;
+          for (const f of def.furniture) {
+            if (!f.walkable && cx >= f.x + 0.12 && cx <= f.x + f.w - 0.12 && cy >= f.y + 0.12 && cy <= f.y + f.h - 0.12) {
+              return false;
+            }
+          }
+          return true;
+        };
+
+        if (vx !== 0 || vy !== 0) {
+          const len = Math.hypot(vx, vy);
+          const speed = 0.085;
+          const nx = ip.x + (vx / len) * speed;
+          const ny = ip.y + (vy / len) * speed;
+          if (canWalkInterior(nx, ip.y)) ip.x = nx;
+          if (canWalkInterior(ip.x, ny)) ip.y = ny;
+          if (Math.abs(vx) >= Math.abs(vy)) ip.dir = vx > 0 ? 0 : 2;
+          else ip.dir = vy > 0 ? 1 : 3;
+          ip.moving = true;
+        } else {
+          ip.moving = false;
+        }
+        if (ip.actionTimer > 0) {
+          ip.actionTimer--;
+          if (ip.actionTimer === 0) ip.actionPose = 'idle';
+        }
+
+        // Auto-exit when walking onto the doorway mat!
+        if (Math.floor(ip.x) === def.exitTile.x && Math.floor(ip.y) === def.exitTile.y && vy > 0) {
+          exitBuilding();
+        }
+
+        if (canvas && ctx && atlas) {
+          ctx.imageSmoothingEnabled = false;
+          ctx.fillStyle = '#120a05';
+          ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+          const ox = Math.floor((VIEW_W - def.cols * TILE_SIZE) / 2);
+          const oy = Math.floor((VIEW_H - def.rows * TILE_SIZE) / 2);
+
+          ctx.save();
+          ctx.translate(ox, oy);
+
+          // Floor & Wall Tiles
+          const isNightWindow = minuteOfDay >= 1080 || minuteOfDay < 360;
+          const isSunsetWindow = minuteOfDay >= 990 && minuteOfDay < 1080;
+
+          for (let y = 0; y < def.rows; y++) {
+            for (let x = 0; x < def.cols; x++) {
+              const px = x * TILE_SIZE;
+              const py = y * TILE_SIZE;
+
+              if (y === 0) {
+                // Upper interior wall with wainscoting & themed windows
+                ctx.fillStyle = def.wallColor;
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.fillStyle = def.wallAccent;
+                ctx.fillRect(px, py + TILE_SIZE - 8, TILE_SIZE, 5);
+                ctx.fillStyle = '#291408';
+                ctx.fillRect(px, py + TILE_SIZE - 3, TILE_SIZE, 3);
+                if (x === 3 || x === 9) {
+                  ctx.fillStyle = '#3b1d0c';
+                  ctx.fillRect(px + 8, py + 7, 32, 26);
+                  ctx.fillStyle = isNightWindow ? '#0f172a' : isSunsetWindow ? '#fb923c' : '#7dd3fc';
+                  ctx.fillRect(px + 11, py + 10, 26, 20);
+                  if (isNightWindow) {
+                    ctx.fillStyle = '#fef08a';
+                    ctx.fillRect(px + 15, py + 13, 3, 3);
+                    ctx.fillRect(px + 28, py + 16, 2, 2);
+                  }
+                  ctx.fillStyle = '#78350f';
+                  ctx.fillRect(px + 23, py + 10, 2, 20);
+                  ctx.fillRect(px + 11, py + 19, 26, 2);
+                }
+              } else if (x === 0 || x === def.cols - 1 || y === def.rows - 1) {
+                if (x === def.exitTile.x && y === def.exitTile.y) {
+                  // Doormat / Exit Threshold
+                  ctx.fillStyle = '#7c2d12';
+                  ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                  ctx.fillStyle = '#f59e0b';
+                  ctx.fillRect(px + 6, py + 8, TILE_SIZE - 12, TILE_SIZE - 16);
+                  ctx.fillStyle = '#fffbeb';
+                  ctx.font = 'bold 9px monospace';
+                  ctx.textAlign = 'center';
+                  ctx.fillText('KELUAR', px + 24, py + 27);
+                } else {
+                  ctx.fillStyle = '#2a1306';
+                  ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                  ctx.fillStyle = def.wallColor;
+                  ctx.fillRect(px + 3, py + 3, TILE_SIZE - 6, TILE_SIZE - 6);
+                }
+              } else {
+                // Interior Flooring per building theme
+                if (def.floorStyle === 'wood') {
+                  ctx.fillStyle = (x + y) % 2 === 0 ? '#c88346' : '#bd783d';
+                  ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                  ctx.fillStyle = '#9a5a26';
+                  ctx.fillRect(px, py + 15, TILE_SIZE, 2);
+                  ctx.fillRect(px, py + 31, TILE_SIZE, 2);
+                  ctx.fillRect(px + ((y % 2) * 24), py, 2, TILE_SIZE);
+                } else if (def.floorStyle === 'stone' || def.floorStyle === 'cobble') {
+                  ctx.fillStyle = (x + y) % 2 === 0 ? '#94a3b8' : '#7c8ba1';
+                  ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                  ctx.fillStyle = '#475569';
+                  ctx.fillRect(px + 1, py + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+                  ctx.fillStyle = (x + y) % 2 === 0 ? '#cbd5e1' : '#94a3b8';
+                  ctx.fillRect(px + 3, py + 3, TILE_SIZE - 6, TILE_SIZE - 6);
+                } else if (def.floorStyle === 'mystic') {
+                  ctx.fillStyle = (x + y) % 2 === 0 ? '#4c1d95' : '#3b1775';
+                  ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                  ctx.fillStyle = '#6d28d9';
+                  ctx.fillRect(px + 2, py + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                } else {
+                  // Warm Straw Coop Floor
+                  ctx.fillStyle = (x + y) % 2 === 0 ? '#d9a441' : '#c79030';
+                  ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                  ctx.fillStyle = '#fde047';
+                  if ((x * 5 + y * 3) % 3 === 0) ctx.fillRect(px + 10, py + 16, 12, 3);
+                }
+              }
+            }
+          }
+
+          // Walkable rugs first
+          def.furniture
+            .filter((f) => f.walkable)
+            .forEach((f) => {
+              const sp = atlas.furniture[f.kind];
+              if (sp) ctx.drawImage(sp, f.x * TILE_SIZE, f.y * TILE_SIZE, f.w * TILE_SIZE, f.h * TILE_SIZE);
+            });
+
+          // Y-Sorted solid furniture, Resident NPC, Coop chickens & Player
+          const intQueue: Array<{ sortY: number; render: () => void }> = [];
+
+          def.furniture
+            .filter((f) => !f.walkable)
+            .forEach((f) => {
+              intQueue.push({
+                sortY: (f.y + f.h) * TILE_SIZE,
+                render: () => {
+                  const fx = f.x * TILE_SIZE;
+                  const fy = f.y * TILE_SIZE;
+                  const fw = f.w * TILE_SIZE;
+                  const fh = f.h * TILE_SIZE;
+                  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+                  ctx.fillRect(fx + 4, fy + fh - 6, fw - 8, 8);
+                  const sp = atlas.furniture[f.kind];
+                  if (sp) {
+                    ctx.drawImage(sp, fx + 2, fy + 2, fw - 4, fh - 4);
+                  }
+                  // Live animated effects for special theme furniture!
+                  if (f.kind === 'fireplace') {
+                    const flicker = Math.sin(now * 0.018) * 3;
+                    ctx.fillStyle = 'rgba(251, 146, 60, 0.35)';
+                    ctx.beginPath();
+                    ctx.arc(fx + fw / 2, fy + fh * 0.65, 22 + flicker, 0, Math.PI * 2);
+                    ctx.fill();
+                  } else if (f.kind === 'cauldron') {
+                    const bub = Math.sin(now * 0.012) * 3;
+                    ctx.fillStyle = '#4ade80';
+                    ctx.fillRect(fx + fw / 2 - 4, fy + 6 + bub, 4, 4);
+                    ctx.fillRect(fx + fw / 2 + 4, fy + 4 - bub, 3, 3);
+                  } else if (f.kind === 'beacon_lamp') {
+                    const glow = 0.28 + Math.sin(now * 0.008) * 0.1;
+                    ctx.fillStyle = `rgba(254, 240, 138, ${glow.toFixed(2)})`;
+                    ctx.beginPath();
+                    ctx.arc(fx + fw / 2, fy + fh / 2, 46, 0, Math.PI * 2);
+                    ctx.fill();
+                  }
+                },
+              });
+            });
+
+          // Resident Chickens inside Coop
+          if (intId === 'coop') {
+            [
+              { x: 4.5, y: 5.5, variant: 'white' as const, dir: 1 },
+              { x: 6.5, y: 4.8, variant: 'brown' as const, dir: -1 },
+              { x: 8.5, y: 6.0, variant: 'white' as const, dir: 1 },
+            ].forEach((ch, idx) => {
+              intQueue.push({
+                sortY: ch.y * TILE_SIZE,
+                render: () => {
+                  const sp = ch.variant === 'white' ? atlas.chickenWhite : atlas.chickenBrown;
+                  const hop = Math.abs(Math.sin(now * 0.008 + idx)) * 3;
+                  ctx.save();
+                  ctx.translate(ch.x * TILE_SIZE, ch.y * TILE_SIZE - hop);
+                  ctx.scale(ch.dir, 1);
+                  ctx.drawImage(sp, -14, -24, 28, 28);
+                  ctx.restore();
+                },
+              });
+            });
+          }
+
+          // Resident NPC inside Building
+          if (def.residentNpc && def.residentPos) {
+            const npcId = def.residentNpc;
+            const rPos = def.residentPos;
+            const sp = sprites.npcs[npcId];
+            intQueue.push({
+              sortY: rPos.y * TILE_SIZE + 8,
+              render: () => {
+                const nx = Math.round(rPos.x * TILE_SIZE);
+                const ny = Math.round(rPos.y * TILE_SIZE);
+                ctx.fillStyle = 'rgba(0,0,0,0.28)';
+                ctx.beginPath();
+                ctx.ellipse(nx, ny + 10, 12, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                if (sp) {
+                  const drawH = 50;
+                  const drawW = Math.round(drawH * (sp.width / sp.height));
+                  ctx.drawImage(sp, nx - drawW / 2, ny - drawH + 12, drawW, drawH);
+                }
+                ctx.fillStyle = 'rgba(59, 26, 7, 0.85)';
+                ctx.fillRect(nx - 28, ny + 12, 56, 12);
+                ctx.fillStyle = '#fef3c7';
+                ctx.font = 'bold 8px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(NPCS[npcId].name.split(' ')[0], nx, ny + 21);
+              },
+            });
+          }
+
+          // Farmer inside Interior with full 4-direction sprites!
+          intQueue.push({
+            sortY: ip.y * TILE_SIZE + 8,
+            render: () => {
+              const cx = Math.round(ip.x * TILE_SIZE);
+              const cy = Math.round(ip.y * TILE_SIZE);
+              const walkFrame: FarmerPose = Math.floor(now / 150) % 2 === 0 ? 'walk1' : 'walk2';
+              const pose: FarmerPose = ip.actionTimer > 0 ? ip.actionPose : ip.moving ? walkFrame : 'idle';
+              const poseSp = getFarmerPoseSprite(pose, ip.dir);
+              const stride = ip.moving ? Math.abs(Math.sin(now * 0.016)) * 2.5 : 0;
+
+              ctx.fillStyle = 'rgba(0,0,0,0.32)';
+              ctx.beginPath();
+              ctx.ellipse(cx, cy + 12, 13, 5, 0, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.drawImage(poseSp, cx - 26, cy - 42 - stride, 52, 52);
+            },
+          });
+
+          intQueue.sort((a, b) => a.sortY - b.sortY);
+          for (const item of intQueue) item.render();
+
+          // Target Furniture Highlight + Prompt
+          const fx = Math.floor(ip.x + (ip.dir === 0 ? 0.85 : ip.dir === 2 ? -0.85 : 0));
+          const fy = Math.floor(ip.y + (ip.dir === 1 ? 0.85 : ip.dir === 3 ? -0.85 : 0));
+          const nearFurn = def.furniture.find(
+            (f) => !f.walkable && fx >= f.x && fx < f.x + f.w && fy >= f.y && fy < f.y + f.h
+          );
+          if (fx >= 0 && fx < def.cols && fy >= 0 && fy < def.rows) {
+            const rx = fx * TILE_SIZE;
+            const ry = fy * TILE_SIZE;
+            ctx.fillStyle = nearFurn ? '#facc15' : '#dc2626';
+            ctx.fillRect(rx + 2, ry + 2, 10, 3);
+            ctx.fillRect(rx + 2, ry + 2, 3, 10);
+            ctx.fillRect(rx + TILE_SIZE - 12, ry + 2, 10, 3);
+            ctx.fillRect(rx + TILE_SIZE - 5, ry + 2, 3, 10);
+            ctx.fillRect(rx + 2, ry + TILE_SIZE - 5, 10, 3);
+            ctx.fillRect(rx + 2, ry + TILE_SIZE - 12, 3, 10);
+            ctx.fillRect(rx + TILE_SIZE - 12, ry + TILE_SIZE - 5, 10, 3);
+            ctx.fillRect(rx + TILE_SIZE - 5, ry + TILE_SIZE - 12, 3, 10);
+          }
+
+          ctx.restore();
+
+          // Room Banner + Nearby Prompt Overlay
+          ctx.fillStyle = 'rgba(59, 26, 7, 0.9)';
+          ctx.fillRect(14, 10, 290, 26);
+          ctx.strokeStyle = '#d98a42';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(14, 10, 290, 26);
+          ctx.fillStyle = '#fef3c7';
+          ctx.font = 'bold 11px monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(`${def.title}`, 24, 27);
+
+          if (nearFurn) {
+            const hint =
+              nearFurn.interactAction === 'sleep'
+                ? `[Spasi/Klik] Tidur / Percepat Waktu`
+                : `[Spasi/Klik] ${nearFurn.name}`;
+            const hw = hint.length * 7 + 20;
+            ctx.fillStyle = 'rgba(20, 83, 45, 0.92)';
+            ctx.fillRect(VIEW_W / 2 - hw / 2, VIEW_H - 36, hw, 24);
+            ctx.strokeStyle = '#86efac';
+            ctx.strokeRect(VIEW_W / 2 - hw / 2, VIEW_H - 36, hw, 24);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(hint, VIEW_W / 2, VIEW_H - 20);
+          }
+
+          if (isNightWindow) {
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.18)';
+            ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+          }
+        }
+
+        rafId = requestAnimationFrame(loop);
+        return;
+      }
+
+      // ---------------- BRANCH B: OUTDOOR PULAU TIK WORLD ----------------
       const tileAt = (cx: number, cy: number): FarmTile | undefined => {
         const tx = Math.floor(cx);
         const ty = Math.floor(cy);
@@ -1407,8 +1955,8 @@ export default function BerkebunGame({
           return false;
         }
         // Story-gated map barriers!
-        if (t.kind === 'bridge' && t.y >= 26 && st.storyChapter < 2) return false; // Southern Bridge broken in Bab 1
-        if (t.kind === 'cliff_pass' && st.storyChapter < 3) return false; // Eastern Quarry pass blocked until Bab 3 (completed Bab 2)
+        if (t.kind === 'bridge' && t.y >= 25 && st.storyChapter < 2) return false; // Southern Bridge broken in Bab 1
+        if (t.kind === 'cliff_pass' && st.storyChapter < 3) return false; // Eastern Quarry pass blocked until Bab 3
         if (
           t.debris === 'stone' ||
           t.debris === 'wood' ||
@@ -1426,7 +1974,7 @@ export default function BerkebunGame({
       const keys = keysPressedRef.current;
       let vx = 0;
       let vy = 0;
-      if (!activeNpcRef.current && !fishingRef.current) {
+      if (!activeNpcRef.current && !fishingRef.current && !showSleepModal) {
         if (keys['w'] || keys['arrowup']) vy -= 1;
         if (keys['s'] || keys['arrowdown']) vy += 1;
         if (keys['a'] || keys['arrowleft']) vx -= 1;
@@ -1448,6 +1996,10 @@ export default function BerkebunGame({
         p.moving = false;
       }
       if (p.swingTimer > 0) p.swingTimer--;
+      if (p.actionTimer > 0) {
+        p.actionTimer--;
+        if (p.actionTimer === 0) p.actionPose = 'idle';
+      }
 
       // Smooth Camera Follow clamped to Island World Bounds
       const cam = cameraRef.current;
@@ -1506,10 +2058,6 @@ export default function BerkebunGame({
         else ch.dir *= -1;
       });
 
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      const curSeason = SEASONS[st.seasonIdx % SEASONS.length];
-
       if (canvas && ctx && atlas) {
         ctx.imageSmoothingEnabled = false;
         ctx.clearRect(0, 0, VIEW_W, VIEW_H);
@@ -1525,8 +2073,13 @@ export default function BerkebunGame({
         ctx.save();
         ctx.translate(-camX, -camY);
 
-        // 1. Visible Terrain Pass (Viewport Culled!)
+        // 1. Visible Terrain Pass (Viewport Culled + Organic Surf Shoreline!)
         const grassSet = atlas.grass[curSeason];
+        const isLandTile = (gx: number, gy: number) => {
+          const t = tileAt(gx + 0.5, gy + 0.5);
+          return Boolean(t && t.kind !== 'ocean' && t.kind !== 'pier');
+        };
+
         for (let y = startRow; y <= endRow; y++) {
           for (let x = startCol; x <= endCol; x++) {
             const tile = st.tiles[y * WORLD_COLS + x];
@@ -1538,11 +2091,21 @@ export default function BerkebunGame({
               const wave = Math.floor(Math.sin(now * 0.003 + x * 0.7 + y) * 3);
               ctx.fillStyle = 'rgba(224, 247, 255, 0.35)';
               if ((x + y) % 2 === 0) ctx.fillRect(px + 10 + wave, py + 20, 14, 3);
-              // Surf foam where ocean meets sand (y === 35)
-              if (y === 35 && x >= 2 && x <= WORLD_COLS - 3) {
-                const foamOffset = Math.floor(Math.sin(now * 0.004 + x * 0.5) * 3);
-                ctx.fillStyle = 'rgba(240, 249, 255, 0.8)';
-                ctx.fillRect(px, py + 2 + foamOffset, TILE_SIZE, 5);
+
+              // Natural coastal shallow water & animated surf foam on every coastline direction
+              const lT = isLandTile(x, y - 1);
+              const lB = isLandTile(x, y + 1);
+              const lL = isLandTile(x - 1, y);
+              const lR = isLandTile(x + 1, y);
+              if (lT || lB || lL || lR) {
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.32)';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                const foamOffset = Math.floor(Math.sin(now * 0.004 + x * 0.6 + y * 0.4) * 3);
+                ctx.fillStyle = 'rgba(240, 249, 255, 0.85)';
+                if (lT) ctx.fillRect(px + 2, py + 2 + foamOffset, TILE_SIZE - 4, 5);
+                if (lB) ctx.fillRect(px + 2, py + TILE_SIZE - 7 - foamOffset, TILE_SIZE - 4, 5);
+                if (lL) ctx.fillRect(px + 2 + foamOffset, py + 2, 5, TILE_SIZE - 4);
+                if (lR) ctx.fillRect(px + TILE_SIZE - 7 - foamOffset, py + 2, 5, TILE_SIZE - 4);
               }
             } else if (tile.kind === 'river' || tile.kind === 'pond') {
               ctx.drawImage(atlas.pondWater, px, py, TILE_SIZE, TILE_SIZE);
@@ -1565,9 +2128,8 @@ export default function BerkebunGame({
               ctx.drawImage(atlas.path[(x + y) % 2], px, py, TILE_SIZE, TILE_SIZE);
             } else if (tile.kind === 'bridge' || tile.kind === 'pier') {
               ctx.drawImage(tile.kind === 'pier' ? atlas.oceanWater : atlas.pondWater, px, py, TILE_SIZE, TILE_SIZE);
-              const isBroken = tile.kind === 'bridge' && y >= 26 && st.storyChapter < 2;
+              const isBroken = tile.kind === 'bridge' && y >= 25 && st.storyChapter < 2;
               if (isBroken) {
-                // Broken planks barrier!
                 ctx.fillStyle = '#4a220c';
                 ctx.fillRect(px + 2, py + 4, 14, TILE_SIZE - 8);
                 ctx.fillRect(px + TILE_SIZE - 16, py + 4, 14, TILE_SIZE - 8);
@@ -1577,7 +2139,6 @@ export default function BerkebunGame({
                 ctx.fillRect(px + 12, py + 20, 6, 4);
                 ctx.fillRect(px + 30, py + 20, 6, 4);
               } else {
-                // Intact Wooden Bridge / Harbor Pier
                 ctx.fillStyle = '#4a220c';
                 ctx.fillRect(px, py + 2, TILE_SIZE, TILE_SIZE - 4);
                 ctx.fillStyle = '#b66b32';
@@ -1642,7 +2203,7 @@ export default function BerkebunGame({
           }
         }
 
-        // 2. Y-Sorted 2.5D Render Queue (Visible Landmarks, Trees, Crops, Chickens, NPCs, Farmer)
+        // 2. Y-Sorted 2.5D Render Queue
         type DrawItem = { sortY: number; render: () => void };
         const queue: DrawItem[] = [];
 
@@ -1690,8 +2251,8 @@ export default function BerkebunGame({
           });
         };
 
-        // Homestead Landmarks
-        addSpriteLandmark(7.5, 16, 146, sprites.farmhouse, 'RUMAH (TIDUR)', (cx, by) => {
+        // Enterable Buildings & Homestead Landmarks
+        addSpriteLandmark(7.5, 16, 146, sprites.farmhouse, 'RUMAH (MASUK)', (cx, by) => {
           for (let s = 0; s < 3; s++) {
             const t = (now * 0.0005 + s * 0.33) % 1;
             ctx.fillStyle = `rgba(255, 252, 245, ${(1 - t) * 0.55})`;
@@ -1704,7 +2265,13 @@ export default function BerkebunGame({
           }
         });
         addSpriteLandmark(10.5, 15.8, 56, sprites.bin, 'PETI JUAL');
-        addSpriteLandmark(14.5, 16, 134, sprites.coop, st.coopEggsReady > 0 ? `KANDANG (${st.coopEggsReady} TELUR!)` : 'KANDANG AYAM');
+        addSpriteLandmark(
+          14.5,
+          16,
+          134,
+          sprites.coop,
+          st.coopEggsReady > 0 ? `KANDANG (${st.coopEggsReady} TELUR · MASUK)` : 'KANDANG (MASUK)'
+        );
 
         // Workbench (x: 17, y: 14..15)
         if (isVisibleX(17.5) && isVisibleY(15.5)) {
@@ -1726,9 +2293,9 @@ export default function BerkebunGame({
           });
         }
 
-        // Village Landmarks
-        addSpriteLandmark(26.5, 16, 146, sprites.shop, 'TOKO BENIH');
-        addSpriteLandmark(32.5, 16, 142, sprites.farmhouse, 'BALAI TETUA');
+        // Village Enterable Buildings
+        addSpriteLandmark(26.5, 16, 146, sprites.shop, 'TOKO BENIH (MASUK)');
+        addSpriteLandmark(32.5, 16, 142, sprites.farmhouse, 'BALAI TETUA (MASUK)');
         if (isVisibleX(29.5) && isVisibleY(18)) {
           queue.push({
             sortY: 18 * TILE_SIZE,
@@ -1738,11 +2305,11 @@ export default function BerkebunGame({
           });
         }
 
-        // Forest Landmarks
-        addSpriteLandmark(8.5, 10, 128, sprites.farmhouse, 'PONDOK MAYA');
-        addSpriteLandmark(15.5, 7, 134, sprites.coop, 'PONDOK JAKA');
+        // Forest Enterable Buildings
+        addSpriteLandmark(8.5, 10, 128, sprites.farmhouse, 'PONDOK MAYA (MASUK)');
+        addSpriteLandmark(15.5, 7, 134, sprites.coop, 'BENGKEL JAKA (MASUK)');
 
-        // Sacred Tree & 4 Mustika Pedestals!
+        // Sacred Tree & 4 Mustika Pedestals
         addSpriteLandmark(
           27.5,
           7,
@@ -1809,7 +2376,6 @@ export default function BerkebunGame({
               ctx.lineTo(wx + 30, wy - 72);
               ctx.closePath();
               ctx.fill();
-              // Spinning Blades!
               const speed = st.storyChapter >= 4 ? 0.003 : 0.0008;
               const rot = now * speed;
               ctx.save();
@@ -1828,15 +2394,14 @@ export default function BerkebunGame({
           });
         }
 
-        // Harbor Lighthouse & Captain's Sailing Ship
-        addSpriteLandmark(43.5, 32, 165, sprites.lighthouse, 'MERCUSUAR');
+        // Harbor Lighthouse (Enterable!) & Captain's Sailing Ship
+        addSpriteLandmark(43.5, 32, 165, sprites.lighthouse, 'MERCUSUAR (MASUK)');
         if (isVisibleX(32.5) && isVisibleY(36)) {
           queue.push({
             sortY: 36.2 * TILE_SIZE,
             render: () => {
               const sx = 32.5 * TILE_SIZE;
               const sy = 35.8 * TILE_SIZE + Math.sin(now * 0.003) * 3;
-              // Wooden Hull
               ctx.fillStyle = '#4a220c';
               ctx.beginPath();
               ctx.moveTo(sx - 54, sy - 22);
@@ -1847,7 +2412,6 @@ export default function BerkebunGame({
               ctx.fill();
               ctx.fillStyle = '#b45309';
               ctx.fillRect(sx - 44, sy - 20, 88, 12);
-              // Mast & Sail
               ctx.fillStyle = '#78350f';
               ctx.fillRect(sx - 3, sy - 92, 6, 72);
               ctx.fillStyle = '#fffbeb';
@@ -1863,7 +2427,7 @@ export default function BerkebunGame({
           });
         }
 
-        // Apple & Coconut Palm Trees framing the island
+        // Apple & Coconut Palm Trees framing Pulau TIK
         const orchardTrees = [
           { gx: 4.5, gy: 15 },
           { gx: 4.5, gy: 24.5 },
@@ -1997,7 +2561,7 @@ export default function BerkebunGame({
               const ny = Math.round(rt.y * TILE_SIZE);
               const bob = rt.pauseTimer === 0 ? Math.abs(Math.sin(now * 0.014)) * 3 : 0;
 
-              ctx.fillStyle = 'rgba(15, 25, 8, 0.32)';
+              ctx.fillStyle = 'rgba(15, 25, 10, 0.32)';
               ctx.beginPath();
               ctx.ellipse(nx, ny + 10, 12, 5, 0, 0, Math.PI * 2);
               ctx.fill();
@@ -2015,7 +2579,6 @@ export default function BerkebunGame({
               }
               ctx.restore();
 
-              // Name Tag & Story ! Marker
               ctx.fillStyle = 'rgba(59, 26, 7, 0.85)';
               ctx.fillRect(nx - 26, ny + 13, 52, 12);
               ctx.fillStyle = '#fef3c7';
@@ -2040,43 +2603,58 @@ export default function BerkebunGame({
           });
         });
 
-        // Player Farmer Character
+        // Player Farmer Character with Full 4-Directional & Multi-Action Poses!
         queue.push({
           sortY: p.y * TILE_SIZE + 8,
           render: () => {
             const cx = Math.round(p.x * TILE_SIZE);
             const cy = Math.round(p.y * TILE_SIZE);
-            const stride = p.moving ? Math.abs(Math.sin(now * 0.016)) * 4 : 0;
-            const tilt = p.moving ? Math.sin(now * 0.016) * 0.07 : 0;
+            const fs = fishingRef.current;
+
+            let pose: FarmerPose = 'idle';
+            if (fs) {
+              pose = fs.status === 'bite' ? 'fish_pull' : 'fish_cast';
+            } else if (p.actionTimer > 0) {
+              pose = p.actionPose === 'swing_up' && p.actionTimer <= 9 ? 'swing_down' : p.actionPose;
+            } else if (p.moving) {
+              pose = Math.floor(now / 150) % 2 === 0 ? 'walk1' : 'walk2';
+            }
+
+            const stride = p.moving && !fs && p.actionTimer === 0 ? Math.abs(Math.sin(now * 0.016)) * 2.5 : 0;
+            const poseSp = getFarmerPoseSprite(pose, p.dir);
 
             ctx.fillStyle = 'rgba(15, 25, 8, 0.35)';
             ctx.beginPath();
             ctx.ellipse(cx, cy + 12, 13, 5, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.save();
-            ctx.translate(cx, cy - stride);
-            ctx.rotate(tilt);
-            if (sprites.farmer) {
-              const drawH = 52;
-              const drawW = Math.round(drawH * (sprites.farmer.width / sprites.farmer.height));
-              if (p.dir === 2) ctx.scale(-1, 1);
-              ctx.drawImage(sprites.farmer, -drawW / 2, -drawH + 14, drawW, drawH);
-            }
-            ctx.restore();
+            ctx.drawImage(poseSp, cx - 26, cy - 42 - stride, 52, 52);
 
-            if (p.swingTimer > 0) {
+            // Bamboo Fishing Rod shaft during fishing pose
+            if (fs) {
+              const rodTipX = fs.status === 'bite' ? cx + (p.dir === 2 ? -22 : 22) : cx + (p.dir === 2 ? -26 : 26);
+              const rodTipY = fs.status === 'bite' ? cy - 28 : cy - 18;
+              ctx.strokeStyle = '#92400e';
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.moveTo(cx + (p.dir === 2 ? -6 : 6), cy - 8);
+              ctx.lineTo(rodTipX, rodTipY);
+              ctx.stroke();
+            }
+
+            // Tool strike animation during hammering / hoeing
+            if (p.swingTimer > 0 && (p.actionPose === 'swing_up' || p.actionPose === 'swing_down')) {
               const toolSp = atlas.tools[activeToolRef.current];
-              const prog = 1 - p.swingTimer / 12;
-              const angle = (prog - 0.5) * 1.4;
+              const prog = 1 - p.swingTimer / 18;
+              const angle = (prog - 0.5) * 1.6;
               const dirSign = p.dir === 2 ? -1 : 1;
               const offX = p.dir === 0 ? 18 : p.dir === 2 ? -18 : 10;
-              const offY = p.dir === 3 ? -16 : p.dir === 1 ? 6 : -4;
+              const offY = p.dir === 3 ? -18 : p.dir === 1 ? 6 : -4;
               ctx.save();
               ctx.translate(cx + offX, cy + offY);
               ctx.scale(dirSign, 1);
               ctx.rotate(angle);
-              ctx.drawImage(toolSp, -12, -20, 24, 24);
+              ctx.drawImage(toolSp, -12, -22, 24, 24);
               ctx.restore();
             }
           },
@@ -2090,10 +2668,12 @@ export default function BerkebunGame({
         if (fs) {
           const bx = fs.wx * TILE_SIZE + 24;
           const by = fs.wy * TILE_SIZE + 24 + Math.sin(now * 0.012) * (fs.status === 'bite' ? 4 : 1.5);
+          const tipX = p.x * TILE_SIZE + (fs.status === 'bite' ? (p.dir === 2 ? -22 : 22) : p.dir === 2 ? -26 : 26);
+          const tipY = p.y * TILE_SIZE - (fs.status === 'bite' ? 28 : 18);
           ctx.strokeStyle = '#e2e8f0';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.moveTo(p.x * TILE_SIZE, p.y * TILE_SIZE - 12);
+          ctx.moveTo(tipX, tipY);
           ctx.lineTo(bx, by);
           ctx.stroke();
 
@@ -2135,12 +2715,13 @@ export default function BerkebunGame({
           }
         }
 
-        // 5. Ambient Butterflies / Fireflies (especially vibrant once Island Heals!)
-        const fireflyCount = st.islandHealed ? 24 : 8;
+        // 5. Ambient Butterflies / Fireflies (vibrant at Night or when Pulau TIK is healed!)
+        const isNight = minuteOfDay >= 1080 || minuteOfDay < 360;
+        const fireflyCount = isNight || st.islandHealed ? 24 : 8;
         for (let b = 0; b < fireflyCount; b++) {
           const bx = camX + ((b * 137 + Math.sin(now * 0.001 + b) * 70 + now * 0.018) % VIEW_W);
           const by = camY + ((b * 93 + Math.cos(now * 0.0014 + b * 2) * 50) % VIEW_H);
-          ctx.fillStyle = st.islandHealed || minuteOfDay >= 1020 ? '#fde047' : '#f472b6';
+          ctx.fillStyle = st.islandHealed || isNight ? '#fde047' : '#f472b6';
           ctx.fillRect(Math.round(bx), Math.round(by), 3, 3);
         }
 
@@ -2170,7 +2751,7 @@ export default function BerkebunGame({
 
         ctx.restore();
 
-        // 7. Screen-Space Rain & Dusk Lighting
+        // 7. Screen-Space Rain, Golden Sunset (16:30-17:59) & Starry Night (18:00-05:59) with Warm Lantern Halos
         if (st.weather === 'Hujan') {
           ctx.fillStyle = 'rgba(20, 42, 72, 0.14)';
           ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -2181,14 +2762,47 @@ export default function BerkebunGame({
             ctx.fillRect(rx, ry, 2, 10);
           }
         }
-        if (minuteOfDay >= 960 && minuteOfDay < 1140) {
-          const f = ((minuteOfDay - 960) / 180) * 0.16;
+
+        if (minuteOfDay >= 990 && minuteOfDay < 1080) {
+          const f = ((minuteOfDay - 990) / 90) * 0.22;
           ctx.fillStyle = `rgba(217, 119, 6, ${f.toFixed(2)})`;
           ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-        } else if (minuteOfDay >= 1140) {
-          const f = Math.min(0.32, 0.14 + ((minuteOfDay - 1140) / 180) * 0.18);
-          ctx.fillStyle = `rgba(15, 23, 52, ${f.toFixed(2)})`;
+        } else if (isNight) {
+          let nightAlpha = 0.44;
+          if (minuteOfDay >= 1080 && minuteOfDay < 1140) {
+            nightAlpha = 0.22 + ((minuteOfDay - 1080) / 60) * 0.22;
+          } else if (minuteOfDay >= 300 && minuteOfDay < 360) {
+            nightAlpha = 0.44 * (1 - (minuteOfDay - 300) / 60);
+          }
+          ctx.fillStyle = `rgba(10, 18, 44, ${nightAlpha.toFixed(2)})`;
           ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+          // Warm Lantern Glow Halos around Buildings, Player & Lighthouse Beacon!
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const lanterns = [
+            { wx: 7.5, wy: 15.2, r: 78, col: 'rgba(251, 191, 36, 0.25)' },
+            { wx: 26.5, wy: 15.2, r: 76, col: 'rgba(251, 191, 36, 0.24)' },
+            { wx: 32.5, wy: 15.2, r: 74, col: 'rgba(251, 191, 36, 0.22)' },
+            { wx: 8.5, wy: 9.2, r: 68, col: 'rgba(192, 132, 252, 0.24)' },
+            { wx: 15.5, wy: 6.4, r: 68, col: 'rgba(251, 146, 60, 0.24)' },
+            { wx: 27.5, wy: 5.8, r: 105, col: 'rgba(244, 114, 182, 0.26)' },
+            { wx: 43.5, wy: 29.5, r: 115, col: 'rgba(254, 240, 138, 0.34)' },
+            { wx: p.x, wy: p.y - 0.3, r: 75, col: 'rgba(253, 224, 71, 0.16)' },
+          ];
+          lanterns.forEach((lt) => {
+            const sx = lt.wx * TILE_SIZE - camX;
+            const sy = lt.wy * TILE_SIZE - camY;
+            if (sx < -lt.r || sx > VIEW_W + lt.r || sy < -lt.r || sy > VIEW_H + lt.r) return;
+            const grad = ctx.createRadialGradient(sx, sy, 4, sx, sy, lt.r);
+            grad.addColorStop(0, lt.col);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(sx, sy, lt.r, 0, Math.PI * 2);
+            ctx.fill();
+          });
+          ctx.restore();
         }
       }
 
@@ -2254,9 +2868,21 @@ export default function BerkebunGame({
 
     rafId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafId);
-  }, [viewMode, minuteOfDay, isChapterConditionMet]);
+  }, [viewMode, minuteOfDay, showSleepModal, exitBuilding, isChapterConditionMet]);
 
-  // Canvas Click -> translate via Camera Offset to World Grid Tile!
+  // Draw crisp Pixel-Art World Map whenever World Map modal [M] opens
+  useEffect(() => {
+    if (!showWorldMap || !worldMapCanvasRef.current) return;
+    renderPixelWorldMapCanvas(
+      worldMapCanvasRef.current,
+      saveState.tiles,
+      currentSeason,
+      saveState.storyChapter,
+      saveState.islandHealed
+    );
+  }, [showWorldMap, saveState.tiles, currentSeason, saveState.storyChapter, saveState.islandHealed]);
+
+  // Canvas Click -> translate to Interior Grid OR Outdoor World Grid!
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -2265,6 +2891,24 @@ export default function BerkebunGame({
     const scaleY = canvas.height / rect.height;
     const viewX = (e.clientX - rect.left) * scaleX;
     const viewY = (e.clientY - rect.top) * scaleY;
+
+    const intId = currentInteriorRef.current;
+    if (intId) {
+      const def = INTERIORS[intId];
+      const ox = Math.floor((VIEW_W - def.cols * TILE_SIZE) / 2);
+      const oy = Math.floor((VIEW_H - def.rows * TILE_SIZE) / 2);
+      const gx = Math.floor((viewX - ox) / TILE_SIZE);
+      const gy = Math.floor((viewY - oy) / TILE_SIZE);
+      if (gx < 0 || gx >= def.cols || gy < 0 || gy >= def.rows) return;
+      const ip = interiorPosRef.current;
+      const dx = gx + 0.5 - ip.x;
+      const dy = gy + 0.5 - ip.y;
+      if (Math.abs(dx) >= Math.abs(dy)) ip.dir = dx >= 0 ? 0 : 2;
+      else ip.dir = dy >= 0 ? 1 : 3;
+      interactAtTile(gx, gy);
+      return;
+    }
+
     const worldX = viewX + cameraRef.current.x;
     const worldY = viewY + cameraRef.current.y;
     const gx = Math.floor(worldX / TILE_SIZE);
@@ -2480,9 +3124,13 @@ export default function BerkebunGame({
     [saveState.harvestBasket]
   );
 
-  const formattedClock = `${String(Math.floor(minuteOfDay / 60)).padStart(2, '0')}:${String(
-    minuteOfDay % 60
-  ).padStart(2, '0')}`;
+  const h24 = Math.floor(minuteOfDay / 60) % 24;
+  const isDaytimePhase = minuteOfDay >= 360 && minuteOfDay < 1080;
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  const formattedClock = `${String(h12).padStart(2, '0')}:${String(minuteOfDay % 60).padStart(
+    2,
+    '0'
+  )} ${isDaytimePhase ? 'Siang' : 'Malam'}`;
 
   const activeStoryChapter = STORY_CHAPTERS.find((c) => c.chapter === saveState.storyChapter);
   const canAdvanceCurrentStory = isChapterConditionMet(saveState);
@@ -2491,14 +3139,16 @@ export default function BerkebunGame({
     const fresh = createInitialSave();
     setSaveState(fresh);
     setConfirmReset(false);
-    playerRef.current = { x: 9.5, y: 17.5, dir: 1, moving: false, swingTimer: 0 };
+    setCurrentInterior(null);
+    playerRef.current = { x: 9.5, y: 17.5, dir: 1, moving: false, swingTimer: 0, actionPose: 'idle', actionTimer: 0 };
     cameraRef.current = {
       x: Math.max(0, 9.5 * TILE_SIZE - VIEW_W / 2),
       y: Math.max(0, 17.5 * TILE_SIZE - VIEW_H / 2),
     };
+    floatMinuteRef.current = 360;
     setMinuteOfDay(360);
     setViewMode('play');
-    setToastMsg('Petualangan Pulau Swarnadwipa dimulai dari Hari ke-1!');
+    setToastMsg('Petualangan Pulau TIK dimulai dari Hari ke-1!');
   };
 
   // ================= VIEW 1: COZY TITLE MENU AWAL =================
@@ -2511,7 +3161,7 @@ export default function BerkebunGame({
           <div className="lg:col-span-7 relative min-h-[260px] sm:min-h-[340px] lg:min-h-[470px] bg-gradient-to-br from-amber-950 via-emerald-950 to-slate-950 overflow-hidden flex flex-col justify-end p-5 sm:p-7">
             <img
               src={gameBerkebunBg}
-              alt="Ilustrasi Pulau Swarnadwipa Berkebun"
+              alt="Ilustrasi Pulau TIK Berkebun"
               referrerPolicy="no-referrer"
               className="absolute inset-0 w-full h-full object-cover"
             />
@@ -2523,17 +3173,17 @@ export default function BerkebunGame({
                 <span aria-hidden="true" className="text-slate-400">·</span>
                 <span>5 Bab Cerita</span>
                 <span aria-hidden="true" className="text-slate-400">·</span>
-                <span>6 Karakter Warga</span>
+                <span>7 Gedung Bisa Dimasuki</span>
                 <span aria-hidden="true" className="text-slate-400">·</span>
-                <span>Peta Luas 6 Wilayah</span>
+                <span>Siang & Malam 12 Jam</span>
               </div>
 
               <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight drop-shadow">
-                Berkebun: Legenda Swarnadwipa
+                Berkebun: Pulau TIK
               </h2>
 
               <p className="text-xs sm:text-sm text-slate-200 max-w-xl leading-relaxed">
-                Jelajahi Pulau Swarnadwipa yang luas! Rawat kebun warisan kakek, memancing di pelabuhan, menambang kristal, berinteraksi dengan 6 warga pulau, dan satukan 4 Mustika untuk membangkitkan Pohon Cahaya Abadi.
+                Jelajahi Pulau TIK yang asri! Rawat kebun warisan kakek, masuki rumah & toko ber-perabot lengkap, tidur di ranjang untuk mempercepat waktu siang/malam, memancing di pelabuhan, dan satukan 4 Mustika!
               </p>
 
               {hasExistingProgress && (
@@ -2561,7 +3211,7 @@ export default function BerkebunGame({
               </div>
               <div className="min-w-0 space-y-0.5">
                 <p className="text-xs font-bold text-amber-400">Halo, {studentFirstName}!</p>
-                <h3 className="text-lg sm:text-xl font-black text-white">Pulau Swarnadwipa</h3>
+                <h3 className="text-lg sm:text-xl font-black text-white">Pulau TIK</h3>
                 <p className="text-xs text-slate-400">
                   {hasExistingProgress
                     ? `Progres: Hari ${saveState.day} · Bab ${Math.min(5, saveState.storyChapter)}/5`
@@ -2669,7 +3319,7 @@ export default function BerkebunGame({
             <div className="bg-[#f5d59c] border-4 border-[#6f3615] ring-2 ring-[#d98a42] rounded-3xl max-w-2xl w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar text-[#3b1a07]">
               <div className="flex items-center justify-between border-b-2 border-[#c88d4f] pb-3">
                 <h3 className="font-black text-lg flex items-center gap-2">
-                  <Sprout className="text-emerald-700" size={20} /> Panduan Pulau Swarnadwipa
+                  <Sprout className="text-emerald-700" size={20} /> Panduan Pulau TIK
                 </h3>
                 <button
                   type="button"
@@ -2682,21 +3332,21 @@ export default function BerkebunGame({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="p-3.5 rounded-2xl bg-[#ffecc7] border-2 border-[#b97336] space-y-1">
-                  <p className="font-black text-emerald-800">1. Kamera & Dunia Pulau Besar</p>
+                  <p className="font-black text-emerald-800">1. Masuk Gedung & Ranjang Tidur</p>
                   <p className="text-[#5c2c0e] leading-relaxed">
-                    Berjalan dengan <strong>W A S D / Panah</strong> melintasi 6 wilayah: Lembah Kebun, Desa Purnama, Hutan Air Terjun, Altar Utara, Tambang Kristal & Pelabuhan! Tekan <strong>[M]</strong> untuk Peta Pulau.
+                    Dekati pintu <strong>Rumah, Toko, Balai Tetua, Pondok Maya, Bengkel Jaka, Kandang Ayam, & Mercusuar</strong> lalu tekan <strong>Spasi/Klik</strong> untuk masuk! Gunakan kasur di rumah untuk tidur & mempercepat waktu.
                   </p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#ffecc7] border-2 border-[#b97336] space-y-1">
-                  <p className="font-black text-amber-800">2. Cerita 5 Bab & 6 Warga Pulau</p>
+                  <p className="font-black text-amber-800">2. Siang & Malam (Masing-masing 20 Menit)</p>
                   <p className="text-[#5c2c0e] leading-relaxed">
-                    Bicara dengan <strong>Tetua Raka, Mbak Sari, Pak Jaka, Nenek Maya, Kapten Bima, & Lira</strong> (dekat & tekan <strong>Spasi/Klik</strong>) untuk membuka Jembatan Selatan, Tambang Timur, dan Pohon Cahaya!
+                    Waktu berjalan dengan jam 12-jam: <strong>12 jam Siang (20m)</strong> & <strong>12 jam Malam (20m)</strong>. Tekan <strong>[M]</strong> untuk melihat Peta Pixel Pulau TIK yang asri!
                   </p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#ffecc7] border-2 border-[#b97336] space-y-1">
                   <p className="font-black text-sky-800">3. Memancing, Tambang & Ternak</p>
                   <p className="text-[#5c2c0e] leading-relaxed">
-                    Pakai <strong>Pancing [8]</strong> di kolam/sungai/dermaga, pakai <strong>Beliung [3]</strong> di Tambang Timur untuk bijih tembaga/perak/kristal, dan ambil telur di <strong>Kandang Ayam</strong> setiap pagi!
+                    Pakai <strong>Pancing [8]</strong> di kolam/sungai/dermaga, pakai <strong>Beliung [3]</strong> di Tambang Timur untuk bijih tembaga/perak/kristal, dan ambil telur di dalam <strong>Kandang Ayam</strong>!
                   </p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#ffecc7] border-2 border-[#b97336] space-y-1">
@@ -2712,7 +3362,7 @@ export default function BerkebunGame({
                 onClick={() => setShowTutorial(false)}
                 className="w-full py-3 bg-[#16a34a] hover:bg-[#15803d] text-white font-black rounded-2xl text-sm border-2 border-[#14532d]"
               >
-                Mulai Jelajahi Pulau Swarnadwipa!
+                Mulai Jelajahi Pulau TIK!
               </button>
             </div>
           </div>
@@ -2740,8 +3390,10 @@ export default function BerkebunGame({
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#ffecc7] border-2 border-[#b97336] text-xs font-black text-[#4a220c] tabular-nums">
             {saveState.weather === 'Hujan' ? (
               <CloudRain size={14} className="text-sky-600" />
-            ) : (
+            ) : isDaytimePhase ? (
               <Sun size={14} className="text-amber-600" />
+            ) : (
+              <Moon size={14} className="text-indigo-700" />
             )}
             <span>Hari {saveState.day} · {currentSeason}</span>
             <span aria-hidden="true" className="text-[#b97336]">|</span>
@@ -2760,6 +3412,16 @@ export default function BerkebunGame({
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap text-xs font-black tabular-nums">
+          {currentInterior && (
+            <button
+              type="button"
+              onClick={exitBuilding}
+              className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white border-2 border-rose-900 flex items-center gap-1 shadow-sm"
+            >
+              Keluar Gedung
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setShowJournal(true)}
@@ -2773,7 +3435,7 @@ export default function BerkebunGame({
             type="button"
             onClick={() => setShowWorldMap(true)}
             className="px-2.5 py-1.5 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white border-2 border-[#075985] flex items-center gap-1 shadow-sm"
-            title="Peta Pulau Swarnadwipa [M]"
+            title="Peta Pulau TIK [M]"
           >
             <MapIcon size={13} /> Peta [M]
           </button>
@@ -2805,7 +3467,7 @@ export default function BerkebunGame({
 
           <button
             type="button"
-            onClick={handleSleepNextDay}
+            onClick={() => setShowSleepModal(true)}
             className="px-2.5 py-1.5 rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white border-2 border-[#14532d] flex items-center gap-1 shadow-sm"
           >
             <Moon size={13} /> Tidur
@@ -3024,7 +3686,7 @@ export default function BerkebunGame({
             <p className="text-[11px] font-bold text-[#3b1a07] leading-snug">
               {activeStoryChapter
                 ? activeStoryChapter.objectiveText
-                : 'Pulau Swarnadwipa telah pulih sepenuhnya! Terus kembangkan kebun dan persahabatan.'}
+                : 'Pulau TIK telah pulih sepenuhnya! Terus kembangkan kebun dan persahabatan.'}
             </p>
             {activeStoryChapter && (
               <div className="text-[10px] font-black text-emerald-800 flex items-center justify-between">
@@ -3358,7 +4020,7 @@ export default function BerkebunGame({
           <div className="bg-[#f5d59c] border-4 border-[#6f3615] ring-2 ring-[#d98a42] rounded-3xl max-w-3xl w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar text-[#3b1a07]">
             <div className="flex items-center justify-between border-b-2 border-[#c88d4f] pb-3">
               <h3 className="font-black text-lg flex items-center gap-2">
-                <BookOpen className="text-purple-800" size={20} /> Jurnal Legenda Swarnadwipa & Warga
+                <BookOpen className="text-purple-800" size={20} /> Jurnal Legenda Pulau TIK & Warga
               </h3>
               <button
                 type="button"
@@ -3449,14 +4111,19 @@ export default function BerkebunGame({
         </div>
       )}
 
-      {/* ================= FULL ISLAND WORLD MAP MODAL [M] ================= */}
+      {/* ================= FULL PIXEL-ART ISLAND WORLD MAP MODAL [M] ================= */}
       {showWorldMap && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[#f5d59c] border-4 border-[#6f3615] ring-2 ring-[#d98a42] rounded-3xl max-w-3xl w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar text-[#3b1a07]">
             <div className="flex items-center justify-between border-b-2 border-[#c88d4f] pb-3">
-              <h3 className="font-black text-lg flex items-center gap-2">
-                <MapIcon className="text-sky-700" size={20} /> Peta Pulau Swarnadwipa (54 × 38)
-              </h3>
+              <div>
+                <h3 className="font-black text-lg flex items-center gap-2">
+                  <MapIcon className="text-sky-700" size={20} /> Peta Pixel Pulau TIK (54 × 38)
+                </h3>
+                <p className="text-[11px] font-bold text-[#7a3f1a]">
+                  Musim {currentSeason} · {formattedClock} · Posisi langsung kamu & warga pulau
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowWorldMap(false)}
@@ -3467,20 +4134,25 @@ export default function BerkebunGame({
             </div>
 
             <div className="relative w-full aspect-[54/38] bg-[#1d6fa5] rounded-2xl border-4 border-[#4a220c] overflow-hidden shadow-inner">
+              <canvas
+                ref={worldMapCanvasRef}
+                width={540}
+                height={380}
+                style={{ imageRendering: 'pixelated' }}
+                className="w-full h-full block"
+              />
+
+              {/* Subtle Pixel-Map Region Callouts */}
               {ISLAND_REGIONS.map((reg) => (
                 <div
                   key={reg.id}
                   style={{
-                    left: `${(reg.x / WORLD_COLS) * 100}%`,
-                    top: `${(reg.y / WORLD_ROWS) * 100}%`,
-                    width: `${(reg.w / WORLD_COLS) * 100}%`,
-                    height: `${(reg.h / WORLD_ROWS) * 100}%`,
-                    backgroundColor: `${reg.color}55`,
-                    borderColor: reg.color,
+                    left: `${((reg.x + reg.w / 2) / WORLD_COLS) * 100}%`,
+                    top: `${((reg.y + 1.1) / WORLD_ROWS) * 100}%`,
                   }}
-                  className="absolute border-2 rounded-lg flex items-center justify-center p-1 text-center"
+                  className="absolute -translate-x-1/2 pointer-events-none"
                 >
-                  <span className="text-[10px] sm:text-xs font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] leading-tight">
+                  <span className="text-[9px] sm:text-[10px] font-black text-white bg-slate-950/65 px-1.5 py-0.5 rounded border border-amber-300/40 whitespace-nowrap shadow">
                     {reg.name}
                   </span>
                 </div>
@@ -3520,7 +4192,7 @@ export default function BerkebunGame({
                 <span className="w-4 h-4 rounded-full bg-rose-500 border-2 border-yellow-300 animate-ping absolute" />
                 <span className="w-4 h-4 rounded-full bg-rose-600 border-2 border-white relative shadow" />
                 <span className="text-[9px] font-black text-yellow-200 bg-rose-900/90 px-1.5 rounded mt-0.5">
-                  KAMU
+                  {currentInterior ? 'DI DALAM' : 'KAMU'}
                 </span>
               </div>
             </div>
@@ -3532,6 +4204,74 @@ export default function BerkebunGame({
                   <p className="text-[11px] text-[#5c2c0e]">{reg.desc}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= SLEEP & FAST-FORWARD TIME MODAL ================= */}
+      {showSleepModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#f5d59c] border-4 border-[#6f3615] ring-2 ring-[#d98a42] rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl text-[#3b1a07]">
+            <div className="flex items-center justify-between border-b-2 border-[#c88d4f] pb-3">
+              <h3 className="font-black text-lg flex items-center gap-2">
+                <Moon className="text-indigo-800" size={20} /> Istirahat & Percepat Waktu
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowSleepModal(false)}
+                className="p-1.5 rounded-xl bg-[#8c4a1c] text-[#fff3d6]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-[#ffecc7] border-2 border-[#b97336] text-xs space-y-1">
+              <p className="font-black text-[#4a220c]">
+                Waktu Sekarang: {formattedClock} (Hari {saveState.day})
+              </p>
+              <p className="text-[#5c2c0e]">
+                Siang (06:00–05:59) dan Malam (06:00–05:59) masing-masing berlangsung 20 menit waktu nyata. Tidurlah untuk mempercepat waktu!
+              </p>
+            </div>
+
+            <div className="space-y-2.5 text-xs font-black">
+              <button
+                type="button"
+                onClick={handleSleepNextDay}
+                className="w-full py-3 px-4 rounded-2xl bg-[#16a34a] hover:bg-[#15803d] text-white border-2 border-[#14532d] flex items-center justify-between shadow"
+              >
+                <span>Tidur Sampai Pagi (Hari {saveState.day + 1})</span>
+                <span className="text-[11px] bg-white/20 px-2 py-0.5 rounded-lg">06:00 Siang · 100% E</span>
+              </button>
+
+              {isDaytimePhase && (
+                <button
+                  type="button"
+                  onClick={() => fastForwardTime('night')}
+                  className="w-full py-3 px-4 rounded-2xl bg-indigo-700 hover:bg-indigo-600 text-white border-2 border-indigo-950 flex items-center justify-between shadow"
+                >
+                  <span>Istirahat Hingga Malam Hari</span>
+                  <span className="text-[11px] bg-white/20 px-2 py-0.5 rounded-lg">06:00 Malam · +35 E</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => fastForwardTime('plus3h')}
+                className="w-full py-3 px-4 rounded-2xl bg-[#d97706] hover:bg-[#b45309] text-white border-2 border-[#78350f] flex items-center justify-between shadow"
+              >
+                <span>Tidur Siang Sebentar (+3 Jam)</span>
+                <span className="text-[11px] bg-white/20 px-2 py-0.5 rounded-lg">+20 Energi</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowSleepModal(false)}
+                className="w-full py-2.5 rounded-xl bg-[#ffecc7] hover:bg-[#ffdf8e] border-2 border-[#b97336] text-[#4a220c]"
+              >
+                Batal
+              </button>
             </div>
           </div>
         </div>
@@ -3852,7 +4592,7 @@ export default function BerkebunGame({
             <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#6f3615] mx-auto shadow-lg">
               <img
                 src={berkebunPortraitImg}
-                alt="Laporan Pagi Swarnadwipa"
+                alt="Laporan Pagi Pulau TIK"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
               />
