@@ -679,12 +679,17 @@ export default function BerkebunGame({
 
   const currentSeason = SEASONS[saveState.seasonIdx % SEASONS.length];
 
+  const [spritesLoaded, setSpritesLoaded] = useState(false);
+
   // Preload AI pixel-art sprites & build atlas
   useEffect(() => {
     atlasRef.current = getStardewPixelAtlas();
     let mounted = true;
     void loadAllStardewSprites().then((loaded) => {
-      if (mounted) spritesRef.current = loaded;
+      if (mounted) {
+        spritesRef.current = loaded;
+        setSpritesLoaded(true);
+      }
     });
     return () => {
       mounted = false;
@@ -4491,7 +4496,12 @@ export default function BerkebunGame({
             </div>
 
             <div className="space-y-3">
-              {hasExistingProgress ? (
+              {!spritesLoaded ? (
+                <div className="w-full min-h-[54px] px-5 py-3.5 rounded-2xl bg-amber-950/80 border-2 border-amber-500/60 text-amber-200 font-black text-sm flex items-center justify-center gap-3 shadow-lg">
+                  <div className="w-5 h-5 border-3 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                  <span>Memuat Aset & Sprite Pulau TIK...</span>
+                </div>
+              ) : hasExistingProgress ? (
                 <>
                   <button
                     type="button"

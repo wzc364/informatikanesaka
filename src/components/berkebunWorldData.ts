@@ -2130,7 +2130,9 @@ export function createInitialIslandGrid(): FarmTile[] {
       // Abundant Natural Debris, Mining Ores & Foraging across all 5 islands!
       const hash = (x * 41 + y * 67 + x * y * 13) % 31;
       if (kind === 'grass' && !tilled && y >= 18 && y <= 27 && x >= 19 && x <= 33) {
-        if (hash === 3 || hash === 17) debris = 'stone';
+        if (x >= 21 && x <= 25 && y >= 20 && y <= 23) {
+          debris = null;
+        } else if (hash === 3 || hash === 17) debris = 'stone';
         else if (hash === 7 || hash === 22) debris = 'wood';
         else if (hash === 11 || hash === 26) debris = 'weed';
       } else if (kind === 'forest_floor') {

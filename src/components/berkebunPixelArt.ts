@@ -443,34 +443,36 @@ async function loadSlicedNpcs() {
 let FARMER_AI_CACHE: Partial<Record<string, HTMLCanvasElement>> | null = null;
 async function loadAiFarmerPoses(): Promise<Partial<Record<string, HTMLCanvasElement>>> {
   if (FARMER_AI_CACHE) return FARMER_AI_CACHE;
-  const [walkImg, actImg] = await Promise.all([
-    loadImageElement(farmerWalkSheetUrl),
+  const [img1, img2, img3, img4, img5, img6, img7, img8, img9, actImg] = await Promise.all([
+    loadTransparentSprite('/assets/aistudio/1_fe19e256.png', 160),
+    loadTransparentSprite('/assets/aistudio/2_d7e5517f.png', 160),
+    loadTransparentSprite('/assets/aistudio/3_eee24ec5.png', 160),
+    loadTransparentSprite('/assets/aistudio/4_2e34e8c5.png', 160),
+    loadTransparentSprite('/assets/aistudio/5_ff64c56f.png', 160),
+    loadTransparentSprite('/assets/aistudio/6_7ddc66a8.png', 160),
+    loadTransparentSprite('/assets/aistudio/7_defac37b.png', 160),
+    loadTransparentSprite('/assets/aistudio/8_9241f189.png', 160),
+    loadTransparentSprite('/assets/aistudio/9_82e708c1.png', 160),
     loadImageElement(farmerActionsSheetUrl),
   ]);
+
   const poses: Partial<Record<string, HTMLCanvasElement>> = {};
 
-  if (walkImg) {
-    const wCells = sliceGridSheet(walkImg, 3, 3, 150);
-    const setWalk = (idx: number, key: string) => {
-      const sp = wCells[idx];
-      if (sp) poses[key] = sp;
-    };
-    // Row 0: Down (dir 1)
-    setWalk(0, 'idle_1');
-    setWalk(1, 'walk1_1');
-    setWalk(2, 'walk2_1');
-    // Row 1: Right (dir 0) + flipped Left (dir 2)
-    setWalk(3, 'idle_0');
-    setWalk(4, 'walk1_0');
-    setWalk(5, 'walk2_0');
-    if (wCells[3]) poses.idle_2 = flipCanvasHorizontal(wCells[3]);
-    if (wCells[4]) poses.walk1_2 = flipCanvasHorizontal(wCells[4]);
-    if (wCells[5]) poses.walk2_2 = flipCanvasHorizontal(wCells[5]);
-    // Row 2: Up / Back (dir 3)
-    setWalk(6, 'idle_3');
-    setWalk(7, 'walk1_3');
-    setWalk(8, 'walk2_3');
-  }
+  if (img1) poses.idle_1 = img1;
+  if (img2) poses.walk1_1 = img2;
+  if (img3) poses.walk2_1 = img3;
+
+  if (img4) poses.idle_0 = img4;
+  if (img5) poses.walk1_0 = img5;
+  if (img6) poses.walk2_0 = img6;
+
+  if (img4) poses.idle_2 = flipCanvasHorizontal(img4);
+  if (img5) poses.walk1_2 = flipCanvasHorizontal(img5);
+  if (img6) poses.walk2_2 = flipCanvasHorizontal(img6);
+
+  if (img7) poses.idle_3 = img7;
+  if (img8) poses.walk1_3 = img8;
+  if (img9) poses.walk2_3 = img9;
 
   if (actImg) {
     const aCells = sliceGridSheet(actImg, 4, 2, 165);
