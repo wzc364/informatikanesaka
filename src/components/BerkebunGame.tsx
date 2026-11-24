@@ -45,6 +45,7 @@ import {
   Cpu,
   ArrowUp,
   ArrowDown,
+  Car,
 } from 'lucide-react';
 import { cn } from '../utils';
 import { doc, getDoc, setDoc, getDocs, query, collection, where } from 'firebase/firestore';
@@ -104,6 +105,8 @@ import {
   BINER_MISSIONS,
   BINER_NPCS,
   BINER_REGIONS,
+  BINER_VEHICLES,
+  BINER_TRAFFIC_CIRCUITS,
   getBinerNpcExclusiveLocation,
   createInitialBinerGrid,
   createInitialBinerTrees,
@@ -132,6 +135,7 @@ import {
   getPixelToolDataUrl,
   getPixelBagItemDataUrl,
   getPixelGoldSprinklerDataUrl,
+  getVehicleIconDataUrl,
   getAiFarmerPoseSprite,
   getAiNpcPoseSprite,
   renderPixelWorldMapCanvas,
@@ -146,6 +150,7 @@ import {
   type StardewToolId,
   type FarmerPose,
   type FarmerDir,
+  type VehicleKind,
 } from './berkebunPixelArt';
 
 function getNpcIsland(npcId: NpcId): WorldIsland {
@@ -282,6 +287,8 @@ interface FarmSaveState {
   }>;
   jaringanAshUntilTotalMin: number;
   jaringanLastAshCheckTotalMin: number;
+  unlockedVehicles?: VehicleKind[];
+  selectedVehicle?: VehicleKind;
   npcHearts: Record<NpcId, number>;
   npcTalkedToday: Partial<Record<NpcId, boolean>>;
   npcGiftedToday: Partial<Record<NpcId, boolean>>;
@@ -373,6 +380,8 @@ function createInitialSave(): FarmSaveState {
     pendingRockRespawns: [],
     jaringanAshUntilTotalMin: 0,
     jaringanLastAshCheckTotalMin: 0,
+    unlockedVehicles: ['scooter'],
+    selectedVehicle: 'scooter',
     npcHearts: initialNpcHearts,
     npcTalkedToday: {},
     npcGiftedToday: {},
@@ -402,11 +411,32 @@ function normalizeSaveState(raw: Partial<FarmSaveState>): FarmSaveState {
     hasValidTiles && Array.isArray(raw.trees) && raw.trees.length > 0 ? raw.trees : fresh.trees;
   const hasValidBinerTiles =
     Array.isArray(raw.binerTiles) && raw.binerTiles.length === BINER_COLS * BINER_ROWS;
-  const binerTiles = hasValidBinerTiles ? raw.binerTiles! : fresh.binerTiles;
+  const binerTiles = hasValidBinerTiles
+    ? raw.binerTiles!.map((t, idx) => {
+        const freshTile = fresh.binerTiles[idx];
+        if (!freshTile) return t;
+        const keepDebris = freshTile.kind === 'corp_lawn' || freshTile.kind === 'sand' ? t.debris : null;
+        return { ...t, kind: freshTile.kind, debris: keepDebris };
+      })
+    : fresh.binerTiles;
   const binerTrees =
     hasValidBinerTiles && Array.isArray(raw.binerTrees) && raw.binerTrees.length > 0
-      ? raw.binerTrees
+      ? raw.binerTrees.filter((tr) => {
+          const tile = binerTiles[tr.y * BINER_COLS + tr.x];
+          return Boolean(tile && (tile.kind === 'corp_lawn' || tile.kind === 'sand'));
+        })
       : createInitialBinerTrees(binerTiles);
+  const validVehKinds: VehicleKind[] = ['scooter', 'taxi', 'suv', 'sedan'];
+  const unlockedVehicles: VehicleKind[] = Array.from(
+    new Set<VehicleKind>([
+      'scooter',
+      ...(Array.isArray(raw.unlockedVehicles)
+        ? raw.unlockedVehicles.filter((v): v is VehicleKind => validVehKinds.includes(v))
+        : []),
+    ])
+  );
+  const selectedVehicle: VehicleKind =
+    raw.selectedVehicle && unlockedVehicles.includes(raw.selectedVehicle) ? raw.selectedVehicle : 'scooter';
   const hasValidJaringanTiles =
     Array.isArray(raw.jaringanTiles) && raw.jaringanTiles.length === JARINGAN_COLS * JARINGAN_ROWS;
   const jaringanTiles = hasValidJaringanTiles ? raw.jaringanTiles! : fresh.jaringanTiles;
@@ -440,6 +470,8 @@ function normalizeSaveState(raw: Partial<FarmSaveState>): FarmSaveState {
       typeof raw.jaringanAshUntilTotalMin === 'number' ? raw.jaringanAshUntilTotalMin : 0,
     jaringanLastAshCheckTotalMin:
       typeof raw.jaringanLastAshCheckTotalMin === 'number' ? raw.jaringanLastAshCheckTotalMin : 0,
+    unlockedVehicles,
+    selectedVehicle,
     toolLevels: { ...fresh.toolLevels, ...(raw.toolLevels || {}) },
     seeds: { ...fresh.seeds, ...(raw.seeds || {}) },
     bagItems: { ...fresh.bagItems, ...(raw.bagItems || {}) },
@@ -669,6 +701,9 @@ export default function BerkebunGame({
   const [currentInterior, setCurrentInterior] = useState<InteriorId | null>(null);
   const [undergroundFloor, setUndergroundFloor] = useState<number | null>(null);
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
+  const [ridingVehicle, setRidingVehicle] = useState(false);
+  const ridingVehicleRef = useRef(false);
+  ridingVehicleRef.current = ridingVehicle;
   const lastJaringanHousePlotRef = useRef<JaringanHousePlot | null>(null);
   const prevAshActiveRef = useRef<boolean>(false);
 
@@ -783,6 +818,24 @@ export default function BerkebunGame({
     { x: 29.7, y: 20.6, dir: 1, variant: 'white' as const, timer: 95 },
   ]);
 
+  const trafficVehiclesRef = useRef(
+    BINER_TRAFFIC_CIRCUITS.map((c) => {
+      const a = c.waypoints[c.startSeg % c.waypoints.length];
+      const b = c.waypoints[(c.startSeg + 1) % c.waypoints.length];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dir: FarmerDir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 0 : 2) : dy >= 0 ? 1 : 3;
+      return {
+        ...c,
+        segIdx: c.startSeg % c.waypoints.length,
+        x: a.x + dx * c.startT,
+        y: a.y + dy * c.startT,
+        dir,
+        paused: false,
+      };
+    })
+  );
+
   const keysPressedRef = useRef<Record<string, boolean>>({});
   const particlesRef = useRef<Particle[]>([]);
   const particleIdRef = useRef(1);
@@ -834,6 +887,7 @@ export default function BerkebunGame({
     jaringanBuilderHut: null,
     jaringanHall: null,
     jaringanVolcano: null,
+    vehicles: {},
   });
   const atlasRef = useRef<PixelAtlas | null>(null);
 
@@ -1687,6 +1741,8 @@ export default function BerkebunGame({
       };
       setFishingState(null);
       setCurrentInterior(null);
+      setRidingVehicle(false);
+      ridingVehicleRef.current = false;
       setUndergroundFloor(floor);
       playFarmSound('story', soundMuted);
       setToastMsg(
@@ -2158,6 +2214,8 @@ export default function BerkebunGame({
   const enterBuilding = useCallback((interiorId: InteriorId) => {
     const def = ALL_INTERIORS[interiorId];
     setFishingState(null);
+    setRidingVehicle(false);
+    ridingVehicleRef.current = false;
     setCurrentInterior(interiorId);
     interiorPosRef.current = {
       x: def.exitTile.x + 0.5,
@@ -2256,6 +2314,8 @@ export default function BerkebunGame({
       setCurrentInterior(null);
       setUndergroundFloor(null);
       setFishingState(null);
+      setRidingVehicle(false);
+      ridingVehicleRef.current = false;
 
       playerRef.current.x = destPos.x;
       playerRef.current.y = destPos.y;
@@ -2297,6 +2357,59 @@ export default function BerkebunGame({
         bagItems: { ...prev.bagItems, [itemId]: (prev.bagItems[itemId] || 0) + 1 },
       }));
       setToastMsg(`Membeli 1× ${ALL_BAG_ITEMS[itemId].name}!`);
+    },
+    [soundMuted]
+  );
+
+  const toggleMountVehicle = useCallback(
+    (forceMount?: boolean) => {
+      if (currentInteriorRef.current || undergroundFloorRef.current !== null) {
+        playFarmSound('error', soundMuted);
+        setToastMsg('Kendaraan hanya dapat digunakan di area luar ruangan!');
+        return;
+      }
+      setFishingState(null);
+      const next = typeof forceMount === 'boolean' ? forceMount : !ridingVehicleRef.current;
+      ridingVehicleRef.current = next;
+      setRidingVehicle(next);
+      const vKind = saveStateRef.current.selectedVehicle || 'scooter';
+      const vDef = BINER_VEHICLES[vKind];
+      if (next) {
+        playFarmSound('story', soundMuted);
+        spawnParticles(playerRef.current.x, playerRef.current.y, '#38bdf8', 10, `${vDef.name}!`);
+        setToastMsg(`Mengendarai ${vDef.name} (${vDef.speedMult.toFixed(1)}× kecepatan)! Tekan [V] untuk turun.`);
+      } else {
+        playFarmSound('clear', soundMuted);
+        setToastMsg(`Turun dari ${vDef.name}.`);
+      }
+    },
+    [soundMuted, spawnParticles]
+  );
+
+  const buyOrSelectVehicle = useCallback(
+    (vKind: VehicleKind) => {
+      const def = BINER_VEHICLES[vKind];
+      const st = saveStateRef.current;
+      const owned = (st.unlockedVehicles || ['scooter']).includes(vKind);
+      if (owned) {
+        playFarmSound('plant', soundMuted);
+        setSaveState((prev) => ({ ...prev, selectedVehicle: vKind }));
+        setToastMsg(`${def.name} dipilih sebagai kendaraan aktif! Tekan [V] di luar ruangan untuk berkendara.`);
+        return;
+      }
+      if (st.gold < def.cost) {
+        playFarmSound('error', soundMuted);
+        setToastMsg(`Butuh ${def.cost}G untuk membeli ${def.name}!`);
+        return;
+      }
+      playFarmSound('coin', soundMuted);
+      setSaveState((prev) => ({
+        ...prev,
+        gold: prev.gold - def.cost,
+        unlockedVehicles: Array.from(new Set<VehicleKind>([...(prev.unlockedVehicles || ['scooter']), vKind])),
+        selectedVehicle: vKind,
+      }));
+      setToastMsg(`Berhasil membeli ${def.name}! Sekarang tekan [V] di luar gedung untuk melaju!`);
     },
     [soundMuted]
   );
@@ -2684,6 +2797,16 @@ export default function BerkebunGame({
           return;
         }
 
+        // Parked Harbor Vehicle Quick Mount on Pulau Biner
+        if (
+          activeIsl === 'biner' &&
+          !ridingVehicleRef.current &&
+          Math.hypot(tx + 0.5 - 38.2, ty + 0.5 - 37.3) <= 1.4
+        ) {
+          toggleMountVehicle(true);
+          return;
+        }
+
         // 2. Landmark Interactions (Pulau TIK, Pulau Biner & Pulau Jaringan Buildings + Boat + Mine)
         if (tile.kind === 'house') { enterBuilding('house'); return; }
         if (tile.kind === 'shop') { enterBuilding('shop'); return; }
@@ -2773,6 +2896,10 @@ export default function BerkebunGame({
             if (st.stamina < 3) {
               setToastMsg('Energi terlalu rendah untuk memancing! Istirahat atau makan camilan.');
               return;
+            }
+            if (ridingVehicleRef.current) {
+              setRidingVehicle(false);
+              ridingVehicleRef.current = false;
             }
             playFarmSound('water', soundMuted);
             setFishingState({
@@ -3475,6 +3602,26 @@ export default function BerkebunGame({
         ) {
           triggerFacingAction();
         }
+      } else if (k === 'v') {
+        if (
+          !showShop &&
+          !showBinerShop &&
+          !showBoatModal &&
+          !showVoyageVideo &&
+          !showIntroVideo &&
+          !showJaringanBuilder &&
+          !showBasket &&
+          !showCraft &&
+          !showUpgradeModal &&
+          !showChest &&
+          !showJournal &&
+          !showWorldMap &&
+          !showSleepModal &&
+          !showTutorial &&
+          !activeNpcId
+        ) {
+          toggleMountVehicle();
+        }
       } else if (k === 'c') {
         setShowCraft((v) => !v);
       } else if (k === 'j') {
@@ -3530,6 +3677,7 @@ export default function BerkebunGame({
     daySummary,
     clearKeysAndBlur,
     triggerFacingAction,
+    toggleMountVehicle,
   ]);
 
   // Main 60fps Big-Island + Underground Mine + Interior Camera-Following Stardew Renderer
@@ -4393,7 +4541,10 @@ export default function BerkebunGame({
 
       if (vx !== 0 || vy !== 0) {
         const len = Math.hypot(vx, vy);
-        const speed = 0.095 * speedMult;
+        const vehMult = ridingVehicleRef.current
+          ? BINER_VEHICLES[st.selectedVehicle || 'scooter']?.speedMult || 1.58
+          : 1;
+        const speed = 0.095 * speedMult * vehMult;
         const nx = Math.max(0.6, Math.min(activeCols - 0.6, p.x + (vx / len) * speed));
         const ny = Math.max(0.6, Math.min(activeRows - 0.6, p.y + (vy / len) * speed));
         if (canWalk(tileAt(nx, p.y))) p.x = nx;
@@ -4475,6 +4626,61 @@ export default function BerkebunGame({
           if (nx >= 26.8 && nx <= 30.2) ch.x = nx;
           else ch.dir *= -1;
         });
+      }
+
+      if (activeIsl === 'biner') {
+        const trafficPaused =
+          Boolean(activeNpcRef.current) ||
+          Boolean(daySummaryRef.current) ||
+          Boolean(showWorldMapRef.current) ||
+          Boolean(storyEventModalRef.current) ||
+          showBinerShop ||
+          showBoatModal;
+        if (!trafficPaused) {
+          trafficVehiclesRef.current.forEach((tv) => {
+            const target = tv.waypoints[(tv.segIdx + 1) % tv.waypoints.length];
+            const dx = target.x - tv.x;
+            const dy = target.y - tv.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist <= tv.speed) {
+              tv.x = target.x;
+              tv.y = target.y;
+              tv.segIdx = (tv.segIdx + 1) % tv.waypoints.length;
+              tv.paused = false;
+              return;
+            }
+            const ux = dx / dist;
+            const uy = dy / dist;
+            tv.dir = Math.abs(ux) >= Math.abs(uy) ? (ux > 0 ? 0 : 2) : uy > 0 ? 1 : 3;
+            // Polite yield when player or outdoor NPC is directly in front of bumper
+            let blockedAhead = false;
+            const pdx = p.x - tv.x;
+            const pdy = p.y - tv.y;
+            const pAlong = pdx * ux + pdy * uy;
+            const pPerp = Math.abs(-pdx * uy + pdy * ux);
+            if (pAlong > 0 && pAlong < 1.55 && pPerp < 0.72) blockedAhead = true;
+            if (!blockedAhead) {
+              for (const npcId of Object.keys(BINER_NPCS) as BinerNpcId[]) {
+                if (getBinerNpcExclusiveLocation(npcId, minuteOfDay, st.weather) !== 'outdoor') continue;
+                const rt = npcRuntimeRef.current[npcId];
+                if (!rt) continue;
+                const ndx = rt.x - tv.x;
+                const ndy = rt.y - tv.y;
+                const nAlong = ndx * ux + ndy * uy;
+                const nPerp = Math.abs(-ndx * uy + ndy * ux);
+                if (nAlong > 0 && nAlong < 1.4 && nPerp < 0.68) {
+                  blockedAhead = true;
+                  break;
+                }
+              }
+            }
+            tv.paused = blockedAhead;
+            if (!blockedAhead) {
+              tv.x += ux * tv.speed;
+              tv.y += uy * tv.speed;
+            }
+          });
+        }
       }
 
       if (canvas && ctx && atlas) {
@@ -4594,17 +4800,31 @@ export default function BerkebunGame({
             } else if (tile.kind === 'asphalt' || tile.kind === 'crosswalk') {
               ctx.fillStyle = (x + y) % 2 === 0 ? '#1e293b' : '#233044';
               ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+              if (tile.kind === 'asphalt') {
+                const tUp = activeTiles[(y - 1) * activeCols + x]?.kind;
+                const tDn = activeTiles[(y + 1) * activeCols + x]?.kind;
+                const tLf = activeTiles[y * activeCols + (x - 1)]?.kind;
+                const tRt = activeTiles[y * activeCols + (x + 1)]?.kind;
+                ctx.fillStyle = '#64748b';
+                if (tUp !== 'asphalt' && tUp !== 'crosswalk') ctx.fillRect(px, py, TILE_SIZE, 3);
+                if (tDn !== 'asphalt' && tDn !== 'crosswalk') ctx.fillRect(px, py + TILE_SIZE - 3, TILE_SIZE, 3);
+                if (tLf !== 'asphalt' && tLf !== 'crosswalk') ctx.fillRect(px, py, 3, TILE_SIZE);
+                if (tRt !== 'asphalt' && tRt !== 'crosswalk') ctx.fillRect(px + TILE_SIZE - 3, py, 3, TILE_SIZE);
+              }
               if (tile.kind === 'crosswalk') {
                 ctx.fillStyle = '#f8fafc';
                 ctx.fillRect(px + 6, py + 5, TILE_SIZE - 12, 6);
                 ctx.fillRect(px + 6, py + 19, TILE_SIZE - 12, 6);
                 ctx.fillRect(px + 6, py + 33, TILE_SIZE - 12, 6);
               } else {
+                const isVertCol =
+                  x === 18 || x === 19 || x === 28 || x === 29 || x === 52 || x === 53 || x === 64 || x === 65;
+                const isHorizRow = y === 14 || y === 15 || y === 24 || y === 25 || y === 35 || y === 36;
                 ctx.fillStyle = '#facc15';
-                if ((y === 14 || y === 24 || y === 35) && x % 2 === 0) {
+                if ((y === 14 || y === 24 || y === 35) && x >= 18 && x <= 65 && !isVertCol && x % 2 === 0) {
                   ctx.fillRect(px + 6, py + TILE_SIZE - 3, TILE_SIZE - 12, 3);
                 }
-                if ((x === 28 || x === 52 || x === 64) && y % 2 === 0) {
+                if ((x === 18 || x === 28 || x === 52 || x === 64) && y >= 14 && y <= 36 && !isHorizRow && y % 2 === 0) {
                   ctx.fillRect(px + TILE_SIZE - 3, py + 6, 3, TILE_SIZE - 12);
                 }
               }
@@ -5335,10 +5555,89 @@ export default function BerkebunGame({
           });
         });
 
-        // Player Farmer Character with Full AI 4-Directional & Improved 4-Step Walking Stride!
+        const drawVehicleInQueue = (
+          kind: VehicleKind,
+          wx: number,
+          wy: number,
+          dir: FarmerDir,
+          bobY: number,
+          badge?: { text: string; bg: string; color: string }
+        ) => {
+          const vx = Math.round(wx * TILE_SIZE);
+          const vy = Math.round(wy * TILE_SIZE);
+          const vPack = sprites.vehicles?.[kind];
+          const sp =
+            dir === 0 ? vPack?.dir0 : dir === 1 ? vPack?.dir1 : dir === 2 ? vPack?.dir2 : vPack?.dir3;
+          const isSide = dir === 0 || dir === 2;
+
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.36)';
+          ctx.beginPath();
+          ctx.ellipse(vx, vy + 11, isSide ? 24 : 16, 7, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (sp) {
+            const targetW = isSide ? (kind === 'scooter' ? 52 : 70) : kind === 'scooter' ? 38 : 48;
+            const targetH = Math.min(isSide ? 52 : 66, Math.round(targetW * (sp.height / sp.width)));
+            ctx.drawImage(sp, Math.round(vx - targetW / 2), Math.round(vy - targetH + 15 - bobY), targetW, targetH);
+          } else {
+            ctx.fillStyle =
+              kind === 'taxi' ? '#facc15' : kind === 'suv' ? '#1e3a8a' : kind === 'scooter' ? '#22c55e' : '#06b6d4';
+            ctx.fillRect(vx - 18, vy - 14 - bobY, 36, 22);
+          }
+
+          if (badge) {
+            ctx.fillStyle = badge.bg;
+            ctx.fillRect(vx - 26, vy + 13, 52, 12);
+            ctx.fillStyle = badge.color;
+            ctx.font = 'bold 8px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(badge.text, vx, vy + 22);
+          }
+        };
+
+        // Pulau Biner AI City Traffic & Harbor Parked Vehicle
+        if (activeIsl === 'biner') {
+          trafficVehiclesRef.current.forEach((tv) => {
+            if (!isVisibleX(tv.x) || !isVisibleY(tv.y)) return;
+            queue.push({
+              sortY: tv.y * TILE_SIZE + 8,
+              render: () => {
+                const rumble = tv.paused ? 0 : Math.abs(Math.sin(now * 0.035 + tv.x)) * 0.8;
+                drawVehicleInQueue(tv.kind, tv.x, tv.y, tv.dir, rumble);
+              },
+            });
+          });
+
+          if (!ridingVehicleRef.current && isVisibleX(38.2) && isVisibleY(37.3)) {
+            const parkedKind = st.selectedVehicle || 'scooter';
+            queue.push({
+              sortY: 37.3 * TILE_SIZE + 8,
+              render: () => {
+                drawVehicleInQueue(parkedKind, 38.2, 37.3, 0, 0, {
+                  text: 'Parkir [V]',
+                  bg: 'rgba(15, 23, 42, 0.88)',
+                  color: '#38bdf8',
+                });
+              },
+            });
+          }
+        }
+
+        // Player Farmer Character OR Active Vehicle with Full AI 4-Directional Sprites!
         queue.push({
           sortY: p.y * TILE_SIZE + 8,
           render: () => {
+            if (ridingVehicleRef.current) {
+              const vehKind = st.selectedVehicle || 'scooter';
+              const rumble = p.moving ? Math.abs(Math.sin(now * 0.045)) * 1.1 : 0;
+              drawVehicleInQueue(vehKind, p.x, p.y, p.dir, rumble, {
+                text: BINER_VEHICLES[vehKind].name.split(' ')[0],
+                bg: 'rgba(2, 132, 199, 0.92)',
+                color: '#fef08a',
+              });
+              return;
+            }
+
             const cx = Math.round(p.x * TILE_SIZE);
             const cy = Math.round(p.y * TILE_SIZE);
             const fs = fishingRef.current;
@@ -5578,6 +5877,28 @@ export default function BerkebunGame({
               col: 'rgba(251, 146, 60, 0.34)',
             });
           });
+          if (ridingVehicleRef.current) {
+            const hx = p.x + (p.dir === 0 ? 1.15 : p.dir === 2 ? -1.15 : 0);
+            const hy = p.y + (p.dir === 1 ? 1.15 : p.dir === 3 ? -1.15 : 0);
+            lanterns.push({
+              wx: hx,
+              wy: hy,
+              r: 135,
+              col: 'rgba(254, 249, 195, 0.34)',
+            });
+          }
+          if (isBiner) {
+            trafficVehiclesRef.current.forEach((tv) => {
+              const hx = tv.x + (tv.dir === 0 ? 1.0 : tv.dir === 2 ? -1.0 : 0);
+              const hy = tv.y + (tv.dir === 1 ? 1.0 : tv.dir === 3 ? -1.0 : 0);
+              lanterns.push({
+                wx: hx,
+                wy: hy,
+                r: 95,
+                col: 'rgba(254, 240, 138, 0.25)',
+              });
+            });
+          }
           lanterns.forEach((lt) => {
             const sx = lt.wx * TILE_SIZE - camX;
             const sy = lt.wy * TILE_SIZE - camY;
@@ -6467,6 +6788,32 @@ export default function BerkebunGame({
           >
             <MapIcon size={13} /> Dunia [M]
           </button>
+
+          {!currentInterior && undergroundFloor === null && (
+            <button
+              type="button"
+              onClick={() => {
+                clearKeysAndBlur();
+                toggleMountVehicle();
+              }}
+              className={cn(
+                'px-2.5 py-1.5 rounded-xl border-2 flex items-center gap-1 shadow-sm transition-colors',
+                ridingVehicle
+                  ? 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 border-cyan-900'
+                  : 'bg-[#0369a1] hover:bg-[#0284c7] text-white border-[#0c4a6e]'
+              )}
+              title={`Naik / Turun ${BINER_VEHICLES[saveState.selectedVehicle || 'scooter'].name} [V]`}
+            >
+              <img
+                src={getVehicleIconDataUrl(saveState.selectedVehicle || 'scooter')}
+                alt="Kendaraan"
+                referrerPolicy="no-referrer"
+                style={{ imageRendering: 'pixelated' }}
+                className="w-4 h-4 object-contain shrink-0"
+              />
+              {ridingVehicle ? 'Turun [V]' : 'Naik [V]'}
+            </button>
+          )}
 
           <button
             type="button"
@@ -9211,6 +9558,76 @@ export default function BerkebunGame({
                   </div>
                 );
               })}
+            </div>
+
+            <div className="border-t border-slate-700 pt-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <h4 className="font-black text-sm flex items-center gap-2 text-cyan-300">
+                  <Car size={17} /> Showroom Kendaraan Biner Motors
+                </h4>
+                <span className="text-[11px] font-bold text-slate-300">Tekan [V] kapan saja di luar gedung</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                {(['scooter', 'taxi', 'suv', 'sedan'] as VehicleKind[]).map((vKind) => {
+                  const vDef = BINER_VEHICLES[vKind];
+                  const owned = (saveState.unlockedVehicles || ['scooter']).includes(vKind);
+                  const active = (saveState.selectedVehicle || 'scooter') === vKind;
+                  return (
+                    <div
+                      key={vKind}
+                      className={cn(
+                        'p-3 rounded-2xl border-2 flex flex-col justify-between gap-2',
+                        active
+                          ? 'bg-cyan-950/70 border-cyan-400'
+                          : 'bg-slate-800/90 border-slate-600'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-12 rounded-xl bg-slate-950/70 border border-slate-700 flex items-center justify-center p-1 shrink-0">
+                          <img
+                            src={getVehicleIconDataUrl(vKind)}
+                            alt={vDef.name}
+                            referrerPolicy="no-referrer"
+                            style={{ imageRendering: 'pixelated' }}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-black text-white truncate">{vDef.name}</span>
+                            <span className="text-amber-300 font-black tabular-nums shrink-0">
+                              {vDef.cost === 0 ? 'GRATIS' : `${vDef.cost}G`}
+                            </span>
+                          </div>
+                          <p className="text-[10px] font-bold text-cyan-300">
+                            Kecepatan {vDef.speedMult.toFixed(2)}× · Tanpa Konsumsi Stamina
+                          </p>
+                          <p className="text-[11px] text-slate-300 leading-snug">{vDef.desc}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={!owned && saveState.gold < vDef.cost}
+                        onClick={() => buyOrSelectVehicle(vKind)}
+                        className={cn(
+                          'w-full py-2 rounded-xl font-black border transition-colors',
+                          active
+                            ? 'bg-emerald-500 text-slate-950 border-emerald-300'
+                            : owned
+                              ? 'bg-cyan-600 hover:bg-cyan-500 text-white border-cyan-400'
+                              : 'bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white border-amber-400'
+                        )}
+                      >
+                        {active
+                          ? 'Aktif (Pakai dengan Tombol [V])'
+                          : owned
+                            ? 'Pilih Kendaraan Ini'
+                            : `Beli (${vDef.cost}G)`}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

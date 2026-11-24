@@ -36,6 +36,8 @@ const OPTIONAL_SPRITE_SHEETS = import.meta.glob<string>(
     '../assets/images/jaringan_furniture_sheet_1795499308563*.jpg',
     '../assets/images/jaringan_npc_sheet_1_1795499307681*.jpg',
     '../assets/images/jaringan_npc_sheet_2_1795499371759*.jpg',
+    '../assets/images/biner_vehicles_side_1795509075481*.jpg',
+    '../assets/images/biner_vehicles_vertical_1795509076400*.jpg',
   ],
   { eager: true, import: 'default' }
 );
@@ -80,6 +82,8 @@ const jaringanHousesSheetUrl = optSpriteUrl('../assets/images/jaringan_houses_sh
 const jaringanFurnitureSheetUrl = optSpriteUrl('../assets/images/jaringan_furniture_sheet_1795499308563.jpg');
 const jaringanNpcSheet1Url = optSpriteUrl('../assets/images/jaringan_npc_sheet_1_1795499307681.jpg');
 const jaringanNpcSheet2Url = optSpriteUrl('../assets/images/jaringan_npc_sheet_2_1795499371759.jpg');
+const binerVehiclesSideUrl = optSpriteUrl('../assets/images/biner_vehicles_side_1795509075481.jpg');
+const binerVehiclesVerticalUrl = optSpriteUrl('../assets/images/biner_vehicles_vertical_1795509076400.jpg');
 import {
   WORLD_COLS,
   WORLD_ROWS,
@@ -120,6 +124,15 @@ export type StardewToolId =
   | 'fertilizer'
   | 'sprinkler'
   | 'rod';
+
+export type VehicleKind = 'sedan' | 'taxi' | 'suv' | 'scooter';
+
+export interface VehicleDirectionalSprites {
+  dir0: HTMLCanvasElement;
+  dir1: HTMLCanvasElement;
+  dir2: HTMLCanvasElement;
+  dir3: HTMLCanvasElement;
+}
 
 export interface StardewSprites {
   farmer: HTMLCanvasElement | null;
@@ -162,6 +175,7 @@ export interface StardewSprites {
   jaringanBuilderHut: HTMLCanvasElement | null;
   jaringanHall: HTMLCanvasElement | null;
   jaringanVolcano: HTMLCanvasElement | null;
+  vehicles: Partial<Record<VehicleKind, VehicleDirectionalSprites>>;
 }
 
 const PROCESSED_CACHE = new Map<string, HTMLCanvasElement>();
@@ -1242,6 +1256,46 @@ async function loadJaringanAssets(): Promise<JaringanAssetsPack> {
   return pack;
 }
 
+const AI_VEHICLE_DATA_URLS = new Map<VehicleKind, string>();
+let VEHICLES_AI_CACHE: Partial<Record<VehicleKind, VehicleDirectionalSprites>> | null = null;
+
+async function loadAiVehicleSprites(): Promise<Partial<Record<VehicleKind, VehicleDirectionalSprites>>> {
+  if (VEHICLES_AI_CACHE) return VEHICLES_AI_CACHE;
+
+  const [sideImg, vertImg] = await Promise.all([
+    loadImageElement(binerVehiclesSideUrl),
+    loadImageElement(binerVehiclesVerticalUrl),
+  ]);
+
+  const map: Partial<Record<VehicleKind, VehicleDirectionalSprites>> = {};
+  const kinds: VehicleKind[] = ['sedan', 'taxi', 'suv', 'scooter'];
+  const sideCells = sideImg ? sliceGridSheet(sideImg, 2, 2, 220) : [];
+  const vertCells = vertImg ? sliceGridSheet(vertImg, 4, 2, 220) : [];
+
+  kinds.forEach((kind, i) => {
+    const leftSp = sideCells[i] || null;
+    const downSp = vertCells[i] || leftSp;
+    const upSp = vertCells[i + 4] || downSp || leftSp;
+    if (leftSp && downSp && upSp) {
+      const rightSp = flipCanvasHorizontal(leftSp);
+      map[kind] = {
+        dir0: rightSp,
+        dir1: downSp,
+        dir2: leftSp,
+        dir3: upSp,
+      };
+      try {
+        AI_VEHICLE_DATA_URLS.set(kind, rightSp.toDataURL('image/png'));
+      } catch {
+        // ignore
+      }
+    }
+  });
+
+  VEHICLES_AI_CACHE = map;
+  return map;
+}
+
 export async function loadAllStardewSprites(): Promise<StardewSprites> {
   const [
     farmer,
@@ -1260,6 +1314,7 @@ export async function loadAllStardewSprites(): Promise<StardewSprites> {
     furniture,
     minePack,
     jaringanPack,
+    vehicles,
   ] = await Promise.all([
     loadTransparentSprite(farmerSpriteUrl, 128),
     loadAiFarmerPoses(),
@@ -1277,6 +1332,7 @@ export async function loadAllStardewSprites(): Promise<StardewSprites> {
     loadAiFurnitureSprites(),
     loadMineAndMonsterSprites(),
     loadJaringanAssets(),
+    loadAiVehicleSprites(),
   ]);
 
   return {
@@ -1315,6 +1371,7 @@ export async function loadAllStardewSprites(): Promise<StardewSprites> {
     jaringanBuilderHut: jaringanPack.jaringanBuilderHut,
     jaringanHall: jaringanPack.jaringanHall,
     jaringanVolcano: jaringanPack.jaringanVolcano,
+    vehicles,
   };
 }
 
@@ -4637,6 +4694,31 @@ export function getPixelGoldSprinklerDataUrl(): string {
   const existing = DATA_URL_CACHE.get(key);
   if (existing) return existing;
   const url = getStardewPixelAtlas().goldSprinkler.toDataURL('image/png');
+  DATA_URL_CACHE.set(key, url);
+  return url;
+}
+
+export function getVehicleIconDataUrl(kind: VehicleKind): string {
+  const aiUrl = AI_VEHICLE_DATA_URLS.get(kind);
+  if (aiUrl) return aiUrl;
+  const key = `veh_fallback_${kind}`;
+  const existing = DATA_URL_CACHE.get(key);
+  if (existing) return existing;
+  const c = makePixelCanvas(32, 20, (px) => {
+    const color =
+      kind === 'taxi'
+        ? '#facc15'
+        : kind === 'suv'
+          ? '#1e3a8a'
+          : kind === 'scooter'
+            ? '#22c55e'
+            : '#06b6d4';
+    px(4, 7, color, 24, 9);
+    px(9, 3, '#e0f2fe', 13, 5);
+    px(7, 15, '#0f172a', 5, 4);
+    px(20, 15, '#0f172a', 5, 4);
+  });
+  const url = c.toDataURL('image/png');
   DATA_URL_CACHE.set(key, url);
   return url;
 }

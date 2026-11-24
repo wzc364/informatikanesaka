@@ -28,10 +28,141 @@ import {
   JARINGAN_INTERIORS,
   JARINGAN_NPCS,
 } from './pulauJaringanData';
+import type { VehicleKind } from './berkebunPixelArt';
 
 export const BINER_COLS = 84;
 export const BINER_ROWS = 56;
 export const FERRY_TICKET_COST = 150;
+
+export interface VehicleDef {
+  id: VehicleKind;
+  name: string;
+  cost: number;
+  speedMult: number;
+  desc: string;
+}
+
+export const BINER_VEHICLES: Record<VehicleKind, VehicleDef> = {
+  scooter: {
+    id: 'scooter',
+    name: 'Skuter Listrik Biner',
+    cost: 0,
+    speedMult: 1.58,
+    desc: 'Skuter listrik lincah gratis untuk seluruh tamu Pulau Biner! Bisa dipakai di semua pulau.',
+  },
+  taxi: {
+    id: 'taxi',
+    name: 'Taksi Kota Biner',
+    cost: 450,
+    speedMult: 1.76,
+    desc: 'Taksi kuning modern berkecepatan tinggi dengan lampu sorot malam yang terang.',
+  },
+  suv: {
+    id: 'suv',
+    name: 'SUV Eksekutif Biner',
+    cost: 850,
+    speedMult: 1.92,
+    desc: 'SUV tangguh elegan rancangan Biner Motors, mantap melaju di jalan raya maupun pantai.',
+  },
+  sedan: {
+    id: 'sedan',
+    name: 'Sedan Sport Kuantum',
+    cost: 1250,
+    speedMult: 2.1,
+    desc: 'Mobil listrik sport tercepat di kepulauan! Menghemat waktu perjalanan antar dermaga.',
+  },
+};
+
+export interface TrafficCircuitDef {
+  id: string;
+  kind: VehicleKind;
+  speed: number;
+  waypoints: Array<{ x: number; y: number }>;
+  startSeg: number;
+  startT: number;
+}
+
+// Closed-loop right-hand lane circuits strictly on [18..65] x [14..36]
+export const BINER_TRAFFIC_CIRCUITS: TrafficCircuitDef[] = [
+  {
+    id: 'car_outer_cw',
+    kind: 'sedan',
+    speed: 0.058,
+    waypoints: [
+      { x: 19.5, y: 15.5 },
+      { x: 64.5, y: 15.5 },
+      { x: 64.5, y: 35.5 },
+      { x: 19.5, y: 35.5 },
+    ],
+    startSeg: 0,
+    startT: 0.25,
+  },
+  {
+    id: 'car_plaza_ccw',
+    kind: 'taxi',
+    speed: 0.052,
+    waypoints: [
+      { x: 28.5, y: 24.5 },
+      { x: 28.5, y: 36.5 },
+      { x: 53.5, y: 36.5 },
+      { x: 53.5, y: 24.5 },
+    ],
+    startSeg: 1,
+    startT: 0.35,
+  },
+  {
+    id: 'car_north_cw',
+    kind: 'suv',
+    speed: 0.054,
+    waypoints: [
+      { x: 29.5, y: 15.5 },
+      { x: 64.5, y: 15.5 },
+      { x: 64.5, y: 24.5 },
+      { x: 29.5, y: 24.5 },
+    ],
+    startSeg: 2,
+    startT: 0.45,
+  },
+  {
+    id: 'car_west_ccw',
+    kind: 'scooter',
+    speed: 0.048,
+    waypoints: [
+      { x: 18.5, y: 14.5 },
+      { x: 18.5, y: 36.5 },
+      { x: 29.5, y: 36.5 },
+      { x: 29.5, y: 14.5 },
+    ],
+    startSeg: 0,
+    startT: 0.5,
+  },
+  {
+    id: 'car_east_cw',
+    kind: 'taxi',
+    speed: 0.05,
+    waypoints: [
+      { x: 53.5, y: 15.5 },
+      { x: 64.5, y: 15.5 },
+      { x: 64.5, y: 35.5 },
+      { x: 53.5, y: 35.5 },
+    ],
+    startSeg: 1,
+    startT: 0.7,
+  },
+  {
+    id: 'car_mid_ccw',
+    kind: 'sedan',
+    speed: 0.056,
+    waypoints: [
+      { x: 18.5, y: 24.5 },
+      { x: 18.5, y: 36.5 },
+      { x: 65.5, y: 36.5 },
+      { x: 65.5, y: 24.5 },
+    ],
+    startSeg: 1,
+    startT: 0.82,
+  },
+];
 
 export const BINER_BAG_ITEMS: Record<BinerBagItemId, BagItemDef> = {
   biner_espresso: {
@@ -531,8 +662,8 @@ export const BINER_NPCS: Record<BinerNpcId, NpcConfig> = {
     homeRegion: 'Depan Menara Kuantum',
     homeInterior: 'biner_quantum_f1',
     baseX: 58.5,
-    baseY: 24.5,
-    patrolRadius: 2.3,
+    baseY: 23.4,
+    patrolRadius: 2.0,
     favoriteCategory: 'Espresso / Chip Silikon',
     color: '#6366f1',
     greetingsByChapter: {
@@ -630,9 +761,9 @@ export const BINER_NPCS: Record<BinerNpcId, NpcConfig> = {
     role: 'Teknisi Jaringan & Fiber',
     homeRegion: 'Boulevard Timur Pulau Biner',
     homeInterior: 'biner_quantum_f1',
-    baseX: 52.0,
-    baseY: 25.2,
-    patrolRadius: 2.5,
+    baseX: 54.6,
+    baseY: 23.4,
+    patrolRadius: 2.0,
     favoriteCategory: 'Bar Nutrisi / Bijih Tembaga',
     color: '#f97316',
     greetingsByChapter: {
@@ -731,8 +862,8 @@ export const BINER_NPCS: Record<BinerNpcId, NpcConfig> = {
     homeRegion: 'Gerbang Menara Biner Corp',
     homeInterior: 'biner_tower_f1',
     baseX: 41.0,
-    baseY: 24.4,
-    patrolRadius: 1.8,
+    baseY: 23.4,
+    patrolRadius: 1.6,
     favoriteCategory: 'Bar Nutrisi / Telur Ayam',
     color: '#1e3a8a',
     greetingsByChapter: {
@@ -1306,33 +1437,29 @@ export function createInitialBinerGrid(): FarmTile[] {
           kind = 'plaza';
         }
 
-        // Multi-lane Modern Asphalt Avenues
-        if (
-          y === 14 ||
-          y === 15 ||
-          y === 24 ||
-          y === 25 ||
-          y === 35 ||
-          y === 36 ||
-          x === 28 ||
-          x === 29 ||
-          x === 52 ||
-          x === 53 ||
-          x === 64 ||
-          x === 65
-        ) {
+        // Multi-lane Modern Asphalt Avenues (Closed Rectangular City Grid strictly inside [18..65] x [14..36])
+        const isHorizontalRoad =
+          x >= 18 &&
+          x <= 65 &&
+          (y === 14 || y === 15 || y === 24 || y === 25 || y === 35 || y === 36);
+        const isVerticalRoad =
+          y >= 14 &&
+          y <= 36 &&
+          (x === 18 || x === 19 || x === 28 || x === 29 || x === 52 || x === 53 || x === 64 || x === 65);
+        if (isHorizontalRoad || isVerticalRoad) {
           kind = 'asphalt';
         }
         if ((x === 40 || x === 41 || x === 42) && y >= 37 && y <= 44) {
           kind = 'sidewalk';
         }
 
-        // Zebra Crosswalks at key intersections
+        // Zebra Crosswalks at key intersections & pedestrian walkways
         if (
           ((x === 40 || x === 41 || x === 42) && (y === 24 || y === 25 || y === 35 || y === 36)) ||
           ((x === 22 || x === 23) && (y === 24 || y === 25 || y === 35 || y === 36)) ||
           ((x === 58 || x === 59) && (y === 24 || y === 25 || y === 35 || y === 36)) ||
-          ((x === 28 || x === 29 || x === 52 || x === 53) && (y === 29 || y === 30))
+          ((x === 18 || x === 19 || x === 28 || x === 29 || x === 52 || x === 53) && (y === 29 || y === 30)) ||
+          ((x === 18 || x === 19) && (y === 19 || y === 20))
         ) {
           kind = 'crosswalk';
         }
