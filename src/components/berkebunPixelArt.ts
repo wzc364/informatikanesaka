@@ -17,6 +17,7 @@ import farmerActionPickUrl from '../assets/images/farmer_action_pick_v2_17954821
 const OPTIONAL_SPRITE_SHEETS = import.meta.glob<string>(
   [
     '../assets/images/farmer_action_axe_1795482745395*.jpg',
+    '../assets/images/farmer_action_plant_v2_1795508067088*.jpg',
     '../assets/images/farmer_action_seed_1795482749482*.jpg',
     '../assets/images/farmer_action_fertilizer_1795482748671*.jpg',
     '../assets/images/pulau_biner_skyscraper_1795482749036*.jpg',
@@ -44,8 +45,8 @@ function optSpriteUrl(path: string, fallback = ''): string {
 }
 
 const farmerActionAxeUrl = optSpriteUrl('../assets/images/farmer_action_axe_1795482745395.jpg', farmerActionPickUrl);
-const farmerActionSeedUrl = optSpriteUrl('../assets/images/farmer_action_seed_1795482749482.jpg', farmerActionsSheetUrl);
-const farmerActionFertilizerUrl = optSpriteUrl('../assets/images/farmer_action_fertilizer_1795482748671.jpg', farmerActionsSheetUrl);
+const farmerActionSeedUrl = optSpriteUrl('../assets/images/farmer_action_plant_v2_1795508067088.jpg');
+const farmerActionFertilizerUrl = optSpriteUrl('../assets/images/farmer_action_fertilizer_1795482748671.jpg');
 const skyscraperSpriteUrl = optSpriteUrl('../assets/images/pulau_biner_skyscraper_1795482749036.jpg');
 const ferrySpriteUrl = optSpriteUrl('../assets/images/pulau_biner_ferry_1795482748148.jpg');
 import farmhouseSpriteUrl from '../assets/images/berkebun_farmhouse_pixel_1795346951463.jpg';
@@ -937,6 +938,7 @@ async function loadAiFarmerPoses(): Promise<Partial<Record<string, HTMLCanvasEle
     ];
     actOrder.forEach((poseName, idx) => {
       if (poseName === 'water' && actWater) return;
+      if (poseName === 'plant' && actSeed) return;
       const sp = aCells[idx];
       if (!sp) return;
       poses[`${poseName}_0`] = sp;
@@ -944,6 +946,19 @@ async function loadAiFarmerPoses(): Promise<Partial<Record<string, HTMLCanvasEle
       poses[`${poseName}_3`] = sp;
       poses[`${poseName}_2`] = flipCanvasHorizontal(sp);
     });
+  }
+
+  if (!poses.action_seed_0 && poses.plant_0) {
+    poses.action_seed_0 = poses.plant_0;
+    poses.action_seed_1 = poses.plant_1;
+    poses.action_seed_2 = poses.plant_2;
+    poses.action_seed_3 = poses.plant_3;
+  }
+  if (!poses.action_fertilizer_0 && poses.plant_0) {
+    poses.action_fertilizer_0 = poses.plant_0;
+    poses.action_fertilizer_1 = poses.plant_1;
+    poses.action_fertilizer_2 = poses.plant_2;
+    poses.action_fertilizer_3 = poses.plant_3;
   }
 
   FARMER_AI_CACHE = poses;
@@ -4418,6 +4433,165 @@ export function renderJaringanWorldMapCanvas(
     ctx.fillStyle = 'rgba(15, 15, 20, 0.35)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
+}
+
+export const ALL_ISLANDS_MAP_W = 900;
+export const ALL_ISLANDS_MAP_H = 520;
+export const ALL_ISLANDS_MAP_FRAMES = {
+  tik: { x: 24, y: 34, w: WORLD_COLS * 4, h: WORLD_ROWS * 4, cols: WORLD_COLS, rows: WORLD_ROWS, scale: 4 },
+  biner: { x: 24, y: 274, w: BINER_COLS * 4, h: BINER_ROWS * 4, cols: BINER_COLS, rows: BINER_ROWS, scale: 4 },
+  jaringan: { x: 428, y: 108, w: JARINGAN_COLS * 4, h: JARINGAN_ROWS * 4, cols: JARINGAN_COLS, rows: JARINGAN_ROWS, scale: 4 },
+} as const;
+
+export function renderAllIslandsWorldMapCanvas(
+  canvas: HTMLCanvasElement,
+  params: {
+    tikTiles: FarmTile[];
+    tikTrees?: WorldTree[];
+    season: Season;
+    storyChapter: number;
+    islandHealed: boolean;
+    binerTiles: FarmTile[];
+    binerTrees?: WorldTree[];
+    binerMissionChapter: number;
+    jaringanTiles: FarmTile[];
+    jaringanTrees?: WorldTree[];
+    isJaringanAsh?: boolean;
+  }
+): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.imageSmoothingEnabled = false;
+  if (canvas.width !== ALL_ISLANDS_MAP_W) canvas.width = ALL_ISLANDS_MAP_W;
+  if (canvas.height !== ALL_ISLANDS_MAP_H) canvas.height = ALL_ISLANDS_MAP_H;
+
+  // Deep ocean background with subtle pixel wave texture
+  ctx.fillStyle = '#0c4a6e';
+  ctx.fillRect(0, 0, ALL_ISLANDS_MAP_W, ALL_ISLANDS_MAP_H);
+  for (let gy = 0; gy < ALL_ISLANDS_MAP_H; gy += 16) {
+    for (let gx = 0; gx < ALL_ISLANDS_MAP_W; gx += 16) {
+      if (((gx + gy) / 16) % 3 === 0) {
+        ctx.fillStyle = '#075985';
+        ctx.fillRect(gx, gy, 16, 16);
+      } else if ((gx * 3 + gy * 5) % 11 === 0) {
+        ctx.fillStyle = 'rgba(125, 211, 252, 0.25)';
+        ctx.fillRect(gx + 3, gy + 7, 8, 2);
+      }
+    }
+  }
+
+  // Nautical coordinate grid lines
+  ctx.strokeStyle = 'rgba(186, 230, 253, 0.12)';
+  ctx.lineWidth = 1;
+  for (let gx = 60; gx < ALL_ISLANDS_MAP_W; gx += 60) {
+    ctx.beginPath();
+    ctx.moveTo(gx, 0);
+    ctx.lineTo(gx, ALL_ISLANDS_MAP_H);
+    ctx.stroke();
+  }
+  for (let gy = 60; gy < ALL_ISLANDS_MAP_H; gy += 60) {
+    ctx.beginPath();
+    ctx.moveTo(0, gy);
+    ctx.lineTo(ALL_ISLANDS_MAP_W, gy);
+    ctx.stroke();
+  }
+
+  // Render each island onto a temporary canvas and composite onto the unified ocean
+  const tikOff = document.createElement('canvas');
+  renderPixelWorldMapCanvas(
+    tikOff,
+    params.tikTiles,
+    params.season,
+    params.storyChapter,
+    params.islandHealed,
+    params.tikTrees
+  );
+  const binerOff = document.createElement('canvas');
+  renderBinerWorldMapCanvas(binerOff, params.binerTiles, params.binerMissionChapter, params.binerTrees);
+  const jarOff = document.createElement('canvas');
+  renderJaringanWorldMapCanvas(jarOff, params.jaringanTiles, params.jaringanTrees, params.isJaringanAsh);
+
+  // Dashed golden shipping ferry routes connecting all 3 islands
+  const tikPort = {
+    x: ALL_ISLANDS_MAP_FRAMES.tik.x + 46 * 4,
+    y: ALL_ISLANDS_MAP_FRAMES.tik.y + 40 * 4,
+  };
+  const binerPort = {
+    x: ALL_ISLANDS_MAP_FRAMES.biner.x + 45 * 4,
+    y: ALL_ISLANDS_MAP_FRAMES.biner.y + 47 * 4,
+  };
+  const jarPort = {
+    x: ALL_ISLANDS_MAP_FRAMES.jaringan.x + 55 * 4,
+    y: ALL_ISLANDS_MAP_FRAMES.jaringan.y + 69 * 4,
+  };
+
+  ctx.save();
+  ctx.setLineDash([7, 6]);
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = '#fde047';
+  ctx.beginPath();
+  ctx.moveTo(tikPort.x, tikPort.y);
+  ctx.quadraticCurveTo(370, 260, binerPort.x, binerPort.y);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#38bdf8';
+  ctx.beginPath();
+  ctx.moveTo(tikPort.x, tikPort.y);
+  ctx.quadraticCurveTo(385, 360, jarPort.x, jarPort.y);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#fb923c';
+  ctx.beginPath();
+  ctx.moveTo(binerPort.x, binerPort.y);
+  ctx.quadraticCurveTo(500, 485, jarPort.x, jarPort.y);
+  ctx.stroke();
+  ctx.restore();
+
+  const drawIslandFrame = (
+    src: HTMLCanvasElement,
+    frame: { x: number; y: number; w: number; h: number },
+    title: string,
+    borderCol: string
+  ) => {
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.55)';
+    ctx.fillRect(frame.x - 4, frame.y - 4, frame.w + 8, frame.h + 8);
+    ctx.drawImage(src, frame.x, frame.y, frame.w, frame.h);
+    ctx.strokeStyle = borderCol;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(frame.x - 1, frame.y - 1, frame.w + 2, frame.h + 2);
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    ctx.fillRect(frame.x, frame.y - 22, Math.min(frame.w, title.length * 7.2 + 16), 20);
+    ctx.strokeStyle = borderCol;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(frame.x, frame.y - 22, Math.min(frame.w, title.length * 7.2 + 16), 20);
+    ctx.fillStyle = '#fef3c7';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(title, frame.x + 8, frame.y - 8);
+  };
+
+  drawIslandFrame(tikOff, ALL_ISLANDS_MAP_FRAMES.tik, 'PULAU TIK (5 Kepulauan)', '#84cc16');
+  drawIslandFrame(binerOff, ALL_ISLANDS_MAP_FRAMES.biner, 'PULAU BINER (Kota Korporat)', '#38bdf8');
+  drawIslandFrame(jarOff, ALL_ISLANDS_MAP_FRAMES.jaringan, 'PULAU JARINGAN (Kepulauan Nusantara)', '#f59e0b');
+
+  // Compass Rose in Top-Right Ocean Corner
+  const cx = ALL_ISLANDS_MAP_W - 42;
+  const cy = 44;
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+  ctx.fillRect(cx - 22, cy - 22, 44, 44);
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(cx - 22, cy - 22, 44, 44);
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(cx - 1, cy - 12, 2, 24);
+  ctx.fillRect(cx - 12, cy - 1, 24, 2);
+  ctx.fillStyle = '#ef4444';
+  ctx.fillRect(cx - 2, cy - 14, 4, 8);
+  ctx.font = 'bold 10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fef08a';
+  ctx.fillText('U', cx, cy - 13);
 }
 
 const DATA_URL_CACHE = new Map<string, string>();

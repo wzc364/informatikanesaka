@@ -137,6 +137,10 @@ import {
   renderPixelWorldMapCanvas,
   renderBinerWorldMapCanvas,
   renderJaringanWorldMapCanvas,
+  renderAllIslandsWorldMapCanvas,
+  ALL_ISLANDS_MAP_W,
+  ALL_ISLANDS_MAP_H,
+  ALL_ISLANDS_MAP_FRAMES,
   type StardewSprites,
   type PixelAtlas,
   type StardewToolId,
@@ -269,6 +273,13 @@ interface FarmSaveState {
   jaringanTrees: WorldTree[];
   jaringanHouses: Record<string, 1 | 2 | 3>;
   placedTorches: Array<{ island: WorldIsland; x: number; y: number }>;
+  pendingRockRespawns: Array<{
+    island: WorldIsland;
+    x: number;
+    y: number;
+    kind: NonNullable<FarmTile['debris']>;
+    respawnDay: number;
+  }>;
   jaringanAshUntilTotalMin: number;
   jaringanLastAshCheckTotalMin: number;
   npcHearts: Record<NpcId, number>;
@@ -359,6 +370,7 @@ function createInitialSave(): FarmSaveState {
     jaringanTrees: createInitialJaringanTrees(initialJaringanTiles),
     jaringanHouses: {},
     placedTorches: [],
+    pendingRockRespawns: [],
     jaringanAshUntilTotalMin: 0,
     jaringanLastAshCheckTotalMin: 0,
     npcHearts: initialNpcHearts,
@@ -423,6 +435,7 @@ function normalizeSaveState(raw: Partial<FarmSaveState>): FarmSaveState {
     jaringanTrees,
     jaringanHouses: { ...(raw.jaringanHouses || {}) },
     placedTorches: Array.isArray(raw.placedTorches) ? raw.placedTorches : [],
+    pendingRockRespawns: Array.isArray(raw.pendingRockRespawns) ? raw.pendingRockRespawns : [],
     jaringanAshUntilTotalMin:
       typeof raw.jaringanAshUntilTotalMin === 'number' ? raw.jaringanAshUntilTotalMin : 0,
     jaringanLastAshCheckTotalMin:
@@ -649,6 +662,7 @@ export default function BerkebunGame({
   const [showJournal, setShowJournal] = useState(false);
   const [journalTab, setJournalTab] = useState<'tik' | 'biner' | 'jaringan'>('tik');
   const [showWorldMap, setShowWorldMap] = useState(false);
+  const [worldMapTab, setWorldMapTab] = useState<'all' | WorldIsland>('all');
   const [showSleepModal, setShowSleepModal] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [soundMuted, setSoundMuted] = useState(false);
@@ -831,6 +845,20 @@ export default function BerkebunGame({
   activeNpcRef.current = activeNpcId;
   const fishingRef = useRef(fishingState);
   fishingRef.current = fishingState;
+  const daySummaryRef = useRef(daySummary);
+  daySummaryRef.current = daySummary;
+  const showWorldMapRef = useRef(showWorldMap);
+  showWorldMapRef.current = showWorldMap;
+  const storyEventModalRef = useRef(storyEventModal);
+  storyEventModalRef.current = storyEventModal;
+  const showTutorialRef = useRef(showTutorial);
+  showTutorialRef.current = showTutorial;
+
+  const clearKeysAndBlur = useCallback(() => {
+    keysPressedRef.current = {};
+    const activeEl = document.activeElement as HTMLElement | null;
+    if (activeEl && activeEl.tagName === 'BUTTON') activeEl.blur();
+  }, []);
 
   const currentSeason = SEASONS[saveState.seasonIdx % SEASONS.length];
 
@@ -1330,189 +1358,281 @@ export default function BerkebunGame({
     setToastMsg(`Berhasil memancing ${doubleCatch}× ${ALL_BAG_ITEMS[caught].name} (${ALL_BAG_ITEMS[caught].sellPrice}G)!`);
   }, [soundMuted, spawnParticles, syncScoreToCloud]);
 
-  // Sleep & Advance Next Day (grows crops, regrows trees, spawns forage/ores, lays coop eggs, auto-ships basket!)
+  // Sleep & Advance Next Day (grows crops, regrows trees, spawns forage/ores/rocks, lays coop eggs, auto-ships basket!)
   const handleSleepNextDay = useCallback(() => {
+    clearKeysAndBlur();
     playFarmSound('sleep', soundMuted);
     setFishingState(null);
-    setUndergroundFloor(null);
-    setSaveState((prev) => {
-      const nextDay = prev.day + 1;
-      const nextSeasonIdx = Math.floor((nextDay - 1) / 10) % SEASONS.length;
-      const nextSeason = SEASONS[nextSeasonIdx];
-      const nextWeather: Weather = Math.random() < 0.28 ? 'Hujan' : 'Cerah';
+    const wasInMine = undergroundFloorRef.current !== null;
+    if (wasInMine) {
+      setUndergroundFloor(null);
+      mineCellsRef.current = [];
+      mineMonstersRef.current = [];
+      mineDropsRef.current = [];
+      mineBombsRef.current = [];
+    }
 
-      let shippedGold = 0;
-      let shippedItems = 0;
-      Object.values(prev.harvestBasket).forEach((entry) => {
-        const base = CROPS[entry.cropId].sellPrice;
-        const unit = entry.quality === 'gold' ? Math.round(base * 1.5) : base;
-        shippedGold += unit * entry.qty;
-        shippedItems += entry.qty;
-      });
+    const prev = saveStateRef.current;
+    if (wasInMine && prev.currentIsland === 'tik') {
+      playerRef.current.x = returnMineSpotRef.current.x;
+      playerRef.current.y = returnMineSpotRef.current.y;
+      playerRef.current.dir = 1;
+      cameraRef.current.x = Math.max(
+        0,
+        Math.min(WORLD_COLS * TILE_SIZE - VIEW_W, playerRef.current.x * TILE_SIZE - VIEW_W / 2)
+      );
+      cameraRef.current.y = Math.max(
+        0,
+        Math.min(WORLD_ROWS * TILE_SIZE - VIEW_H, playerRef.current.y * TILE_SIZE - VIEW_H / 2)
+      );
+    }
+    playerRef.current.moving = false;
+    interiorPosRef.current.moving = false;
+    minePosRef.current.moving = false;
+    prevAshActiveRef.current = false;
 
-      const sprinklerSet = new Set<string>();
-      prev.tiles.forEach((t) => {
-        if (t.hasSprinkler) {
-          sprinklerSet.add(`${t.x + 1},${t.y}`);
-          sprinklerSet.add(`${t.x - 1},${t.y}`);
-          sprinklerSet.add(`${t.x},${t.y + 1}`);
-          sprinklerSet.add(`${t.x},${t.y - 1}`);
+    const nextDay = prev.day + 1;
+    const nextSeasonIdx = Math.floor((nextDay - 1) / 10) % SEASONS.length;
+    const nextSeason = SEASONS[nextSeasonIdx];
+    const nextWeather: Weather = Math.random() < 0.28 ? 'Hujan' : 'Cerah';
+
+    let shippedGold = 0;
+    let shippedItems = 0;
+    Object.values(prev.harvestBasket).forEach((entry) => {
+      const base = CROPS[entry.cropId].sellPrice;
+      const unit = entry.quality === 'gold' ? Math.round(base * 1.5) : base;
+      shippedGold += unit * entry.qty;
+      shippedItems += entry.qty;
+    });
+
+    const isProtectedTile = (isl: WorldIsland, x: number, y: number, kind?: FarmTile['kind']): boolean => {
+      if (kind && ['ocean', 'river', 'pond', 'bridge', 'pier', 'mine_entrance', 'house_plot', 'path', 'asphalt', 'crosswalk', 'sidewalk', 'biner_ferry', 'jaringan_ferry', 'ship'].includes(kind)) {
+        return true;
+      }
+      if (prev.currentIsland === isl && !currentInteriorRef.current) {
+        const px = Math.floor(playerRef.current.x);
+        const py = Math.floor(playerRef.current.y);
+        if (Math.abs(x - px) <= 1 && Math.abs(y - py) <= 1) return true;
+      }
+      for (const def of Object.values(ALL_INTERIORS)) {
+        if (def.island === isl) {
+          const ex = Math.floor(def.outdoorExit.x);
+          const ey = Math.floor(def.outdoorExit.y);
+          if (Math.abs(x - ex) <= 1 && Math.abs(y - ey) <= 1) return true;
         }
-        if (t.hasGoldSprinkler) {
-          for (let dx = -1; dx <= 1; dx++) {
-            for (let dy = -1; dy <= 1; dy++) {
-              if (dx !== 0 || dy !== 0) sprinklerSet.add(`${t.x + dx},${t.y + dy}`);
-            }
+      }
+      if (isl === 'jaringan') {
+        for (const plot of JARINGAN_HOUSE_PLOTS) {
+          if (Math.abs(x - Math.floor(plot.doorX)) <= 1 && Math.abs(y - Math.floor(plot.doorY)) <= 1) return true;
+        }
+      }
+      return false;
+    };
+
+    const sprinklerSet = new Set<string>();
+    prev.tiles.forEach((t) => {
+      if (t.hasSprinkler) {
+        sprinklerSet.add(`${t.x + 1},${t.y}`);
+        sprinklerSet.add(`${t.x - 1},${t.y}`);
+        sprinklerSet.add(`${t.x},${t.y + 1}`);
+        sprinklerSet.add(`${t.x},${t.y - 1}`);
+      }
+      if (t.hasGoldSprinkler) {
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            if (dx !== 0 || dy !== 0) sprinklerSet.add(`${t.x + dx},${t.y + dy}`);
           }
         }
-      });
+      }
+    });
 
-      const newTiles = prev.tiles.map((t) => {
-        let updatedCrop = t.crop ? { ...t.crop } : null;
-        if (updatedCrop) {
-          const cDef = CROPS[updatedCrop.id];
-          if (t.watered && !updatedCrop.ready) {
-            updatedCrop.age += 1;
-            if (updatedCrop.age >= cDef.daysToGrow) {
-              updatedCrop.ready = true;
-            }
+    const newTiles = prev.tiles.map((t) => {
+      let updatedCrop = t.crop ? { ...t.crop } : null;
+      if (updatedCrop) {
+        const cDef = CROPS[updatedCrop.id];
+        if (t.watered && !updatedCrop.ready) {
+          updatedCrop.age += 1;
+          if (updatedCrop.age >= cDef.daysToGrow) {
+            updatedCrop.ready = true;
           }
         }
+      }
 
-        // Respawn natural forage, wood logs & mining ores across expanded 78x52 islands
-        let nextDebris = t.debris;
-        if (!nextDebris && !t.crop && !t.tilled && !t.hasSprinkler && !t.hasGoldSprinkler) {
-          const r = Math.random();
-          const inHomestead = t.x >= 16 && t.x <= 34 && t.y >= 15 && t.y <= 29;
-          if (t.kind === 'forest_floor') {
-            if (r < 0.04) nextDebris = 'wood';
-            else if (r < 0.065) nextDebris = 'forage_mushroom';
-            else if (r < 0.09) nextDebris = 'forage_berry';
-          } else if (t.kind === 'grass' && !inHomestead && r < 0.014) {
-            nextDebris = 'wood';
-          } else if (t.kind === 'sand' && r < 0.025) {
-            nextDebris = 'forage_shell';
-          } else if (
-            t.kind === 'plaza' &&
-            ((t.x >= 47 && t.x <= 59 && t.y >= 3 && t.y <= 15 && t.y !== 8) || (t.x >= 62 && t.y <= 22)) &&
-            r < 0.08
-          ) {
-            nextDebris = r < 0.018 ? 'ore_star' : r < 0.044 ? 'ore_silver' : 'ore_copper';
-          }
-        }
-
-        const autoWatered = nextWeather === 'Hujan' || sprinklerSet.has(`${t.x},${t.y}`);
-        return {
-          ...t,
-          crop: updatedCrop,
-          debris: nextDebris,
-          watered: t.tilled ? autoWatered : false,
-        };
-      });
-
-      const canRegrowAt = (targetTiles: FarmTile[], cols: number, tx: number, ty: number) => {
-        const tile = targetTiles[ty * cols + tx];
-        if (!tile) return false;
-        return !tile.tilled && !tile.crop && !tile.debris && !tile.hasSprinkler && !tile.hasGoldSprinkler;
-      };
-
-      const regrowTree = (tree: WorldTree, targetTiles: FarmTile[], cols: number): WorldTree => {
-        if (tree.hp === 0 && tree.stumpDaysLeft > 0) {
-          const left = tree.stumpDaysLeft - 1;
-          if (left <= 0) {
-            if (canRegrowAt(targetTiles, cols, tree.x, tree.y)) {
-              return { ...tree, hp: tree.maxHp, stumpDaysLeft: 0, stumpAge: 0 };
-            }
-            return { ...tree, stumpDaysLeft: 1 };
-          }
-          return { ...tree, stumpDaysLeft: left };
-        }
-        if (tree.hp === 0 && tree.stumpDaysLeft === 0) {
-          const age = (tree.stumpAge || 0) + 1;
-          if (age >= 3 && canRegrowAt(targetTiles, cols, tree.x, tree.y)) {
-            return { ...tree, hp: tree.maxHp, stumpDaysLeft: 0, stumpAge: 0 };
-          }
-          return { ...tree, stumpAge: age };
-        }
-        return tree;
-      };
-
-      const newTrees = prev.trees.map((tr) => regrowTree(tr, newTiles, WORLD_COLS));
-      const newBinerTrees = prev.binerTrees.map((tr) => regrowTree(tr, prev.binerTiles, BINER_COLS));
-      const newJaringanTiles = prev.jaringanTiles.map((t) => {
-        if (t.debris) return t;
+      // Respawn natural forage, wood logs, stones & mining ores across Pulau TIK
+      let nextDebris = t.debris;
+      if (
+        !nextDebris &&
+        !t.crop &&
+        !t.tilled &&
+        !t.hasSprinkler &&
+        !t.hasGoldSprinkler &&
+        !isProtectedTile('tik', t.x, t.y, t.kind)
+      ) {
         const r = Math.random();
-        const inCenter = t.x >= 42 && t.x <= 62 && t.y >= 52 && t.y <= 65;
-        if (inCenter) return t;
-        let nextDebris: FarmTile['debris'] = null;
-        if (t.kind === 'plaza' && r < 0.045) {
-          const gems: JaringanGemId[] = [
-            'gem_akik',
-            'gem_giok',
-            'gem_safir',
-            'gem_ruby',
-            'gem_zamrud',
-            'gem_kecubung',
-            'gem_opal',
-            'gem_oniks',
-            'gem_topaz',
-            'gem_berlian',
-          ];
-          nextDebris = gems[Math.floor(Math.random() * (t.y <= 21 ? gems.length : gems.length - 1))];
-        } else if (t.kind === 'forest_floor') {
-          if (r < 0.03) nextDebris = 'forage_berry';
-          else if (r < 0.045) nextDebris = 'forage_mushroom';
-        } else if (t.kind === 'grass' && r < 0.015) {
-          nextDebris = 'forage_berry';
+        const inHomestead = t.x >= 16 && t.x <= 34 && t.y >= 15 && t.y <= 29;
+        if (t.kind === 'forest_floor') {
+          if (r < 0.04) nextDebris = 'wood';
+          else if (r < 0.065) nextDebris = 'forage_mushroom';
+          else if (r < 0.09) nextDebris = 'forage_berry';
+          else if (r < 0.11) nextDebris = 'stone';
+        } else if (t.kind === 'grass' && !inHomestead) {
+          if (r < 0.012) nextDebris = 'wood';
+          else if (r < 0.018) nextDebris = 'stone';
         } else if (t.kind === 'sand' && r < 0.025) {
           nextDebris = 'forage_shell';
+        } else if (
+          t.kind === 'plaza' &&
+          ((t.x >= 47 && t.x <= 59 && t.y >= 3 && t.y <= 15 && t.y !== 8) || (t.x >= 62 && t.y <= 22)) &&
+          r < 0.09
+        ) {
+          nextDebris =
+            r < 0.018 ? 'ore_star' : r < 0.044 ? 'ore_silver' : r < 0.07 ? 'ore_copper' : 'stone';
         }
-        return nextDebris ? { ...t, debris: nextDebris } : t;
-      });
-      const newJaringanTrees = prev.jaringanTrees.map((tr) => regrowTree(tr, newJaringanTiles, JARINGAN_COLS));
+      }
 
-      const eggsLaid = prev.storyChapter >= 3 ? 2 : 1;
-      const updated: FarmSaveState = {
-        ...prev,
-        day: nextDay,
-        seasonIdx: nextSeasonIdx,
-        weather: nextWeather,
-        gold: prev.gold + shippedGold,
-        totalEarnedGold: prev.totalEarnedGold + shippedGold,
-        stamina: 100,
-        hp: prev.maxHp,
-        coopEggsReady: Math.min(6, prev.coopEggsReady + eggsLaid),
-        harvestBasket: {},
-        npcTalkedToday: {},
-        npcGiftedToday: {},
-        tiles: newTiles,
-        trees: newTrees,
-        binerTrees: newBinerTrees,
-        jaringanTiles: newJaringanTiles,
-        jaringanTrees: newJaringanTrees,
+      const autoWatered = nextWeather === 'Hujan' || sprinklerSet.has(`${t.x},${t.y}`);
+      return {
+        ...t,
+        crop: updatedCrop,
+        debris: nextDebris,
+        watered: t.tilled ? autoWatered : false,
       };
-
-      setDaySummary({
-        newDay: nextDay,
-        newSeason: nextSeason,
-        weather: nextWeather,
-        shippedGold,
-        shippedItems,
-        eggsLaid,
-      });
-      void syncScoreToCloud(updated);
-      return updated;
     });
+
+    const canRegrowAt = (isl: WorldIsland, targetTiles: FarmTile[], cols: number, tx: number, ty: number) => {
+      const tile = targetTiles[ty * cols + tx];
+      if (!tile) return false;
+      if (isProtectedTile(isl, tx, ty, tile.kind)) return false;
+      return !tile.tilled && !tile.crop && !tile.debris && !tile.hasSprinkler && !tile.hasGoldSprinkler;
+    };
+
+    const regrowTree = (isl: WorldIsland, tree: WorldTree, targetTiles: FarmTile[], cols: number): WorldTree => {
+      if (tree.hp === 0 && tree.stumpDaysLeft > 0) {
+        const left = tree.stumpDaysLeft - 1;
+        if (left <= 0) {
+          if (canRegrowAt(isl, targetTiles, cols, tree.x, tree.y)) {
+            return { ...tree, hp: tree.maxHp, stumpDaysLeft: 0, stumpAge: 0 };
+          }
+          return { ...tree, stumpDaysLeft: 1 };
+        }
+        return { ...tree, stumpDaysLeft: left };
+      }
+      if (tree.hp === 0 && tree.stumpDaysLeft === 0) {
+        const age = (tree.stumpAge || 0) + 1;
+        // Untouched stumps also regrow randomly within 1-4 days
+        const randomReady = age >= 4 || (age >= 1 && Math.random() < 0.42);
+        if (randomReady && canRegrowAt(isl, targetTiles, cols, tree.x, tree.y)) {
+          return { ...tree, hp: tree.maxHp, stumpDaysLeft: 0, stumpAge: 0 };
+        }
+        return { ...tree, stumpAge: age };
+      }
+      return tree;
+    };
+
+    const newTrees = prev.trees.map((tr) => regrowTree('tik', tr, newTiles, WORLD_COLS));
+    const newBinerTrees = prev.binerTrees.map((tr) => regrowTree('biner', tr, prev.binerTiles, BINER_COLS));
+    const newJaringanTiles = prev.jaringanTiles.map((t) => {
+      if (t.debris || isProtectedTile('jaringan', t.x, t.y, t.kind)) return t;
+      const r = Math.random();
+      const inCenter = t.x >= 42 && t.x <= 62 && t.y >= 52 && t.y <= 65;
+      if (inCenter) return t;
+      let nextDebris: FarmTile['debris'] = null;
+      if (t.kind === 'plaza' && r < 0.065) {
+        if (r < 0.025) {
+          nextDebris = 'stone';
+        } else {
+          nextDebris = JARINGAN_GEM_IDS[Math.floor(Math.random() * (t.y <= 21 ? JARINGAN_GEM_IDS.length : JARINGAN_GEM_IDS.length - 1))];
+        }
+      } else if (t.kind === 'forest_floor') {
+        if (r < 0.03) nextDebris = 'forage_berry';
+        else if (r < 0.045) nextDebris = 'forage_mushroom';
+        else if (r < 0.058) nextDebris = 'stone';
+      } else if (t.kind === 'grass' && r < 0.015) {
+        nextDebris = 'forage_berry';
+      } else if (t.kind === 'sand' && r < 0.025) {
+        nextDebris = 'forage_shell';
+      }
+      return nextDebris ? { ...t, debris: nextDebris } : t;
+    });
+    const newBinerTiles = [...prev.binerTiles];
+
+    // Process random 1-4 day rock/gem respawns safely
+    const remainingRockRespawns: FarmSaveState['pendingRockRespawns'] = [];
+    for (const rr of prev.pendingRockRespawns || []) {
+      if (rr.respawnDay > nextDay) {
+        remainingRockRespawns.push(rr);
+        continue;
+      }
+      const targetArr = rr.island === 'biner' ? newBinerTiles : rr.island === 'jaringan' ? newJaringanTiles : newTiles;
+      const cols = rr.island === 'biner' ? BINER_COLS : rr.island === 'jaringan' ? JARINGAN_COLS : WORLD_COLS;
+      const idx = rr.y * cols + rr.x;
+      const cell = targetArr[idx];
+      if (!cell) continue;
+      if (
+        !cell.debris &&
+        !cell.crop &&
+        !cell.tilled &&
+        !cell.hasSprinkler &&
+        !cell.hasGoldSprinkler &&
+        !isProtectedTile(rr.island, rr.x, rr.y, cell.kind)
+      ) {
+        const spawnedKind: NonNullable<FarmTile['debris']> =
+          rr.island === 'jaringan' && rr.kind.startsWith('gem_')
+            ? JARINGAN_GEM_IDS[Math.floor(Math.random() * JARINGAN_GEM_IDS.length)]
+            : rr.kind;
+        targetArr[idx] = { ...cell, debris: spawnedKind };
+      } else if (!cell.debris) {
+        remainingRockRespawns.push({ ...rr, respawnDay: nextDay + 1 });
+      }
+    }
+
+    const newJaringanTrees = prev.jaringanTrees.map((tr) => regrowTree('jaringan', tr, newJaringanTiles, JARINGAN_COLS));
+
+    const eggsLaid = prev.storyChapter >= 3 ? 2 : 1;
+    const updated: FarmSaveState = {
+      ...prev,
+      day: nextDay,
+      seasonIdx: nextSeasonIdx,
+      weather: nextWeather,
+      gold: prev.gold + shippedGold,
+      totalEarnedGold: prev.totalEarnedGold + shippedGold,
+      stamina: 100,
+      hp: prev.maxHp,
+      coopEggsReady: Math.min(6, prev.coopEggsReady + eggsLaid),
+      harvestBasket: {},
+      npcTalkedToday: {},
+      npcGiftedToday: {},
+      jaringanAshUntilTotalMin: 0,
+      pendingRockRespawns: remainingRockRespawns,
+      tiles: newTiles,
+      trees: newTrees,
+      binerTiles: newBinerTiles,
+      binerTrees: newBinerTrees,
+      jaringanTiles: newJaringanTiles,
+      jaringanTrees: newJaringanTrees,
+    };
+
+    setSaveState(updated);
+    setDaySummary({
+      newDay: nextDay,
+      newSeason: nextSeason,
+      weather: nextWeather,
+      shippedGold,
+      shippedItems,
+      eggsLaid,
+    });
+    void syncScoreToCloud(updated);
     setShowSleepModal(false);
     floatMinuteRef.current = 360;
     setMinuteOfDay(360);
     setToastMsg('Selamat pagi! Energi & HP pulih 100%.');
-  }, [soundMuted, syncScoreToCloud]);
+  }, [clearKeysAndBlur, soundMuted, syncScoreToCloud]);
 
   advanceToMorningRef.current = handleSleepNextDay;
 
   const fastForwardTime = useCallback(
     (mode: 'night' | 'plus3h') => {
+      clearKeysAndBlur();
       playFarmSound('sleep', soundMuted);
       setShowSleepModal(false);
       if (mode === 'night') {
@@ -1542,7 +1662,7 @@ export default function BerkebunGame({
         setToastMsg('Beristirahat sebentar (+3 Jam) · Energi +20 & HP +15!');
       }
     },
-    [handleSleepNextDay, soundMuted]
+    [clearKeysAndBlur, handleSleepNextDay, soundMuted]
   );
 
   // Underground Mine Floor Management, Monster Drops & Bombs
@@ -1704,12 +1824,49 @@ export default function BerkebunGame({
         const gained: Partial<Record<BagItemId, number>> = {};
         const isl = st.currentIsland;
         const targetTiles = isl === 'biner' ? st.binerTiles : isl === 'jaringan' ? st.jaringanTiles : st.tiles;
+        const newBombRespawns: FarmSaveState['pendingRockRespawns'] = [];
         const nextTiles = targetTiles.map((t) => {
           if (t.debris && Math.abs(t.x - px) <= 1 && Math.abs(t.y - py) <= 1) {
             cleared++;
-            if (t.debris === 'stone') gained.stone_res = (gained.stone_res || 0) + 1;
-            else if (t.debris === 'wood') gained.wood_res = (gained.wood_res || 0) + 1;
-            else if (t.debris.startsWith('ore_') || t.debris.startsWith('forage_') || t.debris.startsWith('gem_')) {
+            if (t.debris === 'stone') {
+              gained.stone_res = (gained.stone_res || 0) + 1;
+              if (isl === 'jaringan' || Math.random() < 0.25) {
+                const randGem = JARINGAN_GEM_IDS[Math.floor(Math.random() * JARINGAN_GEM_IDS.length)];
+                gained[randGem] = (gained[randGem] || 0) + 1;
+              }
+              newBombRespawns.push({
+                island: isl,
+                x: t.x,
+                y: t.y,
+                kind: 'stone',
+                respawnDay: st.day + 1 + Math.floor(Math.random() * 4),
+              });
+            } else if (t.debris === 'wood') {
+              gained.wood_res = (gained.wood_res || 0) + 1;
+            } else if (t.debris.startsWith('gem_')) {
+              const randGem =
+                isl === 'jaringan'
+                  ? JARINGAN_GEM_IDS[Math.floor(Math.random() * JARINGAN_GEM_IDS.length)]
+                  : (t.debris as BagItemId);
+              gained[randGem] = (gained[randGem] || 0) + 1;
+              newBombRespawns.push({
+                island: isl,
+                x: t.x,
+                y: t.y,
+                kind: t.debris,
+                respawnDay: st.day + 1 + Math.floor(Math.random() * 4),
+              });
+            } else if (t.debris.startsWith('ore_')) {
+              const bid = t.debris as BagItemId;
+              gained[bid] = (gained[bid] || 0) + 1;
+              newBombRespawns.push({
+                island: isl,
+                x: t.x,
+                y: t.y,
+                kind: t.debris,
+                respawnDay: st.day + 1 + Math.floor(Math.random() * 4),
+              });
+            } else if (t.debris.startsWith('forage_')) {
               const bid = t.debris as BagItemId;
               gained[bid] = (gained[bid] || 0) + 1;
             }
@@ -1724,11 +1881,12 @@ export default function BerkebunGame({
           (Object.keys(gained) as BagItemId[]).forEach((bid) => {
             nextBag[bid] = (nextBag[bid] || 0) + (gained[bid] || 0);
           });
+          const pendingRockRespawns = [...(prev.pendingRockRespawns || []), ...newBombRespawns];
           return isl === 'biner'
-            ? { ...prev, bagItems: nextBag, binerTiles: nextTiles }
+            ? { ...prev, bagItems: nextBag, pendingRockRespawns, binerTiles: nextTiles }
             : isl === 'jaringan'
-              ? { ...prev, bagItems: nextBag, jaringanTiles: nextTiles }
-              : { ...prev, bagItems: nextBag, tiles: nextTiles };
+              ? { ...prev, bagItems: nextBag, pendingRockRespawns, jaringanTiles: nextTiles }
+              : { ...prev, bagItems: nextBag, pendingRockRespawns, tiles: nextTiles };
         });
         setToastMsg(`Bom Mini meledak dan membersihkan ${cleared} rintangan!`);
         return;
@@ -2662,7 +2820,9 @@ export default function BerkebunGame({
           const dmg = axeLvl >= 4 ? 4 : axeLvl;
           if (tree.hp > 0) {
             const nextHp = Math.max(0, tree.hp - dmg);
-            const dropWoodId: BagItemId = tree.treeSpecies || 'wood_res';
+            const dropWoodId: BagItemId = isJaringan
+              ? JARINGAN_WOOD_IDS[Math.floor(Math.random() * JARINGAN_WOOD_IDS.length)]
+              : tree.treeSpecies || 'wood_res';
             const dropWoodName = ALL_BAG_ITEMS[dropWoodId].name;
             if (nextHp === 0) {
               const woodDrop = 4 + (axeLvl >= 3 ? 2 : 0) + Math.floor(Math.random() * 2);
@@ -2689,7 +2849,7 @@ export default function BerkebunGame({
                 };
               });
               setToastMsg(
-                `Pohon tumbang! +${woodDrop} ${dropWoodName}${bonusBerry ? ' & +1 Beri Liar' : ''}! Akan tumbuh kembali dalam 3 hari.`
+                `Pohon tumbang! +${woodDrop} ${dropWoodName}${bonusBerry ? ' & +1 Beri Liar' : ''}! Tunas baru tumbuh acak dalam 1–4 hari.`
               );
             } else {
               spawnParticles(tx, ty, '#d97706', 5, `Tebang (${nextHp}/${tree.maxHp})`);
@@ -2710,13 +2870,16 @@ export default function BerkebunGame({
               setToastMsg(`Menebang pohon... Sisa ketahanan ${nextHp}/${tree.maxHp}.`);
             }
           } else {
-            const stumpWoodId: BagItemId = tree.treeSpecies || 'wood_res';
+            const stumpWoodId: BagItemId = isJaringan
+              ? JARINGAN_WOOD_IDS[Math.floor(Math.random() * JARINGAN_WOOD_IDS.length)]
+              : tree.treeSpecies || 'wood_res';
             const stumpWoodName = ALL_BAG_ITEMS[stumpWoodId].name;
+            const randomRegrowDays = 1 + Math.floor(Math.random() * 4);
             spawnParticles(tx, ty, '#92400e', 8, `+2 ${stumpWoodName}!`);
             setSaveState((prev) => {
               const srcTrees = isBiner ? prev.binerTrees : isJaringan ? prev.jaringanTrees : prev.trees;
               const nextTrees = [...srcTrees];
-              nextTrees[hitTreeIdx] = { ...tree, hp: 0, stumpDaysLeft: 3, stumpAge: 0 };
+              nextTrees[hitTreeIdx] = { ...tree, hp: 0, stumpDaysLeft: randomRegrowDays, stumpAge: 0 };
               return {
                 ...prev,
                 stamina: Math.max(0, prev.stamina - 2),
@@ -2728,7 +2891,9 @@ export default function BerkebunGame({
                     : { trees: nextTrees }),
               };
             });
-            setToastMsg(`Tunggul dibersihkan! +2 ${stumpWoodName} (tunas baru tumbuh lagi dalam 3 hari).`);
+            setToastMsg(
+              `Tunggul dibersihkan! +2 ${stumpWoodName} (tunas baru tumbuh acak dalam ${randomRegrowDays} hari).`
+            );
           }
           return;
         }
@@ -2878,8 +3043,12 @@ export default function BerkebunGame({
             tile.debris === 'ore_star' ||
             (tile.debris && tile.debris.startsWith('gem_'))
           ) {
-            const oreId = tile.debris as BagItemId;
+            const oreId: BagItemId =
+              isJaringan && tile.debris.startsWith('gem_')
+                ? JARINGAN_GEM_IDS[Math.floor(Math.random() * JARINGAN_GEM_IDS.length)]
+                : (tile.debris as BagItemId);
             const qty = pickLvl >= 3 && Math.random() < 0.45 ? 2 : 1;
+            const respawnDelay = 1 + Math.floor(Math.random() * 4);
             playFarmSound('clear', soundMuted);
             spawnParticles(
               tx,
@@ -2896,6 +3065,10 @@ export default function BerkebunGame({
                 ...prev,
                 stamina: Math.max(0, prev.stamina - 3),
                 bagItems: { ...prev.bagItems, [oreId]: (prev.bagItems[oreId] || 0) + qty },
+                pendingRockRespawns: [
+                  ...(prev.pendingRockRespawns || []),
+                  { island: activeIsl, x: tx, y: ty, kind: tile.debris!, respawnDay: prev.day + respawnDelay },
+                ],
                 stats: { ...prev.stats, oresMined: prev.stats.oresMined + 1 },
                 ...(isBiner
                   ? { binerTiles: newTiles }
@@ -2906,34 +3079,52 @@ export default function BerkebunGame({
               void syncScoreToCloud(updated);
               return updated;
             });
-            setToastMsg(`Menambang ${qty}× ${ALL_BAG_ITEMS[oreId].name}!`);
+            setToastMsg(
+              `Menambang ${qty}× ${ALL_BAG_ITEMS[oreId].name}! Batu baru muncul acak dalam ${respawnDelay} hari.`
+            );
             return;
           }
           if (tile.debris === 'stone' || tile.debris === 'wood' || tile.debris === 'weed') {
-            const bagGain: BagItemId | null =
-              tile.debris === 'stone' ? 'stone_res' : tile.debris === 'wood' ? 'wood_res' : null;
+            const isStoneBreak = tile.debris === 'stone';
+            const bagGain: BagItemId | null = isStoneBreak ? 'stone_res' : tile.debris === 'wood' ? 'wood_res' : null;
             const qty = bagGain && pickLvl >= 3 ? 2 : 1;
             const bonusGold = tile.debris === 'weed' ? 6 : 4;
+            const randomGemId: BagItemId | null =
+              isStoneBreak && (isJaringan || Math.random() < 0.25)
+                ? JARINGAN_GEM_IDS[Math.floor(Math.random() * JARINGAN_GEM_IDS.length)]
+                : null;
+            const respawnDelay = isStoneBreak ? 1 + Math.floor(Math.random() * 4) : 0;
             playFarmSound('clear', soundMuted);
             spawnParticles(
               tx,
               ty,
-              '#fbbf24',
-              7,
-              bagGain ? `+${qty} ${ALL_BAG_ITEMS[bagGain].name}` : `+${bonusGold}G`
+              randomGemId ? '#38bdf8' : '#fbbf24',
+              randomGemId ? 10 : 7,
+              randomGemId
+                ? `+1 ${ALL_BAG_ITEMS[randomGemId].name}!`
+                : bagGain
+                  ? `+${qty} ${ALL_BAG_ITEMS[bagGain].name}`
+                  : `+${bonusGold}G`
             );
             setSaveState((prev) => {
               const srcTiles = isBiner ? prev.binerTiles : isJaringan ? prev.jaringanTiles : prev.tiles;
               const newTiles = [...srcTiles];
               newTiles[idx] = { ...tile, debris: null };
+              const nextBag = { ...prev.bagItems };
+              if (bagGain) nextBag[bagGain] = (nextBag[bagGain] || 0) + qty;
+              if (randomGemId) nextBag[randomGemId] = (nextBag[randomGemId] || 0) + 1;
               return {
                 ...prev,
                 stamina: Math.max(0, prev.stamina - 2),
                 gold: prev.gold + bonusGold,
                 totalEarnedGold: prev.totalEarnedGold + bonusGold,
-                bagItems: bagGain
-                  ? { ...prev.bagItems, [bagGain]: (prev.bagItems[bagGain] || 0) + qty }
-                  : prev.bagItems,
+                bagItems: nextBag,
+                pendingRockRespawns: isStoneBreak
+                  ? [
+                      ...(prev.pendingRockRespawns || []),
+                      { island: activeIsl, x: tx, y: ty, kind: 'stone', respawnDay: prev.day + respawnDelay },
+                    ]
+                  : prev.pendingRockRespawns,
                 ...(isBiner
                   ? { binerTiles: newTiles }
                   : isJaringan
@@ -2941,7 +3132,13 @@ export default function BerkebunGame({
                     : { tiles: newTiles }),
               };
             });
-            setToastMsg(bagGain ? `Mendapat ${qty}× ${ALL_BAG_ITEMS[bagGain].name} + ${bonusGold}G!` : 'Gulma dibersihkan!');
+            setToastMsg(
+              randomGemId
+                ? `Memecah batu! +${qty} Batu Alam & +1 ${ALL_BAG_ITEMS[randomGemId].name}! Batu muncul lagi dalam ${respawnDelay} hari.`
+                : bagGain
+                  ? `Mendapat ${qty}× ${ALL_BAG_ITEMS[bagGain].name} + ${bonusGold}G${isStoneBreak ? ` (batu muncul lagi dalam ${respawnDelay} hari)` : ''}!`
+                  : 'Gulma dibersihkan!'
+            );
             return;
           }
           if (tile.hasSprinkler || tile.hasGoldSprinkler) {
@@ -3226,6 +3423,7 @@ export default function BerkebunGame({
       keysPressedRef.current[k] = true;
 
       if (k === 'escape') {
+        clearKeysAndBlur();
         setShowShop(false);
         setShowBinerShop(false);
         setShowBoatModal(false);
@@ -3239,12 +3437,25 @@ export default function BerkebunGame({
         setShowJournal(false);
         setShowWorldMap(false);
         setShowSleepModal(false);
+        setShowTutorial(false);
+        setDaySummary(null);
+        setStoryEventModal(null);
         setActiveNpcId(null);
         return;
       }
 
       if (k === ' ' || k === 'e') {
         e.preventDefault();
+        if (daySummary) {
+          clearKeysAndBlur();
+          setDaySummary(null);
+          return;
+        }
+        if (storyEventModal) {
+          clearKeysAndBlur();
+          setStoryEventModal(null);
+          return;
+        }
         if (
           !showShop &&
           !showBinerShop &&
@@ -3260,9 +3471,7 @@ export default function BerkebunGame({
           !showWorldMap &&
           !showSleepModal &&
           !showTutorial &&
-          !activeNpcId &&
-          !storyEventModal &&
-          !daySummary
+          !activeNpcId
         ) {
           triggerFacingAction();
         }
@@ -3271,7 +3480,10 @@ export default function BerkebunGame({
       } else if (k === 'j') {
         setShowJournal((v) => !v);
       } else if (k === 'm') {
-        setShowWorldMap((v) => !v);
+        setShowWorldMap((v) => {
+          if (!v) setWorldMapTab('all');
+          return !v;
+        });
       } else if (k === '1') setActiveTool('hoe');
       else if (k === '2') setActiveTool('water');
       else if (k === '3') setActiveTool('axe');
@@ -3286,11 +3498,16 @@ export default function BerkebunGame({
     const onKeyUp = (e: KeyboardEvent) => {
       keysPressedRef.current[e.key.toLowerCase()] = false;
     };
+    const onWindowBlur = () => {
+      clearKeysAndBlur();
+    };
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onWindowBlur);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onWindowBlur);
     };
   }, [
     viewMode,
@@ -3311,6 +3528,7 @@ export default function BerkebunGame({
     activeNpcId,
     storyEventModal,
     daySummary,
+    clearKeysAndBlur,
     triggerFacingAction,
   ]);
 
@@ -3342,6 +3560,10 @@ export default function BerkebunGame({
         let vy = 0;
         if (
           !activeNpcRef.current &&
+          !daySummaryRef.current &&
+          !showWorldMapRef.current &&
+          !storyEventModalRef.current &&
+          !showTutorialRef.current &&
           !showSleepModal &&
           !showShop &&
           !showBinerShop &&
@@ -3599,7 +3821,9 @@ export default function BerkebunGame({
           const indoorNpcs = (Object.keys(ALL_NPCS) as NpcId[]).filter((nid) =>
             nid.startsWith('b_')
               ? getBinerNpcExclusiveLocation(nid as BinerNpcId, minuteOfDay, st.weather) === intId
-              : getNpcExclusiveLocation(nid as TikNpcId, minuteOfDay, st.weather) === intId
+              : nid.startsWith('j_')
+                ? getJaringanNpcExclusiveLocation(nid as JaringanNpcId, minuteOfDay, st.weather) === intId
+                : getNpcExclusiveLocation(nid as TikNpcId, minuteOfDay, st.weather) === intId
           );
           let secDrawCount = 0;
           indoorNpcs.forEach((npcId) => {
@@ -3731,6 +3955,11 @@ export default function BerkebunGame({
         let vy = 0;
         if (
           !activeNpcRef.current &&
+          !daySummaryRef.current &&
+          !showWorldMapRef.current &&
+          !storyEventModalRef.current &&
+          !showTutorialRef.current &&
+          !showSleepModal &&
           !showCraft &&
           !showChest &&
           !showUpgradeModal &&
@@ -4139,6 +4368,10 @@ export default function BerkebunGame({
       if (
         !activeNpcRef.current &&
         !fishingRef.current &&
+        !daySummaryRef.current &&
+        !showWorldMapRef.current &&
+        !storyEventModalRef.current &&
+        !showTutorialRef.current &&
         !showSleepModal &&
         !showCraft &&
         !showBasket &&
@@ -5538,18 +5771,32 @@ export default function BerkebunGame({
     spawnParticles,
   ]);
 
-  // Draw crisp Pixel-Art World Map whenever World Map modal [M] opens
+  // Draw crisp Pixel-Art World Map (Unified 3-Island Panorama OR Specific Island)
   useEffect(() => {
     if (!showWorldMap || !worldMapCanvasRef.current) return;
-    if (saveState.currentIsland === 'biner') {
+    const isAshNow = (saveState.jaringanAshUntilTotalMin || 0) > getTotalGameMinutes(saveState.day, minuteOfDay);
+    if (worldMapTab === 'all') {
+      renderAllIslandsWorldMapCanvas(worldMapCanvasRef.current, {
+        tikTiles: saveState.tiles,
+        tikTrees: saveState.trees,
+        season: currentSeason,
+        storyChapter: saveState.storyChapter,
+        islandHealed: saveState.islandHealed,
+        binerTiles: saveState.binerTiles,
+        binerTrees: saveState.binerTrees,
+        binerMissionChapter: saveState.binerMissionChapter,
+        jaringanTiles: saveState.jaringanTiles,
+        jaringanTrees: saveState.jaringanTrees,
+        isJaringanAsh: isAshNow,
+      });
+    } else if (worldMapTab === 'biner') {
       renderBinerWorldMapCanvas(
         worldMapCanvasRef.current,
         saveState.binerTiles,
         saveState.binerMissionChapter,
         saveState.binerTrees
       );
-    } else if (saveState.currentIsland === 'jaringan') {
-      const isAshNow = (saveState.jaringanAshUntilTotalMin || 0) > getTotalGameMinutes(saveState.day, minuteOfDay);
+    } else if (worldMapTab === 'jaringan') {
       renderJaringanWorldMapCanvas(
         worldMapCanvasRef.current,
         saveState.jaringanTiles,
@@ -5568,7 +5815,7 @@ export default function BerkebunGame({
     }
   }, [
     showWorldMap,
-    saveState.currentIsland,
+    worldMapTab,
     saveState.tiles,
     saveState.trees,
     saveState.binerTiles,
@@ -6210,11 +6457,15 @@ export default function BerkebunGame({
 
           <button
             type="button"
-            onClick={() => setShowWorldMap(true)}
+            onClick={() => {
+              clearKeysAndBlur();
+              setWorldMapTab('all');
+              setShowWorldMap(true);
+            }}
             className="px-2.5 py-1.5 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white border-2 border-[#075985] flex items-center gap-1 shadow-sm"
-            title="Peta Kepulauan Pulau TIK [M]"
+            title="Peta Dunia 3 Kepulauan [M]"
           >
-            <MapIcon size={13} /> Peta [M]
+            <MapIcon size={13} /> Dunia [M]
           </button>
 
           <button
@@ -6320,8 +6571,12 @@ export default function BerkebunGame({
             {/* Live Top-Right Island Minimap Overlay */}
             <button
               type="button"
-              onClick={() => setShowWorldMap(true)}
-              title="Klik untuk membuka Peta Pulau Lengkap [M]"
+              onClick={() => {
+                clearKeysAndBlur();
+                setWorldMapTab('all');
+                setShowWorldMap(true);
+              }}
+              title="Klik untuk membuka Peta Dunia 3 Pulau [M]"
               className="absolute top-2 right-2 bg-[#4a220c]/90 p-1 rounded-xl border-2 border-[#d98a42] shadow-lg hover:scale-105 transition-transform"
             >
               <canvas
@@ -6333,10 +6588,10 @@ export default function BerkebunGame({
               />
               <span className="block text-[9px] font-black text-[#ffecc7] text-center mt-0.5">
                 {saveState.currentIsland === 'biner'
-                  ? 'PETA BINER [M]'
+                  ? 'BINER · PETA DUNIA [M]'
                   : saveState.currentIsland === 'jaringan'
-                    ? 'PETA JARINGAN [M]'
-                    : 'PETA TIK [M]'}
+                    ? 'JARINGAN · PETA DUNIA [M]'
+                    : 'TIK · PETA DUNIA [M]'}
               </span>
             </button>
 
@@ -7437,131 +7692,289 @@ export default function BerkebunGame({
         </div>
       )}
 
-      {/* ================= FULL PIXEL-ART ISLAND WORLD MAP MODAL [M] ================= */}
+      {/* ================= FULL PIXEL-ART WORLD MAP MODAL (ALL 3 ISLANDS + INDIVIDUAL TABS) [M] ================= */}
       {showWorldMap && (() => {
-        const isBinerMap = saveState.currentIsland === 'biner';
-        const isJaringanMap = saveState.currentIsland === 'jaringan';
+        const isAllMap = worldMapTab === 'all';
+        const isBinerMap = worldMapTab === 'biner';
+        const isJaringanMap = worldMapTab === 'jaringan';
         const mapCols = isBinerMap ? BINER_COLS : isJaringanMap ? JARINGAN_COLS : WORLD_COLS;
         const mapRows = isBinerMap ? BINER_ROWS : isJaringanMap ? JARINGAN_ROWS : WORLD_ROWS;
         const mapRegions = isBinerMap ? BINER_REGIONS : isJaringanMap ? JARINGAN_REGIONS : ISLAND_REGIONS;
+        const activeFrame = ALL_ISLANDS_MAP_FRAMES[saveState.currentIsland];
+        const worldTabs: Array<{ id: 'all' | WorldIsland; label: string }> = [
+          { id: 'all', label: 'Semua Pulau (Dunia)' },
+          { id: 'tik', label: 'Pulau TIK' },
+          { id: 'biner', label: 'Pulau Biner' },
+          { id: 'jaringan', label: 'Pulau Jaringan' },
+        ];
         return (
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#f5d59c] border-4 border-[#6f3615] ring-2 ring-[#d98a42] rounded-3xl max-w-3xl w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar text-[#3b1a07]">
-              <div className="flex items-center justify-between border-b-2 border-[#c88d4f] pb-3">
+            <div className="bg-[#f5d59c] border-4 border-[#6f3615] ring-2 ring-[#d98a42] rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-3.5 shadow-2xl max-h-[92vh] overflow-y-auto custom-scrollbar text-[#3b1a07]">
+              <div className="flex items-center justify-between border-b-2 border-[#c88d4f] pb-3 gap-2">
                 <div>
                   <h3 className="font-black text-lg flex items-center gap-2">
                     <MapIcon className="text-sky-700" size={20} />{' '}
-                    {isBinerMap
-                      ? 'Peta Kota Modern Pulau Biner (84 × 56)'
-                      : isJaringanMap
-                        ? 'Peta Kepulauan Pulau Jaringan (110 × 76)'
-                        : 'Peta Pixel Kepulauan Pulau TIK (78 × 52)'}
+                    {isAllMap
+                      ? 'Peta Dunia Nusantara · Semua Pulau (TIK, Biner & Jaringan)'
+                      : isBinerMap
+                        ? 'Peta Kota Modern Pulau Biner (84 × 56)'
+                        : isJaringanMap
+                          ? 'Peta Kepulauan Pulau Jaringan (110 × 76)'
+                          : 'Peta Pixel Kepulauan Pulau TIK (78 × 52)'}
                   </h3>
                   <p className="text-[11px] font-bold text-[#7a3f1a]">
-                    {isBinerMap
-                      ? `Musim ${currentSeason} · ${formattedClock} · 4 Gedung Bertingkat (11 Lantai), 20 Staf & Dermaga Ferri`
-                      : isJaringanMap
-                        ? `Musim ${currentSeason} · ${formattedClock} · Gunung Agung, 10 Kayu Unik, 10 Batu Mulia & 4 Lahan Rumah`
-                        : `Musim ${currentSeason} · ${formattedClock} · 5 Pulau, 10 Gedung, & 2 Pintu Gua Tambang`}
+                    {isAllMap
+                      ? `Musim ${currentSeason} · ${formattedClock} · Klik salah satu pulau di peta untuk melihat detail wilayah`
+                      : isBinerMap
+                        ? `Musim ${currentSeason} · ${formattedClock} · 4 Gedung Bertingkat (11 Lantai), 20 Staf & Dermaga Ferri`
+                        : isJaringanMap
+                          ? `Musim ${currentSeason} · ${formattedClock} · Gunung Agung, 10 Kayu Unik, 10 Batu Mulia & 4 Lahan Rumah`
+                          : `Musim ${currentSeason} · ${formattedClock} · 5 Pulau, 10 Gedung, & 2 Pintu Gua Tambang`}
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowWorldMap(false)}
+                  onClick={() => {
+                    clearKeysAndBlur();
+                    setShowWorldMap(false);
+                  }}
                   className="p-1.5 rounded-xl bg-[#8c4a1c] text-[#fff3d6]"
                 >
                   <X size={16} />
                 </button>
               </div>
 
+              {/* World Map View Tabs */}
+              <div className="flex flex-wrap gap-1.5">
+                {worldTabs.map((tab) => {
+                  const active = worldMapTab === tab.id;
+                  const isHere = tab.id === saveState.currentIsland;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setWorldMapTab(tab.id)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-xl border-2 text-xs font-black transition-all flex items-center gap-1.5',
+                        active
+                          ? 'bg-[#0284c7] text-white border-[#075985] shadow'
+                          : 'bg-[#ffecc7] hover:bg-[#ffdf8e] text-[#4a220c] border-[#b97336]'
+                      )}
+                    >
+                      <span>{tab.label}</span>
+                      {isHere && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-600 text-white">KAMU</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
               <div
                 className={cn(
-                  'relative w-full bg-[#1d6fa5] rounded-2xl border-4 border-[#4a220c] overflow-hidden shadow-inner',
-                  isBinerMap ? 'aspect-[84/56]' : isJaringanMap ? 'aspect-[110/76]' : 'aspect-[78/52]'
+                  'relative w-full bg-[#0c4a6e] rounded-2xl border-4 border-[#4a220c] overflow-hidden shadow-inner',
+                  isAllMap
+                    ? 'aspect-[900/520]'
+                    : isBinerMap
+                      ? 'aspect-[84/56]'
+                      : isJaringanMap
+                        ? 'aspect-[110/76]'
+                        : 'aspect-[78/52]'
                 )}
               >
                 <canvas
                   ref={worldMapCanvasRef}
-                  width={isBinerMap ? 672 : isJaringanMap ? 660 : 624}
-                  height={isBinerMap ? 448 : isJaringanMap ? 456 : 416}
+                  width={isAllMap ? ALL_ISLANDS_MAP_W : isBinerMap ? 672 : isJaringanMap ? 660 : 624}
+                  height={isAllMap ? ALL_ISLANDS_MAP_H : isBinerMap ? 448 : isJaringanMap ? 456 : 416}
+                  onClick={(e) => {
+                    if (!isAllMap || !worldMapCanvasRef.current) return;
+                    const rect = worldMapCanvasRef.current.getBoundingClientRect();
+                    const mx = ((e.clientX - rect.left) / rect.width) * ALL_ISLANDS_MAP_W;
+                    const my = ((e.clientY - rect.top) / rect.height) * ALL_ISLANDS_MAP_H;
+                    for (const isl of ['tik', 'biner', 'jaringan'] as const) {
+                      const f = ALL_ISLANDS_MAP_FRAMES[isl];
+                      if (mx >= f.x && mx <= f.x + f.w && my >= f.y - 22 && my <= f.y + f.h) {
+                        setWorldMapTab(isl);
+                        return;
+                      }
+                    }
+                  }}
                   style={{ imageRendering: 'pixelated' }}
-                  className="w-full h-full block"
+                  className={cn('w-full h-full block', isAllMap && 'cursor-pointer')}
                 />
 
-                {/* Subtle Pixel-Map Region Callouts */}
-                {mapRegions.map((reg) => (
-                  <div
-                    key={reg.id}
-                    style={{
-                      left: `${((reg.x + reg.w / 2) / mapCols) * 100}%`,
-                      top: `${((reg.y + 1.1) / mapRows) * 100}%`,
-                    }}
-                    className="absolute -translate-x-1/2 pointer-events-none"
-                  >
-                    <span className="text-[9px] sm:text-[10px] font-black text-white bg-slate-950/65 px-1.5 py-0.5 rounded border border-amber-300/40 whitespace-nowrap shadow">
-                      {reg.name}
-                    </span>
-                  </div>
-                ))}
+                {isAllMap ? (
+                  <>
+                    {/* Outdoor NPC Dots Across All 3 Islands */}
+                    {(Object.keys(ALL_NPCS) as NpcId[])
+                      .filter((nid) => {
+                        const loc = nid.startsWith('b_')
+                          ? getBinerNpcExclusiveLocation(nid as BinerNpcId, minuteOfDay, saveState.weather)
+                          : nid.startsWith('j_')
+                            ? getJaringanNpcExclusiveLocation(nid as JaringanNpcId, minuteOfDay, saveState.weather)
+                            : getNpcExclusiveLocation(nid as TikNpcId, minuteOfDay, saveState.weather);
+                        return loc === 'outdoor';
+                      })
+                      .map((nid) => {
+                        const rt = npcRuntimeRef.current[nid];
+                        if (!rt) return null;
+                        const isl = getNpcIsland(nid);
+                        const f = ALL_ISLANDS_MAP_FRAMES[isl];
+                        const px = f.x + (rt.x / f.cols) * f.w;
+                        const py = f.y + (rt.y / f.rows) * f.h;
+                        return (
+                          <div
+                            key={nid}
+                            style={{
+                              left: `${(px / ALL_ISLANDS_MAP_W) * 100}%`,
+                              top: `${(py / ALL_ISLANDS_MAP_H) * 100}%`,
+                            }}
+                            className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                          >
+                            <span
+                              style={{ backgroundColor: ALL_NPCS[nid].color }}
+                              className="block w-2 h-2 rounded-full border border-white shadow"
+                            />
+                          </div>
+                        );
+                      })}
 
-                {/* Outdoor-Exclusive NPC Pins */}
-                {(Object.keys(ALL_NPCS) as NpcId[])
-                  .filter((nid) => {
-                    if (getNpcIsland(nid) !== saveState.currentIsland) return false;
-                    const loc = nid.startsWith('b_')
-                      ? getBinerNpcExclusiveLocation(nid as BinerNpcId, minuteOfDay, saveState.weather)
-                      : nid.startsWith('j_')
-                        ? getJaringanNpcExclusiveLocation(nid as JaringanNpcId, minuteOfDay, saveState.weather)
-                        : getNpcExclusiveLocation(nid as TikNpcId, minuteOfDay, saveState.weather);
-                    return loc === 'outdoor';
-                  })
-                  .map((nid) => {
-                    const rt = npcRuntimeRef.current[nid];
-                    if (!rt) return null;
-                    return (
+                    {/* Player Pin on Active Island Frame */}
+                    <div
+                      style={{
+                        left: `${((activeFrame.x + (playerRef.current.x / activeFrame.cols) * activeFrame.w) / ALL_ISLANDS_MAP_W) * 100}%`,
+                        top: `${((activeFrame.y + (playerRef.current.y / activeFrame.rows) * activeFrame.h) / ALL_ISLANDS_MAP_H) * 100}%`,
+                      }}
+                      className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none z-10"
+                    >
+                      <span className="w-4 h-4 rounded-full bg-rose-500 border-2 border-yellow-300 animate-ping absolute" />
+                      <span className="w-4 h-4 rounded-full bg-rose-600 border-2 border-white relative shadow" />
+                      <span className="text-[9px] font-black text-yellow-200 bg-rose-900/90 px-1.5 rounded mt-0.5 whitespace-nowrap">
+                        KAMU ({saveState.currentIsland.toUpperCase()})
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Subtle Pixel-Map Region Callouts */}
+                    {mapRegions.map((reg) => (
                       <div
-                        key={nid}
+                        key={reg.id}
                         style={{
-                          left: `${(rt.x / mapCols) * 100}%`,
-                          top: `${(rt.y / mapRows) * 100}%`,
+                          left: `${((reg.x + reg.w / 2) / mapCols) * 100}%`,
+                          top: `${((reg.y + 1.1) / mapRows) * 100}%`,
                         }}
-                        className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none"
+                        className="absolute -translate-x-1/2 pointer-events-none"
                       >
-                        <span
-                          style={{ backgroundColor: ALL_NPCS[nid].color }}
-                          className="w-3 h-3 rounded-full border-2 border-white shadow"
-                        />
-                        <span className="text-[8px] font-black text-white bg-slate-950/75 px-1 rounded mt-0.5">
-                          {ALL_NPCS[nid].name.split(' ')[0]}
+                        <span className="text-[9px] sm:text-[10px] font-black text-white bg-slate-950/65 px-1.5 py-0.5 rounded border border-amber-300/40 whitespace-nowrap shadow">
+                          {reg.name}
                         </span>
                       </div>
-                    );
-                  })}
+                    ))}
 
-                {/* Player Pin */}
-                <div
-                  style={{
-                    left: `${(playerRef.current.x / mapCols) * 100}%`,
-                    top: `${(playerRef.current.y / mapRows) * 100}%`,
-                  }}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none z-10"
-                >
-                  <span className="w-4 h-4 rounded-full bg-rose-500 border-2 border-yellow-300 animate-ping absolute" />
-                  <span className="w-4 h-4 rounded-full bg-rose-600 border-2 border-white relative shadow" />
-                  <span className="text-[9px] font-black text-yellow-200 bg-rose-900/90 px-1.5 rounded mt-0.5">
-                    {undergroundFloor !== null ? `GUA LT.${undergroundFloor}` : currentInterior ? 'DI DALAM' : 'KAMU'}
-                  </span>
+                    {/* Outdoor-Exclusive NPC Pins */}
+                    {(Object.keys(ALL_NPCS) as NpcId[])
+                      .filter((nid) => {
+                        if (getNpcIsland(nid) !== worldMapTab) return false;
+                        const loc = nid.startsWith('b_')
+                          ? getBinerNpcExclusiveLocation(nid as BinerNpcId, minuteOfDay, saveState.weather)
+                          : nid.startsWith('j_')
+                            ? getJaringanNpcExclusiveLocation(nid as JaringanNpcId, minuteOfDay, saveState.weather)
+                            : getNpcExclusiveLocation(nid as TikNpcId, minuteOfDay, saveState.weather);
+                        return loc === 'outdoor';
+                      })
+                      .map((nid) => {
+                        const rt = npcRuntimeRef.current[nid];
+                        if (!rt) return null;
+                        return (
+                          <div
+                            key={nid}
+                            style={{
+                              left: `${(rt.x / mapCols) * 100}%`,
+                              top: `${(rt.y / mapRows) * 100}%`,
+                            }}
+                            className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none"
+                          >
+                            <span
+                              style={{ backgroundColor: ALL_NPCS[nid].color }}
+                              className="w-3 h-3 rounded-full border-2 border-white shadow"
+                            />
+                            <span className="text-[8px] font-black text-white bg-slate-950/75 px-1 rounded mt-0.5">
+                              {ALL_NPCS[nid].name.split(' ')[0]}
+                            </span>
+                          </div>
+                        );
+                      })}
+
+                    {/* Player Pin only if player is currently on this island */}
+                    {saveState.currentIsland === worldMapTab && (
+                      <div
+                        style={{
+                          left: `${(playerRef.current.x / mapCols) * 100}%`,
+                          top: `${(playerRef.current.y / mapRows) * 100}%`,
+                        }}
+                        className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none z-10"
+                      >
+                        <span className="w-4 h-4 rounded-full bg-rose-500 border-2 border-yellow-300 animate-ping absolute" />
+                        <span className="w-4 h-4 rounded-full bg-rose-600 border-2 border-white relative shadow" />
+                        <span className="text-[9px] font-black text-yellow-200 bg-rose-900/90 px-1.5 rounded mt-0.5">
+                          {undergroundFloor !== null ? `GUA LT.${undergroundFloor}` : currentInterior ? 'DI DALAM' : 'KAMU'}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {isAllMap ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setWorldMapTab('tik')}
+                    className="p-3 rounded-xl bg-[#ffecc7] hover:bg-[#ffdf8e] border-2 border-[#65a30d] text-left transition-colors"
+                  >
+                    <p className="font-black text-[#365314]">
+                      Pulau TIK (78×52) {saveState.currentIsland === 'tik' ? '· 📍 Posisimu' : ''}
+                    </p>
+                    <p className="text-[11px] text-[#5c2c0e] mt-0.5">
+                      5 Kepulauan, Kebun Warisan, 10 Gedung, Gua Bawah Tanah & Mercusuar Cahaya.
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWorldMapTab('biner')}
+                    className="p-3 rounded-xl bg-[#ffecc7] hover:bg-[#ffdf8e] border-2 border-[#0284c7] text-left transition-colors"
+                  >
+                    <p className="font-black text-[#0c4a6e]">
+                      Pulau Biner (84×56) {saveState.currentIsland === 'biner' ? '· 📍 Posisimu' : ''}
+                    </p>
+                    <p className="text-[11px] text-[#5c2c0e] mt-0.5">
+                      Kota Korporat Modern, 4 Gedung Pencakar Langit (11 Lantai) & 20 Staf Profesional.
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWorldMapTab('jaringan')}
+                    className="p-3 rounded-xl bg-[#ffecc7] hover:bg-[#ffdf8e] border-2 border-[#d97706] text-left transition-colors"
+                  >
+                    <p className="font-black text-[#78350f]">
+                      Pulau Jaringan (110×76) {saveState.currentIsland === 'jaringan' ? '· 📍 Posisimu' : ''}
+                    </p>
+                    <p className="text-[11px] text-[#5c2c0e] mt-0.5">
+                      Gunung Agung, 10 Kayu Eksotis, 10 Batu Mulia, 10 Ikan Laut & 4 Lahan Rumah Tier 1–3.
+                    </p>
+                  </button>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                {mapRegions.map((reg) => (
-                  <div key={reg.id} className="p-2.5 rounded-xl bg-[#ffecc7] border-2 border-[#b97336]">
-                    <p className="font-black text-[#3b1a07]">{reg.name}</p>
-                    <p className="text-[11px] text-[#5c2c0e]">{reg.desc}</p>
-                  </div>
-                ))}
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {mapRegions.map((reg) => (
+                    <div key={reg.id} className="p-2.5 rounded-xl bg-[#ffecc7] border-2 border-[#b97336]">
+                      <p className="font-black text-[#3b1a07]">{reg.name}</p>
+                      <p className="text-[11px] text-[#5c2c0e]">{reg.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -7625,7 +8038,10 @@ export default function BerkebunGame({
 
               <button
                 type="button"
-                onClick={() => setShowSleepModal(false)}
+                onClick={() => {
+                  clearKeysAndBlur();
+                  setShowSleepModal(false);
+                }}
                 className="w-full py-2.5 rounded-xl bg-[#ffecc7] hover:bg-[#ffdf8e] border-2 border-[#b97336] text-[#4a220c]"
               >
                 Batal
@@ -8014,7 +8430,10 @@ export default function BerkebunGame({
 
             <button
               type="button"
-              onClick={() => setDaySummary(null)}
+              onClick={() => {
+                clearKeysAndBlur();
+                setDaySummary(null);
+              }}
               className="w-full py-3 rounded-2xl bg-[#16a34a] hover:bg-[#15803d] text-white border-2 border-[#14532d] font-black text-sm shadow-md"
             >
               Mulai Aktivitas Pagi →
