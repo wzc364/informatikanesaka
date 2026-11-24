@@ -26,6 +26,62 @@ export type CropId =
   | 'coffee'
   | 'moonfruit';
 
+export type WorldIsland = 'tik' | 'biner' | 'jaringan';
+
+export type JaringanWoodId =
+  | 'wood_mahoni'
+  | 'wood_merbau'
+  | 'wood_sonokeling'
+  | 'wood_cendana'
+  | 'wood_ulin'
+  | 'wood_ebony'
+  | 'wood_sungkai'
+  | 'wood_trembesi'
+  | 'wood_meranti'
+  | 'wood_bengkirai';
+
+export type JaringanGemId =
+  | 'gem_akik'
+  | 'gem_giok'
+  | 'gem_safir'
+  | 'gem_ruby'
+  | 'gem_zamrud'
+  | 'gem_kecubung'
+  | 'gem_opal'
+  | 'gem_oniks'
+  | 'gem_topaz'
+  | 'gem_berlian';
+
+export type JaringanFishId =
+  | 'fish_tuna'
+  | 'fish_tongkol'
+  | 'fish_cakalang'
+  | 'fish_tenggiri'
+  | 'fish_kakap'
+  | 'fish_kerapu'
+  | 'fish_kuwe'
+  | 'fish_baronang'
+  | 'fish_bawal'
+  | 'fish_marlin';
+
+export type JaringanBagItemId =
+  | JaringanWoodId
+  | JaringanGemId
+  | JaringanFishId
+  | 'item_palu';
+
+export type BinerBagItemId =
+  | 'biner_espresso'
+  | 'biner_energy_bar'
+  | 'biner_silicon_chip'
+  | 'biner_quantum_battery'
+  | 'biner_cooling_gel'
+  | 'biner_hydro_pod'
+  | 'biner_drone_part'
+  | 'biner_ferry_ticket'
+  | 'biner_vip_card'
+  | 'biner_server_core';
+
 export type BagItemId =
   | 'fish_carp'
   | 'fish_snapper'
@@ -51,9 +107,41 @@ export type BagItemId =
   | 'mine_bomb'
   | 'torch_item'
   | 'home_totem'
-  | 'fish_bait';
+  | 'fish_bait'
+  | BinerBagItemId
+  | JaringanBagItemId;
 
-export type NpcId =
+export type BinerNpcId =
+  | 'b_hendra'
+  | 'b_clara'
+  | 'b_reno'
+  | 'b_nadia'
+  | 'b_rizal'
+  | 'b_siska'
+  | 'b_aldi'
+  | 'b_viona'
+  | 'b_kevin'
+  | 'b_fajar'
+  | 'b_bella'
+  | 'b_dimas'
+  | 'b_celine'
+  | 'b_agus'
+  | 'b_tania'
+  | 'b_oki'
+  | 'b_gita'
+  | 'b_budi'
+  | 'b_rara'
+  | 'b_yuda';
+
+export type JaringanNpcId =
+  | 'j_pandu'
+  | 'j_laras'
+  | 'j_rimba'
+  | 'j_samudra'
+  | 'j_kaelen'
+  | 'j_nusa';
+
+export type TikNpcId =
   | 'raka'
   | 'sari'
   | 'jaka'
@@ -65,6 +153,28 @@ export type NpcId =
   | 'dewi'
   | 'bagas';
 
+export type NpcId = TikNpcId | BinerNpcId | JaringanNpcId;
+
+export type BinerInteriorId =
+  | 'biner_tower_f1'
+  | 'biner_tower_f2'
+  | 'biner_tower_f3'
+  | 'biner_tower_f4'
+  | 'biner_quantum_f1'
+  | 'biner_quantum_f2'
+  | 'biner_quantum_f3'
+  | 'biner_mall_f1'
+  | 'biner_mall_f2'
+  | 'biner_hotel_f1'
+  | 'biner_hotel_f2';
+
+export type JaringanInteriorId =
+  | 'jaringan_hall'
+  | 'jaringan_builder_hut'
+  | 'jaringan_house_t1'
+  | 'jaringan_house_t2'
+  | 'jaringan_house_t3';
+
 export type InteriorId =
   | 'house'
   | 'shop'
@@ -75,7 +185,9 @@ export type InteriorId =
   | 'coop'
   | 'forge'
   | 'dewi_hut'
-  | 'explorer_post';
+  | 'explorer_post'
+  | BinerInteriorId
+  | JaringanInteriorId;
 
 export type UpgradeableToolId = 'hoe' | 'water' | 'axe' | 'pick' | 'sword' | 'rod';
 
@@ -106,7 +218,24 @@ export type FurnitureKind =
   | 'beacon_lamp'
   | 'nest_box'
   | 'feed_trough'
-  | 'hay_bale';
+  | 'hay_bale'
+  | 'elevator_up'
+  | 'elevator_down'
+  | 'reception_desk'
+  | 'server_rack'
+  | 'exec_desk'
+  | 'conference_table'
+  | 'coffee_machine'
+  | 'vending_machine'
+  | 'cyber_terminal'
+  | 'sofa_lounge'
+  | 'helipad_pad'
+  | 'jaringan_bed'
+  | 'gem_display'
+  | 'blueprint_table'
+  | 'stone_anvil'
+  | 'volcano_hearth'
+  | 'rattan_sofa';
 
 export interface FurnitureItem {
   id: string;
@@ -136,7 +265,14 @@ export interface FurnitureItem {
     | 'wood_pile'
     | 'blessing'
     | 'beacon'
-    | 'info';
+    | 'info'
+    | 'elevator_up'
+    | 'elevator_down'
+    | 'biner_shop'
+    | 'biner_craft'
+    | 'hotel_rest'
+    | 'builder_hammer'
+    | 'house_build';
   infoText?: string;
 }
 
@@ -146,7 +282,7 @@ export interface InteriorDef {
   themeLabel: string;
   cols: number;
   rows: number;
-  floorStyle: 'wood' | 'stone' | 'cobble' | 'straw' | 'mystic';
+  floorStyle: 'wood' | 'stone' | 'cobble' | 'straw' | 'mystic' | 'marble' | 'tech_lab' | 'exec_wood' | 'rooftop';
   wallColor: string;
   wallAccent: string;
   exitTile: { x: number; y: number };
@@ -154,6 +290,13 @@ export interface InteriorDef {
   residentNpc?: NpcId;
   residentPos?: { x: number; y: number };
   furniture: FurnitureItem[];
+  island?: WorldIsland;
+  buildingName?: string;
+  floorNumber?: number;
+  totalFloors?: number;
+  upFloor?: InteriorId;
+  downFloor?: InteriorId;
+  floorSiblings?: InteriorId[];
 }
 
 export type TileKind =
@@ -185,7 +328,29 @@ export type TileKind =
   | 'altar'
   | 'sacred_tree'
   | 'windmill'
-  | 'well';
+  | 'well'
+  | 'asphalt'
+  | 'crosswalk'
+  | 'sidewalk'
+  | 'corp_lawn'
+  | 'biner_tower'
+  | 'biner_quantum'
+  | 'biner_mall'
+  | 'biner_hotel'
+  | 'biner_ferry'
+  | 'solar_panel'
+  | 'helipad_tile'
+  | 'fountain'
+  | 'street_lamp'
+  | 'volcano_rock'
+  | 'volcano_lava'
+  | 'jaringan_ferry'
+  | 'jaringan_hall'
+  | 'jaringan_builder_hut'
+  | 'house_plot'
+  | 'jaringan_house_t1'
+  | 'jaringan_house_t2'
+  | 'jaringan_house_t3';
 
 export type DebrisKind =
   | 'stone'
@@ -197,6 +362,7 @@ export type DebrisKind =
   | 'forage_mushroom'
   | 'forage_berry'
   | 'forage_shell'
+  | JaringanGemId
   | null;
 
 export interface FarmTile {
@@ -219,11 +385,13 @@ export interface FarmTile {
 export interface WorldTree {
   id: string;
   kind: 'oak' | 'palm';
+  treeSpecies?: JaringanWoodId;
   x: number; // grid tile col (integer)
   y: number; // grid tile row (integer)
   hp: number; // 3 = standing, 0 = stump
   maxHp: number;
   stumpDaysLeft: number; // > 0 if completely chopped and regrowing
+  stumpAge?: number; // days spent as stump before regrowing
 }
 
 export interface UndergroundCell {
@@ -352,12 +520,25 @@ export interface BagItemDef {
   sellPrice: number;
   energyRestore?: number;
   hpRestore?: number;
-  usableEffect?: 'eat' | 'bomb' | 'torch' | 'totem' | 'bait';
-  category: 'Ikan' | 'Hutan & Pantai' | 'Tambang' | 'Ternak' | 'Olahan' | 'Monster' | 'Perlengkapan MC';
+  usableEffect?: 'eat' | 'bomb' | 'torch' | 'totem' | 'bait' | 'hammer';
+  category:
+    | 'Ikan'
+    | 'Ikan Laut'
+    | 'Hutan & Pantai'
+    | 'Tambang'
+    | 'Kayu Eksotis'
+    | 'Batu Mulia'
+    | 'Ternak'
+    | 'Olahan'
+    | 'Monster'
+    | 'Perlengkapan MC'
+    | 'Konstruksi'
+    | 'Korporat Biner'
+    | 'Teknologi Biner';
   desc: string;
 }
 
-export const BAG_ITEMS: Record<BagItemId, BagItemDef> = {
+export const BAG_ITEMS: Record<Exclude<BagItemId, BinerBagItemId | JaringanBagItemId>, BagItemDef> = {
   fish_carp: {
     id: 'fish_carp',
     name: 'Ikan Mas Sungai',
@@ -543,7 +724,7 @@ export const BAG_ITEMS: Record<BagItemId, BagItemDef> = {
     sellPrice: 45,
     usableEffect: 'torch',
     category: 'Perlengkapan MC',
-    desc: 'Menyalakan cahaya terang benderang di Gua Bawah Tanah & Malam selama 90 detik!',
+    desc: 'Taruh obor menyala di tanah (luar & gua) agar area sekitar terang benderang menembus malam & abu vulkanik!',
   },
   home_totem: {
     id: 'home_totem',
@@ -846,7 +1027,7 @@ export interface NpcConfig {
  * Guarantees NO NPC ever appears outdoors and indoors at the same time!
  */
 export function getNpcExclusiveLocation(
-  npcId: NpcId,
+  npcId: TikNpcId,
   minuteOfDay: number,
   weather: Weather
 ): 'outdoor' | InteriorId {
@@ -877,7 +1058,7 @@ export function getNpcExclusiveLocation(
   return 'outdoor';
 }
 
-export const NPCS: Record<NpcId, NpcConfig> = {
+export const NPCS: Record<TikNpcId, NpcConfig> = {
   raka: {
     id: 'raka',
     name: 'Tetua Raka',
@@ -1255,7 +1436,7 @@ export const ISLAND_REGIONS: IslandRegionLabel[] = [
 ];
 
 // Enterable Building Interiors (All 10 Exclusive Buildings with Functional Furniture!)
-export const INTERIORS: Record<InteriorId, InteriorDef> = {
+export const INTERIORS: Record<Exclude<InteriorId, BinerInteriorId | JaringanInteriorId>, InteriorDef> = {
   house: {
     id: 'house',
     title: 'Rumah Kebun Kakek',
@@ -2135,11 +2316,14 @@ export function createInitialIslandGrid(): FarmTile[] {
         } else if (hash === 3 || hash === 17) debris = 'stone';
         else if (hash === 7 || hash === 22) debris = 'wood';
         else if (hash === 11 || hash === 26) debris = 'weed';
+        else if (hash === 19) debris = 'forage_berry';
       } else if (kind === 'forest_floor') {
         if (hash === 2 || hash === 15) debris = 'forage_mushroom';
-        else if (hash === 6 || hash === 20) debris = 'forage_berry';
+        else if (hash === 6 || hash === 12 || hash === 20 || hash === 28) debris = 'forage_berry';
         else if (hash === 10 || hash === 24 || hash === 29) debris = 'wood';
         else if (hash === 13) debris = 'stone';
+      } else if (kind === 'grass' && !tilled && (hash === 4 || hash === 21)) {
+        debris = 'forage_berry';
       } else if (kind === 'plaza' && ((x >= 48 && x <= 57 && y >= 5 && y <= 15) || x >= 62)) {
         if (hash === 1 || hash === 12 || hash === 23) debris = 'ore_copper';
         else if (hash === 5 || hash === 18) debris = 'ore_silver';

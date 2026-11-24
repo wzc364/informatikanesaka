@@ -6,6 +6,19 @@
 import farmerSpriteUrl from '../assets/images/berkebun_farmer_pixel_1795346951033.jpg';
 import farmerWalkSheetUrl from '../assets/images/farmer_walk_sheet_v3_1795359286105.jpg';
 import farmerActionsSheetUrl from '../assets/images/berkebun_farmer_actions_sheet_1795352733967.jpg';
+import farmerIdleSwordUrl from '../assets/images/farmer_idle_sword_1795479164111.jpg';
+import farmerIdleHoeUrl from '../assets/images/farmer_idle_hoe_v2_1795479223886.jpg';
+import farmerIdleWaterUrl from '../assets/images/farmer_idle_water_1795479164611.jpg';
+import farmerIdlePickUrl from '../assets/images/farmer_idle_pick_1795479165696.jpg';
+import farmerActionSwordUrl from '../assets/images/farmer_action_sword_1795482162880.jpg';
+import farmerActionHoeUrl from '../assets/images/farmer_action_hoe_1795482165290.jpg';
+import farmerActionWaterUrl from '../assets/images/farmer_action_water_1795482164100.jpg';
+import farmerActionPickUrl from '../assets/images/farmer_action_pick_v2_1795482182499.jpg';
+import farmerActionAxeUrl from '../assets/images/farmer_action_axe_1795482745395.jpg';
+import farmerActionSeedUrl from '../assets/images/farmer_action_seed_1795482749482.jpg';
+import farmerActionFertilizerUrl from '../assets/images/farmer_action_fertilizer_1795482748671.jpg';
+import skyscraperSpriteUrl from '../assets/images/pulau_biner_skyscraper_1795482749036.jpg';
+import ferrySpriteUrl from '../assets/images/pulau_biner_ferry_1795482748148.jpg';
 import farmhouseSpriteUrl from '../assets/images/berkebun_farmhouse_pixel_1795346951463.jpg';
 import shopSpriteUrl from '../assets/images/berkebun_shop_pixel_1795346951275.jpg';
 import binSpriteUrl from '../assets/images/berkebun_bin_pixel_1795346952182.jpg';
@@ -23,17 +36,48 @@ import palmTreeUrl from '../assets/images/berkebun_palm_tree_pixel_1795348518032
 import coopSpriteUrl from '../assets/images/berkebun_coop_pixel_1795348518625.jpg';
 import sacredTreeUrl from '../assets/images/berkebun_sacred_tree_pixel_1795348518161.jpg';
 import lighthouseUrl from '../assets/images/berkebun_lighthouse_pixel_1795348518004.jpg';
+import binerNpcSheet1Url from '../assets/images/biner_npc_sheet_1_1795488593968.jpg';
+import binerNpcSheet2Url from '../assets/images/biner_npc_sheet_2_1795488594499.jpg';
+import binerNpcSheet3Url from '../assets/images/biner_npc_sheet_3_1795488595349.jpg';
+import binerNpcSheet4Url from '../assets/images/biner_npc_sheet_4_1795488596098.jpg';
+import binerNpcSheet5Url from '../assets/images/biner_npc_sheet_5_1795488597348.jpg';
+import binerFurnitureSheetUrl from '../assets/images/biner_furniture_sheet_1795488597402.jpg';
+import jaringanWoodsSheetUrl from '../assets/images/jaringan_woods_sheet_1795499300451.jpg';
+import jaringanGemsSheetUrl from '../assets/images/jaringan_gems_sheet_1795499301944.jpg';
+import jaringanFishSheetUrl from '../assets/images/jaringan_fish_sheet_clean_1795499371044.jpg';
+import jaringanTreesSheetUrl from '../assets/images/jaringan_trees_sheet_1795499305706.jpg';
+import jaringanHousesSheetUrl from '../assets/images/jaringan_houses_sheet_1795499306490.jpg';
+import jaringanFurnitureSheetUrl from '../assets/images/jaringan_furniture_sheet_1795499308563.jpg';
+import jaringanNpcSheet1Url from '../assets/images/jaringan_npc_sheet_1_1795499307681.jpg';
+import jaringanNpcSheet2Url from '../assets/images/jaringan_npc_sheet_2_1795499371759.jpg';
 import {
   WORLD_COLS,
   WORLD_ROWS,
   type BagItemId,
+  type BinerNpcId,
   type CropId,
   type FarmTile,
   type FurnitureKind,
+  type JaringanGemId,
+  type JaringanWoodId,
   type NpcId,
   type Season,
+  type UpgradeableToolId,
   type WorldTree,
 } from './berkebunWorldData';
+import {
+  BINER_COLS,
+  BINER_ROWS,
+  BINER_NPC_STYLES,
+  type BinerNpcAppearance,
+} from './pulauBinerData';
+import {
+  JARINGAN_COLS,
+  JARINGAN_FISH_IDS,
+  JARINGAN_GEM_IDS,
+  JARINGAN_ROWS,
+  JARINGAN_WOOD_IDS,
+} from './pulauJaringanData';
 
 export type StardewToolId =
   | 'hoe'
@@ -58,6 +102,8 @@ export interface StardewSprites {
   coop: HTMLCanvasElement | null;
   sacredTree: HTMLCanvasElement | null;
   lighthouse: HTMLCanvasElement | null;
+  skyscraper: HTMLCanvasElement | null;
+  ferry: HTMLCanvasElement | null;
   npcs: Record<NpcId, HTMLCanvasElement | null>;
   npcPoses: Record<NpcId, Partial<Record<string, HTMLCanvasElement>>>;
   npcPortraits: Record<NpcId, string>;
@@ -74,6 +120,18 @@ export interface StardewSprites {
   mineBoulder: HTMLCanvasElement | null;
   forgeEmblem: HTMLCanvasElement | null;
   bagItemAiSprites: Partial<Record<BagItemId, HTMLCanvasElement>>;
+  jaringanTrees: Partial<Record<JaringanWoodId, HTMLCanvasElement>>;
+  gemIcons: Partial<Record<JaringanGemId, HTMLCanvasElement>>;
+  berryBush: HTMLCanvasElement | null;
+  groundTorch: HTMLCanvasElement | null;
+  jaringanHouses: {
+    t1: HTMLCanvasElement | null;
+    t2: HTMLCanvasElement | null;
+    t3: HTMLCanvasElement | null;
+  };
+  jaringanBuilderHut: HTMLCanvasElement | null;
+  jaringanHall: HTMLCanvasElement | null;
+  jaringanVolcano: HTMLCanvasElement | null;
 }
 
 const PROCESSED_CACHE = new Map<string, HTMLCanvasElement>();
@@ -286,6 +344,75 @@ function sliceGridSheet(
   return out;
 }
 
+function sliceRowSpritesByWhitespace(
+  img: HTMLImageElement | null,
+  expectedRows: number,
+  maxDim: number
+): HTMLCanvasElement[][] {
+  if (!img) return Array.from({ length: expectedRows }, () => []);
+  const natW = img.naturalWidth || 1024;
+  const natH = img.naturalHeight || 1024;
+  const c = document.createElement('canvas');
+  c.width = natW;
+  c.height = natH;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return Array.from({ length: expectedRows }, () => []);
+  ctx.drawImage(img, 0, 0, natW, natH);
+  const { data } = ctx.getImageData(0, 0, natW, natH);
+
+  const rowH = Math.floor(natH / expectedRows);
+  const rowsOut: HTMLCanvasElement[][] = [];
+
+  for (let r = 0; r < expectedRows; r++) {
+    const y0 = Math.floor(r * (natH / expectedRows));
+    const y1 = r === expectedRows - 1 ? natH : Math.floor((r + 1) * (natH / expectedRows));
+    const colHasInk = new Uint8Array(natW);
+
+    for (let x = 0; x < natW; x++) {
+      for (let y = y0; y < y1; y++) {
+        const p = (y * natW + x) * 4;
+        const minC = Math.min(data[p], data[p + 1], data[p + 2]);
+        if (minC <= 228) {
+          colHasInk[x] = 1;
+          break;
+        }
+      }
+    }
+
+    // Group contiguous inked columns, tolerating small <= 4px interior white gaps
+    const spans: Array<[number, number]> = [];
+    let start = -1;
+    let gap = 0;
+    for (let x = 0; x < natW; x++) {
+      if (colHasInk[x]) {
+        if (start === -1) start = x;
+        gap = 0;
+      } else if (start !== -1) {
+        gap++;
+        if (gap > 5) {
+          spans.push([Math.max(0, start - 2), Math.min(natW - 1, x - gap + 2)]);
+          start = -1;
+          gap = 0;
+        }
+      }
+    }
+    if (start !== -1) {
+      spans.push([Math.max(0, start - 2), natW - 1]);
+    }
+
+    const rowSprites: HTMLCanvasElement[] = [];
+    for (const [sx, ex] of spans) {
+      const sw = ex - sx + 1;
+      if (sw < 16) continue; // skip stray noise speck
+      const sp = stripExteriorWhiteAndTrim(img, sx, y0, sw, Math.max(1, Math.min(y1 - y0, rowH + 6)), maxDim);
+      if (sp) rowSprites.push(sp);
+    }
+    rowsOut.push(rowSprites);
+  }
+
+  return rowsOut;
+}
+
 function makeNpcPortraitFromSprite(sprite: HTMLCanvasElement): string {
   const pCanvas = document.createElement('canvas');
   pCanvas.width = 96;
@@ -302,6 +429,150 @@ function makeNpcPortraitFromSprite(sprite: HTMLCanvasElement): string {
   return '';
 }
 
+function generateCorporateNpcSprites(style: BinerNpcAppearance): {
+  down_idle: HTMLCanvasElement;
+  down_walk: HTMLCanvasElement;
+  right_walk: HTMLCanvasElement;
+  left_walk: HTMLCanvasElement;
+  up_walk: HTMLCanvasElement;
+} {
+  const pal: Record<string, string> = {
+    o: '#0f172a',
+    H: style.hair,
+    S: style.skin,
+    U: style.suit,
+    W: style.shirt,
+    T: style.tie,
+    P: style.pants,
+    K: '#1e293b',
+    G: '#38bdf8',
+    Y: '#facc15',
+  };
+  const renderScaled = (rows: string[], acc?: BinerNpcAppearance['accessory']) => {
+    const base = makePixelCanvas(16, 22, (px) => {
+      drawMatrix(px, rows, pal, 0, 2);
+      if (acc === 'glasses') {
+        px(5, 7, '#0f172a', 2, 1);
+        px(9, 7, '#0f172a', 2, 1);
+        px(7, 7, '#64748b', 2, 1);
+      } else if (acc === 'hardhat') {
+        px(4, 1, '#facc15', 8, 2);
+        px(3, 3, '#eab308', 10, 1);
+      } else if (acc === 'cap') {
+        px(4, 1, '#0284c7', 8, 2);
+        px(4, 3, '#38bdf8', 9, 1);
+      } else if (acc === 'headset') {
+        px(3, 6, '#38bdf8', 1, 3);
+        px(12, 6, '#38bdf8', 1, 3);
+        px(4, 9, '#0284c7', 3, 1);
+      } else if (acc === 'apron') {
+        px(5, 13, '#fef3c7', 6, 5);
+      }
+    });
+    const out = document.createElement('canvas');
+    out.width = 64;
+    out.height = 88;
+    const ctx = out.getContext('2d');
+    if (ctx) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(base, 0, 0, 64, 88);
+    }
+    return out;
+  };
+
+  const downIdle = renderScaled(
+    [
+      '....oooooooo....',
+      '...oHHHHHHHHo...',
+      '..oHHHHHHHHHHo..',
+      '..oHHSSSSSSHHo..',
+      '...oSKSSSSKSo...',
+      '...oSSSSSSSSo...',
+      '..ooUUUUUUUUoo..',
+      '.oSSoUWWTTWUoSSo',
+      '.oSSoUUUTTUUoSSo',
+      '.ooooUUUUUUUoooo',
+      '....oPPPPPPPo...',
+      '....oPPPoPPPo...',
+      '....oPPo.oPPo...',
+      '....oKKo.oKKo...',
+      '....ooo...ooo...',
+    ],
+    style.accessory
+  );
+
+  const downWalk = renderScaled(
+    [
+      '....oooooooo....',
+      '...oHHHHHHHHo...',
+      '..oHHHHHHHHHHo..',
+      '..oHHSSSSSSHHo..',
+      '...oSKSSSSKSo...',
+      '...oSSSSSSSSo...',
+      '..ooUUUUUUUUoo..',
+      '.oSSoUWWTTWUoSSo',
+      '....oUUUTTUUo...',
+      '....oUUUUUUUo...',
+      '....oPPPPPPPo...',
+      '....oPPPoPPPoo..',
+      '....oKKo...oPPo.',
+      '....ooo....oooo.',
+      '................',
+    ],
+    style.accessory
+  );
+
+  const rightWalk = renderScaled(
+    [
+      '....oooooooo....',
+      '...oHHHHHHHHo...',
+      '...oHHHHHHHSSo..',
+      '....oHHHHSSSKo..',
+      '....oHHHSSSSSo..',
+      '...ooUUUUUUoo...',
+      '...oUUWWUSSUo...',
+      '..oSSoUUTUUSSo..',
+      '..ooooUUUUooo...',
+      '....oPPPPPPo....',
+      '....oPPooPPo....',
+      '...oPPo..oPPo...',
+      '..oKKo....oKKo..',
+      '..ooo......ooo..',
+      '................',
+    ],
+    style.accessory
+  );
+
+  const upWalk = renderScaled(
+    [
+      '....oooooooo....',
+      '...oHHHHHHHHo...',
+      '..oHHHHHHHHHHo..',
+      '..oHHHHHHHHHHo..',
+      '...oHHHHHHHHo...',
+      '..ooUUUUUUUUoo..',
+      '.oSSoUUUUUUUoSSo',
+      '.ooooUUUUUUUoooo',
+      '....oUUUUUUUo...',
+      '....oPPPPPPPo...',
+      '....oPPPoPPPo...',
+      '....oPPo.oKKo...',
+      '....oKKo..ooo...',
+      '....ooo.........',
+      '................',
+    ],
+    style.accessory
+  );
+
+  return {
+    down_idle: downIdle,
+    down_walk: downWalk,
+    right_walk: rightWalk,
+    left_walk: flipCanvasHorizontal(rightWalk),
+    up_walk: upWalk,
+  };
+}
+
 let NPC_CACHE: {
   npcs: Record<NpcId, HTMLCanvasElement | null>;
   npcPoses: Record<NpcId, Partial<Record<string, HTMLCanvasElement>>>;
@@ -311,51 +582,83 @@ let NPC_CACHE: {
 async function loadSlicedNpcs() {
   if (NPC_CACHE) return NPC_CACHE;
 
-  const defaultResult = {
-    npcs: {
-      raka: null,
-      sari: null,
-      jaka: null,
-      maya: null,
-      bima: null,
-      lira: null,
-      kiran: null,
-      tara: null,
-      dewi: null,
-      bagas: null,
-    } as Record<NpcId, HTMLCanvasElement | null>,
-    npcPoses: {
-      raka: {},
-      sari: {},
-      jaka: {},
-      maya: {},
-      bima: {},
-      lira: {},
-      kiran: {},
-      tara: {},
-      dewi: {},
-      bagas: {},
-    } as Record<NpcId, Partial<Record<string, HTMLCanvasElement>>>,
-    npcPortraits: {
-      raka: '',
-      sari: '',
-      jaka: '',
-      maya: '',
-      bima: '',
-      lira: '',
-      kiran: '',
-      tara: '',
-      dewi: '',
-      bagas: '',
-    } as Record<NpcId, string>,
+  const binerIds = Object.keys(BINER_NPC_STYLES) as BinerNpcId[];
+  const initialNpcs: Record<string, HTMLCanvasElement | null> = {
+    raka: null,
+    sari: null,
+    jaka: null,
+    maya: null,
+    bima: null,
+    lira: null,
+    kiran: null,
+    tara: null,
+    dewi: null,
+    bagas: null,
+  };
+  const initialPoses: Record<string, Partial<Record<string, HTMLCanvasElement>>> = {
+    raka: {},
+    sari: {},
+    jaka: {},
+    maya: {},
+    bima: {},
+    lira: {},
+    kiran: {},
+    tara: {},
+    dewi: {},
+    bagas: {},
+  };
+  const initialPortraits: Record<string, string> = {
+    raka: '',
+    sari: '',
+    jaka: '',
+    maya: '',
+    bima: '',
+    lira: '',
+    kiran: '',
+    tara: '',
+    dewi: '',
+    bagas: '',
   };
 
-  const [sheet, walkA, walkB, walkC, bagasMonsters] = await Promise.all([
+  binerIds.forEach((bid) => {
+    const gen = generateCorporateNpcSprites(BINER_NPC_STYLES[bid]);
+    initialNpcs[bid] = gen.down_idle;
+    initialPoses[bid] = gen;
+    initialPortraits[bid] = makeNpcPortraitFromSprite(gen.down_idle);
+  });
+
+  const defaultResult = {
+    npcs: initialNpcs as Record<NpcId, HTMLCanvasElement | null>,
+    npcPoses: initialPoses as Record<NpcId, Partial<Record<string, HTMLCanvasElement>>>,
+    npcPortraits: initialPortraits as Record<NpcId, string>,
+  };
+
+  const [
+    sheet,
+    walkA,
+    walkB,
+    walkC,
+    bagasMonsters,
+    binerSheet1,
+    binerSheet2,
+    binerSheet3,
+    binerSheet4,
+    binerSheet5,
+    jaringanSheet1,
+    jaringanSheet2,
+  ] = await Promise.all([
     loadImageElement(npcSheetUrl),
     loadImageElement(npcWalkSheetAUrl),
     loadImageElement(npcWalkSheetBUrl),
     loadImageElement(npcWalkSheetCUrl),
     loadImageElement(npcBagasMonstersUrl),
+    loadImageElement(binerNpcSheet1Url),
+    loadImageElement(binerNpcSheet2Url),
+    loadImageElement(binerNpcSheet3Url),
+    loadImageElement(binerNpcSheet4Url),
+    loadImageElement(binerNpcSheet5Url),
+    loadImageElement(jaringanNpcSheet1Url),
+    loadImageElement(jaringanNpcSheet2Url),
   ]);
 
   if (sheet) {
@@ -389,7 +692,7 @@ async function loadSlicedNpcs() {
     }
   }
 
-  // Slice 4x3 directional walk poses for all 10 NPCs!
+  // Slice 4x3 directional walk poses for all 10 Pulau TIK NPCs!
   const assignNpcWalkRow = (cells: Array<HTMLCanvasElement | null>, rowIdx: number, npcId: NpcId) => {
     const base = rowIdx * 4;
     const dIdle = cells[base];
@@ -436,6 +739,66 @@ async function loadSlicedNpcs() {
     assignNpcWalkRow(cellsD, 0, 'bagas');
   }
 
+  // Assign AI-generated sprite poses & portraits for ALL 20 Pulau Biner Corporate NPCs!
+  const assignBinerAiSheet = (sheetImg: HTMLImageElement | null, ids: BinerNpcId[]) => {
+    if (!sheetImg) return;
+    const rows = sliceRowSpritesByWhitespace(sheetImg, ids.length, 150);
+    ids.forEach((npcId, rowIdx) => {
+      const rowSprites = rows[rowIdx] || [];
+      if (rowSprites.length < 4) return;
+      const dIdle = rowSprites[0];
+      const dWalk = rowSprites[1];
+      const rWalk = rowSprites[rowSprites.length - 2];
+      const uWalk = rowSprites[rowSprites.length - 1];
+      const map: Partial<Record<string, HTMLCanvasElement>> = {
+        down_idle: dIdle,
+        down_walk: dWalk,
+        right_walk: rWalk,
+        left_walk: flipCanvasHorizontal(rWalk),
+        up_walk: uWalk,
+      };
+      defaultResult.npcPoses[npcId] = map;
+      defaultResult.npcs[npcId] = dIdle;
+      defaultResult.npcPortraits[npcId] = makeNpcPortraitFromSprite(dIdle);
+    });
+  };
+
+  assignBinerAiSheet(binerSheet1, ['b_hendra', 'b_clara', 'b_reno', 'b_nadia']);
+  assignBinerAiSheet(binerSheet2, ['b_rizal', 'b_siska', 'b_aldi', 'b_viona']);
+  assignBinerAiSheet(binerSheet3, ['b_kevin', 'b_fajar', 'b_bella', 'b_dimas']);
+  assignBinerAiSheet(binerSheet4, ['b_celine', 'b_agus', 'b_tania', 'b_oki']);
+  assignBinerAiSheet(binerSheet5, ['b_gita', 'b_budi', 'b_rara', 'b_yuda']);
+
+  // Slice 6 Pulau Jaringan NPCs!
+  if (jaringanSheet1) {
+    const cellsJ1 = sliceGridSheet(jaringanSheet1, 4, 3, 145);
+    assignNpcWalkRow(cellsJ1, 0, 'j_pandu');
+    assignNpcWalkRow(cellsJ1, 1, 'j_laras');
+    assignNpcWalkRow(cellsJ1, 2, 'j_rimba');
+  }
+  if (jaringanSheet2) {
+    // 6-pose row layout: [down_idle, down_walk, right_walk_1, right_walk_2, up_idle, up_walk]
+    const rowsJ2 = sliceRowSpritesByWhitespace(jaringanSheet2, 3, 150);
+    (['j_samudra', 'j_kaelen', 'j_nusa'] as const).forEach((npcId, rowIdx) => {
+      const rowSprites = rowsJ2[rowIdx] || [];
+      if (rowSprites.length < 4) return;
+      const dIdle = rowSprites[0];
+      const dWalk = rowSprites[1];
+      const rWalk = rowSprites[2];
+      const uWalk = rowSprites[rowSprites.length - 1];
+      const map: Partial<Record<string, HTMLCanvasElement>> = {
+        down_idle: dIdle,
+        down_walk: dWalk,
+        right_walk: rWalk,
+        left_walk: flipCanvasHorizontal(rWalk),
+        up_walk: uWalk,
+      };
+      defaultResult.npcPoses[npcId] = map;
+      defaultResult.npcs[npcId] = dIdle;
+      defaultResult.npcPortraits[npcId] = makeNpcPortraitFromSprite(dIdle);
+    });
+  }
+
   NPC_CACHE = defaultResult;
   return defaultResult;
 }
@@ -443,7 +806,29 @@ async function loadSlicedNpcs() {
 let FARMER_AI_CACHE: Partial<Record<string, HTMLCanvasElement>> | null = null;
 async function loadAiFarmerPoses(): Promise<Partial<Record<string, HTMLCanvasElement>>> {
   if (FARMER_AI_CACHE) return FARMER_AI_CACHE;
-  const [img1, img2, img3, img4, img5, img6, img7, img8, img9, actImg] = await Promise.all([
+  const [
+    img1,
+    img2,
+    img3,
+    img4,
+    img5,
+    img6,
+    img7,
+    img8,
+    img9,
+    idleSword,
+    idleHoe,
+    idleWater,
+    idlePick,
+    actSword,
+    actHoe,
+    actWater,
+    actPick,
+    actAxe,
+    actSeed,
+    actFertilizer,
+    actImg,
+  ] = await Promise.all([
     loadTransparentSprite('/assets/aistudio/1_fe19e256.png', 160),
     loadTransparentSprite('/assets/aistudio/2_d7e5517f.png', 160),
     loadTransparentSprite('/assets/aistudio/3_eee24ec5.png', 160),
@@ -453,6 +838,17 @@ async function loadAiFarmerPoses(): Promise<Partial<Record<string, HTMLCanvasEle
     loadTransparentSprite('/assets/aistudio/7_defac37b.png', 160),
     loadTransparentSprite('/assets/aistudio/8_9241f189.png', 160),
     loadTransparentSprite('/assets/aistudio/9_82e708c1.png', 160),
+    loadTransparentSprite(farmerIdleSwordUrl, 160),
+    loadTransparentSprite(farmerIdleHoeUrl, 160),
+    loadTransparentSprite(farmerIdleWaterUrl, 160),
+    loadTransparentSprite(farmerIdlePickUrl, 160),
+    loadTransparentSprite(farmerActionSwordUrl, 175),
+    loadTransparentSprite(farmerActionHoeUrl, 175),
+    loadTransparentSprite(farmerActionWaterUrl, 175),
+    loadTransparentSprite(farmerActionPickUrl, 175),
+    loadTransparentSprite(farmerActionAxeUrl, 175),
+    loadTransparentSprite(farmerActionSeedUrl, 175),
+    loadTransparentSprite(farmerActionFertilizerUrl, 175),
     loadImageElement(farmerActionsSheetUrl),
   ]);
 
@@ -474,6 +870,28 @@ async function loadAiFarmerPoses(): Promise<Partial<Record<string, HTMLCanvasEle
   if (img8) poses.walk1_3 = img8;
   if (img9) poses.walk2_3 = img9;
 
+  if (idleSword) poses.idle_sword_1 = idleSword;
+  if (idleHoe) poses.idle_hoe_1 = idleHoe;
+  if (idleWater) poses.idle_water_1 = idleWater;
+  if (idlePick) poses.idle_pick_1 = idlePick;
+
+  const assignDirectionalAction = (key: string, sp: HTMLCanvasElement | null) => {
+    if (!sp) return;
+    poses[`${key}_0`] = sp;
+    poses[`${key}_1`] = sp;
+    poses[`${key}_3`] = sp;
+    poses[`${key}_2`] = flipCanvasHorizontal(sp);
+  };
+  assignDirectionalAction('action_sword', actSword);
+  assignDirectionalAction('action_hoe', actHoe);
+  assignDirectionalAction('action_water', actWater);
+  assignDirectionalAction('water', actWater);
+  assignDirectionalAction('action_pick', actPick);
+  assignDirectionalAction('action_axe', actAxe);
+  assignDirectionalAction('action_seed', actSeed);
+  assignDirectionalAction('plant', actSeed);
+  assignDirectionalAction('action_fertilizer', actFertilizer);
+
   if (actImg) {
     const aCells = sliceGridSheet(actImg, 4, 2, 165);
     const actOrder: FarmerPose[] = [
@@ -487,6 +905,7 @@ async function loadAiFarmerPoses(): Promise<Partial<Record<string, HTMLCanvasEle
       'sleep',
     ];
     actOrder.forEach((poseName, idx) => {
+      if (poseName === 'water' && actWater) return;
       const sp = aCells[idx];
       if (!sp) return;
       poses[`${poseName}_0`] = sp;
@@ -503,10 +922,12 @@ async function loadAiFarmerPoses(): Promise<Partial<Record<string, HTMLCanvasEle
 let FURNITURE_AI_CACHE: Partial<Record<FurnitureKind, HTMLCanvasElement>> | null = null;
 async function loadAiFurnitureSprites(): Promise<Partial<Record<FurnitureKind, HTMLCanvasElement>>> {
   if (FURNITURE_AI_CACHE) return FURNITURE_AI_CACHE;
-  const [imgA, imgB, imgC] = await Promise.all([
+  const [imgA, imgB, imgC, imgBinerFurn, imgJaringanFurn] = await Promise.all([
     loadImageElement(furnitureSheetAUrl),
     loadImageElement(furnitureSheetBUrl),
     loadImageElement(furnitureSheetCUrl),
+    loadImageElement(binerFurnitureSheetUrl),
+    loadImageElement(jaringanFurnitureSheetUrl),
   ]);
   const map: Partial<Record<FurnitureKind, HTMLCanvasElement>> = {};
 
@@ -556,6 +977,39 @@ async function loadAiFurnitureSprites(): Promise<Partial<Record<FurnitureKind, H
       'beacon_lamp',
       'wood_stack',
       'altar_lamp',
+    ];
+    keys.forEach((k, i) => {
+      if (cells[i]) map[k] = cells[i]!;
+    });
+  }
+  if (imgBinerFurn) {
+    const cells = sliceGridSheet(imgBinerFurn, 4, 3, 200);
+    const keys: FurnitureKind[] = [
+      'elevator_up',
+      'elevator_down',
+      'reception_desk',
+      'server_rack',
+      'exec_desk',
+      'conference_table',
+      'coffee_machine',
+      'vending_machine',
+      'cyber_terminal',
+      'sofa_lounge',
+      'helipad_pad',
+    ];
+    keys.forEach((k, i) => {
+      if (cells[i]) map[k] = cells[i]!;
+    });
+  }
+  if (imgJaringanFurn) {
+    const cells = sliceGridSheet(imgJaringanFurn, 3, 2, 190);
+    const keys: FurnitureKind[] = [
+      'jaringan_bed',
+      'gem_display',
+      'blueprint_table',
+      'stone_anvil',
+      'volcano_hearth',
+      'rattan_sofa',
     ];
     keys.forEach((k, i) => {
       if (cells[i]) map[k] = cells[i]!;
@@ -643,6 +1097,105 @@ async function loadMineAndMonsterSprites(): Promise<MineAssetsPack> {
   return pack;
 }
 
+interface JaringanAssetsPack {
+  jaringanTrees: Partial<Record<JaringanWoodId, HTMLCanvasElement>>;
+  gemIcons: Partial<Record<JaringanGemId, HTMLCanvasElement>>;
+  berryBush: HTMLCanvasElement | null;
+  groundTorch: HTMLCanvasElement | null;
+  jaringanHouses: {
+    t1: HTMLCanvasElement | null;
+    t2: HTMLCanvasElement | null;
+    t3: HTMLCanvasElement | null;
+  };
+  jaringanBuilderHut: HTMLCanvasElement | null;
+  jaringanHall: HTMLCanvasElement | null;
+  jaringanVolcano: HTMLCanvasElement | null;
+  bagItemAiSprites: Partial<Record<BagItemId, HTMLCanvasElement>>;
+}
+
+let JARINGAN_PACK_CACHE: JaringanAssetsPack | null = null;
+
+async function loadJaringanAssets(): Promise<JaringanAssetsPack> {
+  if (JARINGAN_PACK_CACHE) return JARINGAN_PACK_CACHE;
+
+  const [woodsImg, gemsImg, fishImg, treesImg, housesImg] = await Promise.all([
+    loadImageElement(jaringanWoodsSheetUrl),
+    loadImageElement(jaringanGemsSheetUrl),
+    loadImageElement(jaringanFishSheetUrl),
+    loadImageElement(jaringanTreesSheetUrl),
+    loadImageElement(jaringanHousesSheetUrl),
+  ]);
+
+  const pack: JaringanAssetsPack = {
+    jaringanTrees: {},
+    gemIcons: {},
+    berryBush: null,
+    groundTorch: null,
+    jaringanHouses: { t1: null, t2: null, t3: null },
+    jaringanBuilderHut: null,
+    jaringanHall: null,
+    jaringanVolcano: null,
+    bagItemAiSprites: {},
+  };
+
+  const registerBagSprite = (bagId: BagItemId, sp: HTMLCanvasElement | null) => {
+    if (!sp) return;
+    pack.bagItemAiSprites[bagId] = sp;
+    try {
+      AI_BAG_DATA_URLS.set(bagId, sp.toDataURL('image/png'));
+    } catch {
+      // ignore
+    }
+  };
+
+  if (woodsImg) {
+    const cells = sliceGridSheet(woodsImg, 4, 3, 128);
+    JARINGAN_WOOD_IDS.forEach((wid, i) => registerBagSprite(wid, cells[i]));
+    registerBagSprite('item_palu', cells[10]);
+    if (cells[11]) pack.berryBush = cells[11];
+  }
+
+  if (gemsImg) {
+    const cells = sliceGridSheet(gemsImg, 4, 3, 128);
+    JARINGAN_GEM_IDS.forEach((gid, i) => {
+      const sp = cells[i];
+      if (sp) {
+        pack.gemIcons[gid] = sp;
+        registerBagSprite(gid, sp);
+      }
+    });
+    if (!pack.berryBush && cells[10]) pack.berryBush = cells[10];
+    if (cells[11]) pack.groundTorch = cells[11];
+  }
+
+  if (fishImg) {
+    const cells = sliceGridSheet(fishImg, 4, 3, 128);
+    JARINGAN_FISH_IDS.forEach((fid, i) => registerBagSprite(fid, cells[i]));
+  }
+
+  if (treesImg) {
+    const cells = sliceGridSheet(treesImg, 4, 3, 210);
+    JARINGAN_WOOD_IDS.forEach((wid, i) => {
+      if (cells[i]) pack.jaringanTrees[wid] = cells[i]!;
+    });
+  }
+
+  if (housesImg) {
+    const cells = sliceGridSheet(housesImg, 3, 2, 260);
+    pack.jaringanHouses = {
+      t1: cells[0] || null,
+      t2: cells[1] || null,
+      t3: cells[2] || null,
+    };
+    pack.jaringanBuilderHut = cells[3] || null;
+    pack.jaringanHall = cells[4] || null;
+    pack.jaringanVolcano = cells[5] || null;
+  }
+
+  JARINGAN_PACK_CACHE = pack;
+  return pack;
+}
+
 export async function loadAllStardewSprites(): Promise<StardewSprites> {
   const [
     farmer,
@@ -655,9 +1208,12 @@ export async function loadAllStardewSprites(): Promise<StardewSprites> {
     coop,
     sacredTree,
     lighthouse,
+    skyscraper,
+    ferry,
     npcPack,
     furniture,
     minePack,
+    jaringanPack,
   ] = await Promise.all([
     loadTransparentSprite(farmerSpriteUrl, 128),
     loadAiFarmerPoses(),
@@ -669,9 +1225,12 @@ export async function loadAllStardewSprites(): Promise<StardewSprites> {
     loadTransparentSprite(coopSpriteUrl, 220),
     loadTransparentSprite(sacredTreeUrl, 280),
     loadTransparentSprite(lighthouseUrl, 260),
+    loadTransparentSprite(skyscraperSpriteUrl, 340),
+    loadTransparentSprite(ferrySpriteUrl, 240),
     loadSlicedNpcs(),
     loadAiFurnitureSprites(),
     loadMineAndMonsterSprites(),
+    loadJaringanAssets(),
   ]);
 
   return {
@@ -685,6 +1244,8 @@ export async function loadAllStardewSprites(): Promise<StardewSprites> {
     coop,
     sacredTree,
     lighthouse,
+    skyscraper,
+    ferry,
     npcs: npcPack.npcs,
     npcPoses: npcPack.npcPoses,
     npcPortraits: npcPack.npcPortraits,
@@ -696,15 +1257,45 @@ export async function loadAllStardewSprites(): Promise<StardewSprites> {
     mineBomb: minePack.mineBomb,
     mineBoulder: minePack.mineBoulder,
     forgeEmblem: minePack.forgeEmblem,
-    bagItemAiSprites: minePack.bagItemAiSprites,
+    bagItemAiSprites: {
+      ...minePack.bagItemAiSprites,
+      ...jaringanPack.bagItemAiSprites,
+    },
+    jaringanTrees: jaringanPack.jaringanTrees,
+    gemIcons: jaringanPack.gemIcons,
+    berryBush: jaringanPack.berryBush,
+    groundTorch: jaringanPack.groundTorch,
+    jaringanHouses: jaringanPack.jaringanHouses,
+    jaringanBuilderHut: jaringanPack.jaringanBuilderHut,
+    jaringanHall: jaringanPack.jaringanHall,
+    jaringanVolcano: jaringanPack.jaringanVolcano,
   };
 }
 
 export function getAiFarmerPoseSprite(
   sprites: StardewSprites,
   pose: FarmerPose,
-  dir: FarmerDir
+  dir: FarmerDir,
+  activeTool?: StardewToolId
 ): HTMLCanvasElement {
+  if (pose === 'idle' && dir === 1 && activeTool) {
+    const toolPose = sprites.farmerPoses[`idle_${activeTool}_1`];
+    if (toolPose) return toolPose;
+  }
+  if (
+    (pose === 'action_axe' || pose === 'action_seed' || pose === 'action_fertilizer') &&
+    sprites.farmerPoses[`${pose}_${dir}`]
+  ) {
+    return sprites.farmerPoses[`${pose}_${dir}`]!;
+  }
+  if ((pose === 'swing_up' || pose === 'swing_down') && activeTool) {
+    const toolAction = sprites.farmerPoses[`action_${activeTool}_${dir}`];
+    if (toolAction) return toolAction;
+  }
+  if (pose === 'water') {
+    const waterAction = sprites.farmerPoses[`action_water_${dir}`];
+    if (waterAction) return waterAction;
+  }
   return (
     sprites.farmerPoses[`${pose}_${dir}`] ||
     sprites.farmerPoses[`idle_${dir}`] ||
@@ -837,6 +1428,7 @@ export interface PixelAtlas {
   chickenBrown: HTMLCanvasElement;
   crops: Record<CropId, HTMLCanvasElement[]>;
   tools: Record<StardewToolId, HTMLCanvasElement>;
+  toolsByLevel: Record<UpgradeableToolId, HTMLCanvasElement[]>;
   bagItems: Record<BagItemId, HTMLCanvasElement>;
   furniture: Record<Exclude<FurnitureKind, 'rug'>, HTMLCanvasElement>;
 }
@@ -1631,115 +2223,174 @@ export function getStardewPixelAtlas(): PixelAtlas {
     moonfruit: [stageSeeds, stageSprout, midTall, moonfruitRipe],
   };
 
-  // 5. Tools (10 slots)
+  // 5. Tools (10 slots) + Tiered Lv.1-4 Upgraded Tool Icons
+  const makeTieredTool = (toolId: UpgradeableToolId, tier: number): HTMLCanvasElement => {
+    // Tier 1: Besi, Tier 2: Tembaga, Tier 3: Perak Safir, Tier 4: Kristal Bintang Emas
+    const palettes = [
+      { o: '#261409', L: '#f1f5f9', S: '#cbd5e1', D: '#64748b', W: '#c07a3e', B: '#78350f', G: '#facc15', gl: '' },
+      { o: '#2b1206', L: '#fed7aa', S: '#fb923c', D: '#c2410c', W: '#a16207', B: '#713f12', G: '#fde047', gl: '#ffedd5' },
+      { o: '#0f172a', L: '#f0f9ff', S: '#7dd3fc', D: '#0284c7', W: '#475569', B: '#1e293b', G: '#38bdf8', gl: '#e0f2fe' },
+      { o: '#2e1065', L: '#fef9c3', S: '#facc15', D: '#a855f7', W: '#7e22ce', B: '#3b0764', G: '#38bdf8', gl: '#ffffff' },
+    ];
+    const p = palettes[Math.max(0, Math.min(3, tier - 1))];
+    return makePixelCanvas(16, 16, (px) => {
+      if (toolId === 'hoe') {
+        drawMatrix(
+          px,
+          [
+            '........oooooo..',
+            '.......oLLSSSSo.',
+            '......oSSDDDDSo.',
+            '.......ooWWooo..',
+            '........oWWo....',
+            '.......oWWo.....',
+            '......oWWo......',
+            '.....oWWo.......',
+            '....oWWo........',
+            '...oWWo.........',
+            '..oBBo..........',
+            '..ooo...........',
+          ],
+          p,
+          1,
+          2
+        );
+      } else if (toolId === 'water') {
+        drawMatrix(
+          px,
+          [
+            '....oooooo......',
+            '...oLLSSSSo.....',
+            '..oSoooooSSo....',
+            '..oSoSSSSSoSo...',
+            '.oSSoSSWSSooSSo.',
+            '.oSSoSSSSSoSSo..',
+            '..ooSSSSSSSo....',
+            '....oSSSSSo.....',
+            '....oDDDDDo.....',
+            '.....ooooo......',
+          ],
+          { ...p, W: p.L },
+          0,
+          3
+        );
+      } else if (toolId === 'axe') {
+        drawMatrix(
+          px,
+          [
+            '.......ooooo....',
+            '......oLLLLSo...',
+            '.....oLLSSSSSo..',
+            '.....oSSDDSSSo..',
+            '......oooWWoo...',
+            '.......oWWo.....',
+            '......oWWo......',
+            '.....oWWo.......',
+            '....oWWo........',
+            '...oWWo.........',
+            '..oBBo..........',
+            '..ooo...........',
+          ],
+          p,
+          1,
+          2
+        );
+      } else if (toolId === 'pick') {
+        drawMatrix(
+          px,
+          [
+            '....oooooooo....',
+            '..ooLLSSSSLLoo..',
+            '.oSSDDLLLLDDSSo.',
+            '..oo..oWWo..oo..',
+            '......oWWo......',
+            '......oWWo......',
+            '......oWWo......',
+            '......oWWo......',
+            '......oWWo......',
+            '......oBBo......',
+            '.......oo.......',
+          ],
+          p,
+          0,
+          2
+        );
+      } else if (toolId === 'sword') {
+        drawMatrix(
+          px,
+          [
+            '...........ooo..',
+            '..........oLLSo.',
+            '.........oLLSo..',
+            '........oLSSo...',
+            '.......oLSSo....',
+            '......oLSSo.....',
+            '...oooLSSo......',
+            '..oGGGGoo.......',
+            '...oBBo.........',
+            '..oBBo..........',
+            '..oGGo..........',
+            '...oo...........',
+          ],
+          p,
+          1,
+          2
+        );
+      } else {
+        drawMatrix(
+          px,
+          [
+            '...........ooo..',
+            '..........oSSo..',
+            '.........oWWo.L.',
+            '........oWWo..L.',
+            '.......oWWo...L.',
+            '......oWWo...oGo',
+            '.....oWWo....oDo',
+            '....oWWo......o.',
+            '...oWBo.........',
+            '..oBBo..........',
+            '..ooo...........',
+          ],
+          p,
+          0,
+          2
+        );
+      }
+      // Tier Badges & Pixel Glints for Upgraded Tools
+      if (tier >= 2) {
+        px(13, 1, p.gl);
+        px(14, 2, p.S);
+      }
+      if (tier >= 3) {
+        px(2, 2, p.gl);
+        px(3, 1, p.S);
+        px(12, 12, p.G);
+        px(13, 12, p.gl);
+      }
+      if (tier >= 4) {
+        px(1, 1, '#fef08a', 2, 2);
+        px(13, 13, '#38bdf8', 2, 2);
+        px(2, 13, '#e879f9', 2, 1);
+      }
+    });
+  };
+
+  const toolsByLevel: Record<UpgradeableToolId, HTMLCanvasElement[]> = {
+    hoe: [1, 2, 3, 4].map((t) => makeTieredTool('hoe', t)),
+    water: [1, 2, 3, 4].map((t) => makeTieredTool('water', t)),
+    axe: [1, 2, 3, 4].map((t) => makeTieredTool('axe', t)),
+    pick: [1, 2, 3, 4].map((t) => makeTieredTool('pick', t)),
+    sword: [1, 2, 3, 4].map((t) => makeTieredTool('sword', t)),
+    rod: [1, 2, 3, 4].map((t) => makeTieredTool('rod', t)),
+  };
+
   const tools: Record<StardewToolId, HTMLCanvasElement> = {
-    hoe: makePixelCanvas(16, 16, (px) => {
-      drawMatrix(
-        px,
-        [
-          '........oooooo..',
-          '.......oSSSSSSo.',
-          '......oSSDDDDSo.',
-          '.......ooWWooo..',
-          '........oWWo....',
-          '.......oWWo.....',
-          '......oWWo......',
-          '.....oWWo.......',
-          '....oWWo........',
-          '...oWWo.........',
-          '..oBBo..........',
-          '..ooo...........',
-        ],
-        { o: '#261409', S: '#cbd5e1', D: '#64748b', W: '#c07a3e', B: '#78350f' },
-        1,
-        2
-      );
-    }),
-    water: makePixelCanvas(16, 16, (px) => {
-      drawMatrix(
-        px,
-        [
-          '....oooooo......',
-          '...oSSSSSSo.....',
-          '..oSoooooSSo....',
-          '..oSoBBBBBoSo...',
-          '.oSSoBBWBBooSSo.',
-          '.oBBoBBBBBoBBo..',
-          '..ooBBBBBBBo....',
-          '....oBBBBBo.....',
-          '....oDDDDDo.....',
-          '.....ooooo......',
-        ],
-        { o: '#16283d', S: '#93c5fd', B: '#38bdf8', W: '#e0f2fe', D: '#0284c7' },
-        0,
-        3
-      );
-    }),
-    axe: makePixelCanvas(16, 16, (px) => {
-      drawMatrix(
-        px,
-        [
-          '.......ooooo....',
-          '......oLLLLSo...',
-          '.....oLLSSSSSo..',
-          '.....oSSDDSSSo..',
-          '......oooWWoo...',
-          '.......oWWo.....',
-          '......oWWo......',
-          '.....oWWo.......',
-          '....oWWo........',
-          '...oWWo.........',
-          '..oBBo..........',
-          '..ooo...........',
-        ],
-        { o: '#261409', L: '#f1f5f9', S: '#94a3b8', D: '#475569', W: '#c07a3e', B: '#78350f' },
-        1,
-        2
-      );
-    }),
-    pick: makePixelCanvas(16, 16, (px) => {
-      drawMatrix(
-        px,
-        [
-          '....oooooooo....',
-          '..ooSSSSSSSSoo..',
-          '.oSSDDWWWWDDSSo.',
-          '..oo..oWWo..oo..',
-          '......oWWo......',
-          '......oWWo......',
-          '......oWWo......',
-          '......oWWo......',
-          '......oWWo......',
-          '......oBBo......',
-          '.......oo.......',
-        ],
-        { o: '#261409', S: '#cbd5e1', D: '#64748b', W: '#c07a3e', B: '#78350f' },
-        0,
-        2
-      );
-    }),
-    sword: makePixelCanvas(16, 16, (px) => {
-      drawMatrix(
-        px,
-        [
-          '...........ooo..',
-          '..........oWWSo.',
-          '.........oWWSo..',
-          '........oWSSo...',
-          '.......oWSSo....',
-          '......oWSSo.....',
-          '...oooWSSo......',
-          '..oGGGGoo.......',
-          '...oBBo.........',
-          '..oBBo..........',
-          '..oGGo..........',
-          '...oo...........',
-        ],
-        { o: '#1e1b4b', W: '#f8fafc', S: '#38bdf8', G: '#facc15', B: '#78350f' },
-        1,
-        2
-      );
-    }),
+    hoe: toolsByLevel.hoe[0],
+    water: toolsByLevel.water[0],
+    axe: toolsByLevel.axe[0],
+    pick: toolsByLevel.pick[0],
+    sword: toolsByLevel.sword[0],
     harvest: makePixelCanvas(16, 16, (px) => {
       drawMatrix(
         px,
@@ -1799,27 +2450,7 @@ export function getStardewPixelAtlas(): PixelAtlas {
       );
     }),
     sprinkler,
-    rod: makePixelCanvas(16, 16, (px) => {
-      drawMatrix(
-        px,
-        [
-          '...........ooo..',
-          '..........oWWo..',
-          '.........oWWo.L.',
-          '........oWWo..L.',
-          '.......oWWo...L.',
-          '......oWWo...oBo',
-          '.....oWWo....oDo',
-          '....oWWo......o.',
-          '...oWBo.........',
-          '..oBBo..........',
-          '..ooo...........',
-        ],
-        { o: '#291408', W: '#c07a3e', B: '#78350f', L: '#e2e8f0', D: '#38bdf8' },
-        0,
-        2
-      );
-    }),
+    rod: toolsByLevel.rod[0],
   };
 
   // 6. Bag Item Pixel Icons (Fish, Eggs, Artisan, Ores, Forage)
@@ -2069,6 +2700,230 @@ export function getStardewPixelAtlas(): PixelAtlas {
         1,
         5
       );
+    }),
+    biner_espresso: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '....o....o....',
+          '...oooooooo...',
+          '..oCCCCCCCCo..',
+          '..oCBBBBBBCooo',
+          '..oCBBBBBBCoCo',
+          '..oCCCCCCCCoo.',
+          '...oooooooo...',
+        ],
+        { o: '#0f172a', C: '#06b6d4', B: '#451a03' },
+        1,
+        4
+      );
+    }),
+    biner_energy_bar: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '..oooooooooo..',
+          '.oYYYYBBBBYYo.',
+          '.oYBBYYYYBBYo.',
+          '.oBBBBBBBBBBoo',
+          '..ooooooooooo.',
+        ],
+        { o: '#271206', Y: '#facc15', B: '#78350f' },
+        1,
+        5
+      );
+    }),
+    biner_cooling_gel: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.....oooo.....',
+          '....oSSSSo....',
+          '...ooCCCCoo...',
+          '..oCCWWWWCCo..',
+          '..oCCCCCCCCo..',
+          '...ooCCCCoo...',
+          '....oooooo....',
+        ],
+        { o: '#0c4a6e', S: '#cbd5e1', C: '#38bdf8', W: '#e0f2fe' },
+        1,
+        4
+      );
+    }),
+    biner_silicon_chip: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '...o.o..o.o...',
+          '..oooooooooo..',
+          '.oGGGGGGGGGGoo',
+          '.oGYYBBBBYYGGo',
+          '.oGYBCCCCBYGGo',
+          '.oGYYBBBBYYGGo',
+          '..ooooooooooo.',
+          '...o.o..o.o...',
+        ],
+        { o: '#0f172a', G: '#16a34a', Y: '#facc15', B: '#1e293b', C: '#38bdf8' },
+        1,
+        4
+      );
+    }),
+    biner_quantum_battery: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.....oooo.....',
+          '...ooSSSSoo...',
+          '..oPPPPPPPoo..',
+          '..oPPCCCCPPo..',
+          '..oPPCWWCPPoo.',
+          '..oPPPPPPPPo..',
+          '...oooooooo...',
+        ],
+        { o: '#1e1b4b', S: '#facc15', P: '#7c3aed', C: '#38bdf8', W: '#ffffff' },
+        1,
+        4
+      );
+    }),
+    biner_drone_part: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.ooo......ooo.',
+          '..oSSooooSSo..',
+          '...ooCCCCoo...',
+          '....oCCWWCo...',
+          '...ooCCCCoo...',
+          '..oSSooooSSo..',
+          '.ooo......ooo.',
+        ],
+        { o: '#0f172a', S: '#94a3b8', C: '#0ea5e9', W: '#fef08a' },
+        1,
+        4
+      );
+    }),
+    biner_hydro_pod: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '....oooooo....',
+          '...oCCCCCCo...',
+          '..oCCGGGGCCo..',
+          '..oCGGLLGGCo..',
+          '..oSSSSSSSSo..',
+          '...oooooooo...',
+        ],
+        { o: '#0f172a', C: '#bae6fd', G: '#22c55e', L: '#86efac', S: '#64748b' },
+        1,
+        4
+      );
+    }),
+    biner_ferry_ticket: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooo.',
+          '.oCCCCWWCCCCo.',
+          '.oCWYYYYYYWCo.',
+          '.oCCCCWWCCCCo.',
+          '.oooooooooooo.',
+        ],
+        { o: '#0c4a6e', C: '#0284c7', W: '#f8fafc', Y: '#facc15' },
+        1,
+        5
+      );
+    }),
+    biner_vip_card: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooo.',
+          '.oYYYYYYYYYYo.',
+          '.oYPPWWWWPPYo.',
+          '.oYYYYYYYYYYo.',
+          '.oooooooooooo.',
+        ],
+        { o: '#451a03', Y: '#facc15', P: '#9333ea', W: '#ffffff' },
+        1,
+        5
+      );
+    }),
+    biner_server_core: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '....oooooo....',
+          '..ooPPPPPPoo..',
+          '.oPPCCCCCCPPo.',
+          '.oPCCWWWWCCPo.',
+          '.oPPCCCCCCPPo.',
+          '..ooPPPPPPoo..',
+          '....oooooo....',
+        ],
+        { o: '#1e1b4b', P: '#6366f1', C: '#38bdf8', W: '#fef08a' },
+        1,
+        4
+      );
+    }),
+    // Fallback procedural pixel icons for Pulau Jaringan (overridden by AI sprites in AI_BAG_DATA_URLS)
+    ...Object.fromEntries(
+      [
+        ['wood_mahoni', '#9a3412'],
+        ['wood_merbau', '#7c2d12'],
+        ['wood_sonokeling', '#4a1d1f'],
+        ['wood_cendana', '#d97706'],
+        ['wood_ulin', '#57321a'],
+        ['wood_ebony', '#1e293b'],
+        ['wood_sungkai', '#d6a664'],
+        ['wood_trembesi', '#854d0e'],
+        ['wood_meranti', '#c26d48'],
+        ['wood_bengkirai', '#ca8a04'],
+      ].map(([id, col]) => [
+        id,
+        makePixelCanvas(16, 16, (px) => {
+          px(2, 5, '#2b1407', 12, 6);
+          px(3, 6, col, 10, 4);
+          px(11, 6, '#fde68a', 2, 4);
+        }),
+      ])
+    ) as Record<JaringanWoodId, HTMLCanvasElement>,
+    ...Object.fromEntries(
+      [
+        ['gem_akik', '#ea580c'],
+        ['gem_giok', '#10b981'],
+        ['gem_safir', '#2563eb'],
+        ['gem_ruby', '#dc2626'],
+        ['gem_zamrud', '#16a34a'],
+        ['gem_kecubung', '#9333ea'],
+        ['gem_opal', '#38bdf8'],
+        ['gem_oniks', '#334155'],
+        ['gem_topaz', '#eab308'],
+        ['gem_berlian', '#e0f2fe'],
+      ].map(([id, col]) => [
+        id,
+        makePixelCanvas(16, 16, (px) => {
+          px(5, 3, '#0f172a', 6, 10);
+          px(4, 5, '#0f172a', 8, 6);
+          px(5, 5, col, 6, 6);
+          px(6, 4, '#ffffff', 2, 2);
+        }),
+      ])
+    ) as Record<JaringanGemId, HTMLCanvasElement>,
+    ...Object.fromEntries(
+      JARINGAN_FISH_IDS.map((id, idx) => [
+        id,
+        makePixelCanvas(16, 16, (px) => {
+          const cols = ['#0284c7', '#1d4ed8', '#38bdf8', '#0ea5e9', '#ef4444', '#a16207', '#eab308', '#ca8a04', '#94a3b8', '#2563eb'];
+          px(3, 6, '#0f172a', 10, 4);
+          px(4, 7, cols[idx % cols.length], 8, 2);
+          px(12, 5, cols[idx % cols.length], 2, 6);
+        }),
+      ])
+    ) as Record<(typeof JARINGAN_FISH_IDS)[number], HTMLCanvasElement>,
+    item_palu: makePixelCanvas(16, 16, (px) => {
+      px(3, 3, '#475569', 9, 5);
+      px(4, 4, '#cbd5e1', 7, 3);
+      px(7, 8, '#78350f', 2, 6);
     }),
   };
 
@@ -2530,6 +3385,224 @@ export function getStardewPixelAtlas(): PixelAtlas {
         5
       );
     }),
+    elevator_up: makePixelCanvas(24, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '..oooooooooooooooooooo..',
+          '..oSSSSSSSSSSSSSSSSSSo..',
+          '..oSSCCCCooooooCCCCSSo..',
+          '..oSSCCSSGGGGGGSSCCSSo..',
+          '..oSSCCSSGGGGGGSSCCSSo..',
+          '..oSSCCSSGGGGGGSSCCSSo..',
+          '..oSSCCSSGGGGGGSSCCSSo..',
+          '..oDDDDDDDDDDDDDDDDDDo..',
+        ],
+        { o: '#0f172a', S: '#94a3b8', C: '#38bdf8', G: '#22c55e', D: '#475569' },
+        0,
+        5
+      );
+    }),
+    elevator_down: makePixelCanvas(24, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '..oooooooooooooooooooo..',
+          '..oSSSSSSSSSSSSSSSSSSo..',
+          '..oSSCCCCooooooCCCCSSo..',
+          '..oSSCCSSOOOOOOSSCCSSo..',
+          '..oSSCCSSOOOOOOSSCCSSo..',
+          '..oSSCCSSOOOOOOSSCCSSo..',
+          '..oSSCCSSOOOOOOSSCCSSo..',
+          '..oDDDDDDDDDDDDDDDDDDo..',
+        ],
+        { o: '#0f172a', S: '#94a3b8', C: '#38bdf8', O: '#f97316', D: '#475569' },
+        0,
+        5
+      );
+    }),
+    reception_desk: makePixelCanvas(32, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooooooooooo.',
+          '.oWWWWWWWWWWWWWWWWWWWWWWWWWWWWo.',
+          '.oWCCCCCCCCCCWWCCCCCCCCCCCCCCWo.',
+          '.oDDDDDDDDDDDDDDDDDDDDDDDDDDDDo.',
+          '.oSSSSSSSSSSSSSSSSSSSSSSSSSSSSo.',
+          '.oooooooooooooooooooooooooooooo.',
+        ],
+        { o: '#0f172a', W: '#f8fafc', C: '#06b6d4', D: '#334155', S: '#64748b' },
+        0,
+        4
+      );
+    }),
+    server_rack: makePixelCanvas(24, 24, (px) => {
+      drawMatrix(
+        px,
+        [
+          '...oooooooooooooooooo...',
+          '...oBBBBBBBBBBBBBBBBo...',
+          '...oBGGCCBBBBBBGGCCBo...',
+          '...oBBBBBBBBBBBBBBBBo...',
+          '...oBRRCCBBBBBBGGCCBo...',
+          '...oBBBBBBBBBBBBBBBBo...',
+          '...oBGGCCBBBBBBYYCCBo...',
+          '...oBBBBBBBBBBBBBBBBo...',
+          '...oooooooooooooooooo...',
+        ],
+        { o: '#020617', B: '#1e293b', G: '#22c55e', C: '#38bdf8', R: '#ef4444', Y: '#facc15' },
+        0,
+        5
+      );
+    }),
+    exec_desk: makePixelCanvas(24, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oBBBBBBBBBBBBBBBBBBBBo.',
+          '.oBYYBBCCCCCCCCCCBBYYBo.',
+          '.oDDDDDDDDDDDDDDDDDDDDo.',
+          '..oBBo............oBBo..',
+          '..oooo............oooo..',
+        ],
+        { o: '#1e1b4b', B: '#78350f', D: '#451a03', Y: '#facc15', C: '#38bdf8' },
+        0,
+        5
+      );
+    }),
+    conference_table: makePixelCanvas(32, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '..oooooooooooooooooooooooooooo..',
+          '.oWWWWWWWWWWWWWWWWWWWWWWWWWWWWo.',
+          '.oWCCCCCCWWWWCCCCCCWWWWCCCCCCWo.',
+          '.oWDDDDDDWWWWDDDDDDWWWWDDDDDDWo.',
+          '..oooooooooooooooooooooooooooo..',
+          '...oSSo..................oSSo...',
+        ],
+        { o: '#0f172a', W: '#e2e8f0', C: '#38bdf8', D: '#64748b', S: '#475569' },
+        0,
+        5
+      );
+    }),
+    coffee_machine: makePixelCanvas(16, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '..oooooooooooo..',
+          '.oSSSSSSSSSSSSo.',
+          '.oSCCSSSSSSCCSo.',
+          '.oSSoBBBBBBooSo.',
+          '.oSSoWWWWWWooSo.',
+          '.oDDDDDDDDDDDDo.',
+          '..oooooooooooo..',
+        ],
+        { o: '#0f172a', S: '#475569', C: '#06b6d4', B: '#451a03', W: '#f8fafc', D: '#1e293b' },
+        0,
+        4
+      );
+    }),
+    vending_machine: makePixelCanvas(20, 20, (px) => {
+      drawMatrix(
+        px,
+        [
+          '...oooooooooooooo...',
+          '..oCCCCCCCCCCCCCCo..',
+          '..oCRRYBBCCGGYYCCo..',
+          '..oCBBBBCCCCCCBBCo..',
+          '..oCYYYYCCCCCCYYCo..',
+          '..oCCooooooooooCCo..',
+          '..oCCoDDDDDDDDoCCo..',
+          '...oooooooooooooo...',
+        ],
+        { o: '#0f172a', C: '#0284c7', R: '#ef4444', Y: '#facc15', B: '#38bdf8', G: '#22c55e', D: '#1e293b' },
+        0,
+        4
+      );
+    }),
+    cyber_terminal: makePixelCanvas(24, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '..oooooooooooooooooooo..',
+          '.oSSSSSSSSSSSSSSSSSSSSo.',
+          '.oSCCCCCCSSPPPPSSCCCCSo.',
+          '.oSCWWWWCSPPPPPPWCCCCSo.',
+          '.oDDDDDDDDDDDDDDDDDDDDo.',
+          '..oSSo............oSSo..',
+        ],
+        { o: '#020617', S: '#334155', C: '#38bdf8', P: '#a855f7', W: '#ffffff', D: '#1e293b' },
+        0,
+        5
+      );
+    }),
+    sofa_lounge: makePixelCanvas(24, 16, (px) => {
+      drawMatrix(
+        px,
+        [
+          '.oooooooooooooooooooooo.',
+          '.oPPPPPPPPPPPPPPPPPPPPo.',
+          '.oPLLLLLLLLLLLLLLLLLLPo.',
+          '.oPPPPPPPPPPPPPPPPPPPPo.',
+          '.oDDDDDDDDDDDDDDDDDDDDo.',
+          '..oSSo............oSSo..',
+        ],
+        { o: '#1e1b4b', P: '#6366f1', L: '#a5b4fc', D: '#312e81', S: '#94a3b8' },
+        0,
+        5
+      );
+    }),
+    helipad_pad: makePixelCanvas(32, 24, (px) => {
+      drawMatrix(
+        px,
+        [
+          '..oooooooooooooooooooooooooooo..',
+          '.oSSSSSSSSSSSSSSSSSSSSSSSSSSSSo.',
+          '.oSSYYYYYYSSSSSSSSSSSSYYYYYYSSo.',
+          '.oSSYYooYYSSYYooooYYSSYYooYYSSo.',
+          '.oSSYYooYYSSYYYYYYYYSSYYooYYSSo.',
+          '.oSSYYooYYSSYYooooYYSSYYooYYSSo.',
+          '.oSSYYYYYYSSSSSSSSSSSSYYYYYYSSo.',
+          '.oSSSSSSSSSSSSSSSSSSSSSSSSSSSSo.',
+          '..oooooooooooooooooooooooooooo..',
+        ],
+        { o: '#0f172a', S: '#475569', Y: '#facc15' },
+        0,
+        4
+      );
+    }),
+    jaringan_bed: makePixelCanvas(24, 24, (px) => {
+      px(2, 4, '#451a03', 20, 16);
+      px(4, 6, '#fef3c7', 16, 4);
+      px(4, 10, '#10b981', 16, 8);
+    }),
+    gem_display: makePixelCanvas(24, 16, (px) => {
+      px(2, 3, '#78350f', 20, 10);
+      px(5, 5, '#ef4444', 3, 4);
+      px(10, 5, '#38bdf8', 3, 4);
+      px(15, 5, '#22c55e', 3, 4);
+    }),
+    blueprint_table: makePixelCanvas(24, 16, (px) => {
+      px(2, 3, '#78350f', 20, 10);
+      px(4, 4, '#1d4ed8', 16, 7);
+      px(6, 6, '#e0f2fe', 12, 3);
+    }),
+    stone_anvil: makePixelCanvas(16, 16, (px) => {
+      px(2, 5, '#334155', 12, 4);
+      px(5, 9, '#475569', 6, 4);
+    }),
+    volcano_hearth: makePixelCanvas(24, 24, (px) => {
+      px(3, 3, '#334155', 18, 18);
+      px(7, 10, '#ef4444', 10, 9);
+      px(9, 12, '#fde047', 6, 6);
+    }),
+    rattan_sofa: makePixelCanvas(24, 16, (px) => {
+      px(2, 4, '#9a5223', 20, 10);
+      px(4, 6, '#fde68a', 16, 6);
+    }),
   };
 
   CACHED_ATLAS = {
@@ -2559,6 +3632,7 @@ export function getStardewPixelAtlas(): PixelAtlas {
     chickenBrown,
     crops,
     tools,
+    toolsByLevel,
     bagItems,
     furniture,
   };
@@ -2574,6 +3648,13 @@ export type FarmerPose =
   | 'walk2'
   | 'swing_up'
   | 'swing_down'
+  | 'action_sword'
+  | 'action_hoe'
+  | 'action_water'
+  | 'action_pick'
+  | 'action_axe'
+  | 'action_seed'
+  | 'action_fertilizer'
   | 'plant'
   | 'water'
   | 'harvest'
@@ -3120,6 +4201,194 @@ export function renderPixelWorldMapCanvas(
   ctx.fillText('U', cx, cy - 16 + 8);
 }
 
+export function renderBinerWorldMapCanvas(
+  canvas: HTMLCanvasElement,
+  tiles: FarmTile[],
+  binerMissionChapter: number,
+  trees?: WorldTree[]
+): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.imageSmoothingEnabled = false;
+
+  const scale = 8; // 84*8 = 672 x 56*8 = 448 crisp pixels
+  if (canvas.width !== BINER_COLS * scale) canvas.width = BINER_COLS * scale;
+  if (canvas.height !== BINER_ROWS * scale) canvas.height = BINER_ROWS * scale;
+
+  for (let y = 0; y < BINER_ROWS; y++) {
+    for (let x = 0; x < BINER_COLS; x++) {
+      const tile = tiles[y * BINER_COLS + x];
+      if (!tile) continue;
+      const px = x * scale;
+      const py = y * scale;
+
+      if (tile.kind === 'ocean') {
+        ctx.fillStyle = (x + y) % 5 === 0 ? '#0369a1' : '#0284c7';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'sand') {
+        ctx.fillStyle = '#fde68a';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'asphalt' || tile.kind === 'crosswalk') {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(px, py, scale, scale);
+        if (tile.kind === 'crosswalk') {
+          ctx.fillStyle = '#f8fafc';
+          ctx.fillRect(px + 2, py + 1, scale - 4, scale - 2);
+        } else if (x % 2 === 0 || y % 2 === 0) {
+          ctx.fillStyle = '#facc15';
+          ctx.fillRect(px + 3, py + 3, 2, 2);
+        }
+      } else if (tile.kind === 'sidewalk') {
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'plaza') {
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'fountain') {
+        ctx.fillStyle = '#06b6d4';
+        ctx.fillRect(px, py, scale, scale);
+        ctx.fillStyle = '#e0f2fe';
+        ctx.fillRect(px + 2, py + 2, 4, 4);
+      } else if (tile.kind === 'helipad_tile') {
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(px, py, scale, scale);
+        ctx.fillStyle = '#facc15';
+        ctx.fillRect(px + 2, py + 2, 4, 4);
+      } else if (tile.kind === 'solar_panel') {
+        ctx.fillStyle = '#1d4ed8';
+        ctx.fillRect(px + 1, py + 1, scale - 2, scale - 2);
+      } else if (tile.kind === 'pier' || tile.kind === 'biner_ferry') {
+        ctx.fillStyle = tile.kind === 'biner_ferry' ? '#f8fafc' : '#9a5223';
+        ctx.fillRect(px, py, scale, scale);
+      } else {
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(px, py, scale, scale);
+      }
+    }
+  }
+
+  if (trees) {
+    trees.forEach((tr) => {
+      if (tr.hp <= 0) return;
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(tr.x * scale + 1, tr.y * scale + 1, scale - 2, scale - 2);
+    });
+  }
+
+  const drawCorpBlock = (tx: number, ty: number, tw: number, th: number, top: string, border: string) => {
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(tx * scale - 2, ty * scale - 2, tw * scale + 4, th * scale + 4);
+    ctx.fillStyle = border;
+    ctx.fillRect(tx * scale, ty * scale, tw * scale, th * scale);
+    ctx.fillStyle = top;
+    ctx.fillRect(tx * scale + 3, ty * scale + 3, tw * scale - 6, th * scale - 6);
+  };
+
+  drawCorpBlock(38, 17, 6, 6, '#06b6d4', '#f8fafc'); // Menara Biner Corp (4 Lt)
+  drawCorpBlock(56, 17, 5, 6, '#6366f1', '#c7d2fe'); // Menara Kuantum Data (3 Lt)
+  drawCorpBlock(20, 27, 5, 5, '#ec4899', '#fce7f3'); // Mal & Kafe Siber (2 Lt)
+  drawCorpBlock(57, 27, 5, 5, '#f59e0b', '#fef3c7'); // Hotel Eksekutif (2 Lt)
+  drawCorpBlock(43, 46, 5, 3, '#0ea5e9', '#ffffff'); // Ferri Pulau Biner
+
+  // Mission Chapter Badge in Top-Left
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+  ctx.fillRect(8, 8, 96, 22);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(8, 8, 96, 22);
+  ctx.fillStyle = '#e0f2fe';
+  ctx.font = 'bold 10px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(`BINER CH.${Math.min(5, binerMissionChapter)}`, 14, 22);
+}
+
+export function renderJaringanWorldMapCanvas(
+  canvas: HTMLCanvasElement,
+  tiles: FarmTile[],
+  trees?: WorldTree[],
+  isVolcanicAsh?: boolean
+): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.imageSmoothingEnabled = false;
+
+  const scale = 6; // 110*6 = 660 x 76*6 = 456 crisp pixels
+  if (canvas.width !== JARINGAN_COLS * scale) canvas.width = JARINGAN_COLS * scale;
+  if (canvas.height !== JARINGAN_ROWS * scale) canvas.height = JARINGAN_ROWS * scale;
+
+  for (let y = 0; y < JARINGAN_ROWS; y++) {
+    for (let x = 0; x < JARINGAN_COLS; x++) {
+      const tile = tiles[y * JARINGAN_COLS + x];
+      if (!tile) continue;
+      const px = x * scale;
+      const py = y * scale;
+
+      if (tile.kind === 'ocean') {
+        ctx.fillStyle = (x + y) % 5 === 0 ? '#0369a1' : '#0c4a6e';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'sand') {
+        ctx.fillStyle = '#fde68a';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'forest_floor') {
+        ctx.fillStyle = '#14532d';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'plaza') {
+        ctx.fillStyle = '#57534e';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'volcano_rock') {
+        ctx.fillStyle = '#292524';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'volcano_lava') {
+        ctx.fillStyle = '#f97316';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'bridge' || tile.kind === 'pier') {
+        ctx.fillStyle = '#b45309';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'house_plot') {
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (
+        tile.kind === 'jaringan_house_t1' ||
+        tile.kind === 'jaringan_house_t2' ||
+        tile.kind === 'jaringan_house_t3'
+      ) {
+        ctx.fillStyle = tile.kind === 'jaringan_house_t3' ? '#38bdf8' : tile.kind === 'jaringan_house_t2' ? '#10b981' : '#f59e0b';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'jaringan_hall') {
+        ctx.fillStyle = '#7c3aed';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'jaringan_builder_hut') {
+        ctx.fillStyle = '#ea580c';
+        ctx.fillRect(px, py, scale, scale);
+      } else if (tile.kind === 'jaringan_ferry') {
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(px, py, scale, scale);
+      } else {
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(px, py, scale, scale);
+      }
+
+      if (tile.debris && tile.debris.startsWith('gem_')) {
+        ctx.fillStyle = '#f472b6';
+        ctx.fillRect(px + 1, py + 1, scale - 2, scale - 2);
+      }
+    }
+  }
+
+  if (trees) {
+    trees.forEach((tr) => {
+      if (tr.hp <= 0) return;
+      ctx.fillStyle = '#166534';
+      ctx.fillRect(tr.x * scale + 1, tr.y * scale + 1, scale - 2, scale - 2);
+    });
+  }
+
+  if (isVolcanicAsh) {
+    ctx.fillStyle = 'rgba(15, 15, 20, 0.35)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
 const DATA_URL_CACHE = new Map<string, string>();
 
 export function getPixelCropDataUrl(cropId: CropId): string {
@@ -3131,11 +4400,18 @@ export function getPixelCropDataUrl(cropId: CropId): string {
   return url;
 }
 
-export function getPixelToolDataUrl(toolId: StardewToolId): string {
-  const key = `tool_${toolId}`;
+export function getPixelToolDataUrl(toolId: StardewToolId, level = 1): string {
+  const safeLv = Math.max(1, Math.min(4, Math.floor(level)));
+  const upgradeable: UpgradeableToolId[] = ['hoe', 'water', 'axe', 'pick', 'sword', 'rod'];
+  const isUp = (upgradeable as string[]).includes(toolId);
+  const key = isUp ? `tool_${toolId}_lv${safeLv}` : `tool_${toolId}`;
   const existing = DATA_URL_CACHE.get(key);
   if (existing) return existing;
-  const url = getStardewPixelAtlas().tools[toolId].toDataURL('image/png');
+  const atlas = getStardewPixelAtlas();
+  const canvas = isUp
+    ? atlas.toolsByLevel[toolId as UpgradeableToolId][safeLv - 1]
+    : atlas.tools[toolId];
+  const url = canvas.toDataURL('image/png');
   DATA_URL_CACHE.set(key, url);
   return url;
 }
