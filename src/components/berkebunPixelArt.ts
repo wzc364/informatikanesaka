@@ -14,9 +14,9 @@ import farmerActionSwordUrl from '../assets/images/farmer_action_sword_179548216
 import farmerActionHoeUrl from '../assets/images/farmer_action_hoe_1795482165290.jpg';
 import farmerActionWaterUrl from '../assets/images/farmer_action_water_1795482164100.jpg';
 import farmerActionPickUrl from '../assets/images/farmer_action_pick_v2_1795482182499.jpg';
-import farmerActionAxeUrl from '../assets/images/farmer_action_axe_1795482745395.jpg';
-import farmerActionSeedUrl from '../assets/images/farmer_action_seed_1795482749482.jpg';
-import farmerActionFertilizerUrl from '../assets/images/farmer_action_fertilizer_1795482748671.jpg';
+import farmerActionAxeUrl from '../assets/images/farmer_action_pick_v2_1795482182499.jpg';
+import farmerActionSeedUrl from '../assets/images/berkebun_farmer_actions_sheet_1795352733967.jpg';
+import farmerActionFertilizerUrl from '../assets/images/berkebun_farmer_actions_sheet_1795352733967.jpg';
 import skyscraperSpriteUrl from '../assets/images/pulau_biner_skyscraper_1795482749036.jpg';
 import ferrySpriteUrl from '../assets/images/pulau_biner_ferry_1795482748148.jpg';
 import farmhouseSpriteUrl from '../assets/images/berkebun_farmhouse_pixel_1795346951463.jpg';
