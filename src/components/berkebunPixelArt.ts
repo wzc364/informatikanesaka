@@ -14,11 +14,40 @@ import farmerActionSwordUrl from '../assets/images/farmer_action_sword_179548216
 import farmerActionHoeUrl from '../assets/images/farmer_action_hoe_1795482165290.jpg';
 import farmerActionWaterUrl from '../assets/images/farmer_action_water_1795482164100.jpg';
 import farmerActionPickUrl from '../assets/images/farmer_action_pick_v2_1795482182499.jpg';
-import farmerActionAxeUrl from '../assets/images/farmer_action_pick_v2_1795482182499.jpg';
-import farmerActionSeedUrl from '../assets/images/berkebun_farmer_actions_sheet_1795352733967.jpg';
-import farmerActionFertilizerUrl from '../assets/images/berkebun_farmer_actions_sheet_1795352733967.jpg';
-import skyscraperSpriteUrl from '../assets/images/pulau_biner_skyscraper_1795482749036.jpg';
-import ferrySpriteUrl from '../assets/images/pulau_biner_ferry_1795482748148.jpg';
+const OPTIONAL_SPRITE_SHEETS = import.meta.glob<string>(
+  [
+    '../assets/images/farmer_action_axe_1795482745395*.jpg',
+    '../assets/images/farmer_action_seed_1795482749482*.jpg',
+    '../assets/images/farmer_action_fertilizer_1795482748671*.jpg',
+    '../assets/images/pulau_biner_skyscraper_1795482749036*.jpg',
+    '../assets/images/pulau_biner_ferry_1795482748148*.jpg',
+    '../assets/images/biner_npc_sheet_1_1795488593968*.jpg',
+    '../assets/images/biner_npc_sheet_2_1795488594499*.jpg',
+    '../assets/images/biner_npc_sheet_3_1795488595349*.jpg',
+    '../assets/images/biner_npc_sheet_4_1795488596098*.jpg',
+    '../assets/images/biner_npc_sheet_5_1795488597348*.jpg',
+    '../assets/images/biner_furniture_sheet_1795488597402*.jpg',
+    '../assets/images/jaringan_woods_sheet_1795499300451*.jpg',
+    '../assets/images/jaringan_gems_sheet_1795499301944*.jpg',
+    '../assets/images/jaringan_fish_sheet_clean_1795499371044*.jpg',
+    '../assets/images/jaringan_trees_sheet_1795499305706*.jpg',
+    '../assets/images/jaringan_houses_sheet_1795499306490*.jpg',
+    '../assets/images/jaringan_furniture_sheet_1795499308563*.jpg',
+    '../assets/images/jaringan_npc_sheet_1_1795499307681*.jpg',
+    '../assets/images/jaringan_npc_sheet_2_1795499371759*.jpg',
+  ],
+  { eager: true, import: 'default' }
+);
+
+function optSpriteUrl(path: string, fallback = ''): string {
+  return OPTIONAL_SPRITE_SHEETS[path] || fallback;
+}
+
+const farmerActionAxeUrl = optSpriteUrl('../assets/images/farmer_action_axe_1795482745395.jpg', farmerActionPickUrl);
+const farmerActionSeedUrl = optSpriteUrl('../assets/images/farmer_action_seed_1795482749482.jpg', farmerActionsSheetUrl);
+const farmerActionFertilizerUrl = optSpriteUrl('../assets/images/farmer_action_fertilizer_1795482748671.jpg', farmerActionsSheetUrl);
+const skyscraperSpriteUrl = optSpriteUrl('../assets/images/pulau_biner_skyscraper_1795482749036.jpg');
+const ferrySpriteUrl = optSpriteUrl('../assets/images/pulau_biner_ferry_1795482748148.jpg');
 import farmhouseSpriteUrl from '../assets/images/berkebun_farmhouse_pixel_1795346951463.jpg';
 import shopSpriteUrl from '../assets/images/berkebun_shop_pixel_1795346951275.jpg';
 import binSpriteUrl from '../assets/images/berkebun_bin_pixel_1795346952182.jpg';
@@ -36,20 +65,20 @@ import palmTreeUrl from '../assets/images/berkebun_palm_tree_pixel_1795348518032
 import coopSpriteUrl from '../assets/images/berkebun_coop_pixel_1795348518625.jpg';
 import sacredTreeUrl from '../assets/images/berkebun_sacred_tree_pixel_1795348518161.jpg';
 import lighthouseUrl from '../assets/images/berkebun_lighthouse_pixel_1795348518004.jpg';
-import binerNpcSheet1Url from '../assets/images/biner_npc_sheet_1_1795488593968.jpg';
-import binerNpcSheet2Url from '../assets/images/biner_npc_sheet_2_1795488594499.jpg';
-import binerNpcSheet3Url from '../assets/images/biner_npc_sheet_3_1795488595349.jpg';
-import binerNpcSheet4Url from '../assets/images/biner_npc_sheet_4_1795488596098.jpg';
-import binerNpcSheet5Url from '../assets/images/biner_npc_sheet_5_1795488597348.jpg';
-import binerFurnitureSheetUrl from '../assets/images/biner_furniture_sheet_1795488597402.jpg';
-import jaringanWoodsSheetUrl from '../assets/images/jaringan_woods_sheet_1795499300451.jpg';
-import jaringanGemsSheetUrl from '../assets/images/jaringan_gems_sheet_1795499301944.jpg';
-import jaringanFishSheetUrl from '../assets/images/jaringan_fish_sheet_clean_1795499371044.jpg';
-import jaringanTreesSheetUrl from '../assets/images/jaringan_trees_sheet_1795499305706.jpg';
-import jaringanHousesSheetUrl from '../assets/images/jaringan_houses_sheet_1795499306490.jpg';
-import jaringanFurnitureSheetUrl from '../assets/images/jaringan_furniture_sheet_1795499308563.jpg';
-import jaringanNpcSheet1Url from '../assets/images/jaringan_npc_sheet_1_1795499307681.jpg';
-import jaringanNpcSheet2Url from '../assets/images/jaringan_npc_sheet_2_1795499371759.jpg';
+const binerNpcSheet1Url = optSpriteUrl('../assets/images/biner_npc_sheet_1_1795488593968.jpg');
+const binerNpcSheet2Url = optSpriteUrl('../assets/images/biner_npc_sheet_2_1795488594499.jpg');
+const binerNpcSheet3Url = optSpriteUrl('../assets/images/biner_npc_sheet_3_1795488595349.jpg');
+const binerNpcSheet4Url = optSpriteUrl('../assets/images/biner_npc_sheet_4_1795488596098.jpg');
+const binerNpcSheet5Url = optSpriteUrl('../assets/images/biner_npc_sheet_5_1795488597348.jpg');
+const binerFurnitureSheetUrl = optSpriteUrl('../assets/images/biner_furniture_sheet_1795488597402.jpg');
+const jaringanWoodsSheetUrl = optSpriteUrl('../assets/images/jaringan_woods_sheet_1795499300451.jpg');
+const jaringanGemsSheetUrl = optSpriteUrl('../assets/images/jaringan_gems_sheet_1795499301944.jpg');
+const jaringanFishSheetUrl = optSpriteUrl('../assets/images/jaringan_fish_sheet_clean_1795499371044.jpg');
+const jaringanTreesSheetUrl = optSpriteUrl('../assets/images/jaringan_trees_sheet_1795499305706.jpg');
+const jaringanHousesSheetUrl = optSpriteUrl('../assets/images/jaringan_houses_sheet_1795499306490.jpg');
+const jaringanFurnitureSheetUrl = optSpriteUrl('../assets/images/jaringan_furniture_sheet_1795499308563.jpg');
+const jaringanNpcSheet1Url = optSpriteUrl('../assets/images/jaringan_npc_sheet_1_1795499307681.jpg');
+const jaringanNpcSheet2Url = optSpriteUrl('../assets/images/jaringan_npc_sheet_2_1795499371759.jpg');
 import {
   WORLD_COLS,
   WORLD_ROWS,
@@ -270,6 +299,7 @@ function stripExteriorWhiteAndTrim(
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement | null> {
+  if (!src) return Promise.resolve(null);
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -291,6 +321,7 @@ function loadImageElement(src: string): Promise<HTMLImageElement | null> {
 }
 
 function loadTransparentSprite(src: string, maxDim = 260): Promise<HTMLCanvasElement | null> {
+  if (!src) return Promise.resolve(null);
   const key = `${src}@${maxDim}`;
   const cached = PROCESSED_CACHE.get(key);
   if (cached) return Promise.resolve(cached);
