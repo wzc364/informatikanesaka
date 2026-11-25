@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Calendar,
   Target,
@@ -458,6 +459,23 @@ export default function AdminAdministrasi({
     }
   };
 
+  const getAgendaCardTheme = (index: number) => {
+    switch (index % 6) {
+      case 0:
+        return 'bg-gradient-to-br from-[#4f46e5] via-[#4338ca] to-[#3730a3] shadow-lg shadow-indigo-950/30 ring-1 ring-white/15';
+      case 1:
+        return 'bg-gradient-to-br from-[#9333ea] via-[#7e22ce] to-[#6b21a8] shadow-lg shadow-purple-950/30 ring-1 ring-white/15';
+      case 2:
+        return 'bg-gradient-to-br from-[#059669] via-[#047857] to-[#065f46] shadow-lg shadow-emerald-950/30 ring-1 ring-white/15';
+      case 3:
+        return 'bg-gradient-to-br from-[#ea580c] via-[#d9480f] to-[#9a3412] shadow-lg shadow-orange-950/30 ring-1 ring-white/15';
+      case 4:
+        return 'bg-gradient-to-br from-[#e11d48] via-[#be123c] to-[#9f1239] shadow-lg shadow-rose-950/30 ring-1 ring-white/15';
+      default:
+        return 'bg-gradient-to-br from-[#0284c7] via-[#0369a1] to-[#1d4ed8] shadow-lg shadow-sky-950/30 ring-1 ring-white/15';
+    }
+  };
+
   const openNewJadwalModal = (preset?: {
     hari?: JadwalPelajaranItem['hari'];
     jamKe?: string;
@@ -837,6 +855,7 @@ export default function AdminAdministrasi({
   // ============================================================================
   // 3. AGENDA HARIAN STATE (Tergantung pada Jadwal Pelajaran)
   // ============================================================================
+  const [agendaSelectedDate, setAgendaSelectedDate] = useState<string>(getTodayIsoDate());
   const [agendaClassFilter, setAgendaClassFilter] = useState('all');
   const [agendaSearch, setAgendaSearch] = useState('');
   const [isAgendaModalOpen, setIsAgendaModalOpen] = useState(false);
@@ -879,6 +898,44 @@ export default function AdminAdministrasi({
     alpaCount: 0,
   });
 
+  const agendaSelectedHari = useMemo(
+    () => getHariFromDate(agendaSelectedDate),
+    [agendaSelectedDate]
+  );
+
+  const todaySchedules = useMemo(() => {
+    return jadwalList
+      .filter((j) => !j.isBreak && j.hari === agendaSelectedHari)
+      .slice()
+      .sort((a, b) => parseSlotNumber(a.jamKe) - parseSlotNumber(b.jamKe));
+  }, [jadwalList, agendaSelectedHari]);
+
+  const findRecordedAgendaForSchedule = (
+    jadwal: JadwalPelajaranItem,
+    dateStr: string
+  ): AgendaHarianItem | undefined => {
+    return agendaList.find(
+      (ag) =>
+        ag.tanggal === dateStr &&
+        (ag.jadwalId === jadwal.id ||
+          (!ag.jadwalId &&
+            ag.kelas === jadwal.kelas &&
+            (ag.jamKe === jadwal.jamKe || ag.waktuMulai === jadwal.waktuMulai)))
+    );
+  };
+
+  const todayScheduleSummary = useMemo(() => {
+    const total = todaySchedules.length;
+    const recorded = todaySchedules.filter((j) =>
+      Boolean(findRecordedAgendaForSchedule(j, agendaSelectedDate))
+    ).length;
+    return {
+      total,
+      recorded,
+      unfilled: Math.max(0, total - recorded),
+    };
+  }, [todaySchedules, agendaList, agendaSelectedDate]);
+
   const findAttendanceCounts = (kelas: string, tanggal: string, agendaId?: string) => {
     const rec = agendaId
       ? absensiList.find((a) => a.agendaId === agendaId) ||
@@ -906,13 +963,14 @@ export default function AdminAdministrasi({
   const openNewAgendaModal = (
     presetJadwal?: JadwalPelajaranItem,
     presetDate?: string,
-    presetKelas?: string
+    presetKelas?: string,
+    isExtraZeroSlot?: boolean
   ) => {
-    const today = presetDate || getTodayIsoDate();
+    const today = presetDate || agendaSelectedDate || getTodayIsoDate();
     const dayName = getHariFromDate(today);
 
     let matchedJadwal: JadwalPelajaranItem | undefined = presetJadwal;
-    if (!matchedJadwal) {
+    if (!matchedJadwal && !isExtraZeroSlot) {
       if (presetKelas) {
         matchedJadwal =
           jadwalList.find(
@@ -933,12 +991,12 @@ export default function AdminAdministrasi({
     setEditingAgendaId(null);
     setAgendaForm({
       tanggal: today,
-      jadwalId: matchedJadwal?.id || '',
+      jadwalId: isExtraZeroSlot ? '' : matchedJadwal?.id || '',
       hari: matchedJadwal?.hari || dayName,
       kelas: defaultKelas,
-      jamKe: matchedJadwal?.jamKe || '1',
-      waktuMulai: matchedJadwal?.waktuMulai || '07:30',
-      waktuSelesai: matchedJadwal?.waktuSelesai || '08:50',
+      jamKe: isExtraZeroSlot ? '0' : matchedJadwal?.jamKe || '1',
+      waktuMulai: isExtraZeroSlot ? '06:30' : matchedJadwal?.waktuMulai || '07:30',
+      waktuSelesai: isExtraZeroSlot ? '07:15' : matchedJadwal?.waktuSelesai || '08:50',
       mataPelajaran: matchedJadwal?.mataPelajaran || 'Informatika',
       pertemuanKe: String(classExistingCount + 1),
       tpId: tpList[0]?.id || '',
@@ -2490,167 +2548,424 @@ export default function AdminAdministrasi({
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 3: AGENDA HARIAN                                                  */}
+      {/* TAB 3: AGENDA HARIAN (Per Kartu Sesuai Jadwal Hari Ini)               */}
       {/* ===================================================================== */}
       {subTab === 'agenda' && (
-        <div className="space-y-5">
-          <div className="admin-glass-card rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2.5 flex-1">
-              <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={agendaSearch}
-                  onChange={(e) => setAgendaSearch(e.target.value)}
-                  placeholder="Cari materi, kegiatan, kode TP..."
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100"
-                />
+        <div className="space-y-6">
+          {/* Top Blue Summary Banner */}
+          <div className="rounded-2xl md:rounded-3xl bg-gradient-to-r from-[#2563eb] via-[#2b5cf6] to-[#3b82f6] p-3.5 md:p-5 shadow-xl shadow-blue-950/25 border border-white/20">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+              <div className="rounded-xl bg-white/15 backdrop-blur-xs border border-white/20 px-4 py-3 flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-full bg-white/15 border border-white/25 flex items-center justify-center text-white shrink-0">
+                  <Clock size={18} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-blue-100">
+                    JADWAL MENGAJAR
+                  </p>
+                  <p className="text-base md:text-lg font-black text-white tabular-nums">
+                    {todayScheduleSummary.total} Sesi Kelas
+                  </p>
+                </div>
               </div>
-              <select
-                value={agendaClassFilter}
-                onChange={(e) => setAgendaClassFilter(e.target.value)}
-                className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100"
-              >
-                <option value="all">Semua Kelas</option>
-                {classOptions.map((c) => (
-                  <option key={c} value={c}>
-                    Kelas {c}
-                  </option>
-                ))}
-              </select>
+
+              <div className="rounded-xl bg-white/15 backdrop-blur-xs border border-white/20 px-4 py-3 flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-full bg-white/15 border border-white/25 flex items-center justify-center text-white shrink-0">
+                  <CheckCircle2 size={18} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-blue-100">
+                    SUDAH TERCATAT
+                  </p>
+                  <p className="text-base md:text-lg font-black text-white tabular-nums">
+                    {todayScheduleSummary.recorded} Agenda
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-white/15 backdrop-blur-xs border border-white/20 px-4 py-3 flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-full bg-white/15 border border-white/25 flex items-center justify-center text-white shrink-0">
+                  <AlertCircle size={18} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-blue-100">
+                    BELUM TERISI
+                  </p>
+                  <p className="text-base md:text-lg font-black text-white tabular-nums">
+                    {todayScheduleSummary.unfilled} Sesi
+                  </p>
+                </div>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => openNewAgendaModal()}
-              className="px-4 py-2.5 rounded-xl bg-brand hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm cursor-pointer w-fit"
-            >
-              <Plus size={15} />
-              Catat Agenda Harian
-            </button>
           </div>
 
-          <div className="admin-glass-card rounded-2xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[820px]">
-                <thead>
-                  <tr className="bg-white/30 dark:bg-white/5 border-b border-white/40 dark:border-white/10 text-slate-600 dark:text-slate-300 text-[10px] uppercase font-extrabold tracking-widest">
-                    <th className="p-4">Tanggal & Pertemuan</th>
-                    <th className="p-4">Kelas</th>
-                    <th className="p-4">TP & Materi Pokok</th>
-                    <th className="p-4">Kegiatan & Catatan</th>
-                    <th className="p-4 text-center">Kehadiran (H/S/I/A)</th>
-                    <th className="p-4 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {filteredAgenda.length > 0 ? (
-                    filteredAgenda.map((ag) => (
-                      <tr key={ag.id} className="hover:bg-blue-50/30 dark:hover:bg-slate-800/50 transition-colors align-top">
-                        <td className="p-4 text-xs font-bold text-slate-800 dark:text-slate-200 tabular-nums whitespace-nowrap">
-                          <div>{ag.tanggal}</div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                            Pertemuan ke-{ag.pertemuanKe}
-                          </div>
-                          <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-brand dark:text-blue-400">
-                            <Clock size={11} />
-                            {ag.hari || getHariFromDate(ag.tanggal)} {ag.jamKe ? `· Jam ${ag.jamKe}` : ''}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-800 dark:text-slate-200">
-                            {ag.kelas}
-                          </span>
-                        </td>
-                        <td className="p-4 max-w-xs">
-                          <div className="flex flex-wrap items-center gap-1 mb-1">
-                            {ag.tpKode && (
-                              <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-black font-mono">
-                                {ag.tpKode}
-                              </span>
-                            )}
-                            {ag.mataPelajaran && (
-                              <span className="inline-block px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                                {ag.mataPelajaran}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm font-extrabold text-slate-900 dark:text-white">
-                            {ag.materi}
-                          </div>
-                        </td>
-                        <td className="p-4 max-w-sm text-xs text-slate-700 dark:text-slate-300 space-y-1">
-                          <p>{ag.kegiatan || '-'}</p>
-                          {ag.catatan && (
-                            <p className="text-[11px] text-amber-700 dark:text-amber-300 italic">
-                              Catatan: {ag.catatan}
+          {/* Section Header: JADWAL MENGAJAR ANDA (HARI) */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0">
+                <Clock size={17} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                  JADWAL MENGAJAR ANDA ({agendaSelectedHari.toUpperCase()})
+                </h3>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  Pilih sesi kelas di bawah untuk langsung mencatat jurnal KBM
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                <Calendar size={14} className="text-brand dark:text-blue-400 shrink-0" />
+                <input
+                  type="date"
+                  value={agendaSelectedDate}
+                  onChange={(e) => {
+                    if (e.target.value) setAgendaSelectedDate(e.target.value);
+                  }}
+                  aria-label="Pilih tanggal jadwal"
+                  className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none tabular-nums"
+                />
+                {agendaSelectedDate !== getTodayIsoDate() && (
+                  <button
+                    type="button"
+                    onClick={() => setAgendaSelectedDate(getTodayIsoDate())}
+                    className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-brand dark:text-blue-300 text-[10px] font-extrabold hover:bg-blue-100 cursor-pointer"
+                  >
+                    Hari Ini
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => openNewAgendaModal(undefined, agendaSelectedDate, undefined, true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-extrabold uppercase tracking-wide flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer active:scale-95"
+              >
+                <Plus size={15} />
+                AGENDA TAMBAHAN (JAM 0)
+              </button>
+            </div>
+          </div>
+
+          {/* Grid of Today's Schedule Cards */}
+          {todaySchedules.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {todaySchedules.map((sched, idx) => {
+                const recordedAgenda = findRecordedAgendaForSchedule(sched, agendaSelectedDate);
+                const cardTheme = getAgendaCardTheme(idx);
+                const timeRange =
+                  sched.waktuMulai && sched.waktuSelesai
+                    ? `${sched.waktuMulai}–${sched.waktuSelesai}`
+                    : `${sched.waktuMulai || ''}`;
+
+                return (
+                  <div
+                    key={sched.id}
+                    onClick={() =>
+                      recordedAgenda
+                        ? openEditAgendaModal(recordedAgenda)
+                        : openNewAgendaModal(sched, agendaSelectedDate)
+                    }
+                    className={`${cardTheme} rounded-2xl p-4 sm:p-5 text-white relative overflow-hidden flex flex-col justify-between gap-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl`}
+                  >
+                    {/* Top Row: Jam pill, Waktu pill, Status badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-[10px] font-black uppercase tracking-wider">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+                          JAM {sched.jamKe}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-xs text-[10px] font-bold font-mono tabular-nums">
+                          <Clock size={10} className="shrink-0" />
+                          {timeRange}
+                        </span>
+                      </div>
+
+                      {recordedAgenda ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-400/30 border border-emerald-200/40 text-[10px] font-black uppercase tracking-wider shrink-0">
+                          <Check size={10} />
+                          TERCATAT
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] font-black uppercase tracking-wider shrink-0">
+                          BELUM
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Middle Row: Class & Subject Badge */}
+                    <div className="flex items-center justify-between gap-3 py-0.5">
+                      <h4 className="text-2xl font-black uppercase tracking-tight leading-none truncate">
+                        KELAS {sched.kelas}
+                      </h4>
+                      <span className="px-3 py-1 rounded-full bg-white/15 border border-white/25 text-[10px] font-black uppercase tracking-wider shrink-0">
+                        {sched.mataPelajaran || 'INFORMATIKA'}
+                      </span>
+                    </div>
+
+                    {/* Bottom Divider + Status Text + Action Pill */}
+                    <div className="border-t border-white/15 pt-3 flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        {recordedAgenda ? (
+                          <p
+                            className="text-[11px] font-bold text-white/95 truncate"
+                            title={recordedAgenda.materi}
+                          >
+                            {recordedAgenda.materi}
+                          </p>
+                        ) : (
+                          <p className="text-[11px] font-medium italic text-white/80">
+                            Siap diisi
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {recordedAgenda && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAbsensiClass(recordedAgenda.kelas);
+                              setSelectedAgendaId(recordedAgenda.id);
+                              setSubTab('absensi');
+                              setAbsensiMode('input');
+                            }}
+                            className="px-2.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-[10px] font-black uppercase tracking-wide flex items-center gap-1 transition-colors cursor-pointer"
+                            title="Isi atau ubah absensi kelas untuk agenda ini"
+                          >
+                            <ClipboardCheck size={11} />
+                            ABSENSI
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (recordedAgenda) {
+                              openEditAgendaModal(recordedAgenda);
+                            } else {
+                              openNewAgendaModal(sched, agendaSelectedDate);
+                            }
+                          }}
+                          className="bg-white text-slate-900 hover:bg-white/90 px-3.5 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide inline-flex items-center gap-1 shadow-sm cursor-pointer transition-transform active:scale-95"
+                        >
+                          {recordedAgenda ? 'EDIT' : 'CATAT'}
+                          <ChevronRight size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="admin-glass-card rounded-2xl p-8 md:p-10 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-brand dark:text-blue-400 mx-auto">
+                <CalendarClock size={22} />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold text-slate-800 dark:text-slate-100">
+                  Tidak ada jadwal mengajar rutin pada hari {agendaSelectedHari} ({agendaSelectedDate})
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Pilih tanggal hari efektif belajar lain, catat Agenda Tambahan (Jam 0), atau atur jadwal di tab Jadwal Pelajaran.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => openNewAgendaModal(undefined, agendaSelectedDate, undefined, true)}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={14} />
+                  Agenda Tambahan (Jam 0)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSubTab('jadwal')}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Calendar size={14} />
+                  Buka Jadwal Pelajaran
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Recorded Agendas Section */}
+          <div className="border-t border-slate-200/80 dark:border-white/10 pt-5 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200/70 dark:border-blue-800/60 flex items-center justify-center text-brand dark:text-blue-400">
+                  <BookOpenCheck size={16} />
+                </div>
+                <h3 className="text-xs md:text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-100">
+                  DAFTAR AGENDA TERINPUT ({filteredAgenda.length})
+                </h3>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative min-w-[200px] sm:w-64">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={agendaSearch}
+                    onChange={(e) => setAgendaSearch(e.target.value)}
+                    placeholder="Cari materi, kegiatan, kode TP..."
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+                <select
+                  value={agendaClassFilter}
+                  onChange={(e) => setAgendaClassFilter(e.target.value)}
+                  className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100"
+                >
+                  <option value="all">Semua Kelas</option>
+                  {classOptions.map((c) => (
+                    <option key={c} value={c}>
+                      Kelas {c}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => openNewAgendaModal(undefined, agendaSelectedDate)}
+                  className="px-3.5 py-2 rounded-xl bg-brand hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <Plus size={14} />
+                  Catat Manual
+                </button>
+              </div>
+            </div>
+
+            <div className="admin-glass-card rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[820px]">
+                  <thead>
+                    <tr className="bg-white/30 dark:bg-white/5 border-b border-white/40 dark:border-white/10 text-slate-500 dark:text-slate-400 text-[10px] uppercase font-extrabold tracking-widest">
+                      <th className="p-4">Urutan Jam</th>
+                      <th className="p-4">Rombel / Mapel</th>
+                      <th className="p-4">Topik &amp; Kegiatan</th>
+                      <th className="p-4 text-center">Status</th>
+                      <th className="p-4 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredAgenda.length > 0 ? (
+                      filteredAgenda.map((ag) => (
+                        <tr key={ag.id} className="hover:bg-blue-50/30 dark:hover:bg-slate-800/50 transition-colors align-top">
+                          <td className="p-4 text-xs font-bold text-slate-800 dark:text-slate-200 tabular-nums whitespace-nowrap">
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-brand dark:text-blue-300 text-[11px] font-black">
+                              <Clock size={11} />
+                              {ag.jamKe ? `Jam ${ag.jamKe}` : 'Jam -'}
+                              {ag.waktuMulai ? ` (${ag.waktuMulai}${ag.waktuSelesai ? `–${ag.waktuSelesai}` : ''})` : ''}
+                            </div>
+                            <div className="mt-1.5 text-slate-700 dark:text-slate-300 font-bold">
+                              {ag.hari || getHariFromDate(ag.tanggal)}, {ag.tanggal}
+                            </div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+                              Pertemuan ke-{ag.pertemuanKe}
+                            </div>
+                          </td>
+                          <td className="p-4 whitespace-nowrap">
+                            <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-black text-slate-800 dark:text-slate-100">
+                              KELAS {ag.kelas}
+                            </span>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                              {ag.mataPelajaran && (
+                                <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-extrabold uppercase text-slate-600 dark:text-slate-300">
+                                  {ag.mataPelajaran}
+                                </span>
+                              )}
+                              {ag.tpKode && (
+                                <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-black font-mono">
+                                  {ag.tpKode}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4 max-w-md">
+                            <div className="text-sm font-extrabold text-slate-900 dark:text-white">
+                              {ag.materi}
+                            </div>
+                            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                              {ag.kegiatan || '-'}
                             </p>
-                          )}
-                        </td>
-                        <td className="p-4 text-center whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1 text-[11px] font-extrabold tabular-nums">
-                            <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
-                              H:{ag.hadirCount}
-                            </span>
-                            <span className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
-                              S:{ag.sakitCount}
-                            </span>
-                            <span className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
-                              I:{ag.izinCount}
-                            </span>
-                            <span className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
-                              A:{ag.alpaCount}
-                            </span>
-                          </div>
-                          <div className="mt-1.5">
+                            {ag.catatan && (
+                              <p className="text-[11px] text-amber-700 dark:text-amber-300 italic mt-1">
+                                Catatan: {ag.catatan}
+                              </p>
+                            )}
+                          </td>
+                          <td className="p-4 text-center whitespace-nowrap">
+                            <div className="inline-flex items-center gap-1 text-[11px] font-extrabold tabular-nums">
+                              <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                                H:{ag.hadirCount}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+                                S:{ag.sakitCount}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+                                I:{ag.izinCount}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
+                                A:{ag.alpaCount}
+                              </span>
+                            </div>
+                            <div className="mt-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAbsensiClass(ag.kelas);
+                                  setSelectedAgendaId(ag.id);
+                                  setSubTab('absensi');
+                                  setAbsensiMode('input');
+                                }}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wide transition-all cursor-pointer ${
+                                  isAgendaAttended(ag.id, ag.kelas, ag.tanggal)
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                                    : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100'
+                                }`}
+                                title="Buka absensi untuk pertemuan agenda ini"
+                              >
+                                <ClipboardCheck size={11} />
+                                {isAgendaAttended(ag.id, ag.kelas, ag.tanggal) ? 'Ubah Absensi' : 'Isi Absensi'}
+                              </button>
+                            </div>
+                          </td>
+                          <td className="p-4 text-right whitespace-nowrap">
                             <button
                               type="button"
-                              onClick={() => {
-                                setAbsensiClass(ag.kelas);
-                                setSelectedAgendaId(ag.id);
-                                setSubTab('absensi');
-                                setAbsensiMode('input');
-                              }}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wide transition-all cursor-pointer ${
-                                isAgendaAttended(ag.id, ag.kelas, ag.tanggal)
-                                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
-                                  : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100'
-                              }`}
-                              title="Buka absensi untuk pertemuan agenda ini"
+                              onClick={() => openEditAgendaModal(ag)}
+                              className="p-2 rounded-lg text-slate-500 hover:text-brand hover:bg-brand/10 mr-1 cursor-pointer"
+                              title="Edit Agenda"
                             >
-                              <ClipboardCheck size={11} />
-                              {isAgendaAttended(ag.id, ag.kelas, ag.tanggal) ? 'Ubah Absensi' : 'Isi Absensi'}
+                              <Edit2 size={14} />
                             </button>
-                          </div>
-                        </td>
-                        <td className="p-4 text-right whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => openEditAgendaModal(ag)}
-                            className="p-2 rounded-lg text-slate-500 hover:text-brand hover:bg-brand/10 mr-1"
-                            title="Edit Agenda"
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteAgenda(ag.id)}
-                            className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50"
-                            title="Hapus Agenda"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAgenda(ag.id)}
+                              className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
+                              title="Hapus Agenda"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-10 text-center text-slate-400 dark:text-slate-500 text-sm font-semibold">
+                          Belum ada agenda harian terinput pada TA {activeTahunPelajaran} Semester {activeSemester}. Pilih kartu jadwal di atas untuk mulai mencatat.
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="p-12 text-center text-slate-400 dark:text-slate-500 text-sm font-semibold">
-                        Belum ada agenda harian pada TA {activeTahunPelajaran} Semester {activeSemester}.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -3485,15 +3800,15 @@ export default function AdminAdministrasi({
       )}
 
       {/* ===================================================================== */}
-      {/* MODALS: JADWAL, TP, AGENDA, SUMATIF                                   */}
+      {/* MODALS: JADWAL, TP, AGENDA, SUMATIF (Portaled above sidebar/header)   */}
       {/* ===================================================================== */}
-      {isJadwalModalOpen && (() => {
+      {typeof document !== 'undefined' && isJadwalModalOpen && createPortal((() => {
         const modalDayCfg = effectiveJadwalSettings.days[jadwalForm.hari] || effectiveJadwalSettings.days.Senin;
         const modalMaxSlots = Math.max(modalDayCfg.totalSlots, jadwalForm.sampaiJamKe, 12);
         const slotOptions = Array.from({ length: modalMaxSlots }, (_, i) => i + 1);
 
         return (
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] bg-slate-900/65 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 w-full max-w-lg p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
@@ -3793,10 +4108,10 @@ export default function AdminAdministrasi({
           </div>
         </div>
         );
-      })()}
+      })(), document.body)}
 
-      {isTpModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+      {typeof document !== 'undefined' && isTpModalOpen && createPortal(
+        <div className="fixed inset-0 z-[200] bg-slate-900/65 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 w-full max-w-lg p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
@@ -3897,11 +4212,12 @@ export default function AdminAdministrasi({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {isAgendaModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+      {typeof document !== 'undefined' && isAgendaModalOpen && createPortal(
+        <div className="fixed inset-0 z-[200] bg-slate-900/65 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 w-full max-w-lg p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
@@ -4247,11 +4563,12 @@ export default function AdminAdministrasi({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {isSumatifModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+      {typeof document !== 'undefined' && isSumatifModalOpen && createPortal(
+        <div className="fixed inset-0 z-[200] bg-slate-900/65 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 w-full max-w-md p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
@@ -4349,7 +4666,8 @@ export default function AdminAdministrasi({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

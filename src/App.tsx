@@ -3047,7 +3047,7 @@ export default function App() {
         (printingMaterialCourseId || (adminTab === 'materials' && materialSubTab === 'analisis_soal' && hasPrintableQuestionAnalysis)) && "print:hidden"
       )}>
         {/* Mobile Header */}
-        <div className="md:hidden fixed top-2 left-2 right-2 h-12 admin-glass-header rounded-xl z-50 flex items-center justify-between px-3 transition-colors duration-200">
+        <div className="md:hidden fixed top-2 left-2 right-2 h-12 admin-glass-header rounded-xl z-40 flex items-center justify-between px-3 transition-colors duration-200">
           <div className="flex items-center gap-2 min-w-0">
             <div className="bg-slate-100 dark:bg-slate-800 w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden relative border border-slate-200/80 dark:border-slate-700 shrink-0">
               <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
@@ -3083,7 +3083,7 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/8 dark:bg-black/20 z-50 md:hidden"
+              className="fixed inset-0 bg-slate-900/8 dark:bg-black/20 z-40 md:hidden"
               onClick={() => setIsAdminSidebarOpen(false)}
             />
           )}
@@ -3091,7 +3091,7 @@ export default function App() {
 
         {/* Sidebar Navigation (Clear Frosted Glass) */}
         <aside className={cn(
-          "admin-glass-sidebar fixed inset-y-3 left-3 z-50 w-72 rounded-3xl overflow-hidden transition-transform duration-200 transform md:relative md:inset-auto md:z-20 md:m-4 md:mr-0 md:h-[calc(100vh-2rem)] md:translate-x-0",
+          "admin-glass-sidebar fixed inset-y-3 left-3 z-40 w-72 rounded-3xl overflow-hidden transition-transform duration-200 transform md:relative md:inset-auto md:z-20 md:m-4 md:mr-0 md:h-[calc(100vh-2rem)] md:translate-x-0",
           isAdminSidebarOpen ? "translate-x-0" : "-translate-x-[calc(100%+1.5rem)]"
         )}>
           <div className="relative z-10 p-5 flex flex-col h-full">
@@ -3343,7 +3343,7 @@ export default function App() {
           </header>
           
           <div className="admin-glass-shell relative overflow-hidden rounded-3xl p-4 md:p-6">
-            <div className="relative z-10">
+            <div>
             {adminTab === 'dashboard' && (() => {
               const activeSessionList = activeSessions.filter(s => {
                 if (!s.lastActive) return true;
@@ -4525,7 +4525,7 @@ export default function App() {
             {/* Student Detail Popup */}
             <AnimatePresence>
               {studentDetail && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -6030,7 +6030,7 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto"
+                className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[200] flex items-center justify-center p-4 overflow-y-auto"
               >
                 <motion.div 
                   initial={{ scale: 0.95, y: 16 }}
@@ -6309,7 +6309,7 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+                className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[200] flex items-center justify-center p-4"
               >
                 <motion.div 
                   initial={{ scale: 0.95, opacity: 0, y: 16 }}
@@ -6369,7 +6369,7 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+                className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[200] flex items-center justify-center p-4"
               >
                 <motion.div 
                   initial={{ scale: 0.95, opacity: 0, y: 16 }}
@@ -6428,7 +6428,7 @@ export default function App() {
           </AnimatePresence>
           <AnimatePresence>
             {isAnnouncementModalOpen && (
-              <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+              <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[200] flex items-center justify-center p-4">
                 <motion.div 
                   initial={{ scale: 0.95, y: 16, opacity: 0 }}
                   animate={{ scale: 1, y: 0, opacity: 1 }}
@@ -6579,7 +6579,7 @@ export default function App() {
             )}
 
             {isImportModalOpen && (
-              <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+              <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[200] flex items-center justify-center p-4">
                 <motion.div 
                   initial={{ scale: 0.95, y: 16, opacity: 0 }}
                   animate={{ scale: 1, y: 0, opacity: 1 }}
