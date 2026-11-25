@@ -32,6 +32,7 @@ interface AdminQuestionAnalysisProps {
   logoUrl?: string;
   suppressPrintPortal?: boolean;
   onHasPrintableResultChange?: (hasResult: boolean) => void;
+  scopeKey?: string;
 }
 
 const STORAGE_KEY = 'ruang_informatika_question_analyses_v1';
@@ -93,7 +94,12 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
   logoUrl = '/images/labkom_nesaka_logo.jpg',
   suppressPrintPortal = false,
   onHasPrintableResultChange,
+  scopeKey,
 }) => {
+  const effectiveStorageKey =
+    !scopeKey || scopeKey === '2025-2026_Ganjil'
+      ? STORAGE_KEY
+      : `${STORAGE_KEY}_${scopeKey}`;
   const [title, setTitle] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -113,7 +119,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
   const [savedHistory, setSavedHistory] = useState<QuestionAnalysisResult[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(effectiveStorageKey);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? parsed : [];
@@ -125,7 +131,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
   const [activeResult, setActiveResult] = useState<QuestionAnalysisResult | null>(() => {
     if (typeof window === 'undefined') return null;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(effectiveStorageKey);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
@@ -133,6 +139,20 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
       return null;
     }
   });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(effectiveStorageKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      const list = Array.isArray(parsed) ? parsed : [];
+      setSavedHistory(list);
+      setActiveResult(list.length > 0 ? list[0] : null);
+    } catch {
+      setSavedHistory([]);
+      setActiveResult(null);
+    }
+  }, [effectiveStorageKey]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previewSheetRef = useRef<HTMLDivElement | null>(null);
@@ -151,7 +171,7 @@ export const AdminQuestionAnalysis: React.FC<AdminQuestionAnalysisProps> = ({
   const persistHistory = (items: QuestionAnalysisResult[]) => {
     setSavedHistory(items);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, 8)));
+      localStorage.setItem(effectiveStorageKey, JSON.stringify(items.slice(0, 8)));
     } catch {
       // ignore storage quota errors
     }

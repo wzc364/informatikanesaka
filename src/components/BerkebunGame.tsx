@@ -5422,11 +5422,17 @@ export default function BerkebunGame({
               queue.push({
                 sortY: py + TILE_SIZE - 4,
                 render: () => {
-                  const sp =
-                    (tile.debris!.startsWith('gem_') ? sprites.gemIcons[tile.debris as JaringanGemId] : null) ||
-                    (tile.debris === 'forage_berry' ? sprites.berryBush : null) ||
-                    sprites.bagItemAiSprites[tile.debris as BagItemId] ||
-                    atlas[tile.debris!];
+                  const isPlainRock =
+                    tile.debris === 'stone' ||
+                    tile.debris === 'ore_copper' ||
+                    tile.debris === 'ore_silver' ||
+                    tile.debris === 'ore_star' ||
+                    tile.debris!.startsWith('gem_');
+                  const sp = isPlainRock
+                    ? atlas.stone
+                    : (tile.debris === 'forage_berry' ? sprites.berryBush : null) ||
+                      sprites.bagItemAiSprites[tile.debris as BagItemId] ||
+                      atlas[tile.debris!];
                   if (sp) ctx.drawImage(sp, px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
                 },
               });

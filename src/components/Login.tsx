@@ -4,13 +4,19 @@ import { db } from '../firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { motion } from 'motion/react';
 import { getBackgroundPreset } from '../backgrounds';
+import { DEFAULT_SEMESTER, DEFAULT_TAHUN_PELAJARAN } from '../administrasiTypes';
 
 interface LoginProps {
   setCurrentPage: (page: 'student_dashboard' | 'login' | 'admin' | 'course') => void;
   setIsAdmin: (isAdmin: boolean) => void;
   setCurrentStudent: (student: any) => void;
   setCurrentScore: (score: number) => void;
-  settingsConfig?: { logoUrl?: string; backgroundPreset?: string };
+  settingsConfig?: {
+    logoUrl?: string;
+    backgroundPreset?: string;
+    activeTahunPelajaran?: string;
+    activeSemester?: 'Ganjil' | 'Genap';
+  };
   isDarkMode?: boolean;
   onToggleDarkMode?: () => void;
 }
@@ -90,8 +96,20 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
         return;
       }
 
-      const studentData = querySnapshot.docs[0].data();
-      const studentObj = { id: querySnapshot.docs[0].id, ...studentData };
+      const activeYear = settingsConfig?.activeTahunPelajaran || DEFAULT_TAHUN_PELAJARAN;
+      const matchingDocs = querySnapshot.docs.filter((docSnap) => {
+        const data = docSnap.data() as any;
+        return (data.tahunPelajaran || DEFAULT_TAHUN_PELAJARAN) === activeYear;
+      });
+
+      if (matchingDocs.length === 0) {
+        alert(`Akun siswa dengan NISN tersebut tidak terdaftar pada Tahun Pelajaran aktif (${activeYear}).`);
+        setIsLoading(false);
+        return;
+      }
+
+      const studentData = matchingDocs[0].data();
+      const studentObj = { id: matchingDocs[0].id, ...studentData };
       
       logAccess(studentObj);
       setCurrentScore(100);
@@ -137,7 +155,9 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
             <div className="absolute top-0 left-0 w-full h-1.5 bg-brand" />
           </motion.div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">SMPN 1 Kawali</h1>
-          <p className="text-slate-600 dark:text-slate-400 font-medium">Ruang Informatika • Pembelajaran Interaktif</p>
+          <p className="text-slate-600 dark:text-slate-400 font-medium">
+            Ruang Informatika • TA {settingsConfig?.activeTahunPelajaran || DEFAULT_TAHUN_PELAJARAN} ({settingsConfig?.activeSemester || DEFAULT_SEMESTER})
+          </p>
         </div>
 
         <motion.div 

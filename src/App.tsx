@@ -72,7 +72,10 @@ import {
   Palette,
   Check,
   Sun,
-  Moon
+  Moon,
+  FolderKanban,
+  CalendarDays,
+  Copy
 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
@@ -84,13 +87,28 @@ import { Topic, SoalSet, SoalQuestion } from './types';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { db } from './firebase';
-import { collection, addDoc, doc, deleteDoc, updateDoc, setDoc, query, where, onSnapshot, increment, serverTimestamp, arrayUnion } from 'firebase/firestore';                
+import { collection, addDoc, doc, deleteDoc, updateDoc, setDoc, query, where, onSnapshot, increment, serverTimestamp, arrayUnion, writeBatch } from 'firebase/firestore';                
 import Login from './components/Login';
 import AdminGames from './components/AdminGames';
 import AdminSoal from './components/AdminSoal';
+import AdminAdministrasi from './components/AdminAdministrasi';
 import StudentSoalRunner from './components/StudentSoalRunner';
 import { AdminMaterialPrintModal } from './components/AdminMaterialPrintModal';
 import { AdminQuestionAnalysis } from './components/AdminQuestionAnalysis';
+import {
+  DEFAULT_JADWAL_SCHEDULE_SETTINGS,
+  DEFAULT_SEMESTER,
+  DEFAULT_TAHUN_PELAJARAN,
+  DEFAULT_TAHUN_PELAJARAN_LIST,
+  JadwalPelajaranItem,
+  JadwalScheduleSettings,
+  SemesterType,
+  buildScopedAssessmentDocId,
+  buildScopedMaterialDocId,
+  computeDayScheduleSlots,
+  normalizeJadwalScheduleSettings,
+  slugifyTermPart,
+} from './administrasiTypes';
 import { resolveCourseImageUrl, getPublicFallbackImageUrl } from './courseImageMap';
 import { APP_BACKGROUNDS, getBackgroundPreset } from './backgrounds';
 import { dedupeHighestGameScores, formatScoreTimestamp, getScoreTimestampMs } from './scoreUtils';
@@ -294,10 +312,10 @@ export default function App() {
     }
   }, [currentStudent]);
   const [password, setPassword] = useState('');
-  const [adminTab, setAdminTab] = useState<'dashboard' | 'student_management' | 'materials' | 'questions' | 'history' | 'assessments' | 'settings' | 'announcements' | 'games'>('dashboard');
+  const [adminTab, setAdminTab] = useState<'dashboard' | 'administrasi' | 'student_management' | 'materials' | 'questions' | 'history' | 'assessments' | 'settings' | 'announcements' | 'games'>('dashboard');
   const [studentSubTab, setStudentSubTab] = useState<'students' | 'classes'>('classes');
-  const [students, setStudents] = useState<{id: string, nis: string, nama: string, jenisKelamin: string, kelas: string}[]>([]);
-  const [materialConfigs, setMaterialConfigs] = useState<Record<string, {
+  const [students, setStudents] = useState<{id: string, nis: string, nama: string, jenisKelamin: string, kelas: string, tahunPelajaran?: string}[]>([]);
+  const [legacyMaterialConfigs, setLegacyMaterialConfigs] = useState<Record<string, {
     isActive: boolean; 
     isGatekeepingEnabled?: boolean; 
     isFullScreen?: boolean;
@@ -311,7 +329,33 @@ export default function App() {
     defaultQuizAvailableAt?: number;
     useGlobalTimers?: boolean;
   }>>({});
-  const [settingsConfig, setSettingsConfig] = useState<{logoUrl: string; backgroundPreset?: string}>({ logoUrl: '', backgroundPreset: 'default' });
+  const [scopedMaterialConfigs, setScopedMaterialConfigs] = useState<Record<string, any>>({});
+  const [settingsConfig, setSettingsConfig] = useState<{
+    logoUrl: string;
+    backgroundPreset?: string;
+    activeTahunPelajaran?: string;
+    activeSemester?: SemesterType;
+    tahunPelajaranList?: string[];
+    jadwalSettings?: JadwalScheduleSettings;
+  }>({
+    logoUrl: '',
+    backgroundPreset: 'default',
+    activeTahunPelajaran: DEFAULT_TAHUN_PELAJARAN,
+    activeSemester: DEFAULT_SEMESTER,
+    tahunPelajaranList: DEFAULT_TAHUN_PELAJARAN_LIST,
+    jadwalSettings: DEFAULT_JADWAL_SCHEDULE_SETTINGS,
+  });
+  const [jadwalSettingsDraft, setJadwalSettingsDraft] = useState<JadwalScheduleSettings>(
+    DEFAULT_JADWAL_SCHEDULE_SETTINGS
+  );
+  const [isSavingJadwalSettings, setIsSavingJadwalSettings] = useState(false);
+  const [jadwalSettingsNotice, setJadwalSettingsNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [newAcademicYearInput, setNewAcademicYearInput] = useState('');
+  const [termSettingsNotice, setTermSettingsNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isCopyStudentsModalOpen, setIsCopyStudentsModalOpen] = useState(false);
+  const [copySourceTahunPelajaran, setCopySourceTahunPelajaran] = useState(DEFAULT_TAHUN_PELAJARAN);
+  const [isCopyingStudents, setIsCopyingStudents] = useState(false);
+  const [copyStudentsNotice, setCopyStudentsNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     try {
       return localStorage.getItem('ruang_informatika_theme') === 'dark';
@@ -601,17 +645,65 @@ export default function App() {
     seedPolaBilanganSoal();
   }, [soalSets]);
 
+  const activeTahunPelajaran = settingsConfig?.activeTahunPelajaran || DEFAULT_TAHUN_PELAJARAN;
+  const activeSemester: SemesterType = settingsConfig?.activeSemester === 'Genap' ? 'Genap' : 'Ganjil';
+  const isDefaultTerm = activeTahunPelajaran === DEFAULT_TAHUN_PELAJARAN && activeSemester === DEFAULT_SEMESTER;
+
+  const tahunPelajaranList = useMemo(() => {
+    const raw = Array.isArray(settingsConfig?.tahunPelajaranList) ? settingsConfig.tahunPelajaranList : [];
+    return Array.from(new Set([...DEFAULT_TAHUN_PELAJARAN_LIST, ...raw, activeTahunPelajaran])).sort();
+  }, [settingsConfig?.tahunPelajaranList, activeTahunPelajaran]);
+
+  const materialConfigs = useMemo(() => {
+    const merged: Record<string, any> = {};
+    COURSES.forEach(course => {
+      const scopedId = buildScopedMaterialDocId(course.id, activeTahunPelajaran, activeSemester);
+      if (scopedMaterialConfigs[scopedId]) {
+        merged[course.id] = scopedMaterialConfigs[scopedId];
+      } else if (isDefaultTerm && legacyMaterialConfigs[course.id]) {
+        merged[course.id] = legacyMaterialConfigs[course.id];
+      } else {
+        merged[course.id] = {
+          isActive: false,
+          isGatekeepingEnabled: true,
+          isFullScreen: false,
+          isScoreVisible: true,
+          topicTimers: {},
+          quizTimers: {},
+          quizAvailableAt: {},
+        };
+      }
+    });
+    return merged;
+  }, [scopedMaterialConfigs, legacyMaterialConfigs, activeTahunPelajaran, activeSemester, isDefaultTerm]);
+
+  const isCourseActive = (courseId: string) => {
+    return materialConfigs[courseId]?.isActive ?? isDefaultTerm;
+  };
+
+  const scopedStudents = useMemo(() => {
+    return students.filter(s => (s.tahunPelajaran || DEFAULT_TAHUN_PELAJARAN) === activeTahunPelajaran);
+  }, [students, activeTahunPelajaran]);
+
+  const scopedAssessments = useMemo(() => {
+    return assessments.filter(a => {
+      const aYear = a.tahunPelajaran || DEFAULT_TAHUN_PELAJARAN;
+      const aSem = a.semester || DEFAULT_SEMESTER;
+      return aYear === activeTahunPelajaran && aSem === activeSemester;
+    });
+  }, [assessments, activeTahunPelajaran, activeSemester]);
+
   const groupedClasses = useMemo(() => {
     const classMap: Record<string, number> = {};
-    students.forEach(s => {
+    scopedStudents.forEach(s => {
       classMap[s.kelas] = (classMap[s.kelas] || 0) + 1;
     });
     return classMap;
-  }, [students]);
+  }, [scopedStudents]);
 
   const groupedAssessments = useMemo(() => {
     const data: Record<string, { title: string; classes: Record<string, { name: string; results: any[] }> }> = {};
-    assessments.forEach(a => {
+    scopedAssessments.forEach(a => {
       if (!data[a.courseTitle]) {
         data[a.courseTitle] = { title: a.courseTitle, classes: {} };
       }
@@ -621,7 +713,7 @@ export default function App() {
       data[a.courseTitle].classes[a.studentKelas].results.push(a);
     });
     return data;
-  }, [assessments]);
+  }, [scopedAssessments]);
 
   useEffect(() => {
     if (assessmentNav.course && !groupedAssessments[assessmentNav.course]) {
@@ -632,6 +724,13 @@ export default function App() {
   }, [groupedAssessments, assessmentNav]);
   const [studentAssessments, setStudentAssessments] = useState<any[]>([]);
   const [studentGameScores, setStudentGameScores] = useState<any[]>([]);
+  const scopedStudentAssessments = useMemo(() => {
+    return studentAssessments.filter(a => {
+      const aYear = a.tahunPelajaran || DEFAULT_TAHUN_PELAJARAN;
+      const aSem = a.semester || DEFAULT_SEMESTER;
+      return aYear === activeTahunPelajaran && aSem === activeSemester;
+    });
+  }, [studentAssessments, activeTahunPelajaran, activeSemester]);
   const unreadNotifications = useMemo(() => notifications.filter(n => n.isRead !== true), [notifications]);
   const bestAdminGameScores = useMemo(() => dedupeHighestGameScores(gameScoresList), [gameScoresList]);
   const currentBgPreset = useMemo(() => getBackgroundPreset(settingsConfig?.backgroundPreset), [settingsConfig?.backgroundPreset]);
@@ -659,24 +758,30 @@ export default function App() {
   const [materialToggleTarget, setMaterialToggleTarget] = useState<{id: string, title: string, nextStatus: boolean} | null>(null);
   
   const filteredStudents = useMemo(() => {
-    return students.filter(s => 
+    return scopedStudents.filter(s => 
       s.nama.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
       s.nis.includes(studentSearchQuery) ||
       s.kelas.toLowerCase().includes(studentSearchQuery.toLowerCase())
     );
-  }, [students, studentSearchQuery]);
+  }, [scopedStudents, studentSearchQuery]);
 
   const sortedFilteredStudents = useMemo(() => {
     return [...filteredStudents].sort((a, b) => a.nama.localeCompare(b.nama));
   }, [filteredStudents]);
 
   const [studentDetail, setStudentDetail] = useState<{student: any, score: number} | null>(null);
+
+  useEffect(() => {
+    setSelectedStudentIds([]);
+    setStudentDetail(null);
+    setEditingStudentId(null);
+  }, [activeTahunPelajaran]);
   
   const getStudentScore = (studentId: string) => {
-    const studentAssessments = assessments.filter(a => a.studentId === studentId);
-    if (studentAssessments.length === 0) return 0;
-    const totalScore = studentAssessments.reduce((sum, a) => sum + Number(a.score), 0);
-    return Math.round(totalScore / studentAssessments.length);
+    const items = scopedAssessments.filter(a => a.studentId === studentId);
+    if (items.length === 0) return 0;
+    const totalScore = items.reduce((sum, a) => sum + Number(a.score), 0);
+    return Math.round(totalScore / items.length);
   };
 
   const toggleSelectStudent = (id: string) => {
@@ -740,13 +845,13 @@ export default function App() {
         }
       } else if (deleteType === 'assessment') {
         if (deleteAssessmentInfo?.isBulkClass && deleteAssessmentInfo.kelas && deleteAssessmentInfo.courseTitle) {
-          const targetAssessments = assessments.filter(
+          const targetAssessments = scopedAssessments.filter(
             a => a.studentKelas === deleteAssessmentInfo.kelas && a.courseTitle === deleteAssessmentInfo.courseTitle
           );
           const promises = targetAssessments.map(a => deleteDoc(doc(db, 'assessments', a.id)));
           await Promise.all(promises);
         } else if (deleteAssessmentInfo?.isBulkCourse && deleteAssessmentInfo.courseTitle) {
-          const targetAssessments = assessments.filter(
+          const targetAssessments = scopedAssessments.filter(
             a => a.courseTitle === deleteAssessmentInfo.courseTitle
           );
           const promises = targetAssessments.map(a => deleteDoc(doc(db, 'assessments', a.id)));
@@ -804,12 +909,18 @@ export default function App() {
   const saveMaterialConfig = async () => {
     if (!editingMaterialConfigId || !localMaterialConfig) return;
     setIsSavingConfig(true);
+    const scopedId = buildScopedMaterialDocId(editingMaterialConfigId, activeTahunPelajaran, activeSemester);
     try {
-      await setDoc(doc(db, 'material_configs', editingMaterialConfigId), localMaterialConfig, { merge: true });
-      // materialConfigs will be updated via onSnapshot
+      await setDoc(doc(db, 'scoped_material_configs', scopedId), {
+        ...localMaterialConfig,
+        courseId: editingMaterialConfigId,
+        tahunPelajaran: activeTahunPelajaran,
+        semester: activeSemester,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
       setEditingMaterialConfigId(null);
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `material_configs/${editingMaterialConfigId}`);
+      handleFirestoreError(err, OperationType.UPDATE, `scoped_material_configs/${scopedId}`);
     } finally {
       setIsSavingConfig(false);
     }
@@ -1044,7 +1155,12 @@ export default function App() {
 
     if (currentStudent && activeCourse) {
       try {
-        const assessmentId = `${currentStudent.id}_${activeCourse.id}`;
+        const assessmentId = buildScopedAssessmentDocId(
+          currentStudent.id,
+          activeCourse.id,
+          activeTahunPelajaran,
+          activeSemester
+        );
         const durationSeconds = startTime ? Math.floor((now - startTime) / 1000) : 0;
         
         await setDoc(doc(db, 'assessments', assessmentId), {
@@ -1053,6 +1169,8 @@ export default function App() {
           studentKelas: currentStudent.kelas,
           courseId: activeCourse.id,
           courseTitle: activeCourse.title,
+          tahunPelajaran: activeTahunPelajaran,
+          semester: activeSemester,
           score: scoreToSave,
           durationSeconds: durationSeconds,
           cheatingAttempts: localCheatingAttempts,
@@ -1068,6 +1186,8 @@ export default function App() {
           studentName: currentStudent.nama,
           courseId: activeCourse.id,
           courseTitle: activeCourse.title,
+          tahunPelajaran: activeTahunPelajaran,
+          semester: activeSemester,
           score: scoreToSave,
           isRead: false,
           timestamp: new Date().toISOString()
@@ -1159,21 +1279,43 @@ export default function App() {
   useEffect(() => {
     const unsubscribes: (() => void)[] = [];
 
-    // 1. Material Configs (Global)
+    // 1. Material Configs (Legacy + Scoped per Tahun Pelajaran & Semester)
     const unsubConfigs = onSnapshot(collection(db, 'material_configs'), (snapshot) => {
       const configs: any = {};
       snapshot.docs.forEach(doc => {
         configs[doc.id] = doc.data();
       });
-      setMaterialConfigs(configs);
+      setLegacyMaterialConfigs(configs);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'material_configs');
     });
     unsubscribes.push(unsubConfigs);
 
+    const unsubScopedConfigs = onSnapshot(collection(db, 'scoped_material_configs'), (snapshot) => {
+      const configs: Record<string, any> = {};
+      snapshot.docs.forEach(d => {
+        configs[d.id] = d.data();
+      });
+      setScopedMaterialConfigs(configs);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'scoped_material_configs');
+    });
+    unsubscribes.push(unsubScopedConfigs);
+
     const unsubSettings = onSnapshot(doc(db, 'app_settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
-        setSettingsConfig({ logoUrl: '', backgroundPreset: 'default', ...(docSnap.data() as any) });
+        const data = docSnap.data() as any;
+        const normalizedJadwal = normalizeJadwalScheduleSettings(data.jadwalSettings);
+        setSettingsConfig({
+          logoUrl: '',
+          backgroundPreset: 'default',
+          activeTahunPelajaran: DEFAULT_TAHUN_PELAJARAN,
+          activeSemester: DEFAULT_SEMESTER,
+          tahunPelajaranList: DEFAULT_TAHUN_PELAJARAN_LIST,
+          ...data,
+          jadwalSettings: normalizedJadwal,
+        });
+        setJadwalSettingsDraft(normalizedJadwal);
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'app_settings/global');
@@ -1286,7 +1428,7 @@ export default function App() {
   const handleNotificationClick = async (notif: any) => {
     try {
       // Find student
-      const student = students.find(s => s.id === notif.studentId);
+      const student = scopedStudents.find(s => s.id === notif.studentId) || students.find(s => s.id === notif.studentId);
       if (student) {
         const score = getStudentScore(student.id);
         setStudentDetail({ student, score });
@@ -1313,7 +1455,7 @@ export default function App() {
     const course = COURSES.find(c => c.id === courseId);
     if (!course) return;
     
-    const currentStatus = materialConfigs[courseId]?.isActive ?? true;
+    const currentStatus = isCourseActive(courseId);
     const newStatus = !currentStatus;
     
     setMaterialToggleTarget({ id: courseId, title: course.title, nextStatus: newStatus });
@@ -1322,10 +1464,15 @@ export default function App() {
 
   const toggleMaterialFullScreen = async (courseId: string) => {
     try {
-      const currentConfig = materialConfigs[courseId] || { isActive: true };
-      await setDoc(doc(db, 'material_configs', courseId), {
+      const currentConfig = materialConfigs[courseId] || { isActive: isCourseActive(courseId) };
+      const scopedId = buildScopedMaterialDocId(courseId, activeTahunPelajaran, activeSemester);
+      await setDoc(doc(db, 'scoped_material_configs', scopedId), {
         ...currentConfig,
-        isFullScreen: !(currentConfig.isFullScreen ?? false)
+        courseId,
+        tahunPelajaran: activeTahunPelajaran,
+        semester: activeSemester,
+        isFullScreen: !(currentConfig.isFullScreen ?? false),
+        updatedAt: new Date().toISOString(),
       }, { merge: true });
     } catch (error) {
       console.error("Error toggling full screen:", error);
@@ -1334,11 +1481,16 @@ export default function App() {
 
   const toggleMaterialScoreVisibility = async (courseId: string) => {
     try {
-      const currentConfig = materialConfigs[courseId] || { isActive: true };
+      const currentConfig = materialConfigs[courseId] || { isActive: isCourseActive(courseId) };
       const currentVal = currentConfig.isScoreVisible ?? true;
-      await setDoc(doc(db, 'material_configs', courseId), {
+      const scopedId = buildScopedMaterialDocId(courseId, activeTahunPelajaran, activeSemester);
+      await setDoc(doc(db, 'scoped_material_configs', scopedId), {
         ...currentConfig,
-        isScoreVisible: !currentVal
+        courseId,
+        tahunPelajaran: activeTahunPelajaran,
+        semester: activeSemester,
+        isScoreVisible: !currentVal,
+        updatedAt: new Date().toISOString(),
       }, { merge: true });
     } catch (error) {
       console.error("Error toggling score visibility:", error);
@@ -1373,7 +1525,16 @@ export default function App() {
     
     try {
       const { id, nextStatus } = materialToggleTarget;
-      await setDoc(doc(db, 'material_configs', id), { isActive: nextStatus }, { merge: true });
+      const scopedId = buildScopedMaterialDocId(id, activeTahunPelajaran, activeSemester);
+      const currentConfig = materialConfigs[id] || {};
+      await setDoc(doc(db, 'scoped_material_configs', scopedId), {
+        ...currentConfig,
+        courseId: id,
+        tahunPelajaran: activeTahunPelajaran,
+        semester: activeSemester,
+        isActive: nextStatus,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
       setIsMaterialConfirmOpen(false);
       setMaterialToggleTarget(null);
     } catch (error) {
@@ -1396,7 +1557,8 @@ export default function App() {
         nis: manualStudentNis,
         nama: manualStudentNama,
         jenisKelamin: manualStudentJenisKelamin,
-        kelas: manualStudentKelas
+        kelas: manualStudentKelas,
+        tahunPelajaran: activeTahunPelajaran,
       });
       
       setManualStudentNis('');
@@ -1427,10 +1589,10 @@ export default function App() {
         nis: String(row[0] || ''),
         nama: String(row[1] || ''),
         jenisKelamin: String(row[2] || ''),
-        kelas: String(row[3] || '')
+        kelas: String(row[3] || ''),
+        tahunPelajaran: activeTahunPelajaran,
       })).filter(s => s.nis || s.nama);
 
-      const addedStudents = [];
       for (const student of newStudents) {
         try {
           await addDoc(collection(db, 'students'), student);
@@ -1455,10 +1617,86 @@ export default function App() {
 
   const saveEditStudent = async () => {
     try {
-      await updateDoc(doc(db, 'students', editingStudentId!), editFormData);
+      await updateDoc(doc(db, 'students', editingStudentId!), {
+        ...editFormData,
+        tahunPelajaran: activeTahunPelajaran,
+      });
       setEditingStudentId(null);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `students/${editingStudentId}`);
+    }
+  };
+
+  const handleCopyStudentsFromYear = async () => {
+    if (!copySourceTahunPelajaran || copySourceTahunPelajaran === activeTahunPelajaran) return;
+    setIsCopyingStudents(true);
+    setCopyStudentsNotice(null);
+    try {
+      const sourceList = students.filter(
+        s => (s.tahunPelajaran || DEFAULT_TAHUN_PELAJARAN) === copySourceTahunPelajaran
+      );
+      if (sourceList.length === 0) {
+        setCopyStudentsNotice({
+          type: 'error',
+          message: `Tidak ada data siswa pada TA ${copySourceTahunPelajaran}.`,
+        });
+        return;
+      }
+
+      const existingKeys = new Set(
+        scopedStudents.map(s =>
+          s.nis
+            ? `nis:${String(s.nis).trim()}`
+            : `name:${String(s.nama || '').trim()}|${String(s.kelas || '').trim()}`
+        )
+      );
+
+      const toCopy = sourceList.filter(s => {
+        const key = s.nis
+          ? `nis:${String(s.nis).trim()}`
+          : `name:${String(s.nama || '').trim()}|${String(s.kelas || '').trim()}`;
+        return !existingKeys.has(key);
+      });
+
+      if (toCopy.length === 0) {
+        setCopyStudentsNotice({
+          type: 'success',
+          message: `Semua ${sourceList.length} siswa dari TA ${copySourceTahunPelajaran} sudah tersedia di TA ${activeTahunPelajaran}.`,
+        });
+        return;
+      }
+
+      const yearSlug = slugifyTermPart(activeTahunPelajaran).replace(/-/g, '_');
+      let batch = writeBatch(db);
+      let ops = 0;
+      for (const s of toCopy) {
+        const targetRef = doc(db, 'students', `ta_${yearSlug}_${s.id}`);
+        batch.set(targetRef, {
+          nis: String(s.nis || ''),
+          nama: String(s.nama || ''),
+          jenisKelamin: String(s.jenisKelamin || 'L'),
+          kelas: String(s.kelas || ''),
+          tahunPelajaran: activeTahunPelajaran,
+        });
+        ops++;
+        if (ops === 450) {
+          await batch.commit();
+          batch = writeBatch(db);
+          ops = 0;
+        }
+      }
+      if (ops > 0) {
+        await batch.commit();
+      }
+
+      setCopyStudentsNotice({
+        type: 'success',
+        message: `Berhasil menyalin ${toCopy.length} siswa & kelas dari TA ${copySourceTahunPelajaran} ke TA ${activeTahunPelajaran}.`,
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'students');
+    } finally {
+      setIsCopyingStudents(false);
     }
   };
 
@@ -1477,7 +1715,7 @@ export default function App() {
   }
 
   if (currentPage === 'student_dashboard') {
-    const activeCoursesList = COURSES.filter(c => (materialConfigs[c.id]?.isActive ?? true));
+    const activeCoursesList = COURSES.filter(c => isCourseActive(c.id));
     const activeSoalSets = soalSets.filter(s => {
       if (!s.isActive) return false;
       const activeQCount = soalQuestions.filter(q => q.setId === s.id && q.isActive !== false).length;
@@ -1500,14 +1738,14 @@ export default function App() {
       });
 
     const completedCourseCount = activeCoursesList.filter(c =>
-      studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === c.id)
+      scopedStudentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === c.id)
     ).length;
 
     const completedSoalCount = activeSoalSets.filter(s =>
-      studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === `soal_${s.id}`)
+      scopedStudentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === `soal_${s.id}`)
     ).length;
 
-    const myStudentScores = studentAssessments
+    const myStudentScores = scopedStudentAssessments
       .filter(a => a.studentId === currentStudent?.id)
       .map(a => Number(a.score))
       .filter(n => !Number.isNaN(n));
@@ -1534,7 +1772,7 @@ export default function App() {
     const normalizedSearch = studentCatalogSearch.trim().toLowerCase();
 
     const displayedCourses = activeCoursesList.filter(course => {
-      const done = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === course.id);
+      const done = scopedStudentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === course.id);
       if (studentCatalogFilter === 'done' && !done) return false;
       if (studentCatalogFilter === 'todo' && done) return false;
       if (normalizedSearch && !course.title.toLowerCase().includes(normalizedSearch) && !course.level.toLowerCase().includes(normalizedSearch)) {
@@ -1544,7 +1782,7 @@ export default function App() {
     });
 
     const displayedSoalSets = activeSoalSets.filter(set => {
-      const done = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === `soal_${set.id}`);
+      const done = scopedStudentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === `soal_${set.id}`);
       if (studentCatalogFilter === 'done' && !done) return false;
       if (studentCatalogFilter === 'todo' && done) return false;
       if (
@@ -1578,13 +1816,17 @@ export default function App() {
       <div className={cn("flex h-screen text-slate-900 dark:text-slate-100 flex-col overflow-hidden font-sans transition-colors duration-300", currentBgPreset.className)}>
         {/* Clean 3-Zone Top Bar */}
         <header className="w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 md:px-8 h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 md:gap-8 z-20 shrink-0 transition-colors">
-          {/* Zone 1: Single-line Brand Title */}
+          {/* Zone 1: Single-line Brand Title + Active Term */}
           <div className="flex items-center gap-2.5 min-w-0 shrink-0">
             <div className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center font-extrabold text-sm shrink-0">
               IK
             </div>
             <span className="text-base md:text-lg font-extrabold tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap">
               Ruang Informatika
+            </span>
+            <span className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800/70 text-[11px] font-bold text-brand dark:text-blue-300 tabular-nums whitespace-nowrap">
+              <CalendarDays size={12} />
+              TA {activeTahunPelajaran} · Sem {activeSemester}
             </span>
           </div>
 
@@ -1739,6 +1981,8 @@ export default function App() {
                     <span>Kelas {currentStudent?.kelas}</span>
                     <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
                     <span>{currentStudent?.jenisKelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</span>
+                    <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                    <span className="font-bold text-brand dark:text-blue-400">TA {activeTahunPelajaran} (Sem {activeSemester})</span>
                   </div>
                 </div>
               </div>
@@ -1839,13 +2083,13 @@ export default function App() {
 
           {/* Main Tab Content */}
           {studentTab === 'games' ? (
-            <AdminGames isAdmin={false} currentStudent={currentStudent} studentsList={students} />
+            <AdminGames isAdmin={false} currentStudent={currentStudent} studentsList={scopedStudents} />
           ) : studentTab === 'skor' ? (() => {
             const isSoalItem = (a: any) => Boolean(a?.isSoal || String(a?.courseId || '').startsWith('soal_'));
-            const materiScores = [...studentAssessments]
+            const materiScores = [...scopedStudentAssessments]
               .filter(a => !isSoalItem(a))
               .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime());
-            const soalScores = [...studentAssessments]
+            const soalScores = [...scopedStudentAssessments]
               .filter(a => isSoalItem(a))
               .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime());
             const gameBestScores = dedupeHighestGameScores(studentGameScores);
@@ -2186,7 +2430,7 @@ export default function App() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                       {displayedSoalSets.map((set, index) => {
                         const courseKey = `soal_${set.id}`;
-                        const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
+                        const studentAssessment = scopedStudentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
                         const hasCompleted = !!studentAssessment;
                         const activeQs = soalQuestions.filter(q => q.setId === set.id && q.isActive !== false);
                         const coverArt = getSoalCoverArt(set.title, index);
@@ -2350,7 +2594,7 @@ export default function App() {
                   displayedCourses.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                       {displayedCourses.map((course, index) => {
-                        const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
+                        const studentAssessment = scopedStudentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
                         const hasCompleted = !!studentAssessment;
                         const isFullScreenMode = materialConfigs[course.id]?.isFullScreen;
                         const coverArt = getCourseCoverArt(course.title, index);
@@ -2487,8 +2731,8 @@ export default function App() {
 
   if (currentPage === 'course_confirm') {
     const course = activeCourse;
-    const hasCompleted = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === course.id);
-    const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
+    const hasCompleted = scopedStudentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === course.id);
+    const studentAssessment = scopedStudentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
     const isFullScreen = materialConfigs[course.id]?.isFullScreen || false;
     const isScoreVisible = materialConfigs[course.id]?.isScoreVisible ?? true;
 
@@ -2621,8 +2865,8 @@ export default function App() {
 
     const activeQs = soalQuestions.filter(q => q.setId === selectedSoalSet.id && q.isActive !== false);
     const courseKey = `soal_${selectedSoalSet.id}`;
-    const hasCompleted = studentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
-    const studentAssessment = studentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
+    const hasCompleted = scopedStudentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
+    const studentAssessment = scopedStudentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
     const isFullScreen = selectedSoalSet.isFullScreen || false;
     const isScoreVisible = selectedSoalSet.isScoreVisible ?? true;
 
@@ -2761,6 +3005,8 @@ export default function App() {
         soalSet={selectedSoalSet}
         questions={setQuestions}
         currentStudent={currentStudent}
+        activeTahunPelajaran={activeTahunPelajaran}
+        activeSemester={activeSemester}
         isAdminPreview={isAdmin || isPreviewingSoal}
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
@@ -2783,6 +3029,7 @@ export default function App() {
   if (currentPage === 'admin') {
     const menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: Home, color: 'bg-brand/10 text-brand' },
+      { id: 'administrasi', label: 'Kelola Administrasi', icon: FolderKanban, color: 'bg-brand/10 text-brand' },
       { id: 'materials', label: 'Kelola Materi', icon: GraduationCap, color: 'bg-brand/10 text-brand' },
       { id: 'games', label: 'Kelola Game', icon: Gamepad2, color: 'bg-brand/10 text-brand' },
       { id: 'questions', label: 'Kelola Soal', icon: ClipboardList, color: 'bg-brand/10 text-brand' },
@@ -2801,11 +3048,14 @@ export default function App() {
       )}>
         {/* Mobile Header */}
         <div className="md:hidden fixed top-2 left-2 right-2 h-12 admin-glass-header rounded-xl z-50 flex items-center justify-between px-3 transition-colors duration-200">
-          <div className="flex items-center gap-2">
-            <div className="bg-slate-100 dark:bg-slate-800 w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden relative border border-slate-200/80 dark:border-slate-700">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="bg-slate-100 dark:bg-slate-800 w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden relative border border-slate-200/80 dark:border-slate-700 shrink-0">
               <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
             </div>
-            <h2 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 tracking-tight whitespace-nowrap">SMPN 1 Kawali</h2>
+            <div className="min-w-0">
+              <h2 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 tracking-tight whitespace-nowrap truncate">SMPN 1 Kawali</h2>
+              <p className="text-[10px] font-bold text-brand dark:text-blue-400 tabular-nums whitespace-nowrap">TA {activeTahunPelajaran} · Sem {activeSemester}</p>
+            </div>
           </div>
           <div className="flex items-center gap-1.5">
             <button
@@ -2919,7 +3169,8 @@ export default function App() {
               </div>
               <div className="flex items-baseline gap-2 min-w-0">
                 <h1 className="text-base md:text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
-                  {adminTab === 'history' ? 'Aktivitas' : adminTab === 'student_management' ? 'Siswa & Kelas' : 
+                  {adminTab === 'administrasi' ? 'Kelola Administrasi' :
+                   adminTab === 'history' ? 'Aktivitas' : adminTab === 'student_management' ? 'Siswa & Kelas' : 
                    adminTab === 'materials' ? 'Kelola Materi' : adminTab === 'questions' ? 'Kelola Soal' : adminTab === 'assessments' ? 'Hasil Asesmen' :
                    adminTab === 'games' ? 'Kelola Game' :
                    adminTab === 'announcements' ? 'Pengumuman' : adminTab === 'settings' ? 'Pengaturan' : 'Dashboard'}
@@ -2931,6 +3182,17 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              {/* Active Tahun Pelajaran & Semester Badge */}
+              <button
+                type="button"
+                onClick={() => setAdminTab('settings')}
+                title="Klik untuk mengatur Tahun Pelajaran & Semester aktif"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/80 dark:border-blue-800/70 text-xs font-extrabold text-brand dark:text-blue-300 transition-colors cursor-pointer tabular-nums"
+              >
+                <CalendarDays size={14} className="shrink-0" />
+                <span>TA {activeTahunPelajaran} · Sem {activeSemester}</span>
+              </button>
+
               {/* Theme Toggle (Desktop & Quick Access) */}
               <button
                 type="button"
@@ -3091,7 +3353,7 @@ export default function App() {
 
               const cheatingSessionsList = activeSessions.filter(session => (session.cheatingAttempts || 0) > 0);
               const workingStudentsCount = activeSessionList.filter(s => s.courseTitle || s.status === 'working').length;
-              const activeCourseCount = COURSES.filter(c => (materialConfigs[c.id]?.isActive ?? true)).length;
+              const activeCourseCount = COURSES.filter(c => isCourseActive(c.id)).length;
               
               const distinctClasses = Array.from(new Set(activeSessionList.map(s => s.kelas))).filter(Boolean).sort();
               const filteredClasses = dashboardClassFilter === 'all' 
@@ -3100,8 +3362,27 @@ export default function App() {
 
               return (
                 <div className="space-y-6">
-                  {/* Kartu Kelola Game, Kelola Materi & Kelola Soal */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                  {/* Kartu Kelola Administrasi, Kelola Game, Kelola Materi & Kelola Soal */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5">
+                    <div className="bg-blue-600/85 hover:bg-blue-600/95 border border-white/40 shadow-[0_10px_22px_-10px_rgba(37,99,235,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.45)] text-white rounded-2xl p-3.5 transition-colors duration-200 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-lg bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
+                          <FolderKanban size={20} className="text-sky-200" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-extrabold text-white truncate">Kelola Administrasi</h3>
+                          <p className="text-xs font-medium text-blue-100 tabular-nums truncate">TA {activeTahunPelajaran} · Sem {activeSemester}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setAdminTab('administrasi')}
+                        className="px-3 py-1.5 bg-white/90 hover:bg-white text-blue-950 text-xs font-black rounded-lg shadow-2xs active:scale-95 transition-colors flex items-center gap-1 shrink-0 whitespace-nowrap"
+                      >
+                        <span>Kelola</span>
+                        <ArrowRight size={13} />
+                      </button>
+                    </div>
+
                     <div className="bg-indigo-600/85 hover:bg-indigo-600/95 border border-white/40 shadow-[0_10px_22px_-10px_rgba(79,70,229,0.45),inset_0_1.5px_1px_rgba(255,255,255,0.45)] text-white rounded-2xl p-3.5 transition-colors duration-200 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-10 h-10 rounded-lg bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
@@ -3554,7 +3835,10 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-3 py-2 rounded-xl text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-brand dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/70 tabular-nums">
+                          TA {activeTahunPelajaran} · Sem {activeSemester}
+                        </span>
                         <span className="px-4 py-2 rounded-xl text-xs font-extrabold tracking-widest uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 tabular-nums">
                           {activeCourseCount} Dari {COURSES.length} Materi Terbuka
                         </span>
@@ -3563,7 +3847,7 @@ export default function App() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                       {COURSES.map((course, index) => {
-                        const isActive = materialConfigs[course.id]?.isActive ?? true;
+                        const isActive = isCourseActive(course.id);
                         const isFullScreen = materialConfigs[course.id]?.isFullScreen || false;
                         const isScoreVisible = materialConfigs[course.id]?.isScoreVisible ?? true;
 
@@ -3689,30 +3973,139 @@ export default function App() {
             })()}
             {adminTab === 'student_management' && (
               <div className="space-y-6">
-                <div className="flex bg-white/30 dark:bg-white/5 p-1.5 rounded-2xl border border-white/50 dark:border-white/12 shadow-xs w-fit">
-                  <button
-                    onClick={() => setStudentSubTab('classes')}
-                    className={cn(
-                      "px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 flex items-center gap-2",
-                      studentSubTab === 'classes' ? "bg-gradient-to-r from-brand to-blue-600 text-white shadow-md shadow-brand/20" : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"
-                    )}
-                  >
-                    <LayoutGrid size={18} />
-                    Daftar Kelas
-                  </button>
-                  <button
-                    onClick={() => setStudentSubTab('students')}
-                    className={cn(
-                      "px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 flex items-center gap-2",
-                      studentSubTab === 'students' ? "bg-gradient-to-r from-brand to-blue-600 text-white shadow-md shadow-brand/20" : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"
-                    )}
-                  >
-                    <Users size={18} />
-                    Daftar Siswa
-                  </button>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex bg-white/30 dark:bg-white/5 p-1.5 rounded-2xl border border-white/50 dark:border-white/12 shadow-xs w-fit">
+                    <button
+                      onClick={() => setStudentSubTab('classes')}
+                      className={cn(
+                        "px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 flex items-center gap-2",
+                        studentSubTab === 'classes' ? "bg-gradient-to-r from-brand to-blue-600 text-white shadow-md shadow-brand/20" : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"
+                      )}
+                    >
+                      <LayoutGrid size={18} />
+                      Daftar Kelas
+                    </button>
+                    <button
+                      onClick={() => setStudentSubTab('students')}
+                      className={cn(
+                        "px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 flex items-center gap-2",
+                        studentSubTab === 'students' ? "bg-gradient-to-r from-brand to-blue-600 text-white shadow-md shadow-brand/20" : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"
+                      )}
+                    >
+                      <Users size={18} />
+                      Daftar Siswa
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800/70 text-xs font-extrabold text-brand dark:text-blue-300 tabular-nums">
+                      <CalendarDays size={14} />
+                      Tahun Pelajaran Aktif: {activeTahunPelajaran} ({scopedStudents.length} Siswa)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const available = tahunPelajaranList.filter(yr => yr !== activeTahunPelajaran);
+                        if (available.length > 0 && (copySourceTahunPelajaran === activeTahunPelajaran || !available.includes(copySourceTahunPelajaran))) {
+                          setCopySourceTahunPelajaran(available[0]);
+                        }
+                        setCopyStudentsNotice(null);
+                        setIsCopyStudentsModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                    >
+                      <Copy size={14} />
+                      Salin dari TA Lain
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                    >
+                      <Plus size={15} />
+                      Tambah Siswa
+                    </button>
+                  </div>
                 </div>
 
+                {copyStudentsNotice && (
+                  <div className={cn(
+                    "px-4 py-2.5 rounded-xl text-xs font-bold border flex items-center justify-between gap-2",
+                    copyStudentsNotice.type === 'success'
+                      ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                      : "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800"
+                  )}>
+                    <span>{copyStudentsNotice.message}</span>
+                    <button type="button" onClick={() => setCopyStudentsNotice(null)} className="opacity-70 hover:opacity-100 cursor-pointer">
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+
+                {isCopyStudentsModalOpen && (
+                  <div className="admin-glass-card rounded-2xl p-5 border border-blue-200/80 dark:border-blue-800/60 space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                          <Copy size={16} className="text-brand dark:text-blue-400" />
+                          Salin Data Siswa & Kelas ke TA {activeTahunPelajaran}
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          Menyalin seluruh siswa dan kelas dari tahun pelajaran sumber tanpa menghapus data asli dan menghindari duplikasi NISN.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsCopyStudentsModalOpen(false)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                      <div className="flex-1 space-y-1.5">
+                        <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                          Tahun Pelajaran Sumber
+                        </label>
+                        <select
+                          value={copySourceTahunPelajaran}
+                          onChange={(e) => setCopySourceTahunPelajaran(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-slate-100"
+                        >
+                          {tahunPelajaranList.filter(yr => yr !== activeTahunPelajaran).map(yr => {
+                            const count = students.filter(s => (s.tahunPelajaran || DEFAULT_TAHUN_PELAJARAN) === yr).length;
+                            return (
+                              <option key={yr} value={yr}>
+                                TA {yr} ({count} siswa)
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsCopyStudentsModalOpen(false)}
+                          className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer"
+                        >
+                          Tutup
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isCopyingStudents}
+                          onClick={handleCopyStudentsFromYear}
+                          className="px-4 py-2.5 rounded-xl bg-brand hover:bg-brand-hover disabled:opacity-60 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Copy size={14} />
+                          {isCopyingStudents ? 'Menyalin...' : `Salin ke TA ${activeTahunPelajaran}`}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {studentSubTab === 'classes' && (
+                  Object.keys(groupedClasses).length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {Object.entries(groupedClasses).sort((a, b) => a[0].localeCompare(b[0])).map(([className, studentCount], idx) => {
                       const colors = [
@@ -3760,6 +4153,44 @@ export default function App() {
                       );
                     })}
                   </div>
+                  ) : (
+                    <div className="admin-glass-card rounded-3xl border-2 border-dashed p-12 text-center flex flex-col items-center justify-center gap-3">
+                      <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                        <Users size={30} />
+                      </div>
+                      <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                        Belum Ada Siswa & Kelas di Tahun Pelajaran {activeTahunPelajaran}
+                      </h3>
+                      <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 max-w-md">
+                        Data siswa dari tahun pelajaran sebelumnya tetap tersimpan aman. Tambahkan siswa baru, impor Excel, atau salin dari tahun pelajaran lain.
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const available = tahunPelajaranList.filter(yr => yr !== activeTahunPelajaran);
+                            if (available.length > 0 && (copySourceTahunPelajaran === activeTahunPelajaran || !available.includes(copySourceTahunPelajaran))) {
+                              setCopySourceTahunPelajaran(available[0]);
+                            }
+                            setCopyStudentsNotice(null);
+                            setIsCopyStudentsModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs cursor-pointer"
+                        >
+                          <Copy size={15} />
+                          Salin dari TA Lain
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsImportModalOpen(true)}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-bold shadow-xs cursor-pointer"
+                        >
+                          <Plus size={15} />
+                          Tambah / Impor Siswa
+                        </button>
+                      </div>
+                    </div>
+                  )
                 )}
 
                 {studentSubTab === 'students' && (
@@ -4142,10 +4573,10 @@ export default function App() {
                       </div>
                       
                       <div className="mb-4">
-                        <p className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Materi & Skor</p>
+                        <p className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Materi & Skor ({activeTahunPelajaran} · Sem {activeSemester})</p>
                         <div className="space-y-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 p-3 rounded-2xl max-h-48 overflow-y-auto custom-scrollbar">
-                          {assessments.filter(a => a.studentId === studentDetail.student.id).length > 0 ? (
-                            assessments.filter(a => a.studentId === studentDetail.student.id).map((a, idx) => (
+                          {scopedAssessments.filter(a => a.studentId === studentDetail.student.id).length > 0 ? (
+                            scopedAssessments.filter(a => a.studentId === studentDetail.student.id).map((a, idx) => (
                               <div key={idx} className="flex justify-between items-center p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
                                 <div className="min-w-0 flex-1 mr-3">
                                   <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block truncate">{a.courseTitle}</span>
@@ -4217,13 +4648,19 @@ export default function App() {
               <>
                 <div className="mb-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                      {materialSubTab === 'analisis_soal' ? 'Analisis Soal' : 'Ruang Informatika'}
-                    </h2>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                        {materialSubTab === 'analisis_soal' ? 'Analisis Soal' : 'Ruang Informatika'}
+                      </h2>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800/70 text-xs font-extrabold text-brand dark:text-blue-300 tabular-nums">
+                        <CalendarDays size={13} />
+                        TA {activeTahunPelajaran} · Sem {activeSemester}
+                      </span>
+                    </div>
                     <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
                       {materialSubTab === 'analisis_soal'
-                        ? 'Unggah dokumen soal untuk menyusun kisi-kisi, materi, pembahasan rinci, dan latihan soal serupa.'
-                        : 'Terbitkan materi agar dapat diakses oleh siswa di dashboard mereka.'}
+                        ? 'Unggah dokumen soal untuk menyusun kisi-kisi, materi, pembahasan rinci, dan latihan soal serupa pada semester aktif.'
+                        : 'Terbitkan materi untuk Tahun Pelajaran & Semester aktif agar dapat diakses oleh siswa.'}
                     </p>
                   </div>
 
@@ -4260,6 +4697,7 @@ export default function App() {
 
                 {materialSubTab === 'analisis_soal' ? (
                   <AdminQuestionAnalysis
+                    scopeKey={`${slugifyTermPart(activeTahunPelajaran)}_${activeSemester}`}
                     logoUrl={settingsConfig?.logoUrl || '/images/labkom_nesaka_logo.jpg'}
                     suppressPrintPortal={Boolean(printingMaterialCourseId)}
                     onHasPrintableResultChange={setHasPrintableQuestionAnalysis}
@@ -4267,7 +4705,7 @@ export default function App() {
                 ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {COURSES.map((course, index) => {
-                    const isActive = materialConfigs[course.id]?.isActive ?? true;
+                    const isActive = isCourseActive(course.id);
                     const colorVariants = [
                       { bg: "bg-blue-500/10 dark:bg-blue-950/30 border-white/55 dark:border-blue-800/50 hover:border-blue-300 dark:hover:border-blue-700", text: "text-blue-950 dark:text-blue-100", badge: "bg-blue-100 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200" },
                       { bg: "bg-emerald-500/10 dark:bg-emerald-950/30 border-white/55 dark:border-emerald-800/50 hover:border-emerald-300 dark:hover:border-emerald-700", text: "text-emerald-950 dark:text-emerald-100", badge: "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200" },
@@ -4346,38 +4784,44 @@ export default function App() {
             )}
             {adminTab === 'assessments' && (
               <div className="space-y-6">
-                {/* 3 Categories Switcher Pills */}
-                <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white/30 dark:bg-white/5 rounded-2xl border border-white/50 dark:border-white/12 w-fit">
-                  <button
-                    onClick={() => { setAssessmentCategory('materi'); setAssessmentNav({ course: null, kelas: null }); }}
-                    className={cn(
-                      "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2",
-                      assessmentCategory === 'materi' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                    )}
-                  >
-                    <BookOpen size={16} />
-                    Hasil Nilai Materi ({assessments.length})
-                  </button>
-                  <button
-                    onClick={() => { setAssessmentCategory('game'); setAssessmentNav({ course: null, kelas: null }); }}
-                    className={cn(
-                      "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2",
-                      assessmentCategory === 'game' ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                    )}
-                  >
-                    <Gamepad2 size={16} />
-                    Hasil Skor Game ({bestAdminGameScores.length})
-                  </button>
-                  <button
-                    onClick={() => { setAssessmentCategory('soal'); setAssessmentNav({ course: null, kelas: null }); }}
-                    className={cn(
-                      "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2",
-                      assessmentCategory === 'soal' ? "bg-amber-600 text-white shadow-md shadow-amber-600/20" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                    )}
-                  >
-                    <ClipboardList size={16} />
-                    Hasil Nilai Soal / Ujian ({assessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).length})
-                  </button>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  {/* 3 Categories Switcher Pills */}
+                  <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white/30 dark:bg-white/5 rounded-2xl border border-white/50 dark:border-white/12 w-fit">
+                    <button
+                      onClick={() => { setAssessmentCategory('materi'); setAssessmentNav({ course: null, kelas: null }); }}
+                      className={cn(
+                        "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2",
+                        assessmentCategory === 'materi' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                      )}
+                    >
+                      <BookOpen size={16} />
+                      Hasil Nilai Materi ({scopedAssessments.length})
+                    </button>
+                    <button
+                      onClick={() => { setAssessmentCategory('game'); setAssessmentNav({ course: null, kelas: null }); }}
+                      className={cn(
+                        "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2",
+                        assessmentCategory === 'game' ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                      )}
+                    >
+                      <Gamepad2 size={16} />
+                      Hasil Skor Game ({bestAdminGameScores.length})
+                    </button>
+                    <button
+                      onClick={() => { setAssessmentCategory('soal'); setAssessmentNav({ course: null, kelas: null }); }}
+                      className={cn(
+                        "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2",
+                        assessmentCategory === 'soal' ? "bg-amber-600 text-white shadow-md shadow-amber-600/20" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                      )}
+                    >
+                      <ClipboardList size={16} />
+                      Hasil Nilai Soal / Ujian ({scopedAssessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).length})
+                    </button>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800/70 text-xs font-extrabold text-brand dark:text-blue-300 tabular-nums">
+                    <CalendarDays size={13} />
+                    TA {activeTahunPelajaran} · Sem {activeSemester}
+                  </span>
                 </div>
 
                 {/* CATEGORY 1: HASIL NILAI MATERI */}
@@ -4609,7 +5053,7 @@ export default function App() {
                         <p className="text-xs text-slate-500 dark:text-slate-400">Hasil pengerjaan paket soal latihan dan ujian pilihan ganda.</p>
                       </div>
                       <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 font-extrabold text-xs rounded-xl border border-amber-200 dark:border-amber-800/70">
-                        Total {assessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).length} Ujian Selesai
+                        Total {scopedAssessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).length} Ujian Selesai
                       </span>
                     </div>
 
@@ -4627,8 +5071,8 @@ export default function App() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {assessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).length > 0 ? (
-                              assessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).map(item => (
+                            {scopedAssessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).length > 0 ? (
+                              scopedAssessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).map(item => (
                                 <tr key={item.id} className="hover:bg-amber-50/30 dark:hover:bg-amber-950/25 transition-colors">
                                   <td className="p-4 pl-6 font-bold text-slate-900 dark:text-white text-sm">
                                     {item.studentName}
@@ -4865,8 +5309,420 @@ export default function App() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Pengaturan Website</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Konfigurasi tampilan visual seperti tema mode gelap, logo instansi, dan gaya latar belakang aplikasi.</p>
+                    <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Pengaturan Website & Akademik</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Konfigurasi Tahun Pelajaran, Semester aktif, tema mode gelap, logo instansi, dan latar belakang aplikasi.</p>
+                  </div>
+                </div>
+
+                {/* Card Academic Term: Tahun Pelajaran & Semester */}
+                <div className="admin-glass-card rounded-2xl overflow-hidden p-6 md:p-8 space-y-5 border border-blue-200/70 dark:border-blue-800/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/70 text-brand dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <CalendarDays size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-extrabold text-slate-900 dark:text-white">Tahun Pelajaran & Semester Aktif</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                          Menjadi acuan seluruh halaman di Kelola Administrasi, Kelola Materi, Asesmen, dan Siswa & Kelas.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand/10 dark:bg-blue-900/40 text-brand dark:text-blue-300 text-xs font-extrabold tabular-nums w-fit">
+                      Aktif: TA {activeTahunPelajaran} · Sem {activeSemester}
+                    </span>
+                  </div>
+
+                  {termSettingsNotice && (
+                    <div className={cn(
+                      "px-4 py-2.5 rounded-xl text-xs font-bold border flex items-center justify-between gap-2",
+                      termSettingsNotice.type === 'success'
+                        ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                        : "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800"
+                    )}>
+                      <span>{termSettingsNotice.message}</span>
+                      <button type="button" onClick={() => setTermSettingsNotice(null)} className="opacity-70 hover:opacity-100 cursor-pointer">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                        Pilih Tahun Pelajaran
+                      </label>
+                      <select
+                        value={activeTahunPelajaran}
+                        onChange={async (e) => {
+                          const nextYear = e.target.value;
+                          setSettingsConfig(prev => ({ ...prev, activeTahunPelajaran: nextYear }));
+                          try {
+                            await setDoc(doc(db, 'app_settings', 'global'), {
+                              activeTahunPelajaran: nextYear,
+                              activeSemester,
+                              tahunPelajaranList,
+                            }, { merge: true });
+                            setTermSettingsNotice({
+                              type: 'success',
+                              message: `Tahun Pelajaran diubah ke ${nextYear}. Data tahun sebelumnya tetap tersimpan aman.`,
+                            });
+                          } catch (err) {
+                            handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                          }
+                        }}
+                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                      >
+                        {tahunPelajaranList.map(yr => (
+                          <option key={yr} value={yr}>Tahun Pelajaran {yr}</option>
+                        ))}
+                      </select>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="text"
+                          value={newAcademicYearInput}
+                          onChange={(e) => setNewAcademicYearInput(e.target.value)}
+                          placeholder="Tambah tahun baru, mis. 2028/2029"
+                          className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const cleaned = newAcademicYearInput.trim();
+                            if (!/^\d{4}\/\d{4}$/.test(cleaned)) {
+                              setTermSettingsNotice({
+                                type: 'error',
+                                message: 'Format tahun pelajaran harus YYYY/YYYY, contoh: 2028/2029.',
+                              });
+                              return;
+                            }
+                            const updatedList = Array.from(new Set([...tahunPelajaranList, cleaned])).sort();
+                            setSettingsConfig(prev => ({
+                              ...prev,
+                              tahunPelajaranList: updatedList,
+                              activeTahunPelajaran: cleaned,
+                            }));
+                            setNewAcademicYearInput('');
+                            try {
+                              await setDoc(doc(db, 'app_settings', 'global'), {
+                                activeTahunPelajaran: cleaned,
+                                activeSemester,
+                                tahunPelajaranList: updatedList,
+                              }, { merge: true });
+                              setTermSettingsNotice({
+                                type: 'success',
+                                message: `Tahun Pelajaran ${cleaned} ditambahkan dan diaktifkan.`,
+                              });
+                            } catch (err) {
+                              handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                            }
+                          }}
+                          className="px-3.5 py-2 bg-brand hover:bg-brand-hover text-white rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer"
+                        >
+                          <Plus size={14} />
+                          Tambah
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                        Pilih Semester Aktif
+                      </label>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        {(['Ganjil', 'Genap'] as const).map(sem => (
+                          <button
+                            key={sem}
+                            type="button"
+                            onClick={async () => {
+                              if (activeSemester === sem) return;
+                              setSettingsConfig(prev => ({ ...prev, activeSemester: sem }));
+                              try {
+                                await setDoc(doc(db, 'app_settings', 'global'), {
+                                  activeTahunPelajaran,
+                                  activeSemester: sem,
+                                  tahunPelajaranList,
+                                }, { merge: true });
+                                setTermSettingsNotice({
+                                  type: 'success',
+                                  message: `Semester diubah ke ${sem} (${activeTahunPelajaran}). Siswa & Kelas dan Tujuan Pembelajaran tetap dipertahankan.`,
+                                });
+                              } catch (err) {
+                                handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                              }
+                            }}
+                            className={cn(
+                              "px-4 py-3 rounded-xl text-sm font-extrabold border transition-all flex items-center justify-center gap-2 cursor-pointer",
+                              activeSemester === sem
+                                ? "bg-brand text-white border-brand shadow-md shadow-brand/20"
+                                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-brand/50"
+                            )}
+                          >
+                            {activeSemester === sem && <Check size={15} />}
+                            Semester {sem}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-300 space-y-1 leading-relaxed">
+                        <p><strong>Ganti Tahun Pelajaran:</strong> Tampilan Siswa & Kelas, Kelola Administrasi, dan Kelola Materi menjadi kosong untuk tahun baru (data lama tetap tersimpan).</p>
+                        <p><strong>Ganti Semester (Tahun Sama):</strong> Hanya mengosongkan tampilan per-semester di Kelola Materi & Administrasi, <strong>kecuali Tujuan Pembelajaran dan Siswa & Kelas yang tetap tersimpan</strong>.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card: Pengaturan Jam & Istirahat Jadwal Pelajaran */}
+                <div className="admin-glass-card rounded-2xl overflow-hidden p-6 md:p-8 space-y-5 border border-emerald-200/70 dark:border-emerald-800/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/70 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <Clock size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-extrabold text-slate-900 dark:text-white">Pengaturan Jam & Istirahat Jadwal Pelajaran</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                          Atur durasi per jam pelajaran, durasi istirahat, jam mulai, jumlah jam, dan posisi Istirahat 1 & 2 per hari.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const resetData = normalizeJadwalScheduleSettings(DEFAULT_JADWAL_SCHEDULE_SETTINGS);
+                          setJadwalSettingsDraft(resetData);
+                          setIsSavingJadwalSettings(true);
+                          try {
+                            setSettingsConfig(prev => ({ ...prev, jadwalSettings: resetData }));
+                            await setDoc(doc(db, 'app_settings', 'global'), { jadwalSettings: resetData }, { merge: true });
+                            setJadwalSettingsNotice({
+                              type: 'success',
+                              message: 'Pengaturan jam jadwal pelajaran dikembalikan ke pengaturan default sekolah (40 menit / 20 menit).',
+                            });
+                          } catch (err) {
+                            handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                          } finally {
+                            setIsSavingJadwalSettings(false);
+                          }
+                        }}
+                        disabled={isSavingJadwalSettings}
+                        className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <RotateCcw size={13} />
+                        Reset Default
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const normalized = normalizeJadwalScheduleSettings(jadwalSettingsDraft);
+                          setJadwalSettingsDraft(normalized);
+                          setIsSavingJadwalSettings(true);
+                          try {
+                            setSettingsConfig(prev => ({ ...prev, jadwalSettings: normalized }));
+                            await setDoc(doc(db, 'app_settings', 'global'), { jadwalSettings: normalized }, { merge: true });
+                            setJadwalSettingsNotice({
+                              type: 'success',
+                              message: 'Pengaturan jam & istirahat jadwal pelajaran berhasil disimpan.',
+                            });
+                          } catch (err) {
+                            handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                            setJadwalSettingsNotice({
+                              type: 'error',
+                              message: 'Gagal menyimpan pengaturan jam jadwal pelajaran.',
+                            });
+                          } finally {
+                            setIsSavingJadwalSettings(false);
+                          }
+                        }}
+                        disabled={isSavingJadwalSettings}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
+                      >
+                        <Check size={14} />
+                        {isSavingJadwalSettings ? 'Menyimpan...' : 'Simpan Pengaturan Jam'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {jadwalSettingsNotice && (
+                    <div className={cn(
+                      "px-4 py-2.5 rounded-xl text-xs font-bold border flex items-center justify-between gap-2",
+                      jadwalSettingsNotice.type === 'success'
+                        ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                        : "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800"
+                    )}>
+                      <span>{jadwalSettingsNotice.message}</span>
+                      <button type="button" onClick={() => setJadwalSettingsNotice(null)} className="opacity-70 hover:opacity-100 cursor-pointer">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Global Durations */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700">
+                      <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                        Durasi 1 Jam Pelajaran (Menit)
+                      </label>
+                      <input
+                        type="number"
+                        min={10}
+                        max={180}
+                        value={jadwalSettingsDraft.lessonDurationMinutes}
+                        onChange={(e) =>
+                          setJadwalSettingsDraft(prev => ({
+                            ...prev,
+                            lessonDurationMinutes: Math.max(10, Number(e.target.value) || 40),
+                          }))
+                        }
+                        className="w-full px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-extrabold text-slate-900 dark:text-white tabular-nums"
+                      />
+                    </div>
+                    <div className="p-4 rounded-xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700">
+                      <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                        Durasi Istirahat (Menit)
+                      </label>
+                      <input
+                        type="number"
+                        min={5}
+                        max={120}
+                        value={jadwalSettingsDraft.breakDurationMinutes}
+                        onChange={(e) =>
+                          setJadwalSettingsDraft(prev => ({
+                            ...prev,
+                            breakDurationMinutes: Math.max(5, Number(e.target.value) || 20),
+                          }))
+                        }
+                        className="w-full px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-extrabold text-slate-900 dark:text-white tabular-nums"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Per-day Schedule Config Table */}
+                  <div className="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+                    <table className="w-full text-left border-collapse min-w-[780px]">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                          <th className="p-3.5">Hari</th>
+                          <th className="p-3.5">Jam 1 Mulai</th>
+                          <th className="p-3.5">Sampai Jam Ke-</th>
+                          <th className="p-3.5">Istirahat 1 (Setelah Jam Ke-)</th>
+                          <th className="p-3.5">Istirahat 2 (Setelah Jam Ke-)</th>
+                          <th className="p-3.5">Ringkasan Waktu Otomatis</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white/60 dark:bg-slate-900/40">
+                        {(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'] as JadwalPelajaranItem['hari'][]).map((day) => {
+                          const cfg = jadwalSettingsDraft.days[day];
+                          const preview = computeDayScheduleSlots(
+                            cfg,
+                            jadwalSettingsDraft.lessonDurationMinutes,
+                            jadwalSettingsDraft.breakDurationMinutes
+                          );
+                          const lastSlot = preview.slots[cfg.totalSlots];
+                          return (
+                            <tr key={day} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+                              <td className="p-3.5">
+                                <span className="px-2.5 py-1 rounded-lg bg-brand/10 dark:bg-blue-950/60 text-brand dark:text-blue-300 text-xs font-extrabold">
+                                  {day}{day === 'Sabtu' ? ' (Opsional)' : ''}
+                                </span>
+                              </td>
+                              <td className="p-3.5">
+                                <input
+                                  type="time"
+                                  value={cfg.startTime}
+                                  onChange={(e) =>
+                                    setJadwalSettingsDraft(prev => ({
+                                      ...prev,
+                                      days: {
+                                        ...prev.days,
+                                        [day]: { ...prev.days[day], startTime: e.target.value },
+                                      },
+                                    }))
+                                  }
+                                  className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold tabular-nums"
+                                />
+                              </td>
+                              <td className="p-3.5">
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={14}
+                                  value={cfg.totalSlots}
+                                  onChange={(e) =>
+                                    setJadwalSettingsDraft(prev => ({
+                                      ...prev,
+                                      days: {
+                                        ...prev.days,
+                                        [day]: {
+                                          ...prev.days[day],
+                                          totalSlots: Math.max(1, Math.min(14, Number(e.target.value) || 1)),
+                                        },
+                                      },
+                                    }))
+                                  }
+                                  className="w-20 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-center tabular-nums"
+                                />
+                              </td>
+                              <td className="p-3.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={14}
+                                  value={cfg.break1AfterSlot}
+                                  onChange={(e) =>
+                                    setJadwalSettingsDraft(prev => ({
+                                      ...prev,
+                                      days: {
+                                        ...prev.days,
+                                        [day]: {
+                                          ...prev.days[day],
+                                          break1AfterSlot: Math.max(0, Math.min(14, Number(e.target.value) || 0)),
+                                        },
+                                      },
+                                    }))
+                                  }
+                                  className="w-20 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-center tabular-nums"
+                                  title="0 = Tidak ada istirahat 1"
+                                />
+                              </td>
+                              <td className="p-3.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={14}
+                                  value={cfg.break2AfterSlot}
+                                  onChange={(e) =>
+                                    setJadwalSettingsDraft(prev => ({
+                                      ...prev,
+                                      days: {
+                                        ...prev.days,
+                                        [day]: {
+                                          ...prev.days[day],
+                                          break2AfterSlot: Math.max(0, Math.min(14, Number(e.target.value) || 0)),
+                                        },
+                                      },
+                                    }))
+                                  }
+                                  className="w-20 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-center tabular-nums"
+                                  title="0 = Tidak ada istirahat 2"
+                                />
+                              </td>
+                              <td className="p-3.5 text-[11px] text-slate-600 dark:text-slate-300 font-medium tabular-nums">
+                                <div className="font-bold text-slate-800 dark:text-slate-100">
+                                  {cfg.startTime} – {lastSlot?.selesai || cfg.startTime} ({cfg.totalSlots} Jam)
+                                </div>
+                                <div className="text-[10px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                                  {preview.breaks.length > 0
+                                    ? preview.breaks.map(b => `Ist.${b.breakIndex}: ${b.mulai}-${b.selesai}`).join(' · ')
+                                    : 'Tanpa istirahat'}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
@@ -5112,8 +5968,34 @@ export default function App() {
               </div>
             )}
 
+            {adminTab === 'administrasi' && (
+              <AdminAdministrasi
+                activeTahunPelajaran={activeTahunPelajaran}
+                activeSemester={activeSemester}
+                students={scopedStudents}
+                assessments={scopedAssessments}
+                jadwalSettings={settingsConfig.jadwalSettings || DEFAULT_JADWAL_SCHEDULE_SETTINGS}
+                onNavigateTab={(tab) => setAdminTab(tab)}
+                onOpenStudentDetail={(student) => setStudentDetail({ student, score: getStudentScore(student.id) })}
+                onFirestoreError={(err, op, path) => {
+                  const opEnum =
+                    op === 'create'
+                      ? OperationType.CREATE
+                      : op === 'update'
+                      ? OperationType.UPDATE
+                      : op === 'delete'
+                      ? OperationType.DELETE
+                      : op === 'list'
+                      ? OperationType.LIST
+                      : op === 'get'
+                      ? OperationType.GET
+                      : OperationType.WRITE;
+                  handleFirestoreError(err, opEnum, path);
+                }}
+              />
+            )}
             {adminTab === 'games' && (
-              <AdminGames isAdmin={true} studentsList={students} />
+              <AdminGames isAdmin={true} studentsList={scopedStudents} />
             )}
             {adminTab === 'questions' && (
               <AdminSoal
@@ -5623,7 +6505,7 @@ export default function App() {
                             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand appearance-none font-bold text-sm text-slate-800 dark:text-slate-100"
                           >
                             <option value="">Pilih...</option>
-                            {Array.from(new Set(students.map(s => s.kelas))).sort().map(k => (
+                            {Array.from(new Set(scopedStudents.map(s => s.kelas))).sort().map(k => (
                               <option key={k} value={k}>{k}</option>
                             ))}
                           </select>
@@ -5639,7 +6521,7 @@ export default function App() {
                             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand appearance-none font-bold text-sm text-slate-800 dark:text-slate-100"
                           >
                             <option value="">Pilih...</option>
-                            {students.sort((a,b) => a.nama.localeCompare(b.nama)).map(s => (
+                            {[...scopedStudents].sort((a,b) => a.nama.localeCompare(b.nama)).map(s => (
                               <option key={s.id} value={s.id}>{s.nama} ({s.kelas})</option>
                             ))}
                           </select>

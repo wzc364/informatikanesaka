@@ -8,7 +8,8 @@
         "nis": { "type": "string", "description": "National Student ID" },
         "nama": { "type": "string", "description": "Full name" },
         "jenisKelamin": { "type": "string", "description": "L/P" },
-        "kelas": { "type": "string", "description": "Class identifier" }
+        "kelas": { "type": "string", "description": "Class identifier" },
+        "tahunPelajaran": { "type": "string", "description": "Academic year of enrollment (e.g. 2025/2026)" }
       },
       "required": ["nis", "nama", "jenisKelamin", "kelas"]
     },
@@ -36,6 +37,8 @@
         "courseTitle": { "type": "string", "description": "Title of the course" },
         "score": { "type": "number", "description": "Final score" },
         "wrongAnswers": { "type": "number", "description": "Number of mistakes" },
+        "tahunPelajaran": { "type": "string", "description": "Academic year" },
+        "semester": { "type": "string", "enum": ["Ganjil", "Genap"], "description": "Semester" },
         "completedAt": { "type": "string", "format": "date-time", "description": "Completion timestamp" }
       },
       "required": ["studentId", "courseId", "score", "completedAt"]
@@ -89,7 +92,11 @@
       "type": "object",
       "properties": {
         "logoUrl": { "type": "string", "description": "URL of the school logo" },
-        "backgroundPreset": { "type": "string", "description": "Selected application background preset ID" }
+        "backgroundPreset": { "type": "string", "description": "Selected application background preset ID" },
+        "activeTahunPelajaran": { "type": "string", "description": "Active academic year (e.g. 2025/2026)" },
+        "activeSemester": { "type": "string", "enum": ["Ganjil", "Genap"], "description": "Active semester" },
+        "tahunPelajaranList": { "type": "array", "description": "List of configured academic years" },
+        "jadwalSettings": { "type": "object", "description": "Lesson & break duration and per-day timetable configuration" }
       }
     },
     "ActiveSession": {
@@ -171,6 +178,127 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["roomCode", "isPublic", "status", "p1Uid", "p1Name", "p1Fighter"]
+    },
+    "ScopedMaterialConfig": {
+      "title": "Scoped Material Config",
+      "description": "Per-academic-year and per-semester configuration for a material/course.",
+      "type": "object",
+      "properties": {
+        "courseId": { "type": "string" },
+        "tahunPelajaran": { "type": "string" },
+        "semester": { "type": "string", "enum": ["Ganjil", "Genap"] },
+        "isActive": { "type": "boolean" },
+        "isGatekeepingEnabled": { "type": "boolean" },
+        "isFullScreen": { "type": "boolean" },
+        "isScoreVisible": { "type": "boolean" }
+      },
+      "required": ["courseId", "tahunPelajaran", "semester", "isActive"]
+    },
+    "JadwalPelajaran": {
+      "title": "Jadwal Pelajaran",
+      "description": "Class timetable entries scoped by academic year and semester.",
+      "type": "object",
+      "properties": {
+        "tahunPelajaran": { "type": "string" },
+        "semester": { "type": "string", "enum": ["Ganjil", "Genap"] },
+        "kelas": { "type": "string" },
+        "hari": { "type": "string" },
+        "jamKe": { "type": "string" },
+        "waktuMulai": { "type": "string" },
+        "waktuSelesai": { "type": "string" },
+        "mataPelajaran": { "type": "string" },
+        "isBreak": { "type": "boolean" }
+      },
+      "required": ["tahunPelajaran", "semester", "kelas", "hari", "mataPelajaran"]
+    },
+    "TujuanPembelajaran": {
+      "title": "Tujuan Pembelajaran",
+      "description": "Learning objectives scoped per academic year (persists across semesters).",
+      "type": "object",
+      "properties": {
+        "tahunPelajaran": { "type": "string" },
+        "kodeTp": { "type": "string" },
+        "kelas": { "type": "string" },
+        "elemen": { "type": "string" },
+        "materiId": { "type": "string" },
+        "deskripsi": { "type": "string" },
+        "indikator": { "type": "string" },
+        "kkm": { "type": "number" }
+      },
+      "required": ["tahunPelajaran", "kodeTp", "deskripsi"]
+    },
+    "AgendaHarian": {
+      "title": "Agenda Harian",
+      "description": "Daily teaching agenda scoped by academic year and semester.",
+      "type": "object",
+      "properties": {
+        "tahunPelajaran": { "type": "string" },
+        "semester": { "type": "string", "enum": ["Ganjil", "Genap"] },
+        "tanggal": { "type": "string" },
+        "kelas": { "type": "string" },
+        "pertemuanKe": { "type": "string" },
+        "tpId": { "type": "string" },
+        "tpKode": { "type": "string" },
+        "materi": { "type": "string" },
+        "kegiatan": { "type": "string" },
+        "hadirCount": { "type": "number" },
+        "sakitCount": { "type": "number" },
+        "izinCount": { "type": "number" },
+        "alpaCount": { "type": "number" }
+      },
+      "required": ["tahunPelajaran", "semester", "tanggal", "kelas", "materi"]
+    },
+    "AbsensiSiswa": {
+      "title": "Absensi Siswa",
+      "description": "Daily student attendance records per class, year, and semester.",
+      "type": "object",
+      "properties": {
+        "tahunPelajaran": { "type": "string" },
+        "semester": { "type": "string", "enum": ["Ganjil", "Genap"] },
+        "tanggal": { "type": "string" },
+        "kelas": { "type": "string" },
+        "entries": { "type": "object" }
+      },
+      "required": ["tahunPelajaran", "semester", "tanggal", "kelas", "entries"]
+    },
+    "NilaiSumatif": {
+      "title": "Nilai Sumatif",
+      "description": "Summative exam scores per class, TP, year, and semester.",
+      "type": "object",
+      "properties": {
+        "tahunPelajaran": { "type": "string" },
+        "semester": { "type": "string", "enum": ["Ganjil", "Genap"] },
+        "kelas": { "type": "string" },
+        "judul": { "type": "string" },
+        "jenis": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "tpId": { "type": "string" },
+        "tpKode": { "type": "string" },
+        "bobot": { "type": "number" },
+        "scores": { "type": "object" }
+      },
+      "required": ["tahunPelajaran", "semester", "kelas", "judul"]
+    },
+    "NilaiRapor": {
+      "title": "Nilai Rapor",
+      "description": "Student report card grades per student, year, and semester.",
+      "type": "object",
+      "properties": {
+        "tahunPelajaran": { "type": "string" },
+        "semester": { "type": "string", "enum": ["Ganjil", "Genap"] },
+        "studentId": { "type": "string" },
+        "studentNis": { "type": "string" },
+        "studentName": { "type": "string" },
+        "kelas": { "type": "string" },
+        "nilaiFormatif": { "type": "number" },
+        "nilaiSumatif": { "type": "number" },
+        "nilaiProyek": { "type": "number" },
+        "nilaiAkhir": { "type": "number" },
+        "predikat": { "type": "string" },
+        "capaianKompetensi": { "type": "string" },
+        "isFinalized": { "type": "boolean" }
+      },
+      "required": ["tahunPelajaran", "semester", "studentId", "nilaiAkhir"]
     }
   },
   "firestore": {
@@ -180,7 +308,11 @@
     },
     "/material_configs/{courseId}": {
       "schema": "MaterialConfig",
-      "description": "Dynamic configuration for courses (like activation status)."
+      "description": "Legacy configuration for courses."
+    },
+    "/scoped_material_configs/{scopedConfigId}": {
+      "schema": "ScopedMaterialConfig",
+      "description": "Academic-year and semester scoped course configurations."
     },
     "/assessments/{assessmentId}": {
       "schema": "Assessment",
@@ -217,6 +349,30 @@
     "/kombat_matches/{matchId}": {
       "schema": "KombatMatch",
       "description": "Multiplayer matchmaking rooms and live duel state for Informatika Kombat."
+    },
+    "/jadwal_pelajaran/{jadwalId}": {
+      "schema": "JadwalPelajaran",
+      "description": "Class schedule entries scoped by year and semester."
+    },
+    "/tujuan_pembelajaran/{tpId}": {
+      "schema": "TujuanPembelajaran",
+      "description": "Learning objectives scoped by academic year."
+    },
+    "/agenda_harian/{agendaId}": {
+      "schema": "AgendaHarian",
+      "description": "Daily teaching journal entries."
+    },
+    "/absensi_siswa/{absensiId}": {
+      "schema": "AbsensiSiswa",
+      "description": "Daily student attendance records."
+    },
+    "/nilai_sumatif/{sumatifId}": {
+      "schema": "NilaiSumatif",
+      "description": "Summative exam scores per class."
+    },
+    "/nilai_rapor/{raporId}": {
+      "schema": "NilaiRapor",
+      "description": "Report card grades per student."
     }
   }
 }

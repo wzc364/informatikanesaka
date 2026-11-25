@@ -27,12 +27,20 @@ import {
   arrayUnion,
 } from 'firebase/firestore';
 import { SoalQuestion, SoalSet } from '../types';
+import {
+  buildScopedAssessmentDocId,
+  DEFAULT_SEMESTER,
+  DEFAULT_TAHUN_PELAJARAN,
+  SemesterType,
+} from '../administrasiTypes';
 
 interface StudentSoalRunnerProps {
   soalSet: SoalSet;
   questions: SoalQuestion[];
   currentStudent: any;
   isAdminPreview?: boolean;
+  activeTahunPelajaran?: string;
+  activeSemester?: SemesterType;
   onExit: () => void;
   onFirestoreError?: (error: unknown, op: 'write' | 'delete', path: string) => void;
   isDarkMode?: boolean;
@@ -53,6 +61,8 @@ export default function StudentSoalRunner({
   questions,
   currentStudent,
   isAdminPreview = false,
+  activeTahunPelajaran = DEFAULT_TAHUN_PELAJARAN,
+  activeSemester = DEFAULT_SEMESTER,
   onExit,
   onFirestoreError,
   isDarkMode = false,
@@ -241,13 +251,21 @@ export default function StudentSoalRunner({
 
     if (!isAdminPreview && currentStudent) {
       try {
-        const assessmentId = `${currentStudent.id}_${sessionCourseId}`;
+        const assessmentId = buildScopedAssessmentDocId(
+          currentStudent.id,
+          sessionCourseId,
+          activeTahunPelajaran,
+          activeSemester
+        );
         await setDoc(doc(db, 'assessments', assessmentId), {
           studentId: currentStudent.id,
           studentName: currentStudent.nama,
           studentKelas: currentStudent.kelas,
           courseId: sessionCourseId,
           courseTitle: soalSet.title,
+          tahunPelajaran: activeTahunPelajaran,
+          semester: activeSemester,
+          isSoal: true,
           score,
           wrongAnswers: wrongCount,
           durationSeconds,

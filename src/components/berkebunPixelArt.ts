@@ -4212,14 +4212,13 @@ export function renderPixelWorldMapCanvas(
         }
       }
 
-      if (tile.debris === 'ore_star') {
-        ctx.fillStyle = '#c084fc';
-        ctx.fillRect(px + 2, py + 2, 4, 4);
-      } else if (tile.debris === 'ore_silver') {
-        ctx.fillStyle = '#7dd3fc';
-        ctx.fillRect(px + 2, py + 2, 4, 4);
-      } else if (tile.debris === 'ore_copper') {
-        ctx.fillStyle = '#fb923c';
+      if (
+        tile.debris === 'stone' ||
+        tile.debris === 'ore_star' ||
+        tile.debris === 'ore_silver' ||
+        tile.debris === 'ore_copper'
+      ) {
+        ctx.fillStyle = '#94a3b8';
         ctx.fillRect(px + 2, py + 2, 4, 4);
       }
     }
@@ -4471,8 +4470,11 @@ export function renderJaringanWorldMapCanvas(
         ctx.fillRect(px, py, scale, scale);
       }
 
-      if (tile.debris && tile.debris.startsWith('gem_')) {
-        ctx.fillStyle = '#f472b6';
+      if (
+        tile.debris &&
+        (tile.debris === 'stone' || tile.debris.startsWith('gem_') || tile.debris.startsWith('ore_'))
+      ) {
+        ctx.fillStyle = '#94a3b8';
         ctx.fillRect(px + 1, py + 1, scale - 2, scale - 2);
       }
     }
