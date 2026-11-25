@@ -237,6 +237,12 @@
         "tanggal": { "type": "string" },
         "kelas": { "type": "string" },
         "pertemuanKe": { "type": "string" },
+        "jadwalId": { "type": "string" },
+        "hari": { "type": "string" },
+        "jamKe": { "type": "string" },
+        "waktuMulai": { "type": "string" },
+        "waktuSelesai": { "type": "string" },
+        "mataPelajaran": { "type": "string" },
         "tpId": { "type": "string" },
         "tpKode": { "type": "string" },
         "materi": { "type": "string" },
@@ -257,6 +263,10 @@
         "semester": { "type": "string", "enum": ["Ganjil", "Genap"] },
         "tanggal": { "type": "string" },
         "kelas": { "type": "string" },
+        "agendaId": { "type": "string" },
+        "pertemuanKe": { "type": "string" },
+        "jamKe": { "type": "string" },
+        "materi": { "type": "string" },
         "entries": { "type": "object" }
       },
       "required": ["tahunPelajaran", "semester", "tanggal", "kelas", "entries"]

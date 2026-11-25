@@ -3155,7 +3155,7 @@ export default function App() {
           </div>
         </aside>
 
-        <main className="relative z-10 flex-1 p-3 md:p-5 lg:p-6 pt-16 md:pt-4 overflow-y-auto w-full custom-scrollbar">
+        <main className="flex-1 p-3 md:p-5 lg:p-6 pt-16 md:pt-4 overflow-y-auto w-full custom-scrollbar">
           <header className="sticky top-0 z-30 admin-glass-header rounded-2xl px-3.5 py-2 md:px-4 md:py-2 flex items-center justify-between gap-3 mb-4 transition-colors duration-200">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className={cn(
@@ -4525,12 +4525,12 @@ export default function App() {
             {/* Student Detail Popup */}
             <AnimatePresence>
               {studentDetail && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" 
+                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" 
                     onClick={() => setStudentDetail(null)}
                   />
                   <motion.div 

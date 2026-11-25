@@ -211,6 +211,12 @@ export interface AgendaHarianItem {
   tanggal: string; // YYYY-MM-DD
   kelas: string;
   pertemuanKe: string;
+  jadwalId?: string; // Reference to JadwalPelajaranItem.id
+  hari?: JadwalPelajaranItem['hari'] | string;
+  jamKe?: string;
+  waktuMulai?: string;
+  waktuSelesai?: string;
+  mataPelajaran?: string;
   tpId?: string;
   tpKode?: string;
   materi: string;
@@ -235,8 +241,29 @@ export interface AbsensiRecord {
   semester: SemesterType;
   tanggal: string; // YYYY-MM-DD
   kelas: string;
+  agendaId?: string; // Reference to AgendaHarianItem.id
+  pertemuanKe?: string;
+  jamKe?: string;
+  materi?: string;
   entries: Record<string, AbsensiStudentEntry>; // key: studentId
   updatedAt?: string;
+}
+
+export function getHariFromDate(dateStr: string): JadwalPelajaranItem['hari'] {
+  if (!dateStr) return 'Senin';
+  // Use T12:00:00 to avoid timezone shifting issues
+  const date = new Date(`${dateStr}T12:00:00`);
+  const dayIndex = date.getDay(); // 0 is Sunday, 1 is Monday, ..., 6 is Saturday
+  const mapping: Record<number, JadwalPelajaranItem['hari']> = {
+    1: 'Senin',
+    2: 'Selasa',
+    3: 'Rabu',
+    4: 'Kamis',
+    5: 'Jumat',
+    6: 'Sabtu',
+    0: 'Senin', // fallback Sunday to Senin
+  };
+  return mapping[dayIndex] || 'Senin';
 }
 
 export interface NilaiSumatifItem {
