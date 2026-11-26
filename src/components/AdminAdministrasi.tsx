@@ -1548,6 +1548,9 @@ export default function AdminAdministrasi({
         updatedAt: nowIso,
       });
 
+      setSelectedAgendaId('');
+      setAbsensiSubView('agenda_hari_ini');
+
       showNotice(
         'success',
         `Absensi Pertemuan ke-${selectedAgenda.pertemuanKe} Kelas ${targetKelas} (${H} Hadir, ${S} Sakit, ${I} Izin, ${A} Alpa) berhasil disimpan dan disinkronkan ke Agenda Harian!`
