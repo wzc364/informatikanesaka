@@ -231,6 +231,78 @@ const DEFAULT_POLA_BILANGAN_QUESTIONS = [
   },
 ];
 
+function getPhpBridgeConfig() {
+  const url = String(process.env.PHP_SOAL_API_URL || '').trim();
+  const apiKey = String(process.env.PHP_SOAL_API_KEY || '').trim();
+  return { url, apiKey };
+}
+
+export function isPhpBridgeConfigured() {
+  const cfg = getPhpBridgeConfig();
+  return Boolean(cfg.url && cfg.apiKey);
+}
+
+function isPrivateOrLoopbackHost(hostname) {
+  const h = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+  if (!h) return true;
+  if (h === 'localhost' || h === '::1' || h.endsWith('.local') || h.endsWith('.internal')) {
+    return true;
+  }
+  // IPv4 literal check
+  const ipv4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
+    if (a === 127 || a === 10 || a === 0) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+  }
+  return false;
+}
+
+function validatePhpBridgeUrl(rawUrl) {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error('Format PHP_SOAL_API_URL tidak valid. Gunakan URL lengkap seperti https://domainanda.com/api-soal/soal_api.php');
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throw new Error('PHP_SOAL_API_URL harus menggunakan protokol https:// atau http://');
+  }
+  if (isPrivateOrLoopbackHost(parsed.hostname)) {
+    throw new Error('PHP_SOAL_API_URL tidak boleh mengarah ke alamat lokal/private.');
+  }
+  return parsed.toString();
+}
+
+async function callPhpBridge(action, payload = {}) {
+  const { url, apiKey } = getPhpBridgeConfig();
+  const safeUrl = validatePhpBridgeUrl(url);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const resp = await fetch(safeUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': apiKey,
+      },
+      body: JSON.stringify({ action, ...payload }),
+      signal: controller.signal,
+    });
+    const data = await resp.json().catch(() => ({}));
+    return { status: resp.status, payload: data };
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      throw new Error('Waktu koneksi ke PHP_SOAL_API_URL habis (timeout).');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function getMysqlConfig() {
   const host = String(process.env.MYSQL_HOST || '').trim();
   const port = Number(process.env.MYSQL_PORT || 3306) || 3306;
@@ -242,6 +314,7 @@ function getMysqlConfig() {
 }
 
 export function isMysqlConfigured() {
+  if (isPhpBridgeConfigured()) return true;
   const cfg = getMysqlConfig();
   return Boolean(cfg.host && cfg.user && cfg.database);
 }
@@ -524,6 +597,17 @@ function safeEqualStrings(a, b) {
 }
 
 async function getClaimedPasscodeHash() {
+  if (isPhpBridgeConfigured()) {
+    try {
+      const res = await callPhpBridge('get_config', { key: 'admin_passcode_hash' });
+      if (res.status === 200 && res.payload?.value) {
+        return String(res.payload.value);
+      }
+    } catch {
+      // Fall back to in-memory hash if bridge unavailable
+    }
+    return memoryClaimedPasscodeHash;
+  }
   if (isMysqlConfigured()) {
     try {
       const activePool = await ensureSchema();
@@ -543,6 +627,17 @@ async function getClaimedPasscodeHash() {
 
 async function saveClaimedPasscodeHash(hashValue) {
   memoryClaimedPasscodeHash = hashValue;
+  if (isPhpBridgeConfigured()) {
+    const res = await callPhpBridge('set_config', {
+      key: 'admin_passcode_hash',
+      value: hashValue,
+      ignoreIfExists: false,
+    });
+    if (res.status >= 400) {
+      throw new Error(res.payload?.error || 'Gagal menyimpan passcode admin via PHP Bridge.');
+    }
+    return;
+  }
   if (isMysqlConfigured()) {
     const activePool = await ensureSchema();
     const now = new Date().toISOString();
@@ -561,6 +656,26 @@ async function getSigningSecret() {
   ).trim();
   if (envSecret) return envSecret;
   if (cachedSigningSecret) return cachedSigningSecret;
+
+  if (isPhpBridgeConfigured()) {
+    try {
+      const existing = await callPhpBridge('get_config', { key: 'auth_signing_secret' });
+      if (existing.status === 200 && existing.payload?.value) {
+        cachedSigningSecret = String(existing.payload.value);
+        return cachedSigningSecret;
+      }
+      const generated = crypto.randomBytes(32).toString('hex');
+      const saved = await callPhpBridge('set_config', {
+        key: 'auth_signing_secret',
+        value: generated,
+        ignoreIfExists: true,
+      });
+      cachedSigningSecret = String(saved.payload?.value || generated);
+      return cachedSigningSecret;
+    } catch {
+      return FALLBACK_MEMORY_SECRET;
+    }
+  }
 
   if (isMysqlConfigured()) {
     try {
@@ -643,7 +758,7 @@ function formatDbError(err) {
     return {
       status: 502,
       message:
-        'Tidak dapat terhubung ke server MySQL (phpMyAdmin). Pastikan Remote MySQL Access sudah aktif, host/port benar, dan firewall mengizinkan koneksi.',
+        'Tidak dapat terhubung ke server MySQL (port 3306 diblokir firewall hosting atau host/port salah). Pastikan MYSQL_HOST memakai IP server cPanel (Shared IP Address), atau unggah jembatan API PHP (database/soal_api.php) ke cPanel dan isi PHP_SOAL_API_URL + PHP_SOAL_API_KEY di Vercel.',
       code,
     };
   }
@@ -763,6 +878,20 @@ export async function handleSoalApiRequest({ method, subPath, body, authHeader }
         },
       };
     }
+    if (isPhpBridgeConfigured()) {
+      try {
+        const res = await callPhpBridge('health');
+        return {
+          status: 200,
+          payload: res.status === 200 ? res.payload : { configured: true, connected: false, error: res.payload?.error },
+        };
+      } catch (err) {
+        return {
+          status: 200,
+          payload: { configured: true, connected: false, error: err?.message || 'Gagal menghubungi PHP Bridge.' },
+        };
+      }
+    }
     try {
       const activePool = await ensureSchema();
       await activePool.execute('SELECT 1 AS ok');
@@ -789,6 +918,30 @@ export async function handleSoalApiRequest({ method, subPath, body, authHeader }
             'Penyimpanan Kelola Soal menggunakan MySQL (phpMyAdmin), namun Environment Variables MYSQL_HOST, MYSQL_USER, dan MYSQL_DATABASE belum terbaca di server.',
         },
       };
+    }
+    if (isPhpBridgeConfigured()) {
+      try {
+        const res = await callPhpBridge('list');
+        if (res.status >= 400) {
+          return {
+            status: res.status,
+            payload: { configured: true, sets: [], questions: [], error: res.payload?.error || 'Gagal memuat data dari PHP Bridge.' },
+          };
+        }
+        return {
+          status: 200,
+          payload: {
+            configured: true,
+            sets: Array.isArray(res.payload?.sets) ? res.payload.sets : [],
+            questions: Array.isArray(res.payload?.questions) ? res.payload.questions : [],
+          },
+        };
+      } catch (err) {
+        return {
+          status: 502,
+          payload: { configured: true, sets: [], questions: [], error: err?.message || 'Gagal menghubungi PHP Bridge.' },
+        };
+      }
     }
     try {
       const activePool = await ensureSchema();
@@ -837,10 +990,49 @@ export async function handleSoalApiRequest({ method, subPath, body, authHeader }
       status: 503,
       payload: {
         error:
-          'Database MySQL (phpMyAdmin) belum dikonfigurasi. Tambahkan MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, dan MYSQL_DATABASE di Secrets.',
+          'Database MySQL (phpMyAdmin) belum dikonfigurasi. Tambahkan MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, dan MYSQL_DATABASE (atau PHP_SOAL_API_URL & PHP_SOAL_API_KEY) di Environment Variables.',
         code: 'MYSQL_NOT_CONFIGURED',
       },
     };
+  }
+
+  // Delegate write operations to cPanel PHP HTTPS Bridge when configured
+  if (isPhpBridgeConfigured()) {
+    try {
+      const setMatchBridge = cleanPath.match(/^sets\/([^/]+)$/);
+      const qMatchBridge = cleanPath.match(/^questions\/([^/]+)$/);
+
+      if (cleanMethod === 'POST' && cleanPath === 'sets') {
+        return await callPhpBridge('create_set', body || {});
+      }
+      if (cleanMethod === 'PUT' && setMatchBridge) {
+        return await callPhpBridge('update_set', { ...(body || {}), id: decodeURIComponent(setMatchBridge[1]) });
+      }
+      if (cleanMethod === 'DELETE' && setMatchBridge) {
+        return await callPhpBridge('delete_set', { id: decodeURIComponent(setMatchBridge[1]) });
+      }
+      if (cleanMethod === 'POST' && cleanPath === 'questions/toggle-all') {
+        return await callPhpBridge('toggle_all_questions', body || {});
+      }
+      if (cleanMethod === 'POST' && cleanPath === 'questions/bulk') {
+        return await callPhpBridge('bulk_questions', body || {});
+      }
+      if (cleanMethod === 'POST' && cleanPath === 'questions') {
+        return await callPhpBridge('create_question', body || {});
+      }
+      if (cleanMethod === 'PUT' && qMatchBridge) {
+        return await callPhpBridge('update_question', { ...(body || {}), id: decodeURIComponent(qMatchBridge[1]) });
+      }
+      if (cleanMethod === 'DELETE' && qMatchBridge) {
+        return await callPhpBridge('delete_question', { id: decodeURIComponent(qMatchBridge[1]) });
+      }
+      return { status: 404, payload: { error: 'Endpoint Kelola Soal tidak ditemukan.' } };
+    } catch (err) {
+      return {
+        status: 502,
+        payload: { error: err?.message || 'Gagal menghubungi PHP Bridge.' },
+      };
+    }
   }
 
   try {
