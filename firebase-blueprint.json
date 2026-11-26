@@ -243,6 +243,8 @@
         "waktuMulai": { "type": "string" },
         "waktuSelesai": { "type": "string" },
         "mataPelajaran": { "type": "string" },
+        "jenisKegiatan": { "type": "string" },
+        "attendanceMode": { "type": "string", "enum": ["manual", "all_present", "no_attendance"] },
         "tpId": { "type": "string" },
         "tpKode": { "type": "string" },
         "materi": { "type": "string" },
@@ -288,6 +290,24 @@
         "scores": { "type": "object" }
       },
       "required": ["tahunPelajaran", "semester", "kelas", "judul"]
+    },
+    "NilaiAsesmenHarian": {
+      "title": "Nilai Asesmen Harian",
+      "description": "Daily assessment scores linked to KBM dan Asesmen Harian agenda entries.",
+      "type": "object",
+      "properties": {
+        "agendaId": { "type": "string" },
+        "tahunPelajaran": { "type": "string" },
+        "semester": { "type": "string", "enum": ["Ganjil", "Genap"] },
+        "kelas": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "materi": { "type": "string" },
+        "tpId": { "type": "string" },
+        "tpKode": { "type": "string" },
+        "scores": { "type": "object" },
+        "notes": { "type": "object" }
+      },
+      "required": ["agendaId", "tahunPelajaran", "semester", "kelas", "tanggal", "materi"]
     },
     "NilaiRapor": {
       "title": "Nilai Rapor",
@@ -379,6 +399,10 @@
     "/nilai_sumatif/{sumatifId}": {
       "schema": "NilaiSumatif",
       "description": "Summative exam scores per class."
+    },
+    "/nilai_asesmen_harian/{asesmenId}": {
+      "schema": "NilaiAsesmenHarian",
+      "description": "Daily assessment scores linked to agenda KBM dan Asesmen Harian."
     },
     "/nilai_rapor/{raporId}": {
       "schema": "NilaiRapor",

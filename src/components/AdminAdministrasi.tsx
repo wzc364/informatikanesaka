@@ -40,6 +40,7 @@ import {
   CalendarClock,
   BookOpen,
   ChevronRight,
+  Lock,
 } from 'lucide-react';
 import { db } from '../firebase';
 import {
@@ -65,9 +66,11 @@ import {
   getPredikatFromScore,
   getTodayIsoDate,
   HARI_LIST,
+  isOptionalAttendanceJenis,
   JadwalPelajaranItem,
   JadwalScheduleSettings,
   JENIS_KEGIATAN_LIST,
+  NilaiAsesmenHarianItem,
   NilaiRaporEntry,
   NilaiSubTab,
   NilaiSumatifItem,
@@ -146,6 +149,7 @@ export default function AdminAdministrasi({
   const [allAgenda, setAllAgenda] = useState<AgendaHarianItem[]>([]);
   const [allAbsensi, setAllAbsensi] = useState<AbsensiRecord[]>([]);
   const [allSumatif, setAllSumatif] = useState<NilaiSumatifItem[]>([]);
+  const [allAsesmenHarian, setAllAsesmenHarian] = useState<NilaiAsesmenHarianItem[]>([]);
   const [allRapor, setAllRapor] = useState<NilaiRaporEntry[]>([]);
 
   useEffect(() => {
@@ -198,6 +202,16 @@ export default function AdminAdministrasi({
           setAllSumatif(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
         },
         (err) => onFirestoreError?.(err, 'list', 'nilai_sumatif')
+      )
+    );
+
+    unsubs.push(
+      onSnapshot(
+        collection(db, 'nilai_asesmen_harian'),
+        (snap) => {
+          setAllAsesmenHarian(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
+        },
+        (err) => onFirestoreError?.(err, 'list', 'nilai_asesmen_harian')
       )
     );
 
@@ -288,6 +302,14 @@ export default function AdminAdministrasi({
         )
         .sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || '')),
     [allSumatif, activeTahunPelajaran, activeSemester]
+  );
+
+  const asesmenHarianList = useMemo(
+    () =>
+      allAsesmenHarian.filter(
+        (a) => a.tahunPelajaran === activeTahunPelajaran && a.semester === activeSemester
+      ),
+    [allAsesmenHarian, activeTahunPelajaran, activeSemester]
   );
 
   const raporList = useMemo(
@@ -930,6 +952,7 @@ export default function AdminAdministrasi({
     waktuSelesai: string;
     mataPelajaran: string;
     jenisKegiatan: string;
+    attendanceMode: 'manual' | 'all_present' | 'no_attendance';
     pertemuanKe: string;
     tpId: string;
     materi: string;
@@ -949,6 +972,7 @@ export default function AdminAdministrasi({
     waktuSelesai: '08:50',
     mataPelajaran: 'Informatika',
     jenisKegiatan: 'KBM',
+    attendanceMode: 'manual',
     pertemuanKe: '1',
     tpId: '',
     materi: '',
@@ -1022,6 +1046,9 @@ export default function AdminAdministrasi({
     );
   };
 
+  const isAgendaAttendanceExempt = (ag: AgendaHarianItem) =>
+    ag.attendanceMode === 'no_attendance';
+
   const openNewAgendaModal = (
     presetJadwal?: JadwalPelajaranItem,
     presetDate?: string,
@@ -1064,6 +1091,7 @@ export default function AdminAdministrasi({
       waktuSelesai: isExtraZeroSlot ? '07:15' : matchedJadwal?.waktuSelesai || '08:50',
       mataPelajaran: matchedJadwal?.mataPelajaran || 'Informatika',
       jenisKegiatan: 'KBM',
+      attendanceMode: 'manual',
       pertemuanKe: String(classExistingCount + 1),
       tpId: '',
       materi: '',
@@ -1089,6 +1117,7 @@ export default function AdminAdministrasi({
       waktuSelesai: item.waktuSelesai || '',
       mataPelajaran: item.mataPelajaran || 'Informatika',
       jenisKegiatan: item.jenisKegiatan || 'KBM',
+      attendanceMode: item.attendanceMode || 'manual',
       pertemuanKe: item.pertemuanKe || '1',
       tpId: item.tpId || '',
       materi: item.materi,
@@ -1112,11 +1141,19 @@ export default function AdminAdministrasi({
     const existingItem = editingAgendaId
       ? agendaList.find((a) => a.id === editingAgendaId)
       : null;
+    const targetKelas = agendaForm.kelas.trim();
+    const effectiveAttendanceMode: 'manual' | 'all_present' | 'no_attendance' =
+      isOptionalAttendanceJenis(agendaForm.jenisKegiatan)
+        ? agendaForm.attendanceMode || 'manual'
+        : 'manual';
+    const targetStudents = targetKelas ? studentsByClass[targetKelas] || [] : [];
+    const nowIso = new Date().toISOString();
+
     const payload = {
       tahunPelajaran: activeTahunPelajaran,
       semester: activeSemester,
       tanggal: agendaForm.tanggal,
-      kelas: agendaForm.kelas.trim(),
+      kelas: targetKelas,
       pertemuanKe: agendaForm.pertemuanKe.trim() || '1',
       jadwalId: agendaForm.jadwalId || '',
       hari: agendaForm.hari || getHariFromDate(agendaForm.tanggal),
@@ -1125,29 +1162,96 @@ export default function AdminAdministrasi({
       waktuSelesai: agendaForm.waktuSelesai || '',
       mataPelajaran: agendaForm.mataPelajaran || 'Informatika',
       jenisKegiatan: agendaForm.jenisKegiatan || 'KBM',
+      attendanceMode: effectiveAttendanceMode,
       tpId: linkedTp?.id || '',
       tpKode: linkedTp?.kodeTp || '',
       materi: agendaForm.materi.trim(),
       kegiatan: agendaForm.kegiatan.trim(),
       catatan: agendaForm.catatan.trim(),
-      hadirCount: existingItem ? existingItem.hadirCount ?? 0 : 0,
-      sakitCount: existingItem ? existingItem.sakitCount ?? 0 : 0,
-      izinCount: existingItem ? existingItem.izinCount ?? 0 : 0,
-      alpaCount: existingItem ? existingItem.alpaCount ?? 0 : 0,
-      updatedAt: new Date().toISOString(),
+      hadirCount:
+        effectiveAttendanceMode === 'all_present' && targetKelas
+          ? targetStudents.length
+          : effectiveAttendanceMode === 'no_attendance'
+          ? 0
+          : existingItem
+          ? existingItem.hadirCount ?? 0
+          : 0,
+      sakitCount:
+        effectiveAttendanceMode === 'all_present' || effectiveAttendanceMode === 'no_attendance'
+          ? 0
+          : existingItem
+          ? existingItem.sakitCount ?? 0
+          : 0,
+      izinCount:
+        effectiveAttendanceMode === 'all_present' || effectiveAttendanceMode === 'no_attendance'
+          ? 0
+          : existingItem
+          ? existingItem.izinCount ?? 0
+          : 0,
+      alpaCount:
+        effectiveAttendanceMode === 'all_present' || effectiveAttendanceMode === 'no_attendance'
+          ? 0
+          : existingItem
+          ? existingItem.alpaCount ?? 0
+          : 0,
+      updatedAt: nowIso,
     };
     try {
+      let savedAgendaId = editingAgendaId || '';
       if (editingAgendaId) {
         await updateDoc(doc(db, 'agenda_harian', editingAgendaId), payload);
-        showNotice('success', 'Agenda harian berhasil diperbarui.');
       } else {
         const newDocRef = await addDoc(collection(db, 'agenda_harian'), {
           ...payload,
-          createdAt: new Date().toISOString(),
+          createdAt: nowIso,
         });
-        showNotice('success', 'Agenda harian berhasil dicatat berdasarkan jadwal pelajaran.');
-        if (payload.kelas) {
-          setSelectedAgendaId(newDocRef.id);
+        savedAgendaId = newDocRef.id;
+      }
+
+      if (effectiveAttendanceMode === 'all_present' && targetKelas && targetStudents.length > 0) {
+        const existingAbsensi = absensiList.find((a) => a.agendaId === savedAgendaId);
+        const absensiDocId =
+          existingAbsensi?.id ||
+          `${slugifyTermPart(activeTahunPelajaran)}__${activeSemester}__agenda_${savedAgendaId}`;
+        const allPresentEntries: Record<string, AbsensiStudentEntry> = {};
+        targetStudents.forEach((s) => {
+          allPresentEntries[s.id] = { status: 'H', catatan: '' };
+        });
+        await setDoc(doc(db, 'absensi_siswa', absensiDocId), {
+          id: absensiDocId,
+          agendaId: savedAgendaId,
+          tahunPelajaran: activeTahunPelajaran,
+          semester: activeSemester,
+          tanggal: payload.tanggal,
+          kelas: targetKelas,
+          pertemuanKe: payload.pertemuanKe,
+          jamKe: payload.jamKe,
+          materi: payload.materi,
+          entries: allPresentEntries,
+          updatedAt: nowIso,
+        });
+      }
+
+      if (editingAgendaId) {
+        showNotice(
+          'success',
+          effectiveAttendanceMode === 'all_present' && targetKelas
+            ? 'Agenda diperbarui & seluruh siswa ditandai Hadir.'
+            : effectiveAttendanceMode === 'no_attendance'
+            ? 'Agenda diperbarui (Tidak Perlu Absensi).'
+            : 'Agenda harian berhasil diperbarui.'
+        );
+      } else {
+        showNotice(
+          'success',
+          effectiveAttendanceMode === 'all_present' && targetKelas
+            ? `Agenda dicatat & ${targetStudents.length} siswa Kelas ${targetKelas} otomatis ditandai Hadir.`
+            : effectiveAttendanceMode === 'no_attendance'
+            ? 'Agenda berhasil dicatat (Tidak Perlu Absensi).'
+            : 'Agenda harian berhasil dicatat berdasarkan jadwal pelajaran.'
+        );
+        if (payload.kelas && effectiveAttendanceMode === 'manual') {
+          setSelectedAgendaId(savedAgendaId);
           setAbsensiClass(payload.kelas);
         }
       }
@@ -1268,10 +1372,15 @@ export default function AdminAdministrasi({
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [absensiDateAgendas]);
 
-  // Tanggungan absensi: hanya agenda yang memiliki kelas & belum diisi absensinya
+  // Tanggungan absensi: hanya agenda yang memiliki kelas, memerlukan absensi & belum diisi absensinya
   const tanggunganAgendas = useMemo(() => {
     return agendaList
-      .filter((a) => Boolean(a.kelas?.trim()) && !isAgendaAttended(a.id, a.kelas, a.tanggal))
+      .filter(
+        (a) =>
+          Boolean(a.kelas?.trim()) &&
+          !isAgendaAttendanceExempt(a) &&
+          !isAgendaAttended(a.id, a.kelas, a.tanggal)
+      )
       .sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''));
   }, [agendaList, absensiList]);
 
@@ -1405,6 +1514,10 @@ export default function AdminAdministrasi({
 
       // 2. Synchronize counts directly into the linked agenda_harian document!
       await updateDoc(doc(db, 'agenda_harian', selectedAgenda.id), {
+        attendanceMode:
+          S === 0 && I === 0 && A === 0 && isOptionalAttendanceJenis(selectedAgenda.jenisKegiatan)
+            ? 'all_present'
+            : 'manual',
         hadirCount: H,
         sakitCount: S,
         izinCount: I,
@@ -1421,6 +1534,24 @@ export default function AdminAdministrasi({
       showNotice('error', 'Gagal menyimpan absensi siswa.');
     } finally {
       setIsSavingAbsensi(false);
+    }
+  };
+
+  const handleMarkAgendaNoAttendance = async (ag: AgendaHarianItem) => {
+    try {
+      await updateDoc(doc(db, 'agenda_harian', ag.id), {
+        attendanceMode: 'no_attendance',
+        hadirCount: 0,
+        sakitCount: 0,
+        izinCount: 0,
+        alpaCount: 0,
+        updatedAt: new Date().toISOString(),
+      });
+      setSelectedAgendaId('');
+      showNotice('success', `Agenda "${ag.materi}" ditandai Tidak Perlu Absensi.`);
+    } catch (err) {
+      onFirestoreError?.(err, 'write', `agenda_harian/${ag.id}`);
+      showNotice('error', 'Gagal memperbarui pengaturan absensi agenda.');
     }
   };
 
@@ -1822,6 +1953,175 @@ export default function AdminAdministrasi({
     });
     downloadCsv(
       `Nilai_Sumatif_Akhir_${nilaiClass}_${slugifyTermPart(activeTahunPelajaran)}_${activeSemester}.csv`,
+      headers,
+      rows
+    );
+  };
+
+  // ============================================================================
+  // 5A-2. ASESMEN HARIAN (Terkait Agenda "KBM dan Asesmen Harian")
+  // ============================================================================
+  const classAsesmenHarianAgendas = useMemo(() => {
+    if (!nilaiClass) return [];
+    return agendaList
+      .filter(
+        (a) =>
+          a.kelas === nilaiClass &&
+          (a.jenisKegiatan || '').trim().toLowerCase() === 'kbm dan asesmen harian'
+      )
+      .slice()
+      .sort((a, b) => {
+        const d = (a.tanggal || '').localeCompare(b.tanggal || '');
+        if (d !== 0) return d;
+        return parseSlotNumber(a.jamKe) - parseSlotNumber(b.jamKe);
+      });
+  }, [agendaList, nilaiClass]);
+
+  const getAttendanceRecordForAgenda = (ag: AgendaHarianItem): AbsensiRecord | null => {
+    return (
+      absensiList.find((a) => a.agendaId === ag.id) ||
+      absensiList.find((a) => a.kelas === ag.kelas && a.tanggal === ag.tanggal) ||
+      null
+    );
+  };
+
+  const getStudentAttendanceStatusForAgenda = (
+    ag: AgendaHarianItem,
+    studentId: string
+  ): AttendanceStatus | null => {
+    if (ag.attendanceMode === 'no_attendance' || ag.attendanceMode === 'all_present') {
+      return 'H';
+    }
+    const exactRec = absensiList.find((a) => a.agendaId === ag.id);
+    if (exactRec?.entries) {
+      return exactRec.entries[studentId]?.status || null;
+    }
+    const sameDayRecs = absensiList.filter(
+      (a) => a.kelas === ag.kelas && a.tanggal === ag.tanggal
+    );
+    for (const rec of sameDayRecs) {
+      const st = rec.entries?.[studentId]?.status;
+      if (st === 'S' || st === 'I' || st === 'A') {
+        return st;
+      }
+    }
+    for (const rec of sameDayRecs) {
+      const st = rec.entries?.[studentId]?.status;
+      if (st) return st;
+    }
+    return null;
+  };
+
+  const [asesmenHarianDraft, setAsesmenHarianDraft] = useState<
+    Record<string, Record<string, string>>
+  >({});
+  const [isSavingAsesmenHarian, setIsSavingAsesmenHarian] = useState(false);
+
+  useEffect(() => {
+    const next: Record<string, Record<string, string>> = {};
+    classAsesmenHarianAgendas.forEach((ag) => {
+      const saved =
+        asesmenHarianList.find((a) => a.agendaId === ag.id || a.id === ag.id) || null;
+      const colDraft: Record<string, string> = {};
+      nilaiClassStudents.forEach((s) => {
+        const val = saved?.scores?.[s.id];
+        colDraft[s.id] = val !== undefined && val !== null ? String(val) : '';
+      });
+      next[ag.id] = colDraft;
+    });
+    setAsesmenHarianDraft(next);
+  }, [classAsesmenHarianAgendas, asesmenHarianList, nilaiClassStudents]);
+
+  const handleSaveAllAsesmenHarian = async () => {
+    if (!nilaiClass || classAsesmenHarianAgendas.length === 0) return;
+    setIsSavingAsesmenHarian(true);
+    const nowIso = new Date().toISOString();
+    try {
+      await Promise.all(
+        classAsesmenHarianAgendas.map((ag) => {
+          const saved =
+            asesmenHarianList.find((a) => a.agendaId === ag.id || a.id === ag.id) || null;
+          const docId = saved?.id || ag.id;
+          const colDraft = asesmenHarianDraft[ag.id] || {};
+          const cleanScores: Record<string, number> = {};
+          nilaiClassStudents.forEach((s) => {
+            const attStatus = getStudentAttendanceStatusForAgenda(ag, s.id);
+            if (attStatus === 'S' || attStatus === 'I' || attStatus === 'A') {
+              return;
+            }
+            const raw = (colDraft[s.id] || '').trim();
+            if (raw !== '') {
+              const num = Math.max(0, Math.min(100, Number(raw)));
+              if (!Number.isNaN(num)) {
+                cleanScores[s.id] = Math.round(num);
+              }
+            }
+          });
+          return setDoc(
+            doc(db, 'nilai_asesmen_harian', docId),
+            {
+              agendaId: ag.id,
+              tahunPelajaran: activeTahunPelajaran,
+              semester: activeSemester,
+              kelas: nilaiClass,
+              tanggal: ag.tanggal,
+              materi: ag.materi,
+              tpId: ag.tpId || '',
+              tpKode: ag.tpKode || '',
+              scores: cleanScores,
+              notes: saved?.notes || {},
+              createdAt: saved?.createdAt || nowIso,
+              updatedAt: nowIso,
+            },
+            { merge: true }
+          );
+        })
+      );
+      showNotice(
+        'success',
+        `Nilai Asesmen Harian Kelas ${nilaiClass} berhasil disimpan (${classAsesmenHarianAgendas.length} penilaian).`
+      );
+    } catch (err) {
+      onFirestoreError?.(err, 'write', 'nilai_asesmen_harian');
+      showNotice('error', 'Gagal menyimpan nilai Asesmen Harian.');
+    } finally {
+      setIsSavingAsesmenHarian(false);
+    }
+  };
+
+  const handleExportAsesmenHarianCsv = () => {
+    if (!nilaiClass || classAsesmenHarianAgendas.length === 0) return;
+    const headers = [
+      'No',
+      'NISN',
+      'Nama Siswa',
+      ...classAsesmenHarianAgendas.map(
+        (ag) => `${ag.materi}${ag.tpKode ? ` (${ag.tpKode})` : ''} - ${ag.tanggal}`
+      ),
+      'Rata-rata',
+    ];
+    const rows = nilaiClassStudents.map((s, idx) => {
+      let sum = 0;
+      let count = 0;
+      const vals = classAsesmenHarianAgendas.map((ag) => {
+        const attStatus = getStudentAttendanceStatusForAgenda(ag, s.id);
+        if (attStatus === 'S' || attStatus === 'I' || attStatus === 'A') {
+          return `Tidak Hadir (${attStatus})`;
+        }
+        const raw = (asesmenHarianDraft[ag.id]?.[s.id] || '').trim();
+        if (raw !== '' && !Number.isNaN(Number(raw))) {
+          const num = Math.round(Math.max(0, Math.min(100, Number(raw))));
+          sum += num;
+          count++;
+          return num;
+        }
+        return '';
+      });
+      const avg = count > 0 ? Math.round(sum / count) : '';
+      return [idx + 1, s.nis, s.nama, ...vals, avg];
+    });
+    downloadCsv(
+      `Nilai_Asesmen_Harian_${nilaiClass}_${slugifyTermPart(activeTahunPelajaran)}_${activeSemester}.csv`,
       headers,
       rows
     );
@@ -3139,7 +3439,7 @@ export default function AdminAdministrasi({
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {recordedAgenda && (
+                        {recordedAgenda && !isAgendaAttendanceExempt(recordedAgenda) && (
                           <button
                             type="button"
                             onClick={(e) => {
@@ -3155,6 +3455,11 @@ export default function AdminAdministrasi({
                             <ClipboardCheck size={11} />
                             ABSENSI
                           </button>
+                        )}
+                        {recordedAgenda && isAgendaAttendanceExempt(recordedAgenda) && (
+                          <span className="px-2.5 py-1 rounded-full bg-white/15 text-white/90 text-[10px] font-black uppercase tracking-wide">
+                            TANPA ABSENSI
+                          </span>
                         )}
                         <button
                           type="button"
@@ -3322,7 +3627,11 @@ export default function AdminAdministrasi({
                             )}
                           </td>
                           <td className="p-4 text-center whitespace-nowrap">
-                            {ag.kelas ? (
+                            {isAgendaAttendanceExempt(ag) ? (
+                              <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-extrabold text-slate-600 dark:text-slate-300">
+                                Tidak Perlu Absensi
+                              </span>
+                            ) : ag.kelas ? (
                               <>
                                 <div className="inline-flex items-center gap-1 text-[11px] font-extrabold tabular-nums">
                                   <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
@@ -3338,7 +3647,12 @@ export default function AdminAdministrasi({
                                     A:{ag.alpaCount}
                                   </span>
                                 </div>
-                                <div className="mt-1.5">
+                                <div className="mt-1.5 flex items-center justify-center gap-1">
+                                  {ag.attendanceMode === 'all_present' && (
+                                    <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-black">
+                                      Hadir Semua
+                                    </span>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -3581,10 +3895,10 @@ export default function AdminAdministrasi({
                       ag.materi,
                       ag.kegiatan || '-',
                       ag.catatan || '-',
-                      ag.kelas ? ag.hadirCount ?? 0 : 0,
-                      ag.kelas ? ag.sakitCount ?? 0 : 0,
-                      ag.kelas ? ag.izinCount ?? 0 : 0,
-                      ag.kelas ? ag.alpaCount ?? 0 : 0,
+                      ag.kelas && !isAgendaAttendanceExempt(ag) ? ag.hadirCount ?? 0 : '-',
+                      ag.kelas && !isAgendaAttendanceExempt(ag) ? ag.sakitCount ?? 0 : '-',
+                      ag.kelas && !isAgendaAttendanceExempt(ag) ? ag.izinCount ?? 0 : '-',
+                      ag.kelas && !isAgendaAttendanceExempt(ag) ? ag.alpaCount ?? 0 : '-',
                     ]);
                     downloadCsv(
                       `Rekap_Agenda_Harian_${slugifyTermPart(activeTahunPelajaran)}_${activeSemester}.csv`,
@@ -3691,7 +4005,11 @@ export default function AdminAdministrasi({
                                 )}
                               </td>
                               <td className="p-3.5 text-center whitespace-nowrap">
-                                {ag.kelas ? (
+                                {isAgendaAttendanceExempt(ag) ? (
+                                  <span className="inline-block px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold">
+                                    Tidak Perlu Absensi
+                                  </span>
+                                ) : ag.kelas ? (
                                   <div className="space-y-1">
                                     <div className="inline-flex items-center gap-1 text-[10px] font-extrabold tabular-nums">
                                       <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
@@ -3708,7 +4026,9 @@ export default function AdminAdministrasi({
                                       </span>
                                     </div>
                                     <div className="text-[10px] font-bold">
-                                      {isAgendaAttended(ag.id, ag.kelas, ag.tanggal) ? (
+                                      {ag.attendanceMode === 'all_present' ? (
+                                        <span className="text-emerald-600 dark:text-emerald-400">● Hadir Semua</span>
+                                      ) : isAgendaAttended(ag.id, ag.kelas, ag.tanggal) ? (
                                         <span className="text-emerald-600 dark:text-emerald-400">● Sudah Diabsen</span>
                                       ) : (
                                         <span className="text-amber-600 dark:text-amber-400">○ Belum Diabsen</span>
@@ -3839,7 +4159,16 @@ export default function AdminAdministrasi({
                     >
                       ← Kembali ke Kartu Kelas
                     </button>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isOptionalAttendanceJenis(selectedAgenda.jenisKegiatan) && (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkAgendaNoAttendance(selectedAgenda)}
+                          className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 text-xs font-extrabold hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                        >
+                          Tidak Perlu Absensi
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={setAllPresent}
@@ -4101,10 +4430,11 @@ export default function AdminAdministrasi({
                     {absensiDateClasses.map((cls) => {
                       const classDayAgendas = absensiDateAgendas.filter((a) => a.kelas === cls);
                       const pendingAgenda = classDayAgendas.find(
-                        (ag) => !isAgendaAttended(ag.id, ag.kelas, ag.tanggal)
+                        (ag) => !isAgendaAttendanceExempt(ag) && !isAgendaAttended(ag.id, ag.kelas, ag.tanggal)
                       );
                       const primaryAgenda = pendingAgenda || classDayAgendas[0];
                       const allDone = !pendingAgenda;
+                      const allExempt = classDayAgendas.length > 0 && classDayAgendas.every(isAgendaAttendanceExempt);
                       const cardTheme = getClassCardTheme(cls);
                       const studentCount = studentsByClass[cls]?.length || 0;
 
@@ -4123,7 +4453,11 @@ export default function AdminAdministrasi({
                             <span className="px-3.5 py-1.5 rounded-xl bg-white/20 backdrop-blur-xs text-xl font-black uppercase tracking-tight">
                               {cls}
                             </span>
-                            {allDone ? (
+                            {allExempt ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/20 border border-white/30 text-[10px] font-black uppercase tracking-wider">
+                                TANPA ABSENSI
+                              </span>
+                            ) : allDone ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-400/30 border border-emerald-200/40 text-[10px] font-black uppercase tracking-wider">
                                 <Check size={11} /> SELESAI
                               </span>
@@ -4652,6 +4986,29 @@ export default function AdminAdministrasi({
               </button>
               <button
                 type="button"
+                onClick={() => setNilaiSubTab('asesmen_harian')}
+                className={`px-4 py-2 rounded-lg text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition-all ${
+                  nilaiSubTab === 'asesmen_harian'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <BookOpenCheck size={14} />
+                Asesmen Harian
+                {classAsesmenHarianAgendas.length > 0 && (
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-black tabular-nums ${
+                      nilaiSubTab === 'asesmen_harian'
+                        ? 'bg-white/25 text-white'
+                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                    }`}
+                  >
+                    {classAsesmenHarianAgendas.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
                 onClick={() => setNilaiSubTab('sumatif_akhir')}
                 className={`px-4 py-2 rounded-lg text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition-all ${
                   nilaiSubTab === 'sumatif_akhir'
@@ -4900,6 +5257,250 @@ export default function AdminAdministrasi({
                       Buat Penilaian Sumatif Pertama
                     </button>
                   )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 5A-2. ASESMEN HARIAN (Otomatis dari Agenda "KBM dan Asesmen Harian") */}
+          {nilaiSubTab === 'asesmen_harian' && (
+            <div className="space-y-4">
+              {classAsesmenHarianAgendas.length > 0 ? (
+                <div className="admin-glass-card rounded-2xl overflow-hidden">
+                  <div className="p-4 md:p-5 border-b border-white/40 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
+                        Asesmen Harian — Kelas {nilaiClass}
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Terhubung ke Agenda &ldquo;KBM dan Asesmen Harian&rdquo; ({classAsesmenHarianAgendas.length} penilaian) · Siswa yang tidak hadir pada hari agenda tidak dapat diisi nilainya.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleExportAsesmenHarianCsv}
+                        className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+                      >
+                        <Download size={14} />
+                        Export CSV
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isSavingAsesmenHarian}
+                        onClick={handleSaveAllAsesmenHarian}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+                      >
+                        <Save size={14} />
+                        {isSavingAsesmenHarian ? 'Menyimpan...' : 'Simpan Asesmen Harian'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-200/70 dark:border-slate-700 text-[10px] uppercase font-extrabold tracking-widest text-slate-500 dark:text-slate-400">
+                          <th className="p-3.5 w-12">No</th>
+                          <th className="p-3.5 whitespace-nowrap">NISN</th>
+                          <th className="p-3.5 min-w-[200px]">Nama Siswa</th>
+                          {classAsesmenHarianAgendas.map((ag) => {
+                            const linkedTp = ag.tpId
+                              ? tpList.find((t) => t.id === ag.tpId)
+                              : ag.tpKode
+                              ? tpList.find((t) => t.kodeTp === ag.tpKode)
+                              : undefined;
+                            const attRec = getAttendanceRecordForAgenda(ag);
+                            return (
+                              <th
+                                key={ag.id}
+                                className="p-3 text-center min-w-[160px] max-w-[220px] border-l border-slate-200/60 dark:border-slate-700/60 align-top"
+                              >
+                                <div className="flex flex-col items-center gap-1">
+                                  <span
+                                    title={ag.materi}
+                                    className="text-xs font-black text-slate-900 dark:text-white normal-case tracking-normal leading-snug line-clamp-2"
+                                  >
+                                    {ag.materi}
+                                  </span>
+                                  {ag.tpKode ? (
+                                    <span
+                                      title={linkedTp?.deskripsi || ag.tpKode}
+                                      className="px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono font-black normal-case"
+                                    >
+                                      TP: {ag.tpKode}
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 text-[9px] font-bold normal-case">
+                                      Tanpa TP
+                                    </span>
+                                  )}
+                                  <div className="flex flex-wrap items-center justify-center gap-1 mt-0.5">
+                                    <span className="text-[10px] font-bold text-slate-400 tabular-nums normal-case">
+                                      {ag.tanggal}
+                                    </span>
+                                    {!attRec && !isAgendaAttendanceExempt(ag) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setAbsensiClass(ag.kelas);
+                                          setSelectedAgendaId(ag.id);
+                                          setSubTab('absensi');
+                                          setAbsensiMode('input');
+                                        }}
+                                        className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[9px] font-black normal-case hover:bg-amber-200 cursor-pointer"
+                                        title="Absensi agenda ini belum diisi — klik untuk mengisi absensi"
+                                      >
+                                        Isi Absensi
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </th>
+                            );
+                          })}
+                          <th className="p-3.5 text-center w-24 border-l border-slate-200/60 dark:border-slate-700/60">
+                            Rata-rata
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {nilaiClassStudents.length > 0 ? (
+                          nilaiClassStudents.map((s, idx) => {
+                            let totalScore = 0;
+                            let countScore = 0;
+                            classAsesmenHarianAgendas.forEach((ag) => {
+                              const attStatus = getStudentAttendanceStatusForAgenda(ag, s.id);
+                              if (attStatus === 'S' || attStatus === 'I' || attStatus === 'A') {
+                                return;
+                              }
+                              const raw = (asesmenHarianDraft[ag.id]?.[s.id] || '').trim();
+                              if (raw !== '' && !Number.isNaN(Number(raw))) {
+                                totalScore += Math.max(0, Math.min(100, Number(raw)));
+                                countScore++;
+                              }
+                            });
+                            const avg = countScore > 0 ? Math.round(totalScore / countScore) : null;
+
+                            return (
+                              <tr key={s.id} className="hover:bg-blue-50/30 dark:hover:bg-slate-800/50">
+                                <td className="p-3.5 text-xs font-mono text-slate-400 tabular-nums">{idx + 1}</td>
+                                <td className="p-3.5 text-xs font-mono text-slate-500 whitespace-nowrap">{s.nis}</td>
+                                <td className="p-3.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => onOpenStudentDetail?.(s)}
+                                    className="text-left text-sm font-extrabold text-slate-900 dark:text-white hover:text-brand dark:hover:text-blue-400 cursor-pointer"
+                                  >
+                                    {s.nama}
+                                  </button>
+                                </td>
+                                {classAsesmenHarianAgendas.map((ag) => {
+                                  const attStatus = getStudentAttendanceStatusForAgenda(ag, s.id);
+                                  const isAbsent =
+                                    attStatus === 'S' || attStatus === 'I' || attStatus === 'A';
+                                  const rawVal = asesmenHarianDraft[ag.id]?.[s.id] ?? '';
+
+                                  return (
+                                    <td
+                                      key={ag.id}
+                                      className="p-2.5 text-center border-l border-slate-100 dark:border-slate-800"
+                                    >
+                                      {isAbsent ? (
+                                        <div
+                                          className={`inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11px] font-black select-none ${
+                                            attStatus === 'S'
+                                              ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                                              : attStatus === 'I'
+                                              ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                                              : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300'
+                                          }`}
+                                          title={`Siswa berstatus ${
+                                            attStatus === 'S'
+                                              ? 'Sakit'
+                                              : attStatus === 'I'
+                                              ? 'Izin'
+                                              : 'Alpa'
+                                          } pada tanggal ${ag.tanggal} sehingga nilai tidak dapat dimasukkan.`}
+                                        >
+                                          <Lock size={11} />
+                                          Tidak Hadir ({attStatus})
+                                        </div>
+                                      ) : (
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          max={100}
+                                          value={rawVal}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setAsesmenHarianDraft((prev) => ({
+                                              ...prev,
+                                              [ag.id]: {
+                                                ...(prev[ag.id] || {}),
+                                                [s.id]: val,
+                                              },
+                                            }));
+                                          }}
+                                          placeholder="0-100"
+                                          className="w-20 text-center px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-extrabold text-slate-900 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                                        />
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                                <td className="p-3.5 text-center border-l border-slate-100 dark:border-slate-800">
+                                  <span
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-black tabular-nums ${
+                                      avg === null
+                                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                                        : avg >= 75
+                                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                                    }`}
+                                  >
+                                    {avg !== null ? avg : '-'}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={4 + classAsesmenHarianAgendas.length}
+                              className="p-10 text-center text-slate-400 text-sm font-semibold"
+                            >
+                              Belum ada siswa di kelas ini.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div className="admin-glass-card rounded-2xl p-12 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-amber-600 dark:text-amber-400 mx-auto">
+                    <BookOpenCheck size={22} />
+                  </div>
+                  <div className="max-w-lg mx-auto">
+                    <h4 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">
+                      Belum Ada Agenda &ldquo;KBM dan Asesmen Harian&rdquo; untuk {nilaiClass ? `Kelas ${nilaiClass}` : 'Kelas Ini'}
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Penilaian Asesmen Harian akan muncul otomatis sesuai judul Materi dan TP ketika Anda mencatat Agenda Harian dengan jenis kegiatan <strong>KBM dan Asesmen Harian</strong> pada Semester {activeSemester}.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSubTab('agenda')}
+                    className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Calendar size={14} />
+                    Buka Agenda Harian
+                  </button>
                 </div>
               )}
             </div>
@@ -5853,14 +6454,92 @@ export default function AdminAdministrasi({
                 </label>
                 <select
                   value={agendaForm.jenisKegiatan}
-                  onChange={(e) => setAgendaForm({ ...agendaForm, jenisKegiatan: e.target.value })}
+                  onChange={(e) => {
+                    const nextJenis = e.target.value;
+                    setAgendaForm((prev) => {
+                      let nextMode = prev.attendanceMode;
+                      if (!isOptionalAttendanceJenis(nextJenis)) {
+                        nextMode = 'manual';
+                      } else if (!isOptionalAttendanceJenis(prev.jenisKegiatan)) {
+                        nextMode =
+                          nextJenis.trim().toLowerCase() === 'personal guru'
+                            ? 'no_attendance'
+                            : 'all_present';
+                      }
+                      return {
+                        ...prev,
+                        jenisKegiatan: nextJenis,
+                        attendanceMode: nextMode,
+                      };
+                    });
+                  }}
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100"
                 >
                   {JENIS_KEGIATAN_LIST.map((jk) => (
                     <option key={jk} value={jk}>{jk}</option>
                   ))}
                 </select>
+                {agendaForm.jenisKegiatan.trim().toLowerCase() === 'kbm dan asesmen harian' && (
+                  <p className="mt-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 px-2.5 py-1.5 rounded-xl">
+                    Agenda ini akan otomatis memunculkan kolom penilaian pada menu Input Nilai → Asesmen Harian sesuai Materi &amp; TP.
+                  </p>
+                )}
               </div>
+
+              {/* Pilihan Absensi untuk Tugas Mandiri / Personal Guru */}
+              {isOptionalAttendanceJenis(agendaForm.jenisKegiatan) && (
+                <div className="p-3 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/25 border border-emerald-200/80 dark:border-emerald-800/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-emerald-900 dark:text-emerald-200">
+                      Pilihan Absensi ({agendaForm.jenisKegiatan})
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAgendaForm((prev) => ({ ...prev, attendanceMode: 'all_present' }))}
+                      className={`px-3 py-2 rounded-xl text-xs font-extrabold border text-left transition-all cursor-pointer ${
+                        agendaForm.attendanceMode === 'all_present'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      <div>Hadir Semua</div>
+                      <div className={`text-[10px] font-medium mt-0.5 ${agendaForm.attendanceMode === 'all_present' ? 'text-white/85' : 'text-slate-400'}`}>
+                        Semua siswa otomatis Hadir
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAgendaForm((prev) => ({ ...prev, attendanceMode: 'no_attendance' }))}
+                      className={`px-3 py-2 rounded-xl text-xs font-extrabold border text-left transition-all cursor-pointer ${
+                        agendaForm.attendanceMode === 'no_attendance'
+                          ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-800 dark:border-slate-100 shadow-xs'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      <div>Tidak Perlu Absensi</div>
+                      <div className={`text-[10px] font-medium mt-0.5 ${agendaForm.attendanceMode === 'no_attendance' ? 'opacity-80' : 'text-slate-400'}`}>
+                        Bebas tanggungan absen
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAgendaForm((prev) => ({ ...prev, attendanceMode: 'manual' }))}
+                      className={`px-3 py-2 rounded-xl text-xs font-extrabold border text-left transition-all cursor-pointer ${
+                        agendaForm.attendanceMode === 'manual'
+                          ? 'bg-brand text-white border-brand shadow-xs'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      <div>Absensi Manual</div>
+                      <div className={`text-[10px] font-medium mt-0.5 ${agendaForm.attendanceMode === 'manual' ? 'text-white/85' : 'text-slate-400'}`}>
+                        Isi absen seperti biasa
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Tanggal & Hari */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

@@ -21,7 +21,7 @@ export type AdministrasiSubTab =
   | 'absensi'
   | 'nilai';
 
-export type NilaiSubTab = 'sumatif' | 'sumatif_akhir' | 'rapor';
+export type NilaiSubTab = 'sumatif' | 'asesmen_harian' | 'sumatif_akhir' | 'rapor';
 
 export type AttendanceStatus = 'H' | 'S' | 'I' | 'A';
 
@@ -236,6 +236,7 @@ export interface AgendaHarianItem {
   waktuSelesai?: string;
   mataPelajaran?: string;
   jenisKegiatan?: string;
+  attendanceMode?: 'manual' | 'all_present' | 'no_attendance';
   tpId?: string;
   tpKode?: string;
   materi: string;
@@ -247,6 +248,11 @@ export interface AgendaHarianItem {
   alpaCount: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export function isOptionalAttendanceJenis(jenis?: string): boolean {
+  const normalized = String(jenis || '').trim().toLowerCase();
+  return normalized === 'tugas mandiri' || normalized === 'personal guru';
 }
 
 export interface AbsensiStudentEntry {
@@ -528,6 +534,22 @@ export interface NilaiSumatifItem {
   tpId?: string;
   tpKode?: string;
   bobot: number;
+  scores: Record<string, number>; // key: studentId
+  notes?: Record<string, string>; // key: studentId
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface NilaiAsesmenHarianItem {
+  id: string;
+  agendaId: string;
+  tahunPelajaran: string;
+  semester: SemesterType;
+  kelas: string;
+  tanggal: string;
+  materi: string;
+  tpId?: string;
+  tpKode?: string;
   scores: Record<string, number>; // key: studentId
   notes?: Record<string, string>; // key: studentId
   createdAt?: string;
