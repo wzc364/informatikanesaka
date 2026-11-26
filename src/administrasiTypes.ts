@@ -200,6 +200,8 @@ export interface TujuanPembelajaranItem {
   deskripsi: string;
   indikator?: string;
   kkm: number;
+  isSumatif?: boolean;
+  isPraktikum?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
