@@ -107,6 +107,7 @@ import {
   buildScopedMaterialDocId,
   computeDayScheduleSlots,
   normalizeJadwalScheduleSettings,
+  resolveCurrentScheduleStatus,
   slugifyTermPart,
 } from './administrasiTypes';
 import { resolveCourseImageUrl, getPublicFallbackImageUrl } from './courseImageMap';
@@ -315,6 +316,8 @@ export default function App() {
   const [adminTab, setAdminTab] = useState<'dashboard' | 'administrasi' | 'student_management' | 'materials' | 'questions' | 'history' | 'assessments' | 'settings' | 'announcements' | 'games'>('dashboard');
   const [studentSubTab, setStudentSubTab] = useState<'students' | 'classes'>('classes');
   const [students, setStudents] = useState<{id: string, nis: string, nama: string, jenisKelamin: string, kelas: string, tahunPelajaran?: string}[]>([]);
+  const [adminJadwalList, setAdminJadwalList] = useState<JadwalPelajaranItem[]>([]);
+  const [realtimeNow, setRealtimeNow] = useState<Date>(() => new Date());
   const [legacyMaterialConfigs, setLegacyMaterialConfigs] = useState<Record<string, {
     isActive: boolean; 
     isGatekeepingEnabled?: boolean; 
@@ -684,6 +687,29 @@ export default function App() {
   const scopedStudents = useMemo(() => {
     return students.filter(s => (s.tahunPelajaran || DEFAULT_TAHUN_PELAJARAN) === activeTahunPelajaran);
   }, [students, activeTahunPelajaran]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    setRealtimeNow(new Date());
+    const interval = setInterval(() => {
+      setRealtimeNow(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
+
+  const scopedAdminJadwalList = useMemo(() => {
+    return adminJadwalList.filter(
+      (j) => j.tahunPelajaran === activeTahunPelajaran && j.semester === activeSemester
+    );
+  }, [adminJadwalList, activeTahunPelajaran, activeSemester]);
+
+  const realtimeScheduleStatus = useMemo(() => {
+    return resolveCurrentScheduleStatus(
+      scopedAdminJadwalList,
+      settingsConfig?.jadwalSettings,
+      realtimeNow
+    );
+  }, [scopedAdminJadwalList, settingsConfig?.jadwalSettings, realtimeNow]);
 
   const scopedAssessments = useMemo(() => {
     return assessments.filter(a => {
@@ -1394,6 +1420,14 @@ export default function App() {
         handleFirestoreError(error, OperationType.LIST, 'notifications');
       });
       unsubscribes.push(unsubNotifications);
+
+      // Jadwal Pelajaran (Admin Realtime Header)
+      const unsubAdminJadwal = onSnapshot(collection(db, 'jadwal_pelajaran'), (snapshot) => {
+        setAdminJadwalList(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'jadwal_pelajaran');
+      });
+      unsubscribes.push(unsubAdminJadwal);
     }
 
     // Student Data
@@ -3054,7 +3088,13 @@ export default function App() {
             </div>
             <div className="min-w-0">
               <h2 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 tracking-tight whitespace-nowrap truncate">SMPN 1 Kawali</h2>
-              <p className="text-[10px] font-bold text-brand dark:text-blue-400 tabular-nums whitespace-nowrap">TA {activeTahunPelajaran} · Sem {activeSemester}</p>
+              <p className="text-[10px] font-bold text-brand dark:text-blue-400 tabular-nums whitespace-nowrap truncate">
+                {realtimeScheduleStatus.state === 'active' && realtimeScheduleStatus.kelas
+                  ? `Kelas ${realtimeScheduleStatus.kelas} · ${realtimeScheduleStatus.timeHHMM}`
+                  : realtimeScheduleStatus.state === 'break'
+                  ? `Istirahat · ${realtimeScheduleStatus.timeHHMM}`
+                  : `${realtimeScheduleStatus.hariLabel} · ${realtimeScheduleStatus.timeHHMM}`}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
@@ -3182,6 +3222,75 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              {/* Realtime Jadwal Kelas Saat Ini */}
+              <button
+                type="button"
+                onClick={() => setAdminTab('administrasi')}
+                title={
+                  realtimeScheduleStatus.state === 'active'
+                    ? `Sedang mengajar Kelas ${realtimeScheduleStatus.kelas} (${realtimeScheduleStatus.mataPelajaran} · Jam ${realtimeScheduleStatus.jamKe}, ${realtimeScheduleStatus.waktuRange})`
+                    : realtimeScheduleStatus.state === 'break'
+                    ? `Jam Istirahat (${realtimeScheduleStatus.waktuRange})${realtimeScheduleStatus.nextKelas ? ` · Berikutnya Kelas ${realtimeScheduleStatus.nextKelas} (${realtimeScheduleStatus.nextWaktuMulai})` : ''}`
+                    : realtimeScheduleStatus.state === 'upcoming'
+                    ? `Jadwal berikutnya: Kelas ${realtimeScheduleStatus.nextKelas} pukul ${realtimeScheduleStatus.nextWaktuMulai}`
+                    : `${realtimeScheduleStatus.hariLabel}, ${realtimeScheduleStatus.timeHHMMSS} · Tidak ada jadwal mengajar saat ini`
+                }
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border text-[11px] sm:text-xs font-extrabold transition-colors cursor-pointer tabular-nums whitespace-nowrap",
+                  realtimeScheduleStatus.state === 'active'
+                    ? "bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border-emerald-200/90 dark:border-emerald-800/80 text-emerald-700 dark:text-emerald-300"
+                    : realtimeScheduleStatus.state === 'break'
+                    ? "bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 border-amber-200/90 dark:border-amber-800/80 text-amber-700 dark:text-amber-300"
+                    : "bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+                )}
+              >
+                {realtimeScheduleStatus.state === 'active' ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                    <Clock size={13} className="shrink-0 hidden sm:inline" />
+                    <span>Kelas {realtimeScheduleStatus.kelas}</span>
+                    <span className="hidden lg:inline font-bold opacity-85">
+                      · Jam {realtimeScheduleStatus.jamKe} ({realtimeScheduleStatus.waktuRange})
+                    </span>
+                    <span className="hidden md:inline text-[11px] font-bold opacity-75">
+                      · {realtimeScheduleStatus.timeHHMMSS}
+                    </span>
+                  </>
+                ) : realtimeScheduleStatus.state === 'break' ? (
+                  <>
+                    <Clock size={13} className="shrink-0" />
+                    <span>Istirahat</span>
+                    {realtimeScheduleStatus.nextKelas && (
+                      <span className="hidden lg:inline font-bold opacity-85">
+                        · Next Kelas {realtimeScheduleStatus.nextKelas} ({realtimeScheduleStatus.nextWaktuMulai})
+                      </span>
+                    )}
+                    <span className="hidden sm:inline text-[11px] font-bold opacity-75">
+                      · {realtimeScheduleStatus.timeHHMMSS}
+                    </span>
+                  </>
+                ) : realtimeScheduleStatus.state === 'upcoming' ? (
+                  <>
+                    <Clock size={13} className="shrink-0" />
+                    <span className="sm:hidden">Next: {realtimeScheduleStatus.nextKelas}</span>
+                    <span className="hidden sm:inline">
+                      Berikutnya: Kelas {realtimeScheduleStatus.nextKelas} ({realtimeScheduleStatus.nextWaktuMulai})
+                    </span>
+                    <span className="hidden md:inline text-[11px] font-bold opacity-75">
+                      · {realtimeScheduleStatus.timeHHMMSS}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Clock size={13} className="shrink-0" />
+                    <span className="sm:hidden">{realtimeScheduleStatus.timeHHMM}</span>
+                    <span className="hidden sm:inline">
+                      {realtimeScheduleStatus.hariLabel}, {realtimeScheduleStatus.timeHHMMSS} · Di luar jam jadwal
+                    </span>
+                  </>
+                )}
+              </button>
+
               {/* Active Tahun Pelajaran & Semester Badge */}
               <button
                 type="button"

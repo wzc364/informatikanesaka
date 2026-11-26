@@ -443,38 +443,47 @@ export default function AdminAdministrasi({
     return { mulai: startSlot.mulai, selesai: endSlot.selesai };
   };
 
-  const getSlotCardTheme = (slotNum: number) => {
-    switch ((slotNum - 1) % 6) {
-      case 0:
-        return 'bg-gradient-to-br from-[#ef0a4f] via-[#e11d48] to-[#b91c4a] shadow-lg shadow-rose-950/25 ring-1 ring-white/15';
-      case 1:
-        return 'bg-gradient-to-br from-[#ea580c] via-[#d9480f] to-[#9a3412] shadow-lg shadow-orange-950/25 ring-1 ring-white/15';
-      case 2:
-        return 'bg-gradient-to-br from-[#059669] via-[#047857] to-[#064e3b] shadow-lg shadow-emerald-950/25 ring-1 ring-white/15';
-      case 3:
-        return 'bg-gradient-to-br from-[#c026d3] via-[#a21caf] to-[#6b21a8] shadow-lg shadow-purple-950/25 ring-1 ring-white/15';
-      case 4:
-        return 'bg-gradient-to-br from-[#2563eb] via-[#1d4ed8] to-[#1e3a8a] shadow-lg shadow-blue-950/25 ring-1 ring-white/15';
-      default:
-        return 'bg-gradient-to-br from-[#0891b2] via-[#0e7490] to-[#164e63] shadow-lg shadow-cyan-950/25 ring-1 ring-white/15';
-    }
-  };
+  const CLASS_CARD_PALETTE = [
+    'bg-gradient-to-br from-[#2563eb] via-[#1d4ed8] to-[#1e3a8a] shadow-lg shadow-blue-950/30 ring-1 ring-white/15',     // Royal Blue
+    'bg-gradient-to-br from-[#9333ea] via-[#7e22ce] to-[#581c87] shadow-lg shadow-purple-950/30 ring-1 ring-white/15',   // Purple
+    'bg-gradient-to-br from-[#059669] via-[#047857] to-[#064e3b] shadow-lg shadow-emerald-950/30 ring-1 ring-white/15',  // Emerald
+    'bg-gradient-to-br from-[#ea580c] via-[#c2410c] to-[#9a3412] shadow-lg shadow-orange-950/30 ring-1 ring-white/15',   // Orange
+    'bg-gradient-to-br from-[#e11d48] via-[#be123c] to-[#881337] shadow-lg shadow-rose-950/30 ring-1 ring-white/15',     // Crimson
+    'bg-gradient-to-br from-[#0891b2] via-[#0e7490] to-[#155e75] shadow-lg shadow-cyan-950/30 ring-1 ring-white/15',     // Cyan
+    'bg-gradient-to-br from-[#4f46e5] via-[#4338ca] to-[#312e81] shadow-lg shadow-indigo-950/30 ring-1 ring-white/15',   // Indigo
+    'bg-gradient-to-br from-[#c026d3] via-[#a21caf] to-[#701a75] shadow-lg shadow-fuchsia-950/30 ring-1 ring-white/15',  // Fuchsia
+    'bg-gradient-to-br from-[#65a30d] via-[#4d7c0f] to-[#365314] shadow-lg shadow-lime-950/30 ring-1 ring-white/15',     // Olive Lime
+    'bg-gradient-to-br from-[#0d9488] via-[#0f766e] to-[#134e4a] shadow-lg shadow-teal-950/30 ring-1 ring-white/15',     // Teal
+    'bg-gradient-to-br from-[#d97706] via-[#b45309] to-[#78350f] shadow-lg shadow-amber-950/30 ring-1 ring-white/15',    // Amber
+    'bg-gradient-to-br from-[#db2777] via-[#be185d] to-[#831843] shadow-lg shadow-pink-950/30 ring-1 ring-white/15',     // Pink
+    'bg-gradient-to-br from-[#0284c7] via-[#0369a1] to-[#0c4a6e] shadow-lg shadow-sky-950/30 ring-1 ring-white/15',      // Sky
+    'bg-gradient-to-br from-[#dc2626] via-[#b91c1c] to-[#7f1d1d] shadow-lg shadow-red-950/30 ring-1 ring-white/15',      // Red
+    'bg-gradient-to-br from-[#475569] via-[#334155] to-[#1e293b] shadow-lg shadow-slate-950/30 ring-1 ring-white/15',    // Slate
+  ];
 
-  const getAgendaCardTheme = (index: number) => {
-    switch (index % 6) {
-      case 0:
-        return 'bg-gradient-to-br from-[#4f46e5] via-[#4338ca] to-[#3730a3] shadow-lg shadow-indigo-950/30 ring-1 ring-white/15';
-      case 1:
-        return 'bg-gradient-to-br from-[#9333ea] via-[#7e22ce] to-[#6b21a8] shadow-lg shadow-purple-950/30 ring-1 ring-white/15';
-      case 2:
-        return 'bg-gradient-to-br from-[#059669] via-[#047857] to-[#065f46] shadow-lg shadow-emerald-950/30 ring-1 ring-white/15';
-      case 3:
-        return 'bg-gradient-to-br from-[#ea580c] via-[#d9480f] to-[#9a3412] shadow-lg shadow-orange-950/30 ring-1 ring-white/15';
-      case 4:
-        return 'bg-gradient-to-br from-[#e11d48] via-[#be123c] to-[#9f1239] shadow-lg shadow-rose-950/30 ring-1 ring-white/15';
-      default:
-        return 'bg-gradient-to-br from-[#0284c7] via-[#0369a1] to-[#1d4ed8] shadow-lg shadow-sky-950/30 ring-1 ring-white/15';
-    }
+  const classColorMap = useMemo(() => {
+    const allClassNames = new Set<string>();
+    classOptions.forEach((c) => {
+      if (c?.trim()) allClassNames.add(c.trim().toUpperCase());
+    });
+    jadwalList.forEach((j) => {
+      if (!j.isBreak && j.kelas?.trim()) allClassNames.add(j.kelas.trim().toUpperCase());
+    });
+    agendaList.forEach((a) => {
+      if (a.kelas?.trim()) allClassNames.add(a.kelas.trim().toUpperCase());
+    });
+    const sorted = Array.from(allClassNames).sort((a, b) => a.localeCompare(b));
+    const map: Record<string, string> = {};
+    sorted.forEach((cls, idx) => {
+      map[cls] = CLASS_CARD_PALETTE[idx % CLASS_CARD_PALETTE.length];
+    });
+    return map;
+  }, [classOptions, jadwalList, agendaList]);
+
+  const getClassCardTheme = (kelas?: string) => {
+    const key = (kelas || '').trim().toUpperCase();
+    if (key && classColorMap[key]) return classColorMap[key];
+    return CLASS_CARD_PALETTE[0];
   };
 
   const openNewJadwalModal = (preset?: {
@@ -856,6 +865,11 @@ export default function AdminAdministrasi({
   // ============================================================================
   // 3. AGENDA HARIAN STATE (Tergantung pada Jadwal Pelajaran)
   // ============================================================================
+  const [agendaSubView, setAgendaSubView] = useState<'harian' | 'rekap'>('harian');
+  const [rekapAgendaMonth, setRekapAgendaMonth] = useState<string>('all');
+  const [rekapAgendaClass, setRekapAgendaClass] = useState<string>('all');
+  const [rekapAgendaJenis, setRekapAgendaJenis] = useState<string>('all');
+  const [rekapAgendaSearch, setRekapAgendaSearch] = useState<string>('');
   const [agendaSelectedDate, setAgendaSelectedDate] = useState<string>(getTodayIsoDate());
   const [agendaClassFilter, setAgendaClassFilter] = useState('all');
   const [agendaSearch, setAgendaSearch] = useState('');
@@ -1121,6 +1135,69 @@ export default function AdminAdministrasi({
           (a.jamKe || '').toLowerCase().includes(q)
       );
   }, [agendaList, agendaClassFilter, agendaSearch]);
+
+  const rekapAgendaMonths = useMemo(() => {
+    const set = new Set<string>();
+    agendaList.forEach((a) => {
+      if (a.tanggal && a.tanggal.length >= 7) {
+        set.add(a.tanggal.slice(0, 7));
+      }
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [agendaList]);
+
+  const rekapFilteredAgendas = useMemo(() => {
+    const q = rekapAgendaSearch.trim().toLowerCase();
+    return agendaList
+      .filter((a) => (rekapAgendaMonth === 'all' ? true : (a.tanggal || '').startsWith(rekapAgendaMonth)))
+      .filter((a) => {
+        if (rekapAgendaClass === 'all') return true;
+        if (rekapAgendaClass === 'non_kelas') return !a.kelas?.trim();
+        return a.kelas === rekapAgendaClass;
+      })
+      .filter((a) => (rekapAgendaJenis === 'all' ? true : (a.jenisKegiatan || 'KBM') === rekapAgendaJenis))
+      .filter(
+        (a) =>
+          !q ||
+          a.materi.toLowerCase().includes(q) ||
+          (a.kegiatan || '').toLowerCase().includes(q) ||
+          (a.tpKode || '').toLowerCase().includes(q) ||
+          (a.catatan || '').toLowerCase().includes(q) ||
+          (a.kelas || '').toLowerCase().includes(q)
+      )
+      .slice()
+      .sort((a, b) => {
+        const d = (b.tanggal || '').localeCompare(a.tanggal || '');
+        if (d !== 0) return d;
+        return parseSlotNumber(a.jamKe) - parseSlotNumber(b.jamKe);
+      });
+  }, [agendaList, rekapAgendaMonth, rekapAgendaClass, rekapAgendaJenis, rekapAgendaSearch]);
+
+  const rekapAgendaStats = useMemo(() => {
+    const byJenis: Record<string, number> = {};
+    const uniqueDates = new Set<string>();
+    const uniqueTps = new Set<string>();
+    let kbmCount = 0;
+    let extraCount = 0;
+
+    rekapFilteredAgendas.forEach((a) => {
+      const jk = a.jenisKegiatan || 'KBM';
+      byJenis[jk] = (byJenis[jk] || 0) + 1;
+      if (a.tanggal) uniqueDates.add(a.tanggal);
+      if (a.tpKode) uniqueTps.add(a.tpKode);
+      if (a.kelas?.trim()) kbmCount++;
+      else extraCount++;
+    });
+
+    return {
+      total: rekapFilteredAgendas.length,
+      kbmCount,
+      extraCount,
+      activeDays: uniqueDates.size,
+      tpCount: uniqueTps.size,
+      byJenis: Object.entries(byJenis).sort((a, b) => b[1] - a[1]),
+    };
+  }, [rekapFilteredAgendas]);
 
   // ============================================================================
   // 4. ABSENSI SISWA STATE (Tergantung pada Agenda Harian yang Dicatat)
@@ -1994,7 +2071,7 @@ export default function AdminAdministrasi({
 
                   const dayCfg = effectiveJadwalSettings.days[hari] || effectiveJadwalSettings.days.Senin;
                   const maxLessonSlot = lessons.reduce(
-                    (max, item) => Math.max(max, parseSlotNumber(item.jamKe)),
+                    (max, item) => Math.max(max, parseSlotRange(item.jamKe).to),
                     0
                   );
                   const totalSlotsForDay = Math.max(dayCfg.totalSlots, maxLessonSlot);
@@ -2016,10 +2093,13 @@ export default function AdminAdministrasi({
 
                   slotNumbers.forEach((slotNum) => {
                     const slotItems = lessons
-                      .filter((l) => parseSlotNumber(l.jamKe) === slotNum)
+                      .filter((l) => {
+                        const r = parseSlotRange(l.jamKe);
+                        return slotNum >= r.from && slotNum <= r.to;
+                      })
                       .sort((a, b) => (a.waktuMulai || '').localeCompare(b.waktuMulai || ''));
                     const computedSlot = computedSchedule.slots[slotNum];
-                    const slotTime = slotItems[0]?.waktuMulai || computedSlot?.mulai || dayCfg.startTime;
+                    const slotTime = computedSlot?.mulai || slotItems[0]?.waktuMulai || dayCfg.startTime;
 
                     // Manual breaks that occur before this slot
                     manualBreaks.forEach((brk) => {
@@ -2153,32 +2233,6 @@ export default function AdminAdministrasi({
                           const defTimes = computedSchedule.slots[slotNum] || getDefaultSlotTimes(hari, slotNum);
 
                           if (items.length === 0) {
-                            const coveringItem = lessons.find((l) => {
-                              const r = parseSlotRange(l.jamKe);
-                              return r.from < slotNum && slotNum <= r.to;
-                            });
-
-                            if (coveringItem) {
-                              return (
-                                <div
-                                  key={slotKey}
-                                  onClick={() => openEditJadwalModal(coveringItem)}
-                                  className="rounded-2xl border border-dashed border-slate-300/80 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/35 py-3 px-3.5 flex items-center justify-between gap-2 cursor-pointer hover:border-brand/60 dark:hover:border-blue-400/60 transition-colors shadow-2xs group"
-                                  title={`Slot ini termasuk dalam jadwal Jam ${coveringItem.jamKe} (Kelas ${coveringItem.kelas}) - Klik untuk edit`}
-                                >
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-brand dark:bg-blue-400 shrink-0" />
-                                    <span className="text-[10px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase truncate">
-                                      JAM {slotNum} · Lanjutan KELAS {coveringItem.kelas}
-                                    </span>
-                                  </div>
-                                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tabular-nums shrink-0 font-mono">
-                                    {defTimes.mulai} - {defTimes.selesai}
-                                  </span>
-                                </div>
-                              );
-                            }
-
                             return (
                               <button
                                 key={slotKey}
@@ -2222,107 +2276,123 @@ export default function AdminAdministrasi({
 
                           return (
                             <div key={slotKey} className="flex flex-col gap-2.5">
-                              {items.map((item) => (
-                                <div
-                                  key={item.id}
-                                  draggable
-                                  onDragStart={() => setDraggedJadwalId(item.id)}
-                                  onDragEnd={() => {
-                                    setDraggedJadwalId(null);
-                                    setDragOverSlotKey(null);
-                                  }}
-                                  onDragOver={(e) => {
-                                    e.preventDefault();
-                                    setDragOverSlotKey(slotKey);
-                                  }}
-                                  onDragLeave={() => {
-                                    if (dragOverSlotKey === slotKey) setDragOverSlotKey(null);
-                                  }}
-                                  onDrop={(e) => {
-                                    e.preventDefault();
-                                    handleDropJadwalOnSlot(hari, slotNum, item);
-                                  }}
-                                  onClick={() => openEditJadwalModal(item)}
-                                  className={`rounded-2xl p-4 text-white relative group cursor-grab active:cursor-grabbing transition-all duration-200 hover:-translate-y-0.5 ${getSlotCardTheme(
-                                    slotNum
-                                  )} ${
-                                    isDragTarget && draggedJadwalId !== item.id
-                                      ? 'ring-2 ring-white scale-[1.01]'
-                                      : ''
-                                  } ${draggedJadwalId === item.id ? 'opacity-60' : ''}`}
-                                  title="Seret untuk pindah/tukar slot atau klik untuk edit"
-                                >
-                                  {/* Top Row: Grip + JAM badge + Quick Actions */}
-                                  <div className="flex items-center justify-between gap-2 mb-2">
-                                    <div className="flex items-center gap-1.5 min-w-0">
-                                      <GripVertical
-                                        size={14}
-                                        className="text-white/65 shrink-0"
-                                      />
-                                      <span className="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-[10px] font-black tracking-wider uppercase text-white">
-                                        JAM {item.jamKe || slotNum}
+                              {items.map((item) => {
+                                const range = parseSlotRange(item.jamKe);
+                                const isMultiSlot = range.to > range.from;
+                                const cardMulai = isMultiSlot
+                                  ? defTimes.mulai
+                                  : item.waktuMulai || defTimes.mulai;
+                                const cardSelesai = isMultiSlot
+                                  ? defTimes.selesai
+                                  : item.waktuSelesai || defTimes.selesai;
+
+                                return (
+                                  <div
+                                    key={`${item.id}__slot_${slotNum}`}
+                                    draggable
+                                    onDragStart={() => setDraggedJadwalId(item.id)}
+                                    onDragEnd={() => {
+                                      setDraggedJadwalId(null);
+                                      setDragOverSlotKey(null);
+                                    }}
+                                    onDragOver={(e) => {
+                                      e.preventDefault();
+                                      setDragOverSlotKey(slotKey);
+                                    }}
+                                    onDragLeave={() => {
+                                      if (dragOverSlotKey === slotKey) setDragOverSlotKey(null);
+                                    }}
+                                    onDrop={(e) => {
+                                      e.preventDefault();
+                                      handleDropJadwalOnSlot(hari, slotNum, item);
+                                    }}
+                                    onClick={() => openEditJadwalModal(item)}
+                                    className={`rounded-2xl p-4 text-white relative group cursor-grab active:cursor-grabbing transition-all duration-200 hover:-translate-y-0.5 ${getClassCardTheme(
+                                      item.kelas
+                                    )} ${
+                                      isDragTarget && draggedJadwalId !== item.id
+                                        ? 'ring-2 ring-white scale-[1.01]'
+                                        : ''
+                                    } ${draggedJadwalId === item.id ? 'opacity-60' : ''}`}
+                                    title="Seret untuk pindah/tukar slot atau klik untuk edit"
+                                  >
+                                    {/* Top Row: Grip + JAM badge + Quick Actions */}
+                                    <div className="flex items-center justify-between gap-2 mb-2">
+                                      <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                                        <GripVertical
+                                          size={14}
+                                          className="text-white/65 shrink-0"
+                                        />
+                                        <span className="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-[10px] font-black tracking-wider uppercase text-white">
+                                          JAM {slotNum}
+                                        </span>
+                                        {isMultiSlot && (
+                                          <span className="px-2 py-0.5 rounded-full bg-white/15 text-[9px] font-extrabold tracking-wide uppercase text-white/90">
+                                            Sesi {item.jamKe}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-1 opacity-85 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openEditJadwalModal(item);
+                                          }}
+                                          className="w-6 h-6 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer"
+                                          title="Edit"
+                                        >
+                                          <Edit2 size={11} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteJadwal(item.id);
+                                          }}
+                                          className="w-6 h-6 rounded-full bg-white/15 hover:bg-rose-950/70 flex items-center justify-center transition-colors cursor-pointer"
+                                          title="Hapus"
+                                        >
+                                          <Trash2 size={11} />
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Time Row */}
+                                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-white/90 tabular-nums mb-2">
+                                      <Clock size={12} className="text-white/80 shrink-0" />
+                                      <span>
+                                        {cardMulai} - {cardSelesai}
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-1 opacity-85 md:opacity-0 group-hover:opacity-100 transition-opacity">
+
+                                    {/* Class Title Row */}
+                                    <div className="flex items-center gap-1.5 text-base md:text-[17px] font-black tracking-tight uppercase leading-tight text-white">
+                                      <MapPin size={15} className="text-white/90 shrink-0" />
+                                      <span className="truncate">KELAS {item.kelas}</span>
+                                    </div>
+
+                                    {/* Subject Row & Catat Agenda */}
+                                    <div className="flex items-center justify-between gap-2 mt-1">
+                                      <div className="text-[11px] font-extrabold tracking-wider uppercase text-white/95 truncate">
+                                        {item.mataPelajaran}
+                                      </div>
                                       <button
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          openEditJadwalModal(item);
+                                          openNewAgendaModal(item);
                                         }}
-                                        className="w-6 h-6 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer"
-                                        title="Edit"
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 hover:bg-white/35 text-[10px] font-black text-white shrink-0 transition-colors cursor-pointer"
+                                        title="Catat Agenda Harian dari jadwal ini"
                                       >
-                                        <Edit2 size={11} />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDeleteJadwal(item.id);
-                                        }}
-                                        className="w-6 h-6 rounded-full bg-white/15 hover:bg-rose-950/70 flex items-center justify-center transition-colors cursor-pointer"
-                                        title="Hapus"
-                                      >
-                                        <Trash2 size={11} />
+                                        <BookOpenCheck size={11} />
+                                        Catat Agenda
                                       </button>
                                     </div>
                                   </div>
-
-                                  {/* Time Row */}
-                                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-white/90 tabular-nums mb-2">
-                                    <Clock size={12} className="text-white/80 shrink-0" />
-                                    <span>
-                                      {item.waktuMulai} - {item.waktuSelesai}
-                                    </span>
-                                  </div>
-
-                                  {/* Class Title Row */}
-                                  <div className="flex items-center gap-1.5 text-base md:text-[17px] font-black tracking-tight uppercase leading-tight text-white">
-                                    <MapPin size={15} className="text-white/90 shrink-0" />
-                                    <span className="truncate">KELAS {item.kelas}</span>
-                                  </div>
-
-                                  {/* Subject Row & Catat Agenda */}
-                                  <div className="flex items-center justify-between gap-2 mt-1">
-                                    <div className="text-[11px] font-extrabold tracking-wider uppercase text-white/95 truncate">
-                                      {item.mataPelajaran}
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openNewAgendaModal(item);
-                                      }}
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 hover:bg-white/35 text-[10px] font-black text-white shrink-0 transition-colors cursor-pointer"
-                                      title="Catat Agenda Harian dari jadwal ini"
-                                    >
-                                      <BookOpenCheck size={11} />
-                                      Catat Agenda
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           );
                         })}
@@ -2581,10 +2651,45 @@ export default function AdminAdministrasi({
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 3: AGENDA HARIAN (Per Kartu Sesuai Jadwal Hari Ini)               */}
+      {/* TAB 3: AGENDA HARIAN (Per Kartu Sesuai Jadwal Hari Ini & Rekap Agenda)*/}
       {/* ===================================================================== */}
       {subTab === 'agenda' && (
         <div className="space-y-6">
+          {/* Sub-Tab Switcher: Agenda Harian vs Rekap Agenda */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-slate-900/10 dark:bg-slate-800/60 border border-white/20 dark:border-white/10 w-fit">
+              <button
+                type="button"
+                onClick={() => setAgendaSubView('harian')}
+                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wide uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+                  agendaSubView === 'harian'
+                    ? 'bg-gradient-to-r from-brand to-blue-600 text-white shadow-md shadow-brand/25'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <BookOpenCheck size={14} />
+                <span>CATAT AGENDA HARIAN</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAgendaSubView('rekap')}
+                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wide uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+                  agendaSubView === 'rekap'
+                    ? 'bg-gradient-to-r from-brand to-blue-600 text-white shadow-md shadow-brand/25'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <FileSpreadsheet size={14} />
+                <span>REKAP AGENDA</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-extrabold tabular-nums">
+                  {agendaList.length}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {agendaSubView === 'harian' ? (
+            <div className="space-y-6">
           {/* Top Blue Summary Banner */}
           <div className="rounded-2xl md:rounded-3xl bg-gradient-to-r from-[#2563eb] via-[#2b5cf6] to-[#3b82f6] p-3.5 md:p-5 shadow-xl shadow-blue-950/25 border border-white/20">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
@@ -2685,9 +2790,9 @@ export default function AdminAdministrasi({
           {/* Grid of Today's Schedule Cards */}
           {todaySchedules.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {todaySchedules.map((sched, idx) => {
+              {todaySchedules.map((sched) => {
                 const recordedAgenda = findRecordedAgendaForSchedule(sched, agendaSelectedDate);
-                const cardTheme = getAgendaCardTheme(idx);
+                const cardTheme = getClassCardTheme(sched.kelas);
                 const timeRange =
                   sched.waktuMulai && sched.waktuSelesai
                     ? `${sched.waktuMulai}–${sched.waktuSelesai}`
@@ -3014,6 +3119,362 @@ export default function AdminAdministrasi({
               </div>
             </div>
           </div>
+            </div>
+          ) : (
+            /* =============================================================== */
+            /* HALAMAN REKAP AGENDA                                            */
+            /* =============================================================== */
+            <div className="space-y-6">
+              {/* Top Summary Metrics */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div className="admin-glass-card rounded-2xl p-4 border-l-4 border-l-brand">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Total Agenda Tercatat
+                  </p>
+                  <p className="text-2xl font-black text-slate-900 dark:text-white mt-1 tabular-nums">
+                    {rekapAgendaStats.total}
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                    Semester {activeSemester} · {activeTahunPelajaran}
+                  </p>
+                </div>
+
+                <div className="admin-glass-card rounded-2xl p-4 border-l-4 border-l-emerald-500">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Agenda Kelas vs Umum
+                  </p>
+                  <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mt-1 tabular-nums">
+                    {rekapAgendaStats.kbmCount} <span className="text-xs font-bold text-slate-400">/ {rekapAgendaStats.extraCount} Umum</span>
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                    Pembelajaran per rombel &amp; non-kelas
+                  </p>
+                </div>
+
+                <div className="admin-glass-card rounded-2xl p-4 border-l-4 border-l-indigo-500">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Hari Efektif Tercatat
+                  </p>
+                  <p className="text-2xl font-black text-indigo-700 dark:text-indigo-400 mt-1 tabular-nums">
+                    {rekapAgendaStats.activeDays} Hari
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                    Hari aktif pengisian jurnal
+                  </p>
+                </div>
+
+                <div className="admin-glass-card rounded-2xl p-4 border-l-4 border-l-amber-500">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Cakupan Tujuan Pembelajaran
+                  </p>
+                  <p className="text-2xl font-black text-amber-700 dark:text-amber-400 mt-1 tabular-nums">
+                    {rekapAgendaStats.tpCount} TP
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                    Kode TP unik terealisasi
+                  </p>
+                </div>
+              </div>
+
+              {/* Activity Type Distribution Chips */}
+              {rekapAgendaStats.byJenis.length > 0 && (
+                <div className="admin-glass-card rounded-2xl p-4 flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 mr-1">
+                    Distribusi Jenis Kegiatan:
+                  </span>
+                  {rekapAgendaStats.byJenis.map(([jenis, count]) => (
+                    <button
+                      key={jenis}
+                      type="button"
+                      onClick={() => setRekapAgendaJenis(rekapAgendaJenis === jenis ? 'all' : jenis)}
+                      className={`px-3 py-1 rounded-xl text-[11px] font-extrabold border transition-all cursor-pointer tabular-nums ${
+                        rekapAgendaJenis === jenis
+                          ? 'bg-brand text-white border-brand shadow-xs'
+                          : 'bg-white/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-brand/50'
+                      }`}
+                    >
+                      {jenis}: {count}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Filter Toolbar & Export CSV */}
+              <div className="admin-glass-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2 flex-1">
+                  <div className="relative min-w-[200px] sm:w-64">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={rekapAgendaSearch}
+                      onChange={(e) => setRekapAgendaSearch(e.target.value)}
+                      placeholder="Cari materi, kegiatan, TP, catatan..."
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+
+                  <select
+                    value={rekapAgendaMonth}
+                    onChange={(e) => setRekapAgendaMonth(e.target.value)}
+                    className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100"
+                  >
+                    <option value="all">Semua Bulan</option>
+                    {rekapAgendaMonths.map((ym) => {
+                      const [y, m] = ym.split('-');
+                      const label = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('id-ID', {
+                        month: 'long',
+                        year: 'numeric',
+                      });
+                      return (
+                        <option key={ym} value={ym}>
+                          {label}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  <select
+                    value={rekapAgendaClass}
+                    onChange={(e) => setRekapAgendaClass(e.target.value)}
+                    className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100"
+                  >
+                    <option value="all">Semua Kelas Tercatat</option>
+                    {agendaList.some((a) => !a.kelas?.trim()) && (
+                      <option value="non_kelas">Tanpa Kelas (Umum)</option>
+                    )}
+                    {Array.from(
+                      new Set(agendaList.map((a) => a.kelas?.trim()).filter(Boolean) as string[])
+                    )
+                      .sort((a, b) => a.localeCompare(b))
+                      .map((c) => (
+                        <option key={c} value={c}>
+                          Kelas {c}
+                        </option>
+                      ))}
+                  </select>
+
+                  <select
+                    value={rekapAgendaJenis}
+                    onChange={(e) => setRekapAgendaJenis(e.target.value)}
+                    className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100"
+                  >
+                    <option value="all">Semua Jenis Kegiatan</option>
+                    {JENIS_KEGIATAN_LIST.map((jk) => (
+                      <option key={jk} value={jk}>
+                        {jk}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const headers = [
+                      'No',
+                      'Tanggal',
+                      'Hari',
+                      'Jam Ke',
+                      'Waktu',
+                      'Kelas',
+                      'Mata Pelajaran',
+                      'Jenis Kegiatan',
+                      'Pertemuan Ke',
+                      'Kode TP',
+                      'Materi Pokok',
+                      'Ringkasan Kegiatan',
+                      'Catatan',
+                      'Hadir',
+                      'Sakit',
+                      'Izin',
+                      'Alpa',
+                    ];
+                    const rows = rekapFilteredAgendas.map((ag, i) => [
+                      i + 1,
+                      ag.tanggal,
+                      ag.hari || getHariFromDate(ag.tanggal),
+                      ag.jamKe || '-',
+                      ag.waktuMulai ? `${ag.waktuMulai}-${ag.waktuSelesai || ''}` : '-',
+                      ag.kelas || 'Umum (Tanpa Kelas)',
+                      ag.mataPelajaran || 'Informatika',
+                      ag.jenisKegiatan || 'KBM',
+                      ag.pertemuanKe || '1',
+                      ag.tpKode || '-',
+                      ag.materi,
+                      ag.kegiatan || '-',
+                      ag.catatan || '-',
+                      ag.kelas ? ag.hadirCount ?? 0 : 0,
+                      ag.kelas ? ag.sakitCount ?? 0 : 0,
+                      ag.kelas ? ag.izinCount ?? 0 : 0,
+                      ag.kelas ? ag.alpaCount ?? 0 : 0,
+                    ]);
+                    downloadCsv(
+                      `Rekap_Agenda_Harian_${slugifyTermPart(activeTahunPelajaran)}_${activeSemester}.csv`,
+                      headers,
+                      rows
+                    );
+                  }}
+                  disabled={rekapFilteredAgendas.length === 0}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-extrabold inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <Download size={14} />
+                  Export Rekap Agenda (CSV)
+                </button>
+              </div>
+
+              {/* Full Chronological Rekap Table */}
+              <div className="admin-glass-card rounded-2xl overflow-hidden">
+                <div className="px-5 py-3.5 bg-white/30 dark:bg-white/5 border-b border-white/40 dark:border-white/10 flex items-center justify-between">
+                  <h4 className="text-xs md:text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                    Daftar Rekap Agenda Harian ({rekapFilteredAgendas.length} Catatan)
+                  </h4>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[980px]">
+                    <thead>
+                      <tr className="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 text-[10px] uppercase font-extrabold tracking-widest text-slate-500 dark:text-slate-400">
+                        <th className="p-3.5 w-12 text-center">No</th>
+                        <th className="p-3.5">Tanggal &amp; Jam</th>
+                        <th className="p-3.5">Kelas &amp; Kegiatan</th>
+                        <th className="p-3.5">Tujuan Pembelajaran (TP)</th>
+                        <th className="p-3.5">Materi &amp; Kegiatan</th>
+                        <th className="p-3.5 text-center">Kehadiran</th>
+                        <th className="p-3.5 text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {rekapFilteredAgendas.length > 0 ? (
+                        rekapFilteredAgendas.map((ag, idx) => {
+                          const linkedTp = ag.tpId
+                            ? tpList.find((t) => t.id === ag.tpId)
+                            : ag.tpKode
+                            ? tpList.find((t) => t.kodeTp === ag.tpKode)
+                            : undefined;
+                          return (
+                            <tr key={ag.id} className="hover:bg-blue-50/30 dark:hover:bg-slate-800/50 align-top transition-colors">
+                              <td className="p-3.5 text-center text-xs font-bold text-slate-500 tabular-nums">
+                                {idx + 1}
+                              </td>
+                              <td className="p-3.5 whitespace-nowrap">
+                                <div className="text-xs font-extrabold text-slate-900 dark:text-white tabular-nums">
+                                  {ag.hari || getHariFromDate(ag.tanggal)}, {ag.tanggal}
+                                </div>
+                                <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-brand dark:text-blue-300 text-[10px] font-black tabular-nums">
+                                  <Clock size={10} />
+                                  {ag.jamKe ? `Jam ${ag.jamKe}` : 'Jam -'}
+                                  {ag.waktuMulai ? ` (${ag.waktuMulai}${ag.waktuSelesai ? `–${ag.waktuSelesai}` : ''})` : ''}
+                                </div>
+                                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                                  Pertemuan ke-{ag.pertemuanKe || '1'}
+                                </div>
+                              </td>
+                              <td className="p-3.5 whitespace-nowrap">
+                                <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-black text-slate-800 dark:text-slate-100">
+                                  {ag.kelas ? `KELAS ${ag.kelas}` : 'UMUM (NON-KELAS)'}
+                                </span>
+                                <div className="mt-1.5 flex flex-wrap gap-1">
+                                  <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-black uppercase">
+                                    {ag.jenisKegiatan || 'KBM'}
+                                  </span>
+                                  {ag.mataPelajaran && (
+                                    <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold uppercase">
+                                      {ag.mataPelajaran}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3.5 max-w-[220px]">
+                                {ag.tpKode ? (
+                                  <div className="space-y-1">
+                                    <span className="inline-block px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono font-black">
+                                      {ag.tpKode}
+                                    </span>
+                                    {linkedTp?.deskripsi && (
+                                      <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2" title={linkedTp.deskripsi}>
+                                        {linkedTp.deskripsi}
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-slate-400 dark:text-slate-500">-</span>
+                                )}
+                              </td>
+                              <td className="p-3.5 max-w-md">
+                                <div className="text-sm font-extrabold text-slate-900 dark:text-white mb-1">
+                                  {ag.materi}
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-300">
+                                  {ag.kegiatan || '-'}
+                                </p>
+                                {ag.catatan && (
+                                  <p className="text-[11px] text-amber-700 dark:text-amber-300 italic mt-1">
+                                    Catatan: {ag.catatan}
+                                  </p>
+                                )}
+                              </td>
+                              <td className="p-3.5 text-center whitespace-nowrap">
+                                {ag.kelas ? (
+                                  <div className="space-y-1">
+                                    <div className="inline-flex items-center gap-1 text-[10px] font-extrabold tabular-nums">
+                                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                                        H:{ag.hadirCount}
+                                      </span>
+                                      <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+                                        S:{ag.sakitCount}
+                                      </span>
+                                      <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+                                        I:{ag.izinCount}
+                                      </span>
+                                      <span className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
+                                        A:{ag.alpaCount}
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] font-bold">
+                                      {isAgendaAttended(ag.id, ag.kelas, ag.tanggal) ? (
+                                        <span className="text-emerald-600 dark:text-emerald-400">● Sudah Diabsen</span>
+                                      ) : (
+                                        <span className="text-amber-600 dark:text-amber-400">○ Belum Diabsen</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400">-</span>
+                                )}
+                              </td>
+                              <td className="p-3.5 text-right whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditAgendaModal(ag)}
+                                  className="p-2 rounded-lg text-slate-500 hover:text-brand hover:bg-brand/10 mr-1 cursor-pointer"
+                                  title="Edit Agenda"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAgenda(ag.id)}
+                                  className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
+                                  title="Hapus Agenda"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="p-10 text-center text-slate-400 text-xs font-semibold">
+                            Tidak ada data agenda yang cocok dengan filter Rekap Agenda saat ini.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -3359,14 +3820,14 @@ export default function AdminAdministrasi({
                 {/* Grid of Class Cards (1 card per class recorded in today's agenda) */}
                 {absensiDateClasses.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {absensiDateClasses.map((cls, idx) => {
+                    {absensiDateClasses.map((cls) => {
                       const classDayAgendas = absensiDateAgendas.filter((a) => a.kelas === cls);
                       const pendingAgenda = classDayAgendas.find(
                         (ag) => !isAgendaAttended(ag.id, ag.kelas, ag.tanggal)
                       );
                       const primaryAgenda = pendingAgenda || classDayAgendas[0];
                       const allDone = !pendingAgenda;
-                      const cardTheme = getAgendaCardTheme(idx);
+                      const cardTheme = getClassCardTheme(cls);
                       const studentCount = studentsByClass[cls]?.length || 0;
 
                       return (
@@ -3470,9 +3931,9 @@ export default function AdminAdministrasi({
 
                 {tanggunganClassesList.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {tanggunganClassesList.map((cls, idx) => {
+                    {tanggunganClassesList.map((cls) => {
                       const classTanggungan = tanggunganAgendas.filter((a) => a.kelas === cls);
-                      const cardTheme = getAgendaCardTheme(idx);
+                      const cardTheme = getClassCardTheme(cls);
                       const studentCount = studentsByClass[cls]?.length || 0;
                       return (
                         <div
@@ -3546,8 +4007,8 @@ export default function AdminAdministrasi({
 
                     {classOptions.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {classOptions.map((cls, idx) => {
-                          const cardTheme = getAgendaCardTheme(idx);
+                        {classOptions.map((cls) => {
+                          const cardTheme = getClassCardTheme(cls);
                           const count = studentsByClass[cls]?.length || 0;
                           const classFilledRecords = absensiList.filter((a) => a.kelas === cls);
 

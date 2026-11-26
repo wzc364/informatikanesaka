@@ -283,6 +283,238 @@ export function getHariFromDate(dateStr: string): JadwalPelajaranItem['hari'] {
   return mapping[dayIndex] || 'Senin';
 }
 
+export function parseSlotRange(jamKe?: string): { from: number; to: number } {
+  const matches = String(jamKe || '').match(/\d+/g);
+  if (!matches || matches.length === 0) return { from: 1, to: 1 };
+  const from = Math.max(1, Number(matches[0]) || 1);
+  const to = matches.length > 1 ? Math.max(from, Number(matches[1]) || from) : from;
+  return { from, to };
+}
+
+export function getRealtimeHariFromDate(date: Date): JadwalPelajaranItem['hari'] | null {
+  const dayIndex = date.getDay();
+  const mapping: Record<number, JadwalPelajaranItem['hari']> = {
+    1: 'Senin',
+    2: 'Selasa',
+    3: 'Rabu',
+    4: 'Kamis',
+    5: 'Jumat',
+    6: 'Sabtu',
+  };
+  return mapping[dayIndex] || null;
+}
+
+export interface RealtimeScheduleStatus {
+  hari: JadwalPelajaranItem['hari'] | null;
+  hariLabel: string;
+  timeHHMM: string;
+  timeHHMMSS: string;
+  state: 'active' | 'break' | 'upcoming' | 'empty';
+  kelas: string | null;
+  mataPelajaran: string | null;
+  jamKe: string | null;
+  waktuRange: string | null;
+  nextKelas: string | null;
+  nextWaktuMulai: string | null;
+}
+
+export function resolveCurrentScheduleStatus(
+  jadwalList: JadwalPelajaranItem[],
+  jadwalSettings: JadwalScheduleSettings | undefined,
+  now: Date
+): RealtimeScheduleStatus {
+  const dayLabels = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const hariLabel = dayLabels[now.getDay()] || 'Minggu';
+  const hari = getRealtimeHariFromDate(now);
+
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  const timeHHMM = `${hh}:${mm}`;
+  const timeHHMMSS = `${hh}:${mm}:${ss}`;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  if (!hari) {
+    return {
+      hari: null,
+      hariLabel,
+      timeHHMM,
+      timeHHMMSS,
+      state: 'empty',
+      kelas: null,
+      mataPelajaran: null,
+      jamKe: null,
+      waktuRange: null,
+      nextKelas: null,
+      nextWaktuMulai: null,
+    };
+  }
+
+  const normalized = normalizeJadwalScheduleSettings(jadwalSettings);
+  const dayCfg = normalized.days[hari] || normalized.days.Senin;
+  const todayItems = jadwalList.filter((j) => j.hari === hari);
+  const maxSlot = todayItems.reduce(
+    (acc, j) => (j.isBreak ? acc : Math.max(acc, parseSlotRange(j.jamKe).to)),
+    dayCfg.totalSlots
+  );
+
+  const { slots, breaks } = computeDayScheduleSlots(
+    dayCfg,
+    normalized.lessonDurationMinutes,
+    normalized.breakDurationMinutes,
+    maxSlot
+  );
+
+  interface ResolvedLessonSlot {
+    kelas: string;
+    mataPelajaran: string;
+    jamKe: string;
+    mulai: string;
+    selesai: string;
+    startMin: number;
+    endMin: number;
+  }
+
+  const lessonSlots: ResolvedLessonSlot[] = [];
+  const breakSlots: { mulai: string; selesai: string; startMin: number; endMin: number }[] = [];
+
+  breaks.forEach((b) => {
+    breakSlots.push({
+      mulai: b.mulai,
+      selesai: b.selesai,
+      startMin: parseMinutesFromHHMM(b.mulai),
+      endMin: parseMinutesFromHHMM(b.selesai),
+    });
+  });
+
+  todayItems.forEach((item) => {
+    const isBreak = Boolean(
+      item.isBreak || item.mataPelajaran?.toUpperCase().includes('ISTIRAHAT')
+    );
+    if (isBreak) {
+      if (item.waktuMulai && item.waktuSelesai) {
+        breakSlots.push({
+          mulai: item.waktuMulai,
+          selesai: item.waktuSelesai,
+          startMin: parseMinutesFromHHMM(item.waktuMulai),
+          endMin: parseMinutesFromHHMM(item.waktuSelesai),
+        });
+      }
+      return;
+    }
+
+    const range = parseSlotRange(item.jamKe);
+    const isMulti = range.to > range.from;
+    const defaultStart = slots[range.from]?.mulai || dayCfg.startTime;
+    const defaultEnd = slots[range.to]?.selesai || defaultStart;
+    const usesComputedGrid =
+      isMulti &&
+      (!item.waktuMulai || item.waktuMulai === defaultStart) &&
+      (!item.waktuSelesai || item.waktuSelesai === defaultEnd);
+
+    if (usesComputedGrid) {
+      for (let s = range.from; s <= range.to; s++) {
+        const slotInfo = slots[s];
+        if (!slotInfo) continue;
+        lessonSlots.push({
+          kelas: item.kelas,
+          mataPelajaran: item.mataPelajaran || 'Informatika',
+          jamKe: String(s),
+          mulai: slotInfo.mulai,
+          selesai: slotInfo.selesai,
+          startMin: parseMinutesFromHHMM(slotInfo.mulai),
+          endMin: parseMinutesFromHHMM(slotInfo.selesai),
+        });
+      }
+    } else {
+      const mulai = item.waktuMulai || defaultStart;
+      const selesai = item.waktuSelesai || defaultEnd;
+      lessonSlots.push({
+        kelas: item.kelas,
+        mataPelajaran: item.mataPelajaran || 'Informatika',
+        jamKe: item.jamKe || String(range.from),
+        mulai,
+        selesai,
+        startMin: parseMinutesFromHHMM(mulai),
+        endMin: parseMinutesFromHHMM(selesai),
+      });
+    }
+  });
+
+  lessonSlots.sort((a, b) => a.startMin - b.startMin);
+
+  const activeLesson = lessonSlots.find(
+    (s) => nowMinutes >= s.startMin && nowMinutes < s.endMin
+  );
+  const nextLesson = lessonSlots.find((s) => s.startMin > nowMinutes) || null;
+
+  if (activeLesson) {
+    return {
+      hari,
+      hariLabel,
+      timeHHMM,
+      timeHHMMSS,
+      state: 'active',
+      kelas: activeLesson.kelas,
+      mataPelajaran: activeLesson.mataPelajaran,
+      jamKe: activeLesson.jamKe,
+      waktuRange: `${activeLesson.mulai}–${activeLesson.selesai}`,
+      nextKelas: nextLesson?.kelas || null,
+      nextWaktuMulai: nextLesson?.mulai || null,
+    };
+  }
+
+  const activeBreak = breakSlots.find(
+    (b) => nowMinutes >= b.startMin && nowMinutes < b.endMin
+  );
+
+  if (activeBreak) {
+    return {
+      hari,
+      hariLabel,
+      timeHHMM,
+      timeHHMMSS,
+      state: 'break',
+      kelas: null,
+      mataPelajaran: 'Istirahat',
+      jamKe: null,
+      waktuRange: `${activeBreak.mulai}–${activeBreak.selesai}`,
+      nextKelas: nextLesson?.kelas || null,
+      nextWaktuMulai: nextLesson?.mulai || null,
+    };
+  }
+
+  if (nextLesson) {
+    return {
+      hari,
+      hariLabel,
+      timeHHMM,
+      timeHHMMSS,
+      state: 'upcoming',
+      kelas: null,
+      mataPelajaran: null,
+      jamKe: null,
+      waktuRange: null,
+      nextKelas: nextLesson.kelas,
+      nextWaktuMulai: nextLesson.mulai,
+    };
+  }
+
+  return {
+    hari,
+    hariLabel,
+    timeHHMM,
+    timeHHMMSS,
+    state: 'empty',
+    kelas: null,
+    mataPelajaran: null,
+    jamKe: null,
+    waktuRange: null,
+    nextKelas: null,
+    nextWaktuMulai: null,
+  };
+}
+
 export interface NilaiSumatifItem {
   id: string;
   tahunPelajaran: string;
