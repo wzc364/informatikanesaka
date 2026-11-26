@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Calendar,
@@ -152,6 +152,11 @@ export default function AdminAdministrasi({
   const [allAsesmenHarian, setAllAsesmenHarian] = useState<NilaiAsesmenHarianItem[]>([]);
   const [allRapor, setAllRapor] = useState<NilaiRaporEntry[]>([]);
 
+  const onFirestoreErrorRef = useRef(onFirestoreError);
+  useEffect(() => {
+    onFirestoreErrorRef.current = onFirestoreError;
+  }, [onFirestoreError]);
+
   useEffect(() => {
     const unsubs: (() => void)[] = [];
 
@@ -161,7 +166,7 @@ export default function AdminAdministrasi({
         (snap) => {
           setAllJadwal(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
         },
-        (err) => onFirestoreError?.(err, 'list', 'jadwal_pelajaran')
+        (err) => onFirestoreErrorRef.current?.(err, 'list', 'jadwal_pelajaran')
       )
     );
 
@@ -171,7 +176,7 @@ export default function AdminAdministrasi({
         (snap) => {
           setAllTp(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
         },
-        (err) => onFirestoreError?.(err, 'list', 'tujuan_pembelajaran')
+        (err) => onFirestoreErrorRef.current?.(err, 'list', 'tujuan_pembelajaran')
       )
     );
 
@@ -181,7 +186,7 @@ export default function AdminAdministrasi({
         (snap) => {
           setAllAgenda(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
         },
-        (err) => onFirestoreError?.(err, 'list', 'agenda_harian')
+        (err) => onFirestoreErrorRef.current?.(err, 'list', 'agenda_harian')
       )
     );
 
@@ -191,7 +196,7 @@ export default function AdminAdministrasi({
         (snap) => {
           setAllAbsensi(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
         },
-        (err) => onFirestoreError?.(err, 'list', 'absensi_siswa')
+        (err) => onFirestoreErrorRef.current?.(err, 'list', 'absensi_siswa')
       )
     );
 
@@ -201,7 +206,7 @@ export default function AdminAdministrasi({
         (snap) => {
           setAllSumatif(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
         },
-        (err) => onFirestoreError?.(err, 'list', 'nilai_sumatif')
+        (err) => onFirestoreErrorRef.current?.(err, 'list', 'nilai_sumatif')
       )
     );
 
@@ -211,7 +216,7 @@ export default function AdminAdministrasi({
         (snap) => {
           setAllAsesmenHarian(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
         },
-        (err) => onFirestoreError?.(err, 'list', 'nilai_asesmen_harian')
+        (err) => onFirestoreErrorRef.current?.(err, 'list', 'nilai_asesmen_harian')
       )
     );
 
@@ -221,7 +226,7 @@ export default function AdminAdministrasi({
         (snap) => {
           setAllRapor(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
         },
-        (err) => onFirestoreError?.(err, 'list', 'nilai_rapor')
+        (err) => onFirestoreErrorRef.current?.(err, 'list', 'nilai_rapor')
       )
     );
 
@@ -238,14 +243,14 @@ export default function AdminAdministrasi({
             });
           }
         },
-        (err) => onFirestoreError?.(err, 'get', 'app_settings/rapor_weights')
+        (err) => onFirestoreErrorRef.current?.(err, 'get', 'app_settings/rapor_weights')
       )
     );
 
     return () => {
       unsubs.forEach((u) => u());
     };
-  }, [onFirestoreError]);
+  }, []);
 
   const showNotice = (type: 'success' | 'error' | 'info', message: string) => {
     setNotice({ type, message });
@@ -1416,8 +1421,14 @@ export default function AdminAdministrasi({
   }, [agendaList, selectedAgenda, absensiClass]);
 
   const absensiClassStudents = useMemo(() => {
-    const cls = selectedAgenda?.kelas || absensiClass;
-    return cls ? studentsByClass[cls] || [] : [];
+    const cls = (selectedAgenda?.kelas || absensiClass || '').trim();
+    if (!cls) return [];
+    if (studentsByClass[cls]) return studentsByClass[cls];
+    const upper = cls.toUpperCase();
+    const matchedKey = Object.keys(studentsByClass).find(
+      (k) => k.trim().toUpperCase() === upper
+    );
+    return matchedKey ? studentsByClass[matchedKey] : [];
   }, [selectedAgenda, absensiClass, studentsByClass]);
 
   // Find attendance record matching the active agenda
@@ -1435,12 +1446,22 @@ export default function AdminAdministrasi({
     );
   }, [selectedAgenda, absensiList]);
 
+  const activeAbsensiClass = selectedAgenda?.kelas || absensiClass;
+  const lastAbsensiHydrationKeyRef = useRef<string>('');
+
   // Hydrate draft from stored Firestore record or default Hadir
   useEffect(() => {
-    if (!absensiClass || !selectedAgenda) {
+    if (!activeAbsensiClass || !selectedAgenda) {
+      lastAbsensiHydrationKeyRef.current = '';
       setAbsensiDraft({});
       return;
     }
+    const studentIdsKey = absensiClassStudents.map((s) => s.id).join(',');
+    const hydrationKey = `${selectedAgenda.id}__${existingAbsensiForSelectedAgenda?.id || 'new'}__${existingAbsensiForSelectedAgenda?.updatedAt || ''}__${studentIdsKey}`;
+    if (lastAbsensiHydrationKeyRef.current === hydrationKey) {
+      return;
+    }
+    lastAbsensiHydrationKeyRef.current = hydrationKey;
     const nextDraft: Record<string, AbsensiStudentEntry> = {};
     absensiClassStudents.forEach((s) => {
       const saved = existingAbsensiForSelectedAgenda?.entries?.[s.id];
@@ -1449,14 +1470,14 @@ export default function AdminAdministrasi({
         : { status: 'H', catatan: '' };
     });
     setAbsensiDraft(nextDraft);
-  }, [absensiClass, selectedAgenda, existingAbsensiForSelectedAgenda, absensiClassStudents]);
+  }, [activeAbsensiClass, selectedAgenda, existingAbsensiForSelectedAgenda, absensiClassStudents]);
 
   const absensiDocExists = Boolean(existingAbsensiForSelectedAgenda);
 
   const setStudentAttendance = (studentId: string, status: AttendanceStatus) => {
     setAbsensiDraft((prev) => ({
       ...prev,
-      [studentId]: { ...prev[studentId], status },
+      [studentId]: { catatan: prev[studentId]?.catatan || '', status },
     }));
   };
 
@@ -1469,12 +1490,13 @@ export default function AdminAdministrasi({
   };
 
   const handleSaveAbsensi = async () => {
-    if (!absensiClass || absensiClassStudents.length === 0) {
-      showNotice('error', 'Pilih kelas yang memiliki siswa terdaftar.');
-      return;
-    }
     if (!selectedAgenda) {
       showNotice('error', 'Pilih Agenda Harian terlebih dahulu sebagai acuan absensi.');
+      return;
+    }
+    const targetKelas = selectedAgenda.kelas || absensiClass;
+    if (!targetKelas || absensiClassStudents.length === 0) {
+      showNotice('error', 'Pilih kelas yang memiliki siswa terdaftar.');
       return;
     }
     setIsSavingAbsensi(true);
@@ -1497,6 +1519,7 @@ export default function AdminAdministrasi({
     });
 
     try {
+      const nowIso = new Date().toISOString();
       // 1. Save attendance record linked to agendaId
       await setDoc(doc(db, 'absensi_siswa', docId), {
         id: docId,
@@ -1504,12 +1527,12 @@ export default function AdminAdministrasi({
         tahunPelajaran: activeTahunPelajaran,
         semester: activeSemester,
         tanggal: selectedAgenda.tanggal,
-        kelas: absensiClass,
+        kelas: targetKelas,
         pertemuanKe: selectedAgenda.pertemuanKe || '1',
         jamKe: selectedAgenda.jamKe || '',
         materi: selectedAgenda.materi || '',
         entries: cleanEntries,
-        updatedAt: new Date().toISOString(),
+        updatedAt: nowIso,
       });
 
       // 2. Synchronize counts directly into the linked agenda_harian document!
@@ -1522,12 +1545,12 @@ export default function AdminAdministrasi({
         sakitCount: S,
         izinCount: I,
         alpaCount: A,
-        updatedAt: new Date().toISOString(),
+        updatedAt: nowIso,
       });
 
       showNotice(
         'success',
-        `Absensi Pertemuan ke-${selectedAgenda.pertemuanKe} Kelas ${absensiClass} (${H} Hadir, ${S} Sakit, ${I} Izin, ${A} Alpa) berhasil disimpan dan disinkronkan ke Agenda Harian!`
+        `Absensi Pertemuan ke-${selectedAgenda.pertemuanKe} Kelas ${targetKelas} (${H} Hadir, ${S} Sakit, ${I} Izin, ${A} Alpa) berhasil disimpan dan disinkronkan ke Agenda Harian!`
       );
     } catch (err) {
       onFirestoreError?.(err, 'write', `absensi_siswa/${docId}`);
@@ -4137,7 +4160,7 @@ export default function AdminAdministrasi({
 
             {/* If an agenda is selected for input checklist, show checklist view with back button */}
             {selectedAgenda ? (() => {
-              const activeStudents = studentsByClass[selectedAgenda.kelas] || [];
+              const activeStudents = absensiClassStudents;
               const maleCount = activeStudents.filter((s) =>
                 (s.jenisKelamin || '').toUpperCase().startsWith('L')
               ).length;
@@ -4175,15 +4198,6 @@ export default function AdminAdministrasi({
                         className="px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-extrabold hover:bg-emerald-100 cursor-pointer"
                       >
                         Semua Hadir
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isSavingAbsensi}
-                        onClick={handleSaveAbsensi}
-                        className="px-4 py-1.5 rounded-xl bg-brand hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
-                      >
-                        <Save size={14} />
-                        {isSavingAbsensi ? 'Menyimpan...' : 'Simpan Absensi'}
                       </button>
                     </div>
                   </div>
@@ -4363,7 +4377,7 @@ export default function AdminAdministrasi({
                                         const val = e.target.value;
                                         setAbsensiDraft((prev) => ({
                                           ...prev,
-                                          [st.id]: { ...prev[st.id], catatan: val },
+                                          [st.id]: { status: prev[st.id]?.status || 'H', catatan: val },
                                         }));
                                       }}
                                       placeholder="Catatan khusus..."
@@ -4383,6 +4397,28 @@ export default function AdminAdministrasi({
                         </tbody>
                       </table>
                     </div>
+                  </div>
+
+                  {/* Bottom Save Action Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 bg-white/40 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-white/40 dark:border-white/10">
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-bold tabular-nums">
+                      <span className="text-slate-600 dark:text-slate-300">
+                        Total {activeStudents.length} Siswa:
+                      </span>
+                      <span className="text-emerald-700 dark:text-emerald-300">H: {absensiDraftCounts.H}</span>
+                      <span className="text-amber-700 dark:text-amber-300">S: {absensiDraftCounts.S}</span>
+                      <span className="text-blue-700 dark:text-blue-300">I: {absensiDraftCounts.I}</span>
+                      <span className="text-rose-700 dark:text-rose-300">A: {absensiDraftCounts.A}</span>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isSavingAbsensi}
+                      onClick={handleSaveAbsensi}
+                      className="px-5 py-2 rounded-xl bg-brand hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer ml-auto"
+                    >
+                      <Save size={14} />
+                      {isSavingAbsensi ? 'Menyimpan...' : 'Simpan Absensi'}
+                    </button>
                   </div>
                 </div>
               );
