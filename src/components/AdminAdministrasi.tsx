@@ -1902,88 +1902,34 @@ export default function AdminAdministrasi({
   };
 
   type RaporDraftRow = {
-    capaianKompetensi: string;
-    catatanGuru: string;
     isFinalized: boolean;
   };
 
   const [raporDraft, setRaporDraft] = useState<Record<string, RaporDraftRow>>({});
   const [isSavingRapor, setIsSavingRapor] = useState(false);
 
-  const buildSuggestedCapaian = (studentName: string, score: number, kelas: string) => {
-    const classTps = tpList.filter(
-      (t) =>
-        t.kelas === 'Semua' ||
-        kelas.toUpperCase().startsWith(t.kelas.toUpperCase()) ||
-        (t.kelas === 'VII' && kelas.startsWith('7')) ||
-        (t.kelas === 'VIII' && kelas.startsWith('8')) ||
-        (t.kelas === 'IX' && kelas.startsWith('9'))
-    );
-    const sampleTp = (classTps[0] || tpList[0])?.deskripsi || 'konsep dasar Informatika dan berpikir komputasional';
-    if (score >= 90) {
-      return `Sangat baik dalam memahami dan menerapkan ${sampleTp.toLowerCase()}`;
-    }
-    if (score >= 80) {
-      return `Baik dalam menguasai ${sampleTp.toLowerCase()}`;
-    }
-    if (score >= 70) {
-      return `Cukup memahami ${sampleTp.toLowerCase()}, perlu pendalaman latihan mandiri.`;
-    }
-    return `${studentName} memerlukan bimbingan lanjutan pada ${sampleTp.toLowerCase()}`;
-  };
-
   useEffect(() => {
     const next: Record<string, RaporDraftRow> = {};
     nilaiClassStudents.forEach((s) => {
       const saved = raporList.find((r) => r.studentId === s.id);
-      const { nilaiAkhir } = computeStudentRaporBreakdown(s.id);
       next[s.id] = {
-        capaianKompetensi:
-          saved?.capaianKompetensi ||
-          (nilaiAkhir > 0 ? buildSuggestedCapaian(s.nama, nilaiAkhir, s.kelas) : ''),
-        catatanGuru: saved?.catatanGuru || '',
         isFinalized: Boolean(saved?.isFinalized),
       };
     });
     setRaporDraft(next);
-  }, [
-    nilaiClassStudents,
-    raporList,
-    sumatifTpCols,
-    praktikumTpCols,
-    sumatifAkhirCols,
-    raporWeights,
-    tpList,
-  ]);
+  }, [nilaiClassStudents, raporList]);
 
   const updateRaporField = (
     studentId: string,
     field: keyof RaporDraftRow,
-    value: string | boolean
+    value: boolean
   ) => {
     setRaporDraft((prev) => {
       const cur = prev[studentId] || {
-        capaianKompetensi: '',
-        catatanGuru: '',
         isFinalized: false,
       };
       return { ...prev, [studentId]: { ...cur, [field]: value } };
     });
-  };
-
-  const syncAllRaporFromSources = () => {
-    const next: Record<string, RaporDraftRow> = {};
-    nilaiClassStudents.forEach((s) => {
-      const { nilaiAkhir } = computeStudentRaporBreakdown(s.id);
-      next[s.id] = {
-        capaianKompetensi:
-          nilaiAkhir > 0 ? buildSuggestedCapaian(s.nama, nilaiAkhir, s.kelas) : '',
-        catatanGuru: raporDraft[s.id]?.catatanGuru || '',
-        isFinalized: raporDraft[s.id]?.isFinalized || false,
-      };
-    });
-    setRaporDraft(next);
-    showNotice('success', 'Capaian & Nilai Rapor disinkronkan dari Nilai Sumatif, Praktikum, dan Sumatif Akhir.');
   };
 
   const handleSaveAllRapor = async () => {
@@ -2001,6 +1947,7 @@ export default function AdminAdministrasi({
       await Promise.all(
         nilaiClassStudents.map((s) => {
           const row = raporDraft[s.id];
+          const saved = raporList.find((r) => r.studentId === s.id);
           const { avgSumatifTp, avgPraktikumTp, avgSumatifAkhir, nilaiAkhir } =
             computeStudentRaporBreakdown(s.id);
           const docId = `${slugifyTermPart(activeTahunPelajaran)}__${activeSemester}__${slugifyTermPart(s.id)}`;
@@ -2020,8 +1967,8 @@ export default function AdminAdministrasi({
             nilaiSumatifAkhir: avgSumatifAkhir,
             nilaiAkhir: cleanAkhir,
             predikat: getPredikatFromScore(cleanAkhir),
-            capaianKompetensi: row?.capaianKompetensi || '',
-            catatanGuru: row?.catatanGuru || '',
+            capaianKompetensi: saved?.capaianKompetensi || '',
+            catatanGuru: saved?.catatanGuru || '',
             isFinalized: Boolean(row?.isFinalized),
             updatedAt: now,
           });
@@ -2056,11 +2003,8 @@ export default function AdminAdministrasi({
       `Rata Praktikum TP (${raporWeights.pctPraktikumTp}%)`,
       `Rata Sumatif Akhir (${raporWeights.pctSumatifAkhir}%)`,
       'Nilai Akhir Rapor',
-      'Predikat',
-      'Capaian Kompetensi',
     ];
     const rows = nilaiClassStudents.map((s, idx) => {
-      const row = raporDraft[s.id];
       const att = studentAttendanceRecap[s.id] || { H: 0, S: 0, I: 0, A: 0 };
       const { avgSumatifTp, avgPraktikumTp, avgSumatifAkhir, nilaiAkhir } =
         computeStudentRaporBreakdown(s.id);
@@ -2082,8 +2026,6 @@ export default function AdminAdministrasi({
         avgPraktikumTp,
         avgSumatifAkhir,
         nilaiAkhir,
-        getPredikatFromScore(nilaiAkhir),
-        row?.capaianKompetensi || '',
       ];
     });
     downloadCsv(
@@ -5165,14 +5107,6 @@ export default function AdminAdministrasi({
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={syncAllRaporFromSources}
-                        className="px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-extrabold flex items-center gap-1.5 hover:bg-indigo-100 cursor-pointer"
-                      >
-                        <RefreshCw size={13} />
-                        Sinkron Capaian
-                      </button>
-                      <button
-                        type="button"
                         onClick={exportRaporCsv}
                         className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-extrabold flex items-center gap-1.5 hover:bg-slate-50 cursor-pointer"
                       >
@@ -5262,24 +5196,27 @@ export default function AdminAdministrasi({
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="w-full">
+                <table className="w-full table-fixed text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-200/70 dark:border-slate-700 text-[10px] uppercase font-extrabold tracking-widest text-slate-500 dark:text-slate-400">
-                      <th className="p-3 w-10">No</th>
-                      <th className="p-3 min-w-[170px]">Siswa</th>
-                      <th className="p-3 text-center whitespace-nowrap">Absensi</th>
+                    <tr className="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-200/70 dark:border-slate-700 text-[9px] sm:text-[10px] uppercase font-extrabold tracking-tight text-slate-500 dark:text-slate-400">
+                      <th className="px-1.5 py-2.5 w-7 sm:w-8 text-center">No</th>
+                      <th className="px-1.5 sm:px-2 py-2.5 w-28 sm:w-36 lg:w-44">Siswa</th>
+                      <th className="px-1 py-2.5 w-14 sm:w-[68px] text-center">Absensi</th>
                       {sumatifTpCols.map((col) => (
                         <th
                           key={col.id}
-                          className="p-2.5 text-center min-w-[88px] border-l border-slate-200/60 dark:border-slate-700/60"
+                          className="px-1 py-2 text-center border-l border-slate-200/60 dark:border-slate-700/60"
                         >
-                          <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-[11px] font-black text-slate-800 dark:text-slate-100 normal-case tracking-normal">
+                          <div className="flex flex-col items-center gap-0.5 min-w-0">
+                            <span
+                              title={col.judul}
+                              className="w-full text-[10px] font-black text-slate-800 dark:text-slate-100 normal-case tracking-normal leading-tight break-words"
+                            >
                               {col.judul}
                             </span>
-                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300">
-                              Sumatif TP
+                            <span className="px-1 py-0.5 rounded text-[8px] font-black bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300">
+                              Sumatif
                             </span>
                           </div>
                         </th>
@@ -5287,14 +5224,17 @@ export default function AdminAdministrasi({
                       {praktikumTpCols.map((col) => (
                         <th
                           key={col.id}
-                          className="p-2.5 text-center min-w-[88px] border-l border-slate-200/60 dark:border-slate-700/60"
+                          className="px-1 py-2 text-center border-l border-slate-200/60 dark:border-slate-700/60"
                         >
-                          <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-[11px] font-black text-slate-800 dark:text-slate-100 normal-case tracking-normal">
+                          <div className="flex flex-col items-center gap-0.5 min-w-0">
+                            <span
+                              title={col.judul}
+                              className="w-full text-[10px] font-black text-slate-800 dark:text-slate-100 normal-case tracking-normal leading-tight break-words"
+                            >
                               {col.judul}
                             </span>
-                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300">
-                              Praktikum TP
+                            <span className="px-1 py-0.5 rounded text-[8px] font-black bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300">
+                              Praktikum
                             </span>
                           </div>
                         </th>
@@ -5302,62 +5242,65 @@ export default function AdminAdministrasi({
                       {sumatifAkhirCols.map((col) => (
                         <th
                           key={col.id}
-                          className="p-2.5 text-center min-w-[96px] border-l border-slate-200/60 dark:border-slate-700/60"
+                          className="px-1 py-2 text-center border-l border-slate-200/60 dark:border-slate-700/60"
                         >
-                          <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-[11px] font-black text-slate-800 dark:text-slate-100 normal-case tracking-normal">
+                          <div className="flex flex-col items-center gap-0.5 min-w-0">
+                            <span
+                              title={col.judul}
+                              className="w-full text-[10px] font-black text-slate-800 dark:text-slate-100 normal-case tracking-normal leading-tight break-words"
+                            >
                               {col.judul}
                             </span>
-                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300">
-                              Sumatif Akhir
+                            <span className="px-1 py-0.5 rounded text-[8px] font-black bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300">
+                              S. Akhir
                             </span>
                           </div>
                         </th>
                       ))}
-                      <th className="p-2.5 text-center whitespace-nowrap border-l border-slate-200/80 dark:border-slate-700 bg-blue-50/40 dark:bg-blue-950/20">
-                        Rata Sumatif<br />({raporWeights.pctSumatifTp}%)
+                      <th className="px-1 py-2 w-12 sm:w-14 lg:w-16 text-center leading-tight border-l border-slate-200/80 dark:border-slate-700 bg-blue-50/40 dark:bg-blue-950/20">
+                        Rata S.<br />({raporWeights.pctSumatifTp}%)
                       </th>
-                      <th className="p-2.5 text-center whitespace-nowrap border-l border-slate-200/60 dark:border-slate-700/60 bg-emerald-50/40 dark:bg-emerald-950/20">
-                        Rata Praktikum<br />({raporWeights.pctPraktikumTp}%)
+                      <th className="px-1 py-2 w-12 sm:w-14 lg:w-16 text-center leading-tight border-l border-slate-200/60 dark:border-slate-700/60 bg-emerald-50/40 dark:bg-emerald-950/20">
+                        Rata P.<br />({raporWeights.pctPraktikumTp}%)
                       </th>
-                      <th className="p-2.5 text-center whitespace-nowrap border-l border-slate-200/60 dark:border-slate-700/60 bg-indigo-50/40 dark:bg-indigo-950/20">
-                        Rata S. Akhir<br />({raporWeights.pctSumatifAkhir}%)
+                      <th className="px-1 py-2 w-12 sm:w-14 lg:w-16 text-center leading-tight border-l border-slate-200/60 dark:border-slate-700/60 bg-indigo-50/40 dark:bg-indigo-950/20">
+                        Rata SA<br />({raporWeights.pctSumatifAkhir}%)
                       </th>
-                      <th className="p-3 text-center whitespace-nowrap border-l border-slate-200/80 dark:border-slate-700">
+                      <th className="px-1 py-2 w-12 sm:w-14 text-center leading-tight border-l border-slate-200/80 dark:border-slate-700">
                         Nilai Akhir
                       </th>
-                      <th className="p-3 text-center">Predikat</th>
-                      <th className="p-3 min-w-[230px]">Capaian Kompetensi</th>
-                      <th className="p-3 text-center">Final</th>
+                      <th className="px-1 py-2 w-9 sm:w-11 text-center">Final</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {nilaiClassStudents.length > 0 ? (
                       nilaiClassStudents.map((s, idx) => {
                         const row = raporDraft[s.id] || {
-                          capaianKompetensi: '',
-                          catatanGuru: '',
                           isFinalized: false,
                         };
                         const att = studentAttendanceRecap[s.id] || { H: 0, S: 0, I: 0, A: 0, total: 0 };
                         const { avgSumatifTp, avgPraktikumTp, avgSumatifAkhir, nilaiAkhir } =
                           computeStudentRaporBreakdown(s.id);
-                        const pred = getPredikatFromScore(nilaiAkhir);
                         return (
-                          <tr key={s.id} className="hover:bg-blue-50/30 dark:hover:bg-slate-800/50 align-top">
-                            <td className="p-3 text-xs font-mono text-slate-400 tabular-nums">{idx + 1}</td>
-                            <td className="p-3">
+                          <tr key={s.id} className="hover:bg-blue-50/30 dark:hover:bg-slate-800/50 align-middle">
+                            <td className="px-1.5 py-2 text-center text-[11px] font-mono text-slate-400 tabular-nums">
+                              {idx + 1}
+                            </td>
+                            <td className="px-1.5 sm:px-2 py-2 min-w-0">
                               <button
                                 type="button"
                                 onClick={() => onOpenStudentDetail?.(s)}
-                                className="text-left text-sm font-extrabold text-slate-900 dark:text-white hover:text-brand dark:hover:text-blue-400 cursor-pointer block"
+                                title={s.nama}
+                                className="w-full truncate text-left text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white hover:text-brand dark:hover:text-blue-400 cursor-pointer block"
                               >
                                 {s.nama}
                               </button>
-                              <span className="text-[11px] font-mono text-slate-400">NISN {s.nis}</span>
+                              <span className="block truncate text-[10px] font-mono text-slate-400">
+                                {s.nis}
+                              </span>
                             </td>
-                            <td className="p-3 text-center whitespace-nowrap">
-                              <span className="text-[11px] font-bold px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 tabular-nums">
+                            <td className="px-1 py-2 text-center">
+                              <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 tabular-nums">
                                 {att.H}/{att.S}/{att.I}/{att.A}
                               </span>
                             </td>
@@ -5366,7 +5309,7 @@ export default function AdminAdministrasi({
                               return (
                                 <td
                                   key={col.id}
-                                  className="p-3 text-center text-xs font-extrabold text-slate-800 dark:text-slate-100 tabular-nums border-l border-slate-100 dark:border-slate-800"
+                                  className="px-1 py-2 text-center text-xs font-extrabold text-slate-800 dark:text-slate-100 tabular-nums border-l border-slate-100 dark:border-slate-800"
                                 >
                                   {val !== undefined && val !== null ? val : <span className="text-slate-300 dark:text-slate-600">-</span>}
                                 </td>
@@ -5377,7 +5320,7 @@ export default function AdminAdministrasi({
                               return (
                                 <td
                                   key={col.id}
-                                  className="p-3 text-center text-xs font-extrabold text-slate-800 dark:text-slate-100 tabular-nums border-l border-slate-100 dark:border-slate-800"
+                                  className="px-1 py-2 text-center text-xs font-extrabold text-slate-800 dark:text-slate-100 tabular-nums border-l border-slate-100 dark:border-slate-800"
                                 >
                                   {val !== undefined && val !== null ? val : <span className="text-slate-300 dark:text-slate-600">-</span>}
                                 </td>
@@ -5388,66 +5331,40 @@ export default function AdminAdministrasi({
                               return (
                                 <td
                                   key={col.id}
-                                  className="p-3 text-center text-xs font-extrabold text-slate-800 dark:text-slate-100 tabular-nums border-l border-slate-100 dark:border-slate-800"
+                                  className="px-1 py-2 text-center text-xs font-extrabold text-slate-800 dark:text-slate-100 tabular-nums border-l border-slate-100 dark:border-slate-800"
                                 >
                                   {val !== undefined && val !== null ? val : <span className="text-slate-300 dark:text-slate-600">-</span>}
                                 </td>
                               );
                             })}
-                            <td className="p-3 text-center text-xs font-black text-blue-700 dark:text-blue-300 tabular-nums border-l border-slate-200/70 dark:border-slate-700 bg-blue-50/20 dark:bg-blue-950/10">
+                            <td className="px-1 py-2 text-center text-xs font-black text-blue-700 dark:text-blue-300 tabular-nums border-l border-slate-200/70 dark:border-slate-700 bg-blue-50/20 dark:bg-blue-950/10">
                               {avgSumatifTp}
                             </td>
-                            <td className="p-3 text-center text-xs font-black text-emerald-700 dark:text-emerald-300 tabular-nums border-l border-slate-100 dark:border-slate-800 bg-emerald-50/20 dark:bg-emerald-950/10">
+                            <td className="px-1 py-2 text-center text-xs font-black text-emerald-700 dark:text-emerald-300 tabular-nums border-l border-slate-100 dark:border-slate-800 bg-emerald-50/20 dark:bg-emerald-950/10">
                               {avgPraktikumTp}
                             </td>
-                            <td className="p-3 text-center text-xs font-black text-indigo-700 dark:text-indigo-300 tabular-nums border-l border-slate-100 dark:border-slate-800 bg-indigo-50/20 dark:bg-indigo-950/10">
+                            <td className="px-1 py-2 text-center text-xs font-black text-indigo-700 dark:text-indigo-300 tabular-nums border-l border-slate-100 dark:border-slate-800 bg-indigo-50/20 dark:bg-indigo-950/10">
                               {avgSumatifAkhir}
                             </td>
-                            <td className="p-3 text-center border-l border-slate-200/70 dark:border-slate-700">
-                              <span className="px-2.5 py-1 rounded-lg bg-brand/10 dark:bg-blue-950/60 text-brand dark:text-blue-300 text-sm font-black tabular-nums">
+                            <td className="px-1 py-2 text-center border-l border-slate-200/70 dark:border-slate-700">
+                              <span className="inline-block px-2 py-0.5 rounded-lg bg-brand/10 dark:bg-blue-950/60 text-brand dark:text-blue-300 text-xs sm:text-sm font-black tabular-nums">
                                 {nilaiAkhir}
                               </span>
                             </td>
-                            <td className="p-3 text-center">
-                              <span
-                                className={`px-2.5 py-1 rounded-lg text-xs font-black ${
-                                  pred === 'A'
-                                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                                    : pred === 'B'
-                                    ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
-                                    : pred === 'C'
-                                    ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                                    : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
-                                }`}
-                              >
-                                {pred}
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <textarea
-                                rows={2}
-                                value={row.capaianKompetensi}
-                                onChange={(e) =>
-                                  updateRaporField(s.id, 'capaianKompetensi', e.target.value)
-                                }
-                                placeholder="Deskripsi capaian TP..."
-                                className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 resize-y"
-                              />
-                            </td>
-                            <td className="p-3 text-center">
+                            <td className="px-1 py-2 text-center">
                               <button
                                 type="button"
                                 onClick={() =>
                                   updateRaporField(s.id, 'isFinalized', !row.isFinalized)
                                 }
-                                className={`w-8 h-8 rounded-lg inline-flex items-center justify-center border cursor-pointer transition-colors ${
+                                className={`w-7 h-7 rounded-lg inline-flex items-center justify-center border cursor-pointer transition-colors ${
                                   row.isFinalized
                                     ? 'bg-emerald-600 border-emerald-600 text-white'
                                     : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
                                 }`}
                                 title={row.isFinalized ? 'Sudah Final' : 'Tandai Final'}
                               >
-                                <Check size={15} />
+                                <Check size={14} />
                               </button>
                             </td>
                           </tr>
@@ -5456,7 +5373,7 @@ export default function AdminAdministrasi({
                     ) : (
                       <tr>
                         <td
-                          colSpan={10 + sumatifTpCols.length + praktikumTpCols.length + sumatifAkhirCols.length}
+                          colSpan={8 + sumatifTpCols.length + praktikumTpCols.length + sumatifAkhirCols.length}
                           className="p-10 text-center text-slate-400 text-sm font-semibold"
                         >
                           Belum ada siswa pada kelas ini untuk Tahun Pelajaran {activeTahunPelajaran}.
