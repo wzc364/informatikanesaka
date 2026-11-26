@@ -204,6 +204,22 @@ export interface TujuanPembelajaranItem {
   updatedAt?: string;
 }
 
+export const JENIS_KEGIATAN_LIST = [
+  'KBM',
+  'KBM dan Asesmen Harian',
+  'SUMATIF',
+  'Sumatif Akhir',
+  'Administrasi',
+  'Ekstrakurikuler',
+  'Praktikum',
+  'Tugas Mandiri',
+  'Kegiatan lomba',
+  'Kegiatan kesiswaan',
+  'Kegiatan sekolah',
+  'Perwalian',
+  'Personal Guru',
+] as const;
+
 export interface AgendaHarianItem {
   id: string;
   tahunPelajaran: string;
@@ -217,6 +233,7 @@ export interface AgendaHarianItem {
   waktuMulai?: string;
   waktuSelesai?: string;
   mataPelajaran?: string;
+  jenisKegiatan?: string;
   tpId?: string;
   tpKode?: string;
   materi: string;

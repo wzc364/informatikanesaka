@@ -66,6 +66,7 @@ import {
   HARI_LIST,
   JadwalPelajaranItem,
   JadwalScheduleSettings,
+  JENIS_KEGIATAN_LIST,
   NilaiRaporEntry,
   NilaiSubTab,
   NilaiSumatifItem,
@@ -869,6 +870,7 @@ export default function AdminAdministrasi({
     waktuMulai: string;
     waktuSelesai: string;
     mataPelajaran: string;
+    jenisKegiatan: string;
     pertemuanKe: string;
     tpId: string;
     materi: string;
@@ -887,6 +889,7 @@ export default function AdminAdministrasi({
     waktuMulai: '07:30',
     waktuSelesai: '08:50',
     mataPelajaran: 'Informatika',
+    jenisKegiatan: 'KBM',
     pertemuanKe: '1',
     tpId: '',
     materi: '',
@@ -998,8 +1001,9 @@ export default function AdminAdministrasi({
       waktuMulai: isExtraZeroSlot ? '06:30' : matchedJadwal?.waktuMulai || '07:30',
       waktuSelesai: isExtraZeroSlot ? '07:15' : matchedJadwal?.waktuSelesai || '08:50',
       mataPelajaran: matchedJadwal?.mataPelajaran || 'Informatika',
+      jenisKegiatan: 'KBM',
       pertemuanKe: String(classExistingCount + 1),
-      tpId: tpList[0]?.id || '',
+      tpId: '',
       materi: '',
       kegiatan: '',
       catatan: '',
@@ -1022,6 +1026,7 @@ export default function AdminAdministrasi({
       waktuMulai: item.waktuMulai || '',
       waktuSelesai: item.waktuSelesai || '',
       mataPelajaran: item.mataPelajaran || 'Informatika',
+      jenisKegiatan: item.jenisKegiatan || 'KBM',
       pertemuanKe: item.pertemuanKe || '1',
       tpId: item.tpId || '',
       materi: item.materi,
@@ -1054,6 +1059,7 @@ export default function AdminAdministrasi({
       waktuMulai: agendaForm.waktuMulai || '',
       waktuSelesai: agendaForm.waktuSelesai || '',
       mataPelajaran: agendaForm.mataPelajaran || 'Informatika',
+      jenisKegiatan: agendaForm.jenisKegiatan || 'KBM',
       tpId: linkedTp?.id || '',
       tpKode: linkedTp?.kodeTp || '',
       materi: agendaForm.materi.trim(),
@@ -2972,376 +2978,417 @@ export default function AdminAdministrasi({
       )}
 
       {/* ===================================================================== */}
-      {/* TAB 4: ABSENSI SISWA                                                  */}
+      {/* TAB 4: ABSENSI SISWA (Sesuai Desain Lampiran image_5f708ce4.png)        */}
       {/* ===================================================================== */}
-      {subTab === 'absensi' && (
-        <div className="space-y-5">
-          <div className="admin-glass-card rounded-2xl p-4 md:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-3 flex-1">
-              <div>
-                <label className="block text-[10px] font-extrabold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                  Pilih Kelas
-                </label>
-                <select
-                  value={absensiClass}
-                  onChange={(e) => setAbsensiClass(e.target.value)}
-                  className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-800 dark:text-slate-100"
-                >
-                  {classOptions.length === 0 ? (
-                    <option value="">Tidak ada kelas</option>
-                  ) : (
-                    classOptions.map((c) => (
-                      <option key={c} value={c}>
-                        Kelas {c} ({studentsByClass[c]?.length || 0} siswa)
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
+      {subTab === 'absensi' && (() => {
+        const [absensiSubView, setAbsensiSubView] = useState<'agenda_hari_ini' | 'tanggungan' | 'rekap'>('agenda_hari_ini');
+        const absensiDateAgendas = useMemo(() => {
+          return agendaList.filter((a) => a.tanggal === agendaSelectedDate);
+        }, [agendaList, agendaSelectedDate]);
 
-              {absensiMode === 'input' && classAgendas.length > 0 && (
-                <div className="flex-1 min-w-[280px]">
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                    Pilih Agenda Harian (Pertemuan Mengajar)
-                  </label>
+        const tanggunganAgendas = useMemo(() => {
+          return agendaList
+            .filter((a) => !isAgendaAttended(a.id, a.kelas, a.tanggal))
+            .sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''));
+        }, [agendaList, absensiList]);
+
+        return (
+          <div className="space-y-6">
+            {/* Top Sub-Tab Navigation Bar */}
+            <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-slate-900/10 dark:bg-slate-800/60 border border-white/20 dark:border-white/10 w-fit">
+              <button
+                type="button"
+                onClick={() => {
+                  setAbsensiSubView('agenda_hari_ini');
+                  setSelectedAgendaId('');
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wide uppercase transition-all cursor-pointer ${
+                  absensiSubView === 'agenda_hari_ini'
+                    ? 'bg-gradient-to-r from-brand to-blue-600 text-white shadow-md shadow-brand/25'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                AGENDA HARI INI
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAbsensiSubView('tanggungan');
+                  setSelectedAgendaId('');
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wide uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+                  absensiSubView === 'tanggungan'
+                    ? 'bg-gradient-to-r from-brand to-blue-600 text-white shadow-md shadow-brand/25'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>TANGGUNGAN ABSENSI</span>
+                {tanggunganAgendas.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-extrabold tabular-nums">
+                    {tanggunganAgendas.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAbsensiSubView('rekap');
+                  setSelectedAgendaId('');
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-black tracking-wide uppercase transition-all cursor-pointer ${
+                  absensiSubView === 'rekap'
+                    ? 'bg-gradient-to-r from-brand to-blue-600 text-white shadow-md shadow-brand/25'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                REKAPITULASI ABSENSI
+              </button>
+            </div>
+
+            {/* If an agenda is selected for input checklist, show checklist view with back button */}
+            {selectedAgenda ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3 bg-white/40 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-white/40 dark:border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAgendaId('')}
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-extrabold text-slate-700 dark:text-slate-200 inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    ← Kembali ke Pilih Agenda
+                  </button>
                   <div className="flex items-center gap-2">
-                    <select
-                      value={selectedAgendaId}
-                      onChange={(e) => setSelectedAgendaId(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-800 dark:text-slate-100"
-                    >
-                      {classAgendas.map((ag) => {
-                        const attended = isAgendaAttended(ag.id, ag.kelas, ag.tanggal);
-                        return (
-                          <option key={ag.id} value={ag.id}>
-                            {attended ? '✅' : '⚠️'} Pertemuan ke-{ag.pertemuanKe} ({ag.tanggal}) · Jam {ag.jamKe || '-'} · {ag.materi.slice(0, 45)}
-                          </option>
-                        );
-                      })}
-                    </select>
                     <button
                       type="button"
-                      onClick={() => openNewAgendaModal(undefined, undefined, absensiClass)}
-                      className="px-2.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-brand/10 hover:text-brand border border-slate-200 dark:border-slate-700 text-xs font-bold shrink-0 flex items-center gap-1 cursor-pointer"
-                      title="Catat Agenda Harian baru untuk kelas ini"
+                      onClick={setAllPresent}
+                      className="px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-extrabold hover:bg-emerald-100 cursor-pointer"
                     >
-                      <Plus size={14} />
-                      <span className="hidden sm:inline">Agenda Baru</span>
+                      Semua Hadir
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSavingAbsensi}
+                      onClick={handleSaveAbsensi}
+                      className="px-4 py-1.5 rounded-xl bg-brand hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+                    >
+                      <Save size={14} />
+                      {isSavingAbsensi ? 'Menyimpan...' : 'Simpan Absensi'}
                     </button>
                   </div>
                 </div>
-              )}
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => setAbsensiMode('input')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold cursor-pointer ${
-                    absensiMode === 'input'
-                      ? 'bg-brand text-white'
-                      : 'text-slate-600 dark:text-slate-300'
-                  }`}
-                >
-                  Input Per Agenda
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAbsensiMode('rekap')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold cursor-pointer ${
-                    absensiMode === 'rekap'
-                      ? 'bg-brand text-white'
-                      : 'text-slate-600 dark:text-slate-300'
-                  }`}
-                >
-                  Rekap Semester
-                </button>
-              </div>
-
-              {absensiMode === 'input' && selectedAgenda && absensiClassStudents.length > 0 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={setAllPresent}
-                    className="px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-extrabold hover:bg-emerald-100 cursor-pointer"
-                  >
-                    Semua Hadir
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isSavingAbsensi}
-                    onClick={handleSaveAbsensi}
-                    className="px-4 py-2 rounded-xl bg-brand hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
-                  >
-                    <Save size={14} />
-                    {isSavingAbsensi ? 'Menyimpan...' : 'Simpan Absensi'}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {absensiMode === 'input' ? (
-            classAgendas.length === 0 ? (
-              <div className="admin-glass-card rounded-2xl p-8 md:p-10 text-center max-w-xl mx-auto space-y-4 my-4">
-                <div className="w-16 h-16 rounded-3xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-inner">
-                  <CalendarClock size={32} />
-                </div>
-                <div>
-                  <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
-                    Belum Ada Agenda Harian untuk Kelas {absensiClass || '-'}
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-                    Sesuai alur administrasi guru, pencatatan absensi siswa dilakukan berdasarkan Agenda Harian (pertemuan tatap muka pembelajaran). Silakan catat agenda mengajar terlebih dahulu agar absensi terhubung dengan materi pokok dan jadwal pelajaran.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => openNewAgendaModal(undefined, undefined, absensiClass)}
-                  className="px-5 py-2.5 rounded-xl bg-brand hover:bg-blue-700 text-white text-xs font-extrabold inline-flex items-center gap-2 shadow-sm cursor-pointer"
-                >
-                  <Plus size={15} />
-                  Catat Agenda Harian Kelas {absensiClass}
-                </button>
-              </div>
-            ) : selectedAgenda ? (
-              <div className="space-y-4">
                 {/* Agenda Context Card */}
                 <div className="admin-glass-card rounded-2xl p-4 md:p-5 border-l-4 border-l-brand space-y-3">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-3 py-1 rounded-xl bg-brand text-white text-xs font-black">
-                        PERTEMUAN KE-{selectedAgenda.pertemuanKe}
+                      <span className="px-3 py-1 rounded-xl bg-brand text-white text-xs font-black uppercase">
+                        KELAS {selectedAgenda.kelas} · PERTEMUAN KE-{selectedAgenda.pertemuanKe}
                       </span>
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
                         <Calendar size={13} className="text-slate-400" />
                         {selectedAgenda.hari || getHariFromDate(selectedAgenda.tanggal)}, {selectedAgenda.tanggal}
                       </span>
-                      {selectedAgenda.jamKe && (
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
-                          <Clock size={13} className="text-slate-400" />
-                          Jam {selectedAgenda.jamKe} ({selectedAgenda.waktuMulai} - {selectedAgenda.waktuSelesai})
-                        </span>
-                      )}
-                      {selectedAgenda.mataPelajaran && (
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                          {selectedAgenda.mataPelajaran}
+                      {selectedAgenda.jenisKegiatan && (
+                        <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-black uppercase">
+                          {selectedAgenda.jenisKegiatan}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${
-                          absensiDocExists
-                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                            : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                        }`}
-                      >
-                        {absensiDocExists ? '● Absensi Tersimpan' : '○ Belum Diabsen (Draft)'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => openEditAgendaModal(selectedAgenda)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-brand hover:bg-brand/10 transition-colors cursor-pointer"
-                        title="Edit Rincian Agenda Ini"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                    </div>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${
+                        absensiDocExists
+                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                      }`}
+                    >
+                      {absensiDocExists ? '● Absensi Tersimpan' : '○ Belum Diabsen'}
+                    </span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className="block text-[10px] font-extrabold uppercase text-slate-400 dark:text-slate-500">
-                        Materi Pokok
-                      </span>
-                      <span className="font-extrabold text-slate-900 dark:text-white text-sm">
-                        {selectedAgenda.materi}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="block text-[10px] font-extrabold uppercase text-slate-400 dark:text-slate-500">
-                        Tujuan Pembelajaran (TP)
-                      </span>
-                      <span className="font-bold text-indigo-700 dark:text-indigo-300">
-                        {selectedAgenda.tpKode
-                          ? `${selectedAgenda.tpKode} - ${tpList.find((t) => t.id === selectedAgenda.tpId)?.deskripsi || ''}`
-                          : 'Belum dihubungkan ke TP spesifik'}
-                      </span>
-                    </div>
-                    {selectedAgenda.kegiatan && (
-                      <div className="md:col-span-2 text-slate-600 dark:text-slate-300">
-                        <span className="block text-[10px] font-extrabold uppercase text-slate-400 dark:text-slate-500">
-                          Ringkasan Kegiatan
-                        </span>
-                        <p className="mt-0.5 text-xs">{selectedAgenda.kegiatan}</p>
-                      </div>
-                    )}
+                  <div className="text-xs space-y-1">
+                    <span className="block text-[10px] font-extrabold uppercase text-slate-400">Materi / Topik</span>
+                    <p className="text-sm font-extrabold text-slate-900 dark:text-white">{selectedAgenda.materi}</p>
+                    {selectedAgenda.kegiatan && <p className="text-xs text-slate-600 dark:text-slate-300">{selectedAgenda.kegiatan}</p>}
                   </div>
                 </div>
 
-                {/* Attendance Table */}
+                {/* Checklist Table */}
                 <div className="admin-glass-card rounded-2xl overflow-hidden">
-                  {absensiClassStudents.length > 0 ? (
-                    <>
-                      <div className="px-5 py-3 bg-white/30 dark:bg-white/5 border-b border-white/40 dark:border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-800 dark:text-slate-100">
-                            Presensi Siswa Kelas {absensiClass} · {absensiClassStudents.length} Siswa
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 tabular-nums">
-                          <span className="text-emerald-700 dark:text-emerald-300">Hadir: {absensiDraftCounts.H}</span>
-                          <span className="text-amber-700 dark:text-amber-300">Sakit: {absensiDraftCounts.S}</span>
-                          <span className="text-blue-700 dark:text-blue-300">Izin: {absensiDraftCounts.I}</span>
-                          <span className="text-rose-700 dark:text-rose-300">Alpa: {absensiDraftCounts.A}</span>
-                        </div>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[680px]">
-                          <thead>
-                            <tr className="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-200/70 dark:border-slate-700 text-[10px] uppercase font-extrabold tracking-widest text-slate-500 dark:text-slate-400">
-                              <th className="p-3.5 w-12">No</th>
-                              <th className="p-3.5">NISN</th>
-                              <th className="p-3.5">Nama Siswa</th>
-                              <th className="p-3.5">Status Kehadiran</th>
-                              <th className="p-3.5">Keterangan</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {absensiClassStudents.map((s, idx) => {
-                              const cur = absensiDraft[s.id]?.status || 'H';
-                              return (
-                                <tr key={s.id} className="hover:bg-blue-50/30 dark:hover:bg-slate-800/50">
-                                  <td className="p-3.5 text-xs font-mono text-slate-400 tabular-nums">{idx + 1}</td>
-                                  <td className="p-3.5 text-xs font-mono text-slate-600 dark:text-slate-400">{s.nis}</td>
-                                  <td className="p-3.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => onOpenStudentDetail?.(s)}
-                                      className="text-left text-sm font-extrabold text-slate-900 dark:text-white hover:text-brand dark:hover:text-blue-400 cursor-pointer"
-                                    >
-                                      {s.nama}
-                                    </button>
-                                  </td>
-                                  <td className="p-3.5">
-                                    <div className="inline-flex items-center gap-1.5">
-                                      {(
-                                        [
-                                          { code: 'H', label: 'Hadir', cls: 'bg-emerald-600 text-white border-emerald-600' },
-                                          { code: 'S', label: 'Sakit', cls: 'bg-amber-500 text-white border-amber-500' },
-                                          { code: 'I', label: 'Izin', cls: 'bg-blue-600 text-white border-blue-600' },
-                                          { code: 'A', label: 'Alpa', cls: 'bg-rose-600 text-white border-rose-600' },
-                                        ] as const
-                                      ).map((opt) => (
-                                        <button
-                                          key={opt.code}
-                                          type="button"
-                                          onClick={() => setStudentAttendance(s.id, opt.code)}
-                                          className={`px-2.5 py-1 rounded-lg text-xs font-extrabold border transition-all cursor-pointer ${
-                                            cur === opt.code
-                                              ? opt.cls
-                                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
-                                          }`}
-                                          title={opt.label}
-                                        >
-                                          {opt.code}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </td>
-                                  <td className="p-3.5">
-                                    <input
-                                      type="text"
-                                      value={absensiDraft[s.id]?.catatan || ''}
-                                      onChange={(e) =>
-                                        setAbsensiDraft((prev) => ({
-                                          ...prev,
-                                          [s.id]: { ...prev[s.id], status: cur, catatan: e.target.value },
-                                        }))
-                                      }
-                                      placeholder="Catatan opsional..."
-                                      className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100"
-                                    />
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="p-12 text-center text-slate-400 dark:text-slate-500 text-sm font-semibold">
-                      Tidak ada siswa di kelas yang dipilih untuk Tahun Pelajaran {activeTahunPelajaran}.
+                  <div className="px-5 py-3 bg-white/30 dark:bg-white/5 border-b border-white/40 dark:border-white/10 flex items-center justify-between text-xs font-bold">
+                    <span>Presensi Siswa Kelas {selectedAgenda.kelas} · {studentsByClass[selectedAgenda.kelas]?.length || 0} Siswa</span>
+                    <div className="flex items-center gap-2 tabular-nums">
+                      <span className="text-emerald-700 dark:text-emerald-300">H:{absensiDraftCounts.H}</span>
+                      <span className="text-amber-700 dark:text-amber-300">S:{absensiDraftCounts.S}</span>
+                      <span className="text-blue-700 dark:text-blue-300">I:{absensiDraftCounts.I}</span>
+                      <span className="text-rose-700 dark:text-rose-300">A:{absensiDraftCounts.A}</span>
                     </div>
-                  )}
-                </div>
-              </div>
-            ) : null
-          ) : (
-            <div className="admin-glass-card rounded-2xl overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-white/40 dark:border-white/10 flex items-center justify-between">
-                <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                  Rekap Absensi Kelas {absensiClass || '-'} · Semester {activeSemester} ({activeTahunPelajaran})
-                </h4>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tabular-nums">
-                  {absensiList.filter((a) => a.kelas === absensiClass).length} Pertemuan Tercatat
-                </span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[660px]">
-                  <thead>
-                    <tr className="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-200/70 dark:border-slate-700 text-[10px] uppercase font-extrabold tracking-widest text-slate-500 dark:text-slate-400">
-                      <th className="p-3.5 w-12">No</th>
-                      <th className="p-3.5">NISN</th>
-                      <th className="p-3.5">Nama Siswa</th>
-                      <th className="p-3.5 text-center">Hadir</th>
-                      <th className="p-3.5 text-center">Sakit</th>
-                      <th className="p-3.5 text-center">Izin</th>
-                      <th className="p-3.5 text-center">Alpa</th>
-                      <th className="p-3.5 text-center">% Kehadiran</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {absensiClassStudents.length > 0 ? (
-                      absensiClassStudents.map((s, idx) => {
-                        const r = studentAttendanceRecap[s.id] || { H: 0, S: 0, I: 0, A: 0, total: 0 };
-                        const pct = r.total > 0 ? Math.round((r.H / r.total) * 100) : 0;
-                        return (
-                          <tr key={s.id} className="hover:bg-blue-50/30 dark:hover:bg-slate-800/50">
-                            <td className="p-3.5 text-xs font-mono text-slate-400 tabular-nums">{idx + 1}</td>
-                            <td className="p-3.5 text-xs font-mono text-slate-500">{s.nis}</td>
-                            <td className="p-3.5 text-sm font-extrabold text-slate-900 dark:text-white">
-                              {s.nama}
-                            </td>
-                            <td className="p-3.5 text-center font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{r.H}</td>
-                            <td className="p-3.5 text-center font-bold text-amber-700 dark:text-amber-400 tabular-nums">{r.S}</td>
-                            <td className="p-3.5 text-center font-bold text-blue-700 dark:text-blue-400 tabular-nums">{r.I}</td>
-                            <td className="p-3.5 text-center font-bold text-rose-700 dark:text-rose-400 tabular-nums">{r.A}</td>
-                            <td className="p-3.5 text-center">
-                              <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-800 dark:text-slate-100 tabular-nums">
-                                {r.total > 0 ? `${pct}%` : '-'}
-                              </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[700px]">
+                      <thead>
+                        <tr className="bg-white/20 dark:bg-white/5 border-b border-white/30 dark:border-white/10 text-slate-500 dark:text-slate-400 text-[10px] uppercase font-extrabold tracking-widest">
+                          <th className="p-3 w-14 text-center">No</th>
+                          <th className="p-3">Nama Siswa &amp; NIS</th>
+                          <th className="p-3 text-center w-56">Status Kehadiran</th>
+                          <th className="p-3">Catatan / Keterangan</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {studentsByClass[selectedAgenda.kelas]?.length > 0 ? (
+                          studentsByClass[selectedAgenda.kelas].map((st, idx) => {
+                            const entry = absensiDraft[st.id] || { status: 'H', catatan: '' };
+                            return (
+                              <tr key={st.id} className="hover:bg-blue-50/20 dark:hover:bg-slate-800/40 transition-colors">
+                                <td className="p-3 text-center text-xs font-bold text-slate-500 tabular-nums">{idx + 1}</td>
+                                <td className="p-3">
+                                  <div className="text-xs font-extrabold text-slate-900 dark:text-white">{st.nama}</div>
+                                  <div className="text-[11px] text-slate-500 font-mono">NIS: {st.nis || '-'}</div>
+                                </td>
+                                <td className="p-3 text-center">
+                                  <div className="inline-flex p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                    {(['H', 'S', 'I', 'A'] as AttendanceStatus[]).map((stKey) => (
+                                      <button
+                                        key={stKey}
+                                        type="button"
+                                        onClick={() => setStudentAttendance(st.id, stKey)}
+                                        className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                                          entry.status === stKey
+                                            ? stKey === 'H' ? 'bg-emerald-600 text-white shadow-xs'
+                                              : stKey === 'S' ? 'bg-amber-600 text-white shadow-xs'
+                                              : stKey === 'I' ? 'bg-blue-600 text-white shadow-xs'
+                                              : 'bg-rose-600 text-white shadow-xs'
+                                            : 'text-slate-600 dark:text-slate-300 hover:bg-white/50'
+                                        }`}
+                                      >
+                                        {stKey}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <input
+                                    type="text"
+                                    value={entry.catatan || ''}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setAbsensiDraft((prev) => ({
+                                        ...prev,
+                                        [st.id]: { ...prev[st.id], catatan: val },
+                                      }));
+                                    }}
+                                    placeholder="Catatan khusus..."
+                                    className="w-full px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs font-medium"
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={4} className="p-8 text-center text-slate-400 text-xs font-semibold">
+                              Tidak ada data siswa terdaftar di Kelas {selectedAgenda.kelas}. Silakan tambahkan siswa di menu Siswa &amp; Kelas.
                             </td>
                           </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={8} className="p-10 text-center text-slate-400 text-sm font-semibold">
-                          Belum ada siswa pada kelas ini.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            ) : absensiSubView === 'agenda_hari_ini' ? (
+              <div className="space-y-5">
+                {/* Header: Pilih Agenda Mengajar + Date Picker */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                      Pilih Agenda Mengajar
+                    </h3>
+                    <p className="text-xs font-bold text-brand dark:text-blue-400 uppercase tracking-wide mt-0.5">
+                      {agendaSelectedHari.toUpperCase()}, {new Date(agendaSelectedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                      <Calendar size={14} className="text-brand dark:text-blue-400 shrink-0" />
+                      <input
+                        type="date"
+                        value={agendaSelectedDate}
+                        onChange={(e) => {
+                          if (e.target.value) setAgendaSelectedDate(e.target.value);
+                        }}
+                        aria-label="Pilih tanggal agenda absensi"
+                        className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none tabular-nums"
+                      />
+                    </div>
+                    {agendaSelectedDate !== getTodayIsoDate() && (
+                      <button
+                        type="button"
+                        onClick={() => setAgendaSelectedDate(getTodayIsoDate())}
+                        className="px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-brand dark:text-blue-300 text-xs font-extrabold hover:bg-blue-100 cursor-pointer"
+                      >
+                        Hari Ini
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Grid of Agenda Cards */}
+                {absensiDateAgendas.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {absensiDateAgendas.map((ag, idx) => {
+                      const attended = isAgendaAttended(ag.id, ag.kelas, ag.tanggal);
+                      const cardTheme = getAgendaCardTheme(idx);
+                      return (
+                        <div
+                          key={ag.id}
+                          onClick={() => {
+                            setAbsensiClass(ag.kelas);
+                            setSelectedAgendaId(ag.id);
+                          }}
+                          className={`${cardTheme} rounded-2xl p-5 text-white relative overflow-hidden flex flex-col justify-between gap-5 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="px-3 py-1 rounded-xl bg-white/20 backdrop-blur-xs text-xl font-black uppercase tracking-tight">
+                              {ag.kelas ? `KELAS ${ag.kelas}` : 'UMUM'}
+                            </span>
+                            {attended ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-400/30 border border-emerald-200/40 text-[10px] font-black uppercase tracking-wider">
+                                <Check size={11} /> SELESAI
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-400/30 border border-amber-200/40 text-[10px] font-black uppercase tracking-wider">
+                                BELUM ABSEN
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-2 text-[11px] font-black text-white/90">
+                              <span className="px-2 py-0.5 rounded bg-white/20">JAM {ag.jamKe || '1'}</span>
+                              <span className="px-2 py-0.5 rounded bg-white/20 uppercase">{ag.jenisKegiatan || 'KBM'}</span>
+                            </div>
+                            <h4 className="text-base font-extrabold text-white leading-snug line-clamp-2">
+                              {ag.materi}
+                            </h4>
+                          </div>
+
+                          <div className="border-t border-white/15 pt-3 flex items-center justify-between text-xs font-black uppercase tracking-wide">
+                            <span className="text-white/80">ISI ABSENSI</span>
+                            <ArrowRight size={15} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="admin-glass-card rounded-2xl p-10 text-center space-y-4">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-brand dark:text-blue-400 mx-auto">
+                      <CalendarClock size={26} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        Belum Ada Agenda Mengajar Tercatat pada Tanggal {agendaSelectedDate}
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Silakan catat agenda harian atau pilih tanggal lain yang memiliki agenda mengajar.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubTab('agenda');
+                        setAgendaSelectedDate(agendaSelectedDate);
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-brand hover:bg-blue-700 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus size={14} />
+                      Buka Kelola Agenda Harian
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : absensiSubView === 'tanggungan' ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                    Daftar Tanggungan Absensi Belum Diisi ({tanggunganAgendas.length})
+                  </h3>
+                </div>
+
+                <div className="admin-glass-card rounded-2xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[700px]">
+                      <thead>
+                        <tr className="bg-white/30 dark:bg-white/5 border-b border-white/40 dark:border-white/10 text-slate-500 text-[10px] uppercase font-extrabold tracking-widest">
+                          <th className="p-4">Tanggal &amp; Jam</th>
+                          <th className="p-4">Kelas</th>
+                          <th className="p-4">Materi &amp; Kegiatan</th>
+                          <th className="p-4 text-right">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {tanggunganAgendas.length > 0 ? (
+                          tanggunganAgendas.map((ag) => (
+                            <tr key={ag.id} className="hover:bg-blue-50/30 transition-colors align-top">
+                              <td className="p-4 text-xs font-bold text-slate-800 dark:text-slate-200 tabular-nums whitespace-nowrap">
+                                <div>{ag.tanggal}</div>
+                                <div className="text-[11px] text-slate-500">Jam {ag.jamKe || '-'}</div>
+                              </td>
+                              <td className="p-4 whitespace-nowrap">
+                                <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black">
+                                  {ag.kelas}
+                                </span>
+                              </td>
+                              <td className="p-4 max-w-md">
+                                <div className="text-sm font-extrabold text-slate-900 dark:text-white">{ag.materi}</div>
+                                <div className="text-xs text-slate-500 mt-0.5">{ag.jenisKegiatan || 'KBM'}</div>
+                              </td>
+                              <td className="p-4 text-right whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAbsensiClass(ag.kelas);
+                                    setSelectedAgendaId(ag.id);
+                                  }}
+                                  className="px-3.5 py-2 rounded-xl bg-brand text-white text-xs font-extrabold inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+                                >
+                                  <ClipboardCheck size={13} />
+                                  Isi Absensi Sekarang
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4} className="p-12 text-center text-slate-400 text-sm font-semibold">
+                              Luar biasa! Tidak ada tanggungan absensi. Semua agenda telah terisi presensinya.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="admin-glass-card rounded-2xl p-8 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                    Rekapitulasi Kehadiran Siswa Semester {activeSemester} (TA {activeTahunPelajaran})
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Rekapitulasi kehadiran dihitung otomatis dari seluruh presensi agenda harian yang tercatat di semester ini.
+                </p>
+                <div className="admin-glass-card rounded-2xl p-6 text-center text-slate-500 text-xs font-semibold">
+                  Gunakan menu Rekap Semester atau Ekspor Rekap Absensi pada tab Rekapitulasi di bawah untuk mengunduh laporan rekap kehadiran lengkap.
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
 
       {/* ===================================================================== */}
       {/* TAB 5: INPUT NILAI (NILAI SUMATIF & NILAI RAPOR)                      */}
@@ -4228,6 +4275,22 @@ export default function AdminAdministrasi({
               </button>
             </div>
             <form onSubmit={handleSaveAgenda} className="space-y-3.5">
+              {/* Jenis Kegiatan */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
+                  Jenis Kegiatan
+                </label>
+                <select
+                  value={agendaForm.jenisKegiatan}
+                  onChange={(e) => setAgendaForm({ ...agendaForm, jenisKegiatan: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100"
+                >
+                  {JENIS_KEGIATAN_LIST.map((jk) => (
+                    <option key={jk} value={jk}>{jk}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Tanggal & Hari */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
@@ -4375,82 +4438,70 @@ export default function AdminAdministrasi({
                 )}
               </div>
 
-              {/* Kelas, Jam Ke, & Waktu */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                    Kelas
-                  </label>
-                  {classOptions.length > 0 ? (
-                    <select
-                      value={agendaForm.kelas}
-                      onChange={(e) => {
-                        const nextKelas = e.target.value;
-                        const att = findAttendanceCounts(nextKelas, agendaForm.tanggal);
-                        const total = studentsByClass[nextKelas]?.length || 0;
-                        setAgendaForm((prev) => ({
-                          ...prev,
-                          kelas: nextKelas,
-                          hadirCount: att ? att.H : total,
-                          sakitCount: att ? att.S : 0,
-                          izinCount: att ? att.I : 0,
-                          alpaCount: att ? att.A : 0,
-                        }));
-                      }}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100"
-                      required
-                    >
-                      <option value="">Pilih Kelas</option>
-                      {classOptions.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      value={agendaForm.kelas}
-                      onChange={(e) => setAgendaForm({ ...agendaForm, kelas: e.target.value })}
-                      placeholder="9H"
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold"
-                      required
-                    />
-                  )}
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
+                  Kelas
+                </label>
+                {classOptions.length > 0 ? (
+                  <select
+                    value={agendaForm.kelas}
+                    onChange={(e) => {
+                      const nextKelas = e.target.value;
+                      const att = nextKelas ? findAttendanceCounts(nextKelas, agendaForm.tanggal) : null;
+                      const total = nextKelas ? (studentsByClass[nextKelas]?.length || 0) : 0;
+                      setAgendaForm((prev) => ({
+                        ...prev,
+                        kelas: nextKelas,
+                        hadirCount: att ? att.H : total,
+                        sakitCount: att ? att.S : 0,
+                        izinCount: att ? att.I : 0,
+                        alpaCount: att ? att.A : 0,
+                      }));
+                    }}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100"
+                    required
+                  >
+                    <option value="">-- Tanpa Kelas (Agenda Umum) --</option>
+                    {classOptions.map((c) => (
+                      <option key={c} value={c}>Kelas {c}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={agendaForm.kelas}
+                    onChange={(e) => setAgendaForm({ ...agendaForm, kelas: e.target.value })}
+                    placeholder="9H"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold"
+                  />
+                )}
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                    Jam Ke-
-                  </label>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
+                  Jam Ke- / Jam Pukul
+                </label>
+                <div className="flex items-center gap-1">
                   <input
                     type="text"
                     value={agendaForm.jamKe}
                     onChange={(e) => setAgendaForm({ ...agendaForm, jamKe: e.target.value })}
-                    placeholder="Contoh: 1-2"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100"
+                    placeholder="0 atau 1-2"
+                    className="w-20 px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-center"
                   />
-                </div>
-
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                    Waktu Jam
-                  </label>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="text"
-                      value={agendaForm.waktuMulai}
-                      onChange={(e) => setAgendaForm({ ...agendaForm, waktuMulai: e.target.value })}
-                      placeholder="08:00"
-                      className="w-full px-2 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-center"
-                    />
-                    <span className="text-slate-400 font-bold">-</span>
-                    <input
-                      type="text"
-                      value={agendaForm.waktuSelesai}
-                      onChange={(e) => setAgendaForm({ ...agendaForm, waktuSelesai: e.target.value })}
-                      placeholder="09:20"
-                      className="w-full px-2 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-center"
-                    />
-                  </div>
+                  <input
+                    type="time"
+                    value={agendaForm.waktuMulai}
+                    onChange={(e) => setAgendaForm({ ...agendaForm, waktuMulai: e.target.value })}
+                    className="w-full px-2 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-center"
+                  />
+                  <span className="text-slate-400">-</span>
+                  <input
+                    type="time"
+                    value={agendaForm.waktuSelesai}
+                    onChange={(e) => setAgendaForm({ ...agendaForm, waktuSelesai: e.target.value })}
+                    className="w-full px-2 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-center"
+                  />
                 </div>
               </div>
 
@@ -4461,7 +4512,7 @@ export default function AdminAdministrasi({
                   onChange={(e) => setAgendaForm({ ...agendaForm, tpId: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs"
                 >
-                  <option value="">-- Pilih TP (Opsional) --</option>
+                  <option value="">-- Pilih TP (Kosong) --</option>
                   {tpList.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.kodeTp} - {t.deskripsi.slice(0, 70)}...
