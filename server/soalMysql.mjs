@@ -286,13 +286,39 @@ async function callPhpBridge(action, payload = {}) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; KelolaSoalBridge/1.0)',
         'X-Api-Key': apiKey,
       },
-      body: JSON.stringify({ action, ...payload }),
+      body: JSON.stringify({ action, apiKey, ...payload }),
       signal: controller.signal,
     });
-    const data = await resp.json().catch(() => ({}));
-    return { status: resp.status, payload: data };
+    const rawText = await resp.text();
+    let data = null;
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch {
+      data = null;
+    }
+
+    if (data && typeof data === 'object') {
+      return { status: resp.status, payload: data };
+    }
+
+    const titleMatch = rawText.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const titleHint = titleMatch ? titleMatch[1].trim() : '';
+    const snippet = rawText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
+    let hint = `PHP Bridge merespons HTTP ${resp.status} (bukan JSON).`;
+    if (resp.status === 404) {
+      hint = `PHP Bridge HTTP 404 (File tidak ditemukan): pastikan PHP_SOAL_API_URL mengarah persis ke file soal_api.php di cPanel.`;
+    } else if (resp.status === 403) {
+      hint = `PHP Bridge HTTP 403 (Akses ditolak firewall/ModSecurity/Cloudflare hosting): ${titleHint || snippet || 'cek aturan keamanan cPanel.'}`;
+    } else if (resp.status >= 500) {
+      hint = `PHP Bridge HTTP ${resp.status} (Error PHP di cPanel): ${titleHint || snippet || 'cek versi PHP / isi soal_config.php.'}`;
+    } else if (titleHint || snippet) {
+      hint = `PHP Bridge HTTP ${resp.status}: ${titleHint || snippet}`;
+    }
+    return { status: resp.status >= 400 ? resp.status : 502, payload: { error: hint } };
   } catch (err) {
     if (err?.name === 'AbortError') {
       throw new Error('Waktu koneksi ke PHP_SOAL_API_URL habis (timeout).');

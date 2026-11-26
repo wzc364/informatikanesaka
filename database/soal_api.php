@@ -24,6 +24,12 @@ if (!is_array($cfg)) {
     exit;
 }
 
+$rawBody = file_get_contents('php://input');
+$body = $rawBody ? json_decode($rawBody, true) : [];
+if (!is_array($body)) {
+    $body = [];
+}
+
 $expectedKey = trim((string)($cfg['api_key'] ?? ''));
 $providedKey = '';
 if (isset($_SERVER['HTTP_X_API_KEY'])) {
@@ -37,10 +43,13 @@ if (isset($_SERVER['HTTP_X_API_KEY'])) {
         }
     }
 }
+if ($providedKey === '' && isset($body['apiKey'])) {
+    $providedKey = trim((string)$body['apiKey']);
+}
 
 if ($expectedKey === '' || $expectedKey === 'GANTI_DENGAN_API_KEY_RAHASIA_ANDA' || $providedKey === '' || !hash_equals($expectedKey, $providedKey)) {
     http_response_code(401);
-    echo json_encode(['error' => 'Akses ditolak: X-Api-Key tidak valid.']);
+    echo json_encode(['error' => 'Akses ditolak: api_key tidak cocok dengan soal_config.php.']);
     exit;
 }
 
@@ -286,11 +295,6 @@ try {
     ensureTables($pdo);
     seedDefaultOnce($pdo);
 
-    $rawBody = file_get_contents('php://input');
-    $body = $rawBody ? json_decode($rawBody, true) : [];
-    if (!is_array($body)) {
-        $body = [];
-    }
     $action = (string)($body['action'] ?? ($_GET['action'] ?? 'list'));
     $now = nowIso();
 
