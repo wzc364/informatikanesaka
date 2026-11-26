@@ -21,7 +21,7 @@ export type AdministrasiSubTab =
   | 'absensi'
   | 'nilai';
 
-export type NilaiSubTab = 'sumatif' | 'rapor';
+export type NilaiSubTab = 'sumatif' | 'sumatif_akhir' | 'rapor';
 
 export type AttendanceStatus = 'H' | 'S' | 'I' | 'A';
 
@@ -534,6 +534,18 @@ export interface NilaiSumatifItem {
   updatedAt?: string;
 }
 
+export interface RaporWeightConfig {
+  pctSumatifTp: number;
+  pctPraktikumTp: number;
+  pctSumatifAkhir: number;
+}
+
+export const DEFAULT_RAPOR_WEIGHTS: RaporWeightConfig = {
+  pctSumatifTp: 40,
+  pctPraktikumTp: 30,
+  pctSumatifAkhir: 30,
+};
+
 export interface NilaiRaporEntry {
   id: string;
   tahunPelajaran: string;
@@ -545,6 +557,9 @@ export interface NilaiRaporEntry {
   nilaiFormatif: number;
   nilaiSumatif: number;
   nilaiProyek: number;
+  nilaiSumatifTp?: number;
+  nilaiPraktikumTp?: number;
+  nilaiSumatifAkhir?: number;
   nilaiAkhir: number;
   predikat: 'A' | 'B' | 'C' | 'D';
   capaianKompetensi: string;

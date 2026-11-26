@@ -59,6 +59,7 @@ import {
   AgendaHarianItem,
   AttendanceStatus,
   computeDayScheduleSlots,
+  DEFAULT_RAPOR_WEIGHTS,
   ELEMEN_INFORMATIKA_LIST,
   getHariFromDate,
   getPredikatFromScore,
@@ -71,6 +72,7 @@ import {
   NilaiSubTab,
   NilaiSumatifItem,
   normalizeJadwalScheduleSettings,
+  RaporWeightConfig,
   ScopedStudent,
   SemesterType,
   slugifyTermPart,
@@ -206,6 +208,23 @@ export default function AdminAdministrasi({
           setAllRapor(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
         },
         (err) => onFirestoreError?.(err, 'list', 'nilai_rapor')
+      )
+    );
+
+    unsubs.push(
+      onSnapshot(
+        doc(db, 'app_settings', 'rapor_weights'),
+        (snap) => {
+          if (snap.exists()) {
+            const d = snap.data() as Partial<RaporWeightConfig>;
+            setRaporWeights({
+              pctSumatifTp: Number(d.pctSumatifTp ?? DEFAULT_RAPOR_WEIGHTS.pctSumatifTp),
+              pctPraktikumTp: Number(d.pctPraktikumTp ?? DEFAULT_RAPOR_WEIGHTS.pctPraktikumTp),
+              pctSumatifAkhir: Number(d.pctSumatifAkhir ?? DEFAULT_RAPOR_WEIGHTS.pctSumatifAkhir),
+            });
+          }
+        },
+        (err) => onFirestoreError?.(err, 'get', 'app_settings/rapor_weights')
       )
     );
 
@@ -1452,8 +1471,13 @@ export default function AdminAdministrasi({
     return false;
   };
 
+  const isSumatifAkhirItem = (s: NilaiSumatifItem) =>
+    s.jenis === 'Sumatif Akhir Semester' || s.jenis === 'Sumatif Tengah Semester';
+
   const classSumatifList = useMemo(() => {
-    const saved = sumatifList.filter((s) => !nilaiClass || s.kelas === nilaiClass);
+    const saved = sumatifList.filter(
+      (s) => (!nilaiClass || s.kelas === nilaiClass) && !isSumatifAkhirItem(s)
+    );
     if (!nilaiClass) return saved;
 
     const savedIdSet = new Set(saved.map((s) => s.id));
@@ -1528,6 +1552,31 @@ export default function AdminAdministrasi({
     });
   }, [sumatifList, nilaiClass, tpList, activeTahunPelajaran, activeSemester]);
 
+  const classSumatifAkhirList = useMemo(() => {
+    const saved = sumatifList.filter(
+      (s) => (!nilaiClass || s.kelas === nilaiClass) && isSumatifAkhirItem(s)
+    );
+    if (!nilaiClass) return saved;
+    if (saved.length > 0) return saved;
+    const defaultId = `auto_sumatif_akhir__${slugifyTermPart(activeTahunPelajaran)}__${activeSemester}__${slugifyTermPart(nilaiClass)}`;
+    return [
+      {
+        id: defaultId,
+        tahunPelajaran: activeTahunPelajaran,
+        semester: activeSemester,
+        kelas: nilaiClass,
+        judul: 'Sumatif Akhir',
+        jenis: 'Sumatif Akhir Semester' as const,
+        tanggal: getTodayIsoDate(),
+        tpId: '',
+        tpKode: '',
+        bobot: 1,
+        scores: {},
+        notes: {},
+      },
+    ];
+  }, [sumatifList, nilaiClass, activeTahunPelajaran, activeSemester]);
+
   const [sumatifMatrixDraft, setSumatifMatrixDraft] = useState<
     Record<string, Record<string, string>>
   >({});
@@ -1535,7 +1584,7 @@ export default function AdminAdministrasi({
 
   useEffect(() => {
     const next: Record<string, Record<string, string>> = {};
-    classSumatifList.forEach((sum) => {
+    [...classSumatifList, ...classSumatifAkhirList].forEach((sum) => {
       const colDraft: Record<string, string> = {};
       nilaiClassStudents.forEach((s) => {
         const val = sum.scores?.[s.id];
@@ -1544,7 +1593,7 @@ export default function AdminAdministrasi({
       next[sum.id] = colDraft;
     });
     setSumatifMatrixDraft(next);
-  }, [classSumatifList, nilaiClassStudents]);
+  }, [classSumatifList, classSumatifAkhirList, nilaiClassStudents]);
 
   const [isSumatifModalOpen, setIsSumatifModalOpen] = useState(false);
   const [sumatifForm, setSumatifForm] = useState<{
@@ -1563,15 +1612,29 @@ export default function AdminAdministrasi({
     bobot: 1,
   });
 
-  const openNewSumatifModal = () => {
-    setSumatifForm({
-      judul: `Sumatif ${classSumatifList.length + 1}`,
-      jenis: 'Sumatif Lingkup Materi',
-      kelas: nilaiClass || classOptions[0] || '',
-      tanggal: getTodayIsoDate(),
-      tpId: tpList[0]?.id || '',
-      bobot: 1,
-    });
+  const openNewSumatifModal = (mode: 'sumatif' | 'sumatif_akhir' = 'sumatif') => {
+    if (mode === 'sumatif_akhir') {
+      const savedCount = sumatifList.filter(
+        (s) => (!nilaiClass || s.kelas === nilaiClass) && isSumatifAkhirItem(s)
+      ).length;
+      setSumatifForm({
+        judul: savedCount === 0 ? 'Sumatif Akhir' : `Sumatif Akhir ${savedCount + 1}`,
+        jenis: 'Sumatif Akhir Semester',
+        kelas: nilaiClass || classOptions[0] || '',
+        tanggal: getTodayIsoDate(),
+        tpId: '',
+        bobot: 1,
+      });
+    } else {
+      setSumatifForm({
+        judul: `Sumatif ${classSumatifList.length + 1}`,
+        jenis: 'Sumatif Lingkup Materi',
+        kelas: nilaiClass || classOptions[0] || '',
+        tanggal: getTodayIsoDate(),
+        tpId: tpList[0]?.id || '',
+        bobot: 1,
+      });
+    }
     setIsSumatifModalOpen(true);
   };
 
@@ -1610,21 +1673,24 @@ export default function AdminAdministrasi({
   const handleDeleteSumatif = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'nilai_sumatif', id));
-      showNotice('success', 'Penilaian sumatif dihapus.');
+      showNotice('success', 'Penilaian dihapus.');
     } catch (err) {
       onFirestoreError?.(err, 'delete', `nilai_sumatif/${id}`);
     }
   };
 
-  const handleSaveAllSumatifScores = async () => {
-    if (classSumatifList.length === 0) return;
+  const handleSaveSumatifBatch = async (
+    targetItems: NilaiSumatifItem[],
+    successLabel: string
+  ) => {
+    if (targetItems.length === 0) return;
     setIsSavingSumatifScores(true);
     const savedIdSet = new Set(sumatifList.map((s) => s.id));
     const nowIso = new Date().toISOString();
 
     try {
       const writes: Promise<void>[] = [];
-      classSumatifList.forEach((sum) => {
+      targetItems.forEach((sum) => {
         const colDraft = sumatifMatrixDraft[sum.id] || {};
         const cleanScores: Record<string, number> = {};
         nilaiClassStudents.forEach((s) => {
@@ -1672,14 +1738,26 @@ export default function AdminAdministrasi({
       }
 
       await Promise.all(writes);
-      showNotice('success', `Semua nilai sumatif & praktikum Kelas ${nilaiClass} berhasil disimpan.`);
+      showNotice('success', successLabel);
     } catch (err) {
       onFirestoreError?.(err, 'update', 'nilai_sumatif');
-      showNotice('error', 'Gagal menyimpan nilai sumatif.');
+      showNotice('error', 'Gagal menyimpan nilai.');
     } finally {
       setIsSavingSumatifScores(false);
     }
   };
+
+  const handleSaveAllSumatifScores = () =>
+    handleSaveSumatifBatch(
+      classSumatifList,
+      `Semua nilai sumatif & praktikum Kelas ${nilaiClass} berhasil disimpan.`
+    );
+
+  const handleSaveAllSumatifAkhirScores = () =>
+    handleSaveSumatifBatch(
+      classSumatifAkhirList,
+      `Nilai Sumatif Akhir Kelas ${nilaiClass} berhasil disimpan.`
+    );
 
   const handleExportSumatifCsv = () => {
     if (!nilaiClass || classSumatifList.length === 0) return;
@@ -1716,14 +1794,114 @@ export default function AdminAdministrasi({
     );
   };
 
+  const handleExportSumatifAkhirCsv = () => {
+    if (!nilaiClass || classSumatifAkhirList.length === 0) return;
+    const headers = [
+      'No',
+      'NISN',
+      'Nama Siswa',
+      ...classSumatifAkhirList.map((sum) => sum.judul),
+      'Rata-rata',
+    ];
+    const rows = nilaiClassStudents.map((s, idx) => {
+      let weightedSum = 0;
+      let totalWeight = 0;
+      const vals = classSumatifAkhirList.map((sum) => {
+        const raw = (sumatifMatrixDraft[sum.id]?.[s.id] || '').trim();
+        if (raw !== '' && !Number.isNaN(Number(raw))) {
+          const num = Math.round(Math.max(0, Math.min(100, Number(raw))));
+          const w = Number(sum.bobot || 1) || 1;
+          weightedSum += num * w;
+          totalWeight += w;
+          return num;
+        }
+        return '';
+      });
+      const avg = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : '';
+      return [idx + 1, s.nis, s.nama, ...vals, avg];
+    });
+    downloadCsv(
+      `Nilai_Sumatif_Akhir_${nilaiClass}_${slugifyTermPart(activeTahunPelajaran)}_${activeSemester}.csv`,
+      headers,
+      rows
+    );
+  };
+
   // ============================================================================
-  // 5B. NILAI RAPOR STATE
+  // 5B. NILAI RAPOR STATE & BOBOT %
   // ============================================================================
+  const [raporWeights, setRaporWeights] = useState<RaporWeightConfig>(DEFAULT_RAPOR_WEIGHTS);
+
+  const raporWeightTotal =
+    (Number(raporWeights.pctSumatifTp) || 0) +
+    (Number(raporWeights.pctPraktikumTp) || 0) +
+    (Number(raporWeights.pctSumatifAkhir) || 0);
+  const isRaporWeightValid = raporWeightTotal === 100;
+
+  const handleUpdateRaporWeight = (field: keyof RaporWeightConfig, rawValue: number) => {
+    const cleanVal = Math.max(0, Math.min(100, Math.round(Number(rawValue) || 0)));
+    const nextWeights: RaporWeightConfig = {
+      ...raporWeights,
+      [field]: cleanVal,
+    };
+    setRaporWeights(nextWeights);
+    const nextTotal =
+      nextWeights.pctSumatifTp + nextWeights.pctPraktikumTp + nextWeights.pctSumatifAkhir;
+    if (nextTotal === 100) {
+      setDoc(
+        doc(db, 'app_settings', 'rapor_weights'),
+        {
+          ...nextWeights,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      ).catch((err) => onFirestoreError?.(err, 'write', 'app_settings/rapor_weights'));
+    }
+  };
+
+  const sumatifTpCols = useMemo(
+    () => classSumatifList.filter((s) => s.jenis !== 'Praktik'),
+    [classSumatifList]
+  );
+  const praktikumTpCols = useMemo(
+    () => classSumatifList.filter((s) => s.jenis === 'Praktik'),
+    [classSumatifList]
+  );
+  const sumatifAkhirCols = classSumatifAkhirList;
+
+  const calcCategoryAvg = (cols: NilaiSumatifItem[], studentId: string): number => {
+    let weightedSum = 0;
+    let totalWeight = 0;
+    cols.forEach((col) => {
+      const val = col.scores?.[studentId];
+      if (val !== undefined && val !== null && !Number.isNaN(Number(val))) {
+        const w = Number(col.bobot || 1) || 1;
+        weightedSum += Number(val) * w;
+        totalWeight += w;
+      }
+    });
+    return totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
+  };
+
+  const computeStudentRaporBreakdown = (studentId: string) => {
+    const avgSumatifTp = calcCategoryAvg(sumatifTpCols, studentId);
+    const avgPraktikumTp = calcCategoryAvg(praktikumTpCols, studentId);
+    const avgSumatifAkhir = calcCategoryAvg(sumatifAkhirCols, studentId);
+    const nilaiAkhir = Math.round(
+      (avgSumatifTp * (Number(raporWeights.pctSumatifTp) || 0) +
+        avgPraktikumTp * (Number(raporWeights.pctPraktikumTp) || 0) +
+        avgSumatifAkhir * (Number(raporWeights.pctSumatifAkhir) || 0)) /
+        100
+    );
+    return {
+      avgSumatifTp,
+      avgPraktikumTp,
+      avgSumatifAkhir,
+      nilaiAkhir,
+    };
+  };
+
   type RaporDraftRow = {
-    nilaiFormatif: number;
-    nilaiSumatif: number;
-    nilaiProyek: number;
-    nilaiAkhir: number;
     capaianKompetensi: string;
     catatanGuru: string;
     isFinalized: boolean;
@@ -1758,96 +1936,75 @@ export default function AdminAdministrasi({
     const next: Record<string, RaporDraftRow> = {};
     nilaiClassStudents.forEach((s) => {
       const saved = raporList.find((r) => r.studentId === s.id);
-      if (saved) {
-        next[s.id] = {
-          nilaiFormatif: Number(saved.nilaiFormatif || 0),
-          nilaiSumatif: Number(saved.nilaiSumatif || 0),
-          nilaiProyek: Number(saved.nilaiProyek || 0),
-          nilaiAkhir: Number(saved.nilaiAkhir || 0),
-          capaianKompetensi: saved.capaianKompetensi || '',
-          catatanGuru: saved.catatanGuru || '',
-          isFinalized: Boolean(saved.isFinalized),
-        };
-      } else {
-        const formatifAuto = studentAssessmentAvg[s.id]?.avg || 0;
-        const sumatifAuto = studentSumatifStats[s.id]?.avg || 0;
-        const proyekAuto = formatifAuto || sumatifAuto ? Math.round((formatifAuto + sumatifAuto) / (formatifAuto && sumatifAuto ? 2 : 1)) : 0;
-        const akhir = Math.round(formatifAuto * 0.3 + sumatifAuto * 0.5 + proyekAuto * 0.2);
-        next[s.id] = {
-          nilaiFormatif: formatifAuto,
-          nilaiSumatif: sumatifAuto,
-          nilaiProyek: proyekAuto,
-          nilaiAkhir: akhir,
-          capaianKompetensi: akhir > 0 ? buildSuggestedCapaian(s.nama, akhir, s.kelas) : '',
-          catatanGuru: '',
-          isFinalized: false,
-        };
-      }
+      const { nilaiAkhir } = computeStudentRaporBreakdown(s.id);
+      next[s.id] = {
+        capaianKompetensi:
+          saved?.capaianKompetensi ||
+          (nilaiAkhir > 0 ? buildSuggestedCapaian(s.nama, nilaiAkhir, s.kelas) : ''),
+        catatanGuru: saved?.catatanGuru || '',
+        isFinalized: Boolean(saved?.isFinalized),
+      };
     });
     setRaporDraft(next);
-  }, [nilaiClassStudents, raporList, studentAssessmentAvg, studentSumatifStats, tpList]);
+  }, [
+    nilaiClassStudents,
+    raporList,
+    sumatifTpCols,
+    praktikumTpCols,
+    sumatifAkhirCols,
+    raporWeights,
+    tpList,
+  ]);
 
   const updateRaporField = (
     studentId: string,
     field: keyof RaporDraftRow,
-    value: string | number | boolean
+    value: string | boolean
   ) => {
     setRaporDraft((prev) => {
       const cur = prev[studentId] || {
-        nilaiFormatif: 0,
-        nilaiSumatif: 0,
-        nilaiProyek: 0,
-        nilaiAkhir: 0,
         capaianKompetensi: '',
         catatanGuru: '',
         isFinalized: false,
       };
-      const updated = { ...cur, [field]: value };
-      if (field === 'nilaiFormatif' || field === 'nilaiSumatif' || field === 'nilaiProyek') {
-        const f = Math.max(0, Math.min(100, Number(updated.nilaiFormatif) || 0));
-        const su = Math.max(0, Math.min(100, Number(updated.nilaiSumatif) || 0));
-        const p = Math.max(0, Math.min(100, Number(updated.nilaiProyek) || 0));
-        updated.nilaiAkhir = Math.round(f * 0.3 + su * 0.5 + p * 0.2);
-      }
-      return { ...prev, [studentId]: updated };
+      return { ...prev, [studentId]: { ...cur, [field]: value } };
     });
   };
 
   const syncAllRaporFromSources = () => {
     const next: Record<string, RaporDraftRow> = {};
     nilaiClassStudents.forEach((s) => {
-      const f = studentAssessmentAvg[s.id]?.avg || 0;
-      const su = studentSumatifStats[s.id]?.avg || 0;
-      const prevProyek = raporDraft[s.id]?.nilaiProyek;
-      const p = prevProyek && prevProyek > 0 ? prevProyek : (f || su ? Math.round((f + su) / (f && su ? 2 : 1)) : 0);
-      const akhir = Math.round(f * 0.3 + su * 0.5 + p * 0.2);
+      const { nilaiAkhir } = computeStudentRaporBreakdown(s.id);
       next[s.id] = {
-        nilaiFormatif: f,
-        nilaiSumatif: su,
-        nilaiProyek: p,
-        nilaiAkhir: akhir,
         capaianKompetensi:
-          raporDraft[s.id]?.capaianKompetensi ||
-          (akhir > 0 ? buildSuggestedCapaian(s.nama, akhir, s.kelas) : ''),
+          nilaiAkhir > 0 ? buildSuggestedCapaian(s.nama, nilaiAkhir, s.kelas) : '',
         catatanGuru: raporDraft[s.id]?.catatanGuru || '',
         isFinalized: raporDraft[s.id]?.isFinalized || false,
       };
     });
     setRaporDraft(next);
-    showNotice('success', 'Nilai Rapor disinkronkan dari Nilai Sumatif, Materi/Soal, dan Tujuan Pembelajaran.');
+    showNotice('success', 'Capaian & Nilai Rapor disinkronkan dari Nilai Sumatif, Praktikum, dan Sumatif Akhir.');
   };
 
   const handleSaveAllRapor = async () => {
     if (!nilaiClass || nilaiClassStudents.length === 0) return;
+    if (!isRaporWeightValid) {
+      showNotice(
+        'error',
+        `Jumlah persentase bobot saat ini ${raporWeightTotal}%. Harap atur agar total tepat 100% sebelum menyimpan.`
+      );
+      return;
+    }
     setIsSavingRapor(true);
     try {
       const now = new Date().toISOString();
       await Promise.all(
         nilaiClassStudents.map((s) => {
           const row = raporDraft[s.id];
-          if (!row) return Promise.resolve();
+          const { avgSumatifTp, avgPraktikumTp, avgSumatifAkhir, nilaiAkhir } =
+            computeStudentRaporBreakdown(s.id);
           const docId = `${slugifyTermPart(activeTahunPelajaran)}__${activeSemester}__${slugifyTermPart(s.id)}`;
-          const nilaiAkhir = Math.max(0, Math.min(100, Math.round(Number(row.nilaiAkhir) || 0)));
+          const cleanAkhir = Math.max(0, Math.min(100, Math.round(nilaiAkhir)));
           return setDoc(doc(db, 'nilai_rapor', docId), {
             tahunPelajaran: activeTahunPelajaran,
             semester: activeSemester,
@@ -1855,14 +2012,17 @@ export default function AdminAdministrasi({
             studentNis: s.nis,
             studentName: s.nama,
             kelas: s.kelas,
-            nilaiFormatif: Math.round(Number(row.nilaiFormatif) || 0),
-            nilaiSumatif: Math.round(Number(row.nilaiSumatif) || 0),
-            nilaiProyek: Math.round(Number(row.nilaiProyek) || 0),
-            nilaiAkhir,
-            predikat: getPredikatFromScore(nilaiAkhir),
-            capaianKompetensi: row.capaianKompetensi || '',
-            catatanGuru: row.catatanGuru || '',
-            isFinalized: Boolean(row.isFinalized),
+            nilaiFormatif: avgSumatifTp,
+            nilaiSumatif: avgSumatifTp,
+            nilaiProyek: avgPraktikumTp,
+            nilaiSumatifTp: avgSumatifTp,
+            nilaiPraktikumTp: avgPraktikumTp,
+            nilaiSumatifAkhir: avgSumatifAkhir,
+            nilaiAkhir: cleanAkhir,
+            predikat: getPredikatFromScore(cleanAkhir),
+            capaianKompetensi: row?.capaianKompetensi || '',
+            catatanGuru: row?.catatanGuru || '',
+            isFinalized: Boolean(row?.isFinalized),
             updatedAt: now,
           });
         })
@@ -1889,18 +2049,21 @@ export default function AdminAdministrasi({
       'Sakit',
       'Izin',
       'Alpa',
-      'Nilai Formatif',
-      'Nilai Sumatif',
-      'Nilai Proyek',
+      ...sumatifTpCols.map((c) => `${c.judul} (Sumatif TP)`),
+      ...praktikumTpCols.map((c) => `${c.judul} (Praktikum TP)`),
+      ...sumatifAkhirCols.map((c) => `${c.judul} (Sumatif Akhir)`),
+      `Rata Sumatif TP (${raporWeights.pctSumatifTp}%)`,
+      `Rata Praktikum TP (${raporWeights.pctPraktikumTp}%)`,
+      `Rata Sumatif Akhir (${raporWeights.pctSumatifAkhir}%)`,
       'Nilai Akhir Rapor',
       'Predikat',
       'Capaian Kompetensi',
-      'Catatan Guru',
     ];
     const rows = nilaiClassStudents.map((s, idx) => {
       const row = raporDraft[s.id];
       const att = studentAttendanceRecap[s.id] || { H: 0, S: 0, I: 0, A: 0 };
-      const akhir = row?.nilaiAkhir ?? 0;
+      const { avgSumatifTp, avgPraktikumTp, avgSumatifAkhir, nilaiAkhir } =
+        computeStudentRaporBreakdown(s.id);
       return [
         idx + 1,
         s.nis,
@@ -1912,13 +2075,15 @@ export default function AdminAdministrasi({
         att.S,
         att.I,
         att.A,
-        row?.nilaiFormatif ?? 0,
-        row?.nilaiSumatif ?? 0,
-        row?.nilaiProyek ?? 0,
-        akhir,
-        getPredikatFromScore(akhir),
+        ...sumatifTpCols.map((c) => c.scores?.[s.id] ?? ''),
+        ...praktikumTpCols.map((c) => c.scores?.[s.id] ?? ''),
+        ...sumatifAkhirCols.map((c) => c.scores?.[s.id] ?? ''),
+        avgSumatifTp,
+        avgPraktikumTp,
+        avgSumatifAkhir,
+        nilaiAkhir,
+        getPredikatFromScore(nilaiAkhir),
         row?.capaianKompetensi || '',
-        row?.catatanGuru || '',
       ];
     });
     downloadCsv(
@@ -4524,13 +4689,13 @@ export default function AdminAdministrasi({
 
 
       {/* ===================================================================== */}
-      {/* TAB 5: INPUT NILAI (NILAI SUMATIF & NILAI RAPOR)                      */}
+      {/* TAB 5: INPUT NILAI (SUMATIF, SUMATIF AKHIR, NILAI RAPOR)              */}
       {/* ===================================================================== */}
       {subTab === 'nilai' && (
         <div className="space-y-5">
           {/* Inner switcher + Class Filter */}
           <div className="admin-glass-card rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="inline-flex items-center gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 w-fit">
+            <div className="inline-flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 w-fit">
               <button
                 type="button"
                 onClick={() => setNilaiSubTab('sumatif')}
@@ -4542,6 +4707,18 @@ export default function AdminAdministrasi({
               >
                 <ClipboardCheck size={14} />
                 Nilai Sumatif
+              </button>
+              <button
+                type="button"
+                onClick={() => setNilaiSubTab('sumatif_akhir')}
+                className={`px-4 py-2 rounded-lg text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition-all ${
+                  nilaiSubTab === 'sumatif_akhir'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Award size={14} />
+                Sumatif Akhir
               </button>
               <button
                 type="button"
@@ -4595,7 +4772,7 @@ export default function AdminAdministrasi({
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={openNewSumatifModal}
+                        onClick={() => openNewSumatifModal('sumatif')}
                         className="px-3.5 py-2 rounded-xl bg-brand hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm cursor-pointer"
                       >
                         <Plus size={14} />
@@ -4774,7 +4951,7 @@ export default function AdminAdministrasi({
                   {nilaiClass && (
                     <button
                       type="button"
-                      onClick={openNewSumatifModal}
+                      onClick={() => openNewSumatifModal('sumatif')}
                       className="px-4 py-2 rounded-xl bg-brand text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <Plus size={14} />
@@ -4786,63 +4963,371 @@ export default function AdminAdministrasi({
             </div>
           )}
 
-          {/* 5B. NILAI RAPOR */}
-          {nilaiSubTab === 'rapor' && (
-            <div className="admin-glass-card rounded-2xl overflow-hidden">
-              <div className="p-4 md:p-5 border-b border-white/40 dark:border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                <div>
-                  <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
-                    Input Nilai Rapor — Kelas {nilaiClass || '-'} (TA {activeTahunPelajaran} · Sem {activeSemester})
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Formula bobot otomatis: Formatif (30%) + Sumatif (50%) + Proyek/Praktik (20%). Terhubung ke Absensi & Tujuan Pembelajaran.
+          {/* 5B. SUMATIF AKHIR */}
+          {nilaiSubTab === 'sumatif_akhir' && (
+            <div className="space-y-4">
+              {classSumatifAkhirList.length > 0 ? (
+                <div className="admin-glass-card rounded-2xl overflow-hidden">
+                  <div className="p-4 md:p-5 border-b border-white/40 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
+                        Sumatif Akhir — Kelas {nilaiClass}
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
+                        {classSumatifAkhirList.length} kolom Sumatif Akhir · Semester {activeSemester} ({activeTahunPelajaran})
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openNewSumatifModal('sumatif_akhir')}
+                        className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                      >
+                        <Plus size={14} />
+                        Tambah Sumatif Akhir
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExportSumatifAkhirCsv}
+                        className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+                      >
+                        <Download size={14} />
+                        Export CSV
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isSavingSumatifScores}
+                        onClick={handleSaveAllSumatifAkhirScores}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+                      >
+                        <Save size={14} />
+                        {isSavingSumatifScores ? 'Menyimpan...' : 'Simpan Sumatif Akhir'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-200/70 dark:border-slate-700 text-[10px] uppercase font-extrabold tracking-widest text-slate-500 dark:text-slate-400">
+                          <th className="p-3.5 w-12">No</th>
+                          <th className="p-3.5 whitespace-nowrap">NISN</th>
+                          <th className="p-3.5 min-w-[200px]">Nama Siswa</th>
+                          {classSumatifAkhirList.map((sum) => {
+                            const isSavedDoc = sumatifList.some((s) => s.id === sum.id);
+                            return (
+                              <th
+                                key={sum.id}
+                                className="p-3 text-center min-w-[140px] border-l border-slate-200/60 dark:border-slate-700/60"
+                              >
+                                <div className="flex flex-col items-center gap-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-xs font-black text-slate-800 dark:text-slate-100 normal-case tracking-normal">
+                                      {sum.judul}
+                                    </span>
+                                    {isSavedDoc && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteSumatif(sum.id)}
+                                        className="p-0.5 rounded text-slate-400 hover:text-rose-500 cursor-pointer"
+                                        title={`Hapus ${sum.judul}`}
+                                      >
+                                        <X size={12} />
+                                      </button>
+                                    )}
+                                  </div>
+                                  <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300">
+                                    {sum.jenis === 'Sumatif Tengah Semester' ? 'STS' : 'Sumatif Akhir'}
+                                  </span>
+                                </div>
+                              </th>
+                            );
+                          })}
+                          <th className="p-3.5 text-center w-24 border-l border-slate-200/60 dark:border-slate-700/60">
+                            Rata-rata
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {nilaiClassStudents.length > 0 ? (
+                          nilaiClassStudents.map((s, idx) => {
+                            let weightedSum = 0;
+                            let totalWeight = 0;
+                            classSumatifAkhirList.forEach((sum) => {
+                              const raw = (sumatifMatrixDraft[sum.id]?.[s.id] || '').trim();
+                              if (raw !== '' && !Number.isNaN(Number(raw))) {
+                                const num = Math.max(0, Math.min(100, Number(raw)));
+                                const w = Number(sum.bobot || 1) || 1;
+                                weightedSum += num * w;
+                                totalWeight += w;
+                              }
+                            });
+                            const avg =
+                              totalWeight > 0 ? Math.round(weightedSum / totalWeight) : null;
+
+                            return (
+                              <tr key={s.id} className="hover:bg-blue-50/30 dark:hover:bg-slate-800/50">
+                                <td className="p-3.5 text-xs font-mono text-slate-400 tabular-nums">{idx + 1}</td>
+                                <td className="p-3.5 text-xs font-mono text-slate-500 whitespace-nowrap">{s.nis}</td>
+                                <td className="p-3.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => onOpenStudentDetail?.(s)}
+                                    className="text-left text-sm font-extrabold text-slate-900 dark:text-white hover:text-brand dark:hover:text-blue-400 cursor-pointer"
+                                  >
+                                    {s.nama}
+                                  </button>
+                                </td>
+                                {classSumatifAkhirList.map((sum) => {
+                                  const rawVal = sumatifMatrixDraft[sum.id]?.[s.id] ?? '';
+                                  return (
+                                    <td
+                                      key={sum.id}
+                                      className="p-2.5 text-center border-l border-slate-100 dark:border-slate-800"
+                                    >
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        max={100}
+                                        value={rawVal}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setSumatifMatrixDraft((prev) => ({
+                                            ...prev,
+                                            [sum.id]: {
+                                              ...(prev[sum.id] || {}),
+                                              [s.id]: val,
+                                            },
+                                          }));
+                                        }}
+                                        placeholder="0-100"
+                                        className="w-24 text-center px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-extrabold text-slate-900 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                      />
+                                    </td>
+                                  );
+                                })}
+                                <td className="p-3.5 text-center border-l border-slate-100 dark:border-slate-800">
+                                  <span
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-black tabular-nums ${
+                                      avg === null
+                                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                                        : avg >= 75
+                                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                                    }`}
+                                  >
+                                    {avg !== null ? avg : '-'}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={4 + classSumatifAkhirList.length}
+                              className="p-10 text-center text-slate-400 text-sm font-semibold"
+                            >
+                              Belum ada siswa di kelas ini.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div className="admin-glass-card rounded-2xl p-12 text-center space-y-3">
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+                    Pilih kelas terlebih dahulu untuk mengisi Nilai Sumatif Akhir.
                   </p>
                 </div>
+              )}
+            </div>
+          )}
 
-                {nilaiClassStudents.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={syncAllRaporFromSources}
-                      className="px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-extrabold flex items-center gap-1.5 hover:bg-indigo-100 cursor-pointer"
-                    >
-                      <RefreshCw size={13} />
-                      Sinkron Sumatif & Materi
-                    </button>
-                    <button
-                      type="button"
-                      onClick={exportRaporCsv}
-                      className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-extrabold flex items-center gap-1.5 hover:bg-slate-50 cursor-pointer"
-                    >
-                      <Download size={13} />
-                      Ekspor CSV
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isSavingRapor}
-                      onClick={handleSaveAllRapor}
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
-                    >
-                      <Save size={14} />
-                      {isSavingRapor ? 'Menyimpan...' : 'Simpan Nilai Rapor'}
-                    </button>
+          {/* 5C. NILAI RAPOR */}
+          {nilaiSubTab === 'rapor' && (
+            <div className="admin-glass-card rounded-2xl overflow-hidden">
+              <div className="p-4 md:p-5 border-b border-white/40 dark:border-white/10 space-y-4">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
+                      Input Nilai Rapor — Kelas {nilaiClass || '-'} (TA {activeTahunPelajaran} · Sem {activeSemester})
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Nilai Akhir = ({raporWeights.pctSumatifTp}% Sumatif TP) + ({raporWeights.pctPraktikumTp}% Praktikum TP) + ({raporWeights.pctSumatifAkhir}% Sumatif Akhir).
+                    </p>
                   </div>
-                )}
+
+                  {nilaiClassStudents.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={syncAllRaporFromSources}
+                        className="px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-extrabold flex items-center gap-1.5 hover:bg-indigo-100 cursor-pointer"
+                      >
+                        <RefreshCw size={13} />
+                        Sinkron Capaian
+                      </button>
+                      <button
+                        type="button"
+                        onClick={exportRaporCsv}
+                        className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-extrabold flex items-center gap-1.5 hover:bg-slate-50 cursor-pointer"
+                      >
+                        <Download size={13} />
+                        Ekspor CSV
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isSavingRapor || !isRaporWeightValid}
+                        onClick={handleSaveAllRapor}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+                      >
+                        <Save size={14} />
+                        {isSavingRapor ? 'Menyimpan...' : 'Simpan Nilai Rapor'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Setingan Persentase Nilai Akhir (%) */}
+                <div
+                  className={`rounded-2xl p-3.5 border flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${
+                    isRaporWeightValid
+                      ? 'bg-slate-50/90 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/80'
+                      : 'bg-rose-50/90 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal size={16} className={isRaporWeightValid ? 'text-brand dark:text-blue-400' : 'text-rose-600'} />
+                    <div>
+                      <p className="text-xs font-extrabold text-slate-800 dark:text-slate-100">
+                        Pengaturan Persentase Nilai Akhir (%)
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Jumlah persentase Sumatif TP, Praktikum TP, dan Sumatif Akhir harus tepat 100%.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 text-xs font-bold">
+                      <span className="text-blue-700 dark:text-blue-300">Sumatif TP</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={raporWeights.pctSumatifTp}
+                        onChange={(e) => handleUpdateRaporWeight('pctSumatifTp', Number(e.target.value))}
+                        className="w-14 text-center px-1.5 py-0.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black tabular-nums"
+                      />
+                      <span className="text-slate-400">%</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 text-xs font-bold">
+                      <span className="text-emerald-700 dark:text-emerald-300">Praktikum TP</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={raporWeights.pctPraktikumTp}
+                        onChange={(e) => handleUpdateRaporWeight('pctPraktikumTp', Number(e.target.value))}
+                        className="w-14 text-center px-1.5 py-0.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black tabular-nums"
+                      />
+                      <span className="text-slate-400">%</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 text-xs font-bold">
+                      <span className="text-indigo-700 dark:text-indigo-300">Sumatif Akhir</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={raporWeights.pctSumatifAkhir}
+                        onChange={(e) => handleUpdateRaporWeight('pctSumatifAkhir', Number(e.target.value))}
+                        className="w-14 text-center px-1.5 py-0.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-black tabular-nums"
+                      />
+                      <span className="text-slate-400">%</span>
+                    </label>
+                    <span
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black tabular-nums ${
+                        isRaporWeightValid
+                          ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-rose-600 text-white'
+                      }`}
+                    >
+                      Total: {raporWeightTotal}% {isRaporWeightValid ? '✓' : '(Harus 100%)'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[1050px]">
+                <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-200/70 dark:border-slate-700 text-[10px] uppercase font-extrabold tracking-widest text-slate-500 dark:text-slate-400">
                       <th className="p-3 w-10">No</th>
                       <th className="p-3 min-w-[170px]">Siswa</th>
-                      <th className="p-3 text-center">Absensi (H/S/I/A)</th>
-                      <th className="p-3 text-center w-24">Formatif</th>
-                      <th className="p-3 text-center w-24">Sumatif</th>
-                      <th className="p-3 text-center w-24">Proyek</th>
-                      <th className="p-3 text-center">Nilai Akhir</th>
+                      <th className="p-3 text-center whitespace-nowrap">Absensi</th>
+                      {sumatifTpCols.map((col) => (
+                        <th
+                          key={col.id}
+                          className="p-2.5 text-center min-w-[88px] border-l border-slate-200/60 dark:border-slate-700/60"
+                        >
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-[11px] font-black text-slate-800 dark:text-slate-100 normal-case tracking-normal">
+                              {col.judul}
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300">
+                              Sumatif TP
+                            </span>
+                          </div>
+                        </th>
+                      ))}
+                      {praktikumTpCols.map((col) => (
+                        <th
+                          key={col.id}
+                          className="p-2.5 text-center min-w-[88px] border-l border-slate-200/60 dark:border-slate-700/60"
+                        >
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-[11px] font-black text-slate-800 dark:text-slate-100 normal-case tracking-normal">
+                              {col.judul}
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300">
+                              Praktikum TP
+                            </span>
+                          </div>
+                        </th>
+                      ))}
+                      {sumatifAkhirCols.map((col) => (
+                        <th
+                          key={col.id}
+                          className="p-2.5 text-center min-w-[96px] border-l border-slate-200/60 dark:border-slate-700/60"
+                        >
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-[11px] font-black text-slate-800 dark:text-slate-100 normal-case tracking-normal">
+                              {col.judul}
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300">
+                              Sumatif Akhir
+                            </span>
+                          </div>
+                        </th>
+                      ))}
+                      <th className="p-2.5 text-center whitespace-nowrap border-l border-slate-200/80 dark:border-slate-700 bg-blue-50/40 dark:bg-blue-950/20">
+                        Rata Sumatif<br />({raporWeights.pctSumatifTp}%)
+                      </th>
+                      <th className="p-2.5 text-center whitespace-nowrap border-l border-slate-200/60 dark:border-slate-700/60 bg-emerald-50/40 dark:bg-emerald-950/20">
+                        Rata Praktikum<br />({raporWeights.pctPraktikumTp}%)
+                      </th>
+                      <th className="p-2.5 text-center whitespace-nowrap border-l border-slate-200/60 dark:border-slate-700/60 bg-indigo-50/40 dark:bg-indigo-950/20">
+                        Rata S. Akhir<br />({raporWeights.pctSumatifAkhir}%)
+                      </th>
+                      <th className="p-3 text-center whitespace-nowrap border-l border-slate-200/80 dark:border-slate-700">
+                        Nilai Akhir
+                      </th>
                       <th className="p-3 text-center">Predikat</th>
-                      <th className="p-3 min-w-[260px]">Capaian Kompetensi</th>
+                      <th className="p-3 min-w-[230px]">Capaian Kompetensi</th>
                       <th className="p-3 text-center">Final</th>
                     </tr>
                   </thead>
@@ -4850,16 +5335,14 @@ export default function AdminAdministrasi({
                     {nilaiClassStudents.length > 0 ? (
                       nilaiClassStudents.map((s, idx) => {
                         const row = raporDraft[s.id] || {
-                          nilaiFormatif: 0,
-                          nilaiSumatif: 0,
-                          nilaiProyek: 0,
-                          nilaiAkhir: 0,
                           capaianKompetensi: '',
                           catatanGuru: '',
                           isFinalized: false,
                         };
                         const att = studentAttendanceRecap[s.id] || { H: 0, S: 0, I: 0, A: 0, total: 0 };
-                        const pred = getPredikatFromScore(row.nilaiAkhir);
+                        const { avgSumatifTp, avgPraktikumTp, avgSumatifAkhir, nilaiAkhir } =
+                          computeStudentRaporBreakdown(s.id);
+                        const pred = getPredikatFromScore(nilaiAkhir);
                         return (
                           <tr key={s.id} className="hover:bg-blue-50/30 dark:hover:bg-slate-800/50 align-top">
                             <td className="p-3 text-xs font-mono text-slate-400 tabular-nums">{idx + 1}</td>
@@ -4878,45 +5361,51 @@ export default function AdminAdministrasi({
                                 {att.H}/{att.S}/{att.I}/{att.A}
                               </span>
                             </td>
-                            <td className="p-3 text-center">
-                              <input
-                                type="number"
-                                min={0}
-                                max={100}
-                                value={row.nilaiFormatif}
-                                onChange={(e) =>
-                                  updateRaporField(s.id, 'nilaiFormatif', Number(e.target.value))
-                                }
-                                className="w-18 text-center px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold tabular-nums"
-                              />
+                            {sumatifTpCols.map((col) => {
+                              const val = col.scores?.[s.id];
+                              return (
+                                <td
+                                  key={col.id}
+                                  className="p-3 text-center text-xs font-extrabold text-slate-800 dark:text-slate-100 tabular-nums border-l border-slate-100 dark:border-slate-800"
+                                >
+                                  {val !== undefined && val !== null ? val : <span className="text-slate-300 dark:text-slate-600">-</span>}
+                                </td>
+                              );
+                            })}
+                            {praktikumTpCols.map((col) => {
+                              const val = col.scores?.[s.id];
+                              return (
+                                <td
+                                  key={col.id}
+                                  className="p-3 text-center text-xs font-extrabold text-slate-800 dark:text-slate-100 tabular-nums border-l border-slate-100 dark:border-slate-800"
+                                >
+                                  {val !== undefined && val !== null ? val : <span className="text-slate-300 dark:text-slate-600">-</span>}
+                                </td>
+                              );
+                            })}
+                            {sumatifAkhirCols.map((col) => {
+                              const val = col.scores?.[s.id];
+                              return (
+                                <td
+                                  key={col.id}
+                                  className="p-3 text-center text-xs font-extrabold text-slate-800 dark:text-slate-100 tabular-nums border-l border-slate-100 dark:border-slate-800"
+                                >
+                                  {val !== undefined && val !== null ? val : <span className="text-slate-300 dark:text-slate-600">-</span>}
+                                </td>
+                              );
+                            })}
+                            <td className="p-3 text-center text-xs font-black text-blue-700 dark:text-blue-300 tabular-nums border-l border-slate-200/70 dark:border-slate-700 bg-blue-50/20 dark:bg-blue-950/10">
+                              {avgSumatifTp}
                             </td>
-                            <td className="p-3 text-center">
-                              <input
-                                type="number"
-                                min={0}
-                                max={100}
-                                value={row.nilaiSumatif}
-                                onChange={(e) =>
-                                  updateRaporField(s.id, 'nilaiSumatif', Number(e.target.value))
-                                }
-                                className="w-18 text-center px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold tabular-nums"
-                              />
+                            <td className="p-3 text-center text-xs font-black text-emerald-700 dark:text-emerald-300 tabular-nums border-l border-slate-100 dark:border-slate-800 bg-emerald-50/20 dark:bg-emerald-950/10">
+                              {avgPraktikumTp}
                             </td>
-                            <td className="p-3 text-center">
-                              <input
-                                type="number"
-                                min={0}
-                                max={100}
-                                value={row.nilaiProyek}
-                                onChange={(e) =>
-                                  updateRaporField(s.id, 'nilaiProyek', Number(e.target.value))
-                                }
-                                className="w-18 text-center px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold tabular-nums"
-                              />
+                            <td className="p-3 text-center text-xs font-black text-indigo-700 dark:text-indigo-300 tabular-nums border-l border-slate-100 dark:border-slate-800 bg-indigo-50/20 dark:bg-indigo-950/10">
+                              {avgSumatifAkhir}
                             </td>
-                            <td className="p-3 text-center">
+                            <td className="p-3 text-center border-l border-slate-200/70 dark:border-slate-700">
                               <span className="px-2.5 py-1 rounded-lg bg-brand/10 dark:bg-blue-950/60 text-brand dark:text-blue-300 text-sm font-black tabular-nums">
-                                {row.nilaiAkhir}
+                                {nilaiAkhir}
                               </span>
                             </td>
                             <td className="p-3 text-center">
@@ -4966,7 +5455,10 @@ export default function AdminAdministrasi({
                       })
                     ) : (
                       <tr>
-                        <td colSpan={10} className="p-10 text-center text-slate-400 text-sm font-semibold">
+                        <td
+                          colSpan={10 + sumatifTpCols.length + praktikumTpCols.length + sumatifAkhirCols.length}
+                          className="p-10 text-center text-slate-400 text-sm font-semibold"
+                        >
                           Belum ada siswa pada kelas ini untuk Tahun Pelajaran {activeTahunPelajaran}.
                         </td>
                       </tr>
