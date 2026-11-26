@@ -34,16 +34,8 @@ import {
   Wand2,
   Loader2,
   RefreshCw,
+  Database,
 } from 'lucide-react';
-import { db } from '../firebase';
-import {
-  collection,
-  doc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  writeBatch,
-} from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import { COURSES } from '../constants';
 import { QuestionAnalysisResult } from '../questionAnalysisTypes';
@@ -53,6 +45,11 @@ interface AdminSoalProps {
   soalSets: SoalSet[];
   soalQuestions: SoalQuestion[];
   materialConfigs?: Record<string, { isActive?: boolean }>;
+  soalDbConfigured?: boolean;
+  soalDbError?: string | null;
+  soalAdminToken?: string | null;
+  onSetSoalAdminToken?: (token: string | null) => void;
+  onRefreshSoal?: () => Promise<void>;
   onPreviewSet: (set: SoalSet) => void;
   onFirestoreError?: (error: unknown, op: 'create' | 'update' | 'delete' | 'write', path: string) => void;
 }
@@ -287,8 +284,12 @@ export default function AdminSoal({
   soalSets,
   soalQuestions,
   materialConfigs,
+  soalDbConfigured = true,
+  soalDbError = null,
+  soalAdminToken = null,
+  onSetSoalAdminToken,
+  onRefreshSoal,
   onPreviewSet,
-  onFirestoreError,
 }: AdminSoalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
@@ -396,9 +397,118 @@ export default function AdminSoal({
 
   const excelInputRef = useRef<HTMLInputElement | null>(null);
 
+  // MySQL Admin Passcode Verification / First-Run Setup
+  const [authStatus, setAuthStatus] = useState<{
+    hasEnvPasscode: boolean;
+    hasClaimedPasscode: boolean;
+  }>({ hasEnvPasscode: false, hasClaimedPasscode: false });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authPasscodeInput, setAuthPasscodeInput] = useState('');
+  const [authPasscodeError, setAuthPasscodeError] = useState<string | null>(null);
+  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
+  const [soalActionError, setSoalActionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/soal/auth/status')
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled || !data) return;
+        setAuthStatus({
+          hasEnvPasscode: Boolean(data.hasEnvPasscode),
+          hasClaimedPasscode: Boolean(data.hasClaimedPasscode),
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [soalAdminToken]);
+
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3200);
+  };
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = authPasscodeInput.trim();
+    if (!clean) {
+      setAuthPasscodeError('Masukkan passcode admin.');
+      return;
+    }
+    const needsSetup = !authStatus.hasEnvPasscode && !authStatus.hasClaimedPasscode;
+    if (needsSetup && clean.length < 4) {
+      setAuthPasscodeError('Passcode minimal 4 karakter.');
+      return;
+    }
+    setIsSubmittingAuth(true);
+    setAuthPasscodeError(null);
+    try {
+      const endpoint = needsSetup ? '/api/soal/auth/claim' : '/api/soal/auth/login';
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode: clean }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        if (data?.needsSetup) {
+          setAuthStatus({ hasEnvPasscode: false, hasClaimedPasscode: false });
+        }
+        throw new Error(data?.error || 'Gagal memverifikasi passcode admin.');
+      }
+      if (data?.token) {
+        onSetSoalAdminToken?.(String(data.token));
+        setAuthPasscodeInput('');
+        setIsAuthModalOpen(false);
+        if (needsSetup) {
+          setAuthStatus({ hasEnvPasscode: false, hasClaimedPasscode: true });
+          showToast('Passcode admin Kelola Soal berhasil dibuat dan sesi dibuka.');
+        } else {
+          showToast('Sesi admin MySQL berhasil dibuka.');
+        }
+      }
+    } catch (err: any) {
+      setAuthPasscodeError(err?.message || 'Gagal memverifikasi passcode.');
+    } finally {
+      setIsSubmittingAuth(false);
+    }
+  };
+
+  const ensureAuthBeforeWrite = (): boolean => {
+    if (!soalDbConfigured) {
+      setSoalActionError(
+        'Koneksi MySQL (phpMyAdmin) belum dikonfigurasi. Tambahkan MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, dan MYSQL_DATABASE di Secrets.'
+      );
+      return false;
+    }
+    if (!soalAdminToken) {
+      setAuthPasscodeError(null);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+    return true;
+  };
+
+  const soalApiFetch = async (path: string, options: RequestInit = {}) => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...((options.headers as Record<string, string>) || {}),
+    };
+    if (soalAdminToken) {
+      headers['Authorization'] = `Bearer ${soalAdminToken}`;
+    }
+    const resp = await fetch(path, { ...options, headers });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      if (resp.status === 401) {
+        onSetSoalAdminToken?.(null);
+        setIsAuthModalOpen(true);
+      }
+      throw new Error(data?.error || `Permintaan gagal (HTTP ${resp.status}).`);
+    }
+    return data;
   };
 
   const selectedSet = useMemo(
@@ -469,56 +579,62 @@ export default function AdminSoal({
   const handleSaveSet = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!setTitle.trim()) return;
+    if (!ensureAuthBeforeWrite()) return;
     setIsSavingSet(true);
-    const now = new Date().toISOString();
+    setSoalActionError(null);
     try {
       if (editingSet) {
-        await updateDoc(doc(db, 'soal_sets', editingSet.id), {
-          title: setTitle.trim(),
-          description: setDesc.trim(),
-          kelas: setKelas.trim() || 'Semua Kelas',
-          isActive: setIsActive,
-          updatedAt: now,
+        await soalApiFetch(`/api/soal/sets/${encodeURIComponent(editingSet.id)}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            title: setTitle.trim(),
+            description: setDesc.trim(),
+            kelas: setKelas.trim() || 'Semua Kelas',
+            isActive: setIsActive,
+          }),
         });
+        await onRefreshSoal?.();
         showToast('Kartu soal berhasil diperbarui.');
       } else {
-        const newRef = doc(collection(db, 'soal_sets'));
-        const newSet: SoalSet = {
-          id: newRef.id,
-          title: setTitle.trim(),
-          description: setDesc.trim(),
-          kelas: setKelas.trim() || 'Semua Kelas',
-          isActive: setIsActive,
-          isFullScreen: false,
-          isScoreVisible: true,
-          timerMode: 'per_judul',
-          titleTimerSeconds: 900, // 15 menit default
-          defaultQuestionTimerSeconds: 30,
-          shuffleQuestions: false,
-          createdAt: now,
-          updatedAt: now,
-        };
-        await setDoc(newRef, newSet);
-        setSelectedSetId(newRef.id);
-        showToast('Kartu soal baru dibuat! Silakan tambahkan soal.');
+        const res = await soalApiFetch('/api/soal/sets', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: setTitle.trim(),
+            description: setDesc.trim(),
+            kelas: setKelas.trim() || 'Semua Kelas',
+            isActive: setIsActive,
+            isFullScreen: false,
+            isScoreVisible: true,
+            timerMode: 'per_judul',
+            titleTimerSeconds: 900,
+            defaultQuestionTimerSeconds: 30,
+            shuffleQuestions: false,
+          }),
+        });
+        await onRefreshSoal?.();
+        if (res?.set?.id) setSelectedSetId(res.set.id);
+        showToast('Kartu soal baru dibuat di MySQL! Silakan tambahkan soal.');
       }
       setIsSetModalOpen(false);
-    } catch (err) {
-      onFirestoreError?.(err, editingSet ? 'update' : 'create', 'soal_sets');
+    } catch (err: any) {
+      setSoalActionError(err?.message || 'Gagal menyimpan kartu soal ke MySQL.');
     } finally {
       setIsSavingSet(false);
     }
   };
 
   const toggleSetActive = async (s: SoalSet) => {
+    if (!ensureAuthBeforeWrite()) return;
+    setSoalActionError(null);
     try {
-      await updateDoc(doc(db, 'soal_sets', s.id), {
-        isActive: !s.isActive,
-        updatedAt: new Date().toISOString(),
+      await soalApiFetch(`/api/soal/sets/${encodeURIComponent(s.id)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ isActive: !s.isActive }),
       });
+      await onRefreshSoal?.();
       showToast(!s.isActive ? `Kartu "${s.title}" diaktifkan.` : `Kartu "${s.title}" dinonaktifkan.`);
-    } catch (err) {
-      onFirestoreError?.(err, 'update', `soal_sets/${s.id}`);
+    } catch (err: any) {
+      setSoalActionError(err?.message || 'Gagal memperbarui status kartu soal.');
     }
   };
 
@@ -537,23 +653,28 @@ export default function AdminSoal({
 
   const handleSaveSettings = async () => {
     if (!settingsModalSet) return;
+    if (!ensureAuthBeforeWrite()) return;
     setIsSavingCfg(true);
+    setSoalActionError(null);
     try {
       const totalSec = Math.max(0, (Number(cfgTitleMinutes) || 0) * 60 + (Number(cfgTitleSeconds) || 0));
-      await updateDoc(doc(db, 'soal_sets', settingsModalSet.id), {
-        timerMode: cfgTimerMode,
-        titleTimerSeconds: totalSec,
-        defaultQuestionTimerSeconds: Math.max(5, Number(cfgDefaultQuestionSec) || 30),
-        isFullScreen: cfgFullScreen,
-        isScoreVisible: cfgScoreVisible,
-        shuffleQuestions: cfgShuffle,
-        isActive: cfgIsActive,
-        updatedAt: new Date().toISOString(),
+      await soalApiFetch(`/api/soal/sets/${encodeURIComponent(settingsModalSet.id)}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          timerMode: cfgTimerMode,
+          titleTimerSeconds: totalSec,
+          defaultQuestionTimerSeconds: Math.max(5, Number(cfgDefaultQuestionSec) || 30),
+          isFullScreen: cfgFullScreen,
+          isScoreVisible: cfgScoreVisible,
+          shuffleQuestions: cfgShuffle,
+          isActive: cfgIsActive,
+        }),
       });
+      await onRefreshSoal?.();
       setSettingsModalSet(null);
       showToast('Pengaturan timer & ujian berhasil disimpan.');
-    } catch (err) {
-      onFirestoreError?.(err, 'update', `soal_sets/${settingsModalSet.id}`);
+    } catch (err: any) {
+      setSoalActionError(err?.message || 'Gagal menyimpan pengaturan kartu soal.');
     } finally {
       setIsSavingCfg(false);
     }
@@ -631,10 +752,10 @@ export default function AdminSoal({
         return;
       }
     }
+    if (!ensureAuthBeforeWrite()) return;
 
     setIsSavingQ(true);
     setQFormError('');
-    const now = new Date().toISOString();
     try {
       const cleanOptions = qOptions.map(o => ({
         text: o.text.trim(),
@@ -642,38 +763,39 @@ export default function AdminSoal({
       })) as [SoalOption, SoalOption, SoalOption, SoalOption];
 
       if (editingQuestion) {
-        await updateDoc(doc(db, 'soal_questions', editingQuestion.id), {
-          questionText: qText.trim(),
-          questionImage: qImage.trim(),
-          options: cleanOptions,
-          correctAnswer: qCorrect,
-          timerSeconds: Math.max(0, Number(qTimer) || 0),
-          explanation: qExplanation.trim(),
-          isActive: qIsActive,
-          updatedAt: now,
+        await soalApiFetch(`/api/soal/questions/${encodeURIComponent(editingQuestion.id)}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            questionText: qText.trim(),
+            questionImage: qImage.trim(),
+            options: cleanOptions,
+            correctAnswer: qCorrect,
+            timerSeconds: Math.max(0, Number(qTimer) || 0),
+            explanation: qExplanation.trim(),
+            isActive: qIsActive,
+          }),
         });
+        await onRefreshSoal?.();
         showToast('Soal berhasil diperbarui.');
         setIsQModalOpen(false);
       } else {
         const existingList = questionsBySet[selectedSet.id] || [];
         const maxOrder = existingList.reduce((max, item) => Math.max(max, item.order ?? 0), 0);
-        const newRef = doc(collection(db, 'soal_questions'));
-        const newQ: SoalQuestion = {
-          id: newRef.id,
-          setId: selectedSet.id,
-          order: maxOrder + 1,
-          isActive: qIsActive,
-          questionText: qText.trim(),
-          ...(qImage.trim() ? { questionImage: qImage.trim() } : {}),
-          options: cleanOptions,
-          correctAnswer: qCorrect,
-          timerSeconds: Math.max(0, Number(qTimer) || 0),
-          ...(qExplanation.trim() ? { explanation: qExplanation.trim() } : {}),
-          createdAt: now,
-          updatedAt: now,
-        };
-        await setDoc(newRef, newQ);
-        await updateDoc(doc(db, 'soal_sets', selectedSet.id), { updatedAt: now });
+        await soalApiFetch('/api/soal/questions', {
+          method: 'POST',
+          body: JSON.stringify({
+            setId: selectedSet.id,
+            order: maxOrder + 1,
+            isActive: qIsActive,
+            questionText: qText.trim(),
+            questionImage: qImage.trim(),
+            options: cleanOptions,
+            correctAnswer: qCorrect,
+            timerSeconds: Math.max(0, Number(qTimer) || 0),
+            explanation: qExplanation.trim(),
+          }),
+        });
+        await onRefreshSoal?.();
 
         if (addAnother) {
           setQText('');
@@ -689,21 +811,24 @@ export default function AdminSoal({
           showToast('Soal baru berhasil ditambahkan.');
         }
       }
-    } catch (err) {
-      onFirestoreError?.(err, editingQuestion ? 'update' : 'create', 'soal_questions');
+    } catch (err: any) {
+      setQFormError(err?.message || 'Gagal menyimpan soal ke MySQL.');
     } finally {
       setIsSavingQ(false);
     }
   };
 
   const toggleQuestionActive = async (q: SoalQuestion) => {
+    if (!ensureAuthBeforeWrite()) return;
+    setSoalActionError(null);
     try {
-      await updateDoc(doc(db, 'soal_questions', q.id), {
-        isActive: !q.isActive,
-        updatedAt: new Date().toISOString(),
+      await soalApiFetch(`/api/soal/questions/${encodeURIComponent(q.id)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ isActive: !q.isActive }),
       });
-    } catch (err) {
-      onFirestoreError?.(err, 'update', `soal_questions/${q.id}`);
+      await onRefreshSoal?.();
+    } catch (err: any) {
+      setSoalActionError(err?.message || 'Gagal memperbarui status soal.');
     }
   };
 
@@ -711,39 +836,44 @@ export default function AdminSoal({
     if (!selectedSet) return;
     const list = questionsBySet[selectedSet.id] || [];
     if (list.length === 0) return;
+    if (!ensureAuthBeforeWrite()) return;
+    setSoalActionError(null);
     try {
-      const batch = writeBatch(db);
-      const now = new Date().toISOString();
-      list.forEach(q => {
-        batch.update(doc(db, 'soal_questions', q.id), { isActive: activate, updatedAt: now });
+      await soalApiFetch('/api/soal/questions/toggle-all', {
+        method: 'POST',
+        body: JSON.stringify({ setId: selectedSet.id, activate }),
       });
-      await batch.commit();
+      await onRefreshSoal?.();
       showToast(activate ? 'Semua soal diaktifkan.' : 'Semua soal dinonaktifkan.');
-    } catch (err) {
-      onFirestoreError?.(err, 'update', 'soal_questions');
+    } catch (err: any) {
+      setSoalActionError(err?.message || 'Gagal memperbarui status semua soal.');
     }
   };
 
   // ========== DELETE HANDLER ==========
   const handleConfirmDelete = async () => {
     if (!deleteConfirm) return;
+    if (!ensureAuthBeforeWrite()) return;
     setIsDeleting(true);
+    setSoalActionError(null);
     try {
       if (deleteConfirm.type === 'question') {
-        await deleteDoc(doc(db, 'soal_questions', deleteConfirm.id));
+        await soalApiFetch(`/api/soal/questions/${encodeURIComponent(deleteConfirm.id)}`, {
+          method: 'DELETE',
+        });
+        await onRefreshSoal?.();
         showToast('Soal berhasil dihapus.');
       } else {
-        const list = questionsBySet[deleteConfirm.id] || [];
-        const batch = writeBatch(db);
-        list.forEach(q => batch.delete(doc(db, 'soal_questions', q.id)));
-        batch.delete(doc(db, 'soal_sets', deleteConfirm.id));
-        await batch.commit();
+        await soalApiFetch(`/api/soal/sets/${encodeURIComponent(deleteConfirm.id)}`, {
+          method: 'DELETE',
+        });
+        await onRefreshSoal?.();
         if (selectedSetId === deleteConfirm.id) setSelectedSetId(null);
         showToast('Kartu soal beserta seluruh soal di dalamnya berhasil dihapus.');
       }
       setDeleteConfirm(null);
-    } catch (err) {
-      onFirestoreError?.(err, 'delete', deleteConfirm.type === 'question' ? 'soal_questions' : 'soal_sets');
+    } catch (err: any) {
+      setSoalActionError(err?.message || 'Gagal menghapus data dari MySQL.');
     } finally {
       setIsDeleting(false);
     }
@@ -871,52 +1001,52 @@ export default function AdminSoal({
     const source = bulkTab === 'text' ? parsedTextItems : bulkExcelItems;
     const validItems = source.filter(i => !i.error);
     if (validItems.length === 0) return;
+    if (!ensureAuthBeforeWrite()) return;
 
     setIsSavingBulk(true);
+    setSoalActionError(null);
     try {
       const existingList = questionsBySet[selectedSet.id] || [];
       let nextOrder = existingList.reduce((max, item) => Math.max(max, item.order ?? 0), 0);
-      const now = new Date().toISOString();
 
-      // Firestore batch limit is 500 ops; chunk cleanly by 400
-      for (let i = 0; i < validItems.length; i += 400) {
-        const chunk = validItems.slice(i, i + 400);
-        const batch = writeBatch(db);
-        chunk.forEach(item => {
-          nextOrder += 1;
-          const newRef = doc(collection(db, 'soal_questions'));
-          const cleanOpts = item.options.map(o => ({
-            text: o.text.trim(),
-            ...(o.image?.trim() ? { image: o.image.trim() } : {}),
-          })) as [SoalOption, SoalOption, SoalOption, SoalOption];
+      const payloadQuestions = validItems.map(item => {
+        nextOrder += 1;
+        const cleanOpts = item.options.map(o => ({
+          text: o.text.trim(),
+          ...(o.image?.trim() ? { image: o.image.trim() } : {}),
+        })) as [SoalOption, SoalOption, SoalOption, SoalOption];
 
-          const newQ: SoalQuestion = {
-            id: newRef.id,
+        return {
+          order: nextOrder,
+          isActive: true,
+          questionText: item.questionText.trim(),
+          questionImage: item.questionImage?.trim() || '',
+          options: cleanOpts,
+          correctAnswer: item.correctAnswer,
+          timerSeconds: item.timerSeconds,
+          explanation: item.explanation?.trim() || '',
+        };
+      });
+
+      for (let i = 0; i < payloadQuestions.length; i += 200) {
+        const chunk = payloadQuestions.slice(i, i + 200);
+        await soalApiFetch('/api/soal/questions/bulk', {
+          method: 'POST',
+          body: JSON.stringify({
             setId: selectedSet.id,
-            order: nextOrder,
-            isActive: true,
-            questionText: item.questionText.trim(),
-            ...(item.questionImage?.trim() ? { questionImage: item.questionImage.trim() } : {}),
-            options: cleanOpts,
-            correctAnswer: item.correctAnswer,
-            timerSeconds: item.timerSeconds,
-            ...(item.explanation?.trim() ? { explanation: item.explanation.trim() } : {}),
-            createdAt: now,
-            updatedAt: now,
-          };
-          batch.set(newRef, newQ);
+            questions: chunk,
+          }),
         });
-        await batch.commit();
       }
 
-      await updateDoc(doc(db, 'soal_sets', selectedSet.id), { updatedAt: now });
+      await onRefreshSoal?.();
       setIsBulkOpen(false);
       setBulkText('');
       setBulkExcelItems([]);
       setBulkExcelFilename('');
       showToast(`${validItems.length} soal berhasil ditambahkan ke "${selectedSet.title}".`);
-    } catch (err) {
-      onFirestoreError?.(err, 'write', 'soal_questions');
+    } catch (err: any) {
+      setSoalActionError(err?.message || 'Gagal menyimpan bulk soal ke MySQL.');
     } finally {
       setIsSavingBulk(false);
     }
@@ -1209,22 +1339,21 @@ export default function AdminSoal({
 
     if (pickerTargetMode === 'new' && !pickerNewSetTitle.trim()) return;
     if (pickerTargetMode === 'existing' && !pickerTargetSetId) return;
+    if (!ensureAuthBeforeWrite()) return;
 
     setIsImportingMaterial(true);
-    const now = new Date().toISOString();
+    setSoalActionError(null);
 
     try {
       let targetId = pickerTargetSetId;
       let targetTitle = '';
       let defaultTimer = 30;
       let nextOrder = 0;
+      let newSetPayload: any = undefined;
 
       if (pickerTargetMode === 'new') {
-        const newSetRef = doc(collection(db, 'soal_sets'));
-        targetId = newSetRef.id;
         targetTitle = pickerNewSetTitle.trim();
-        const newSet: SoalSet = {
-          id: targetId,
+        newSetPayload = {
           title: targetTitle,
           description:
             materialSourceTab === 'courses' && selectedPickerCourse
@@ -1238,10 +1367,7 @@ export default function AdminSoal({
           titleTimerSeconds: 900,
           defaultQuestionTimerSeconds: 30,
           shuffleQuestions: false,
-          createdAt: now,
-          updatedAt: now,
         };
-        await setDoc(newSetRef, newSet);
       } else {
         const existingSet = soalSets.find((s) => s.id === pickerTargetSetId);
         if (!existingSet) return;
@@ -1251,40 +1377,35 @@ export default function AdminSoal({
         nextOrder = existingList.reduce((max, item) => Math.max(max, item.order ?? 0), 0);
       }
 
-      for (let i = 0; i < pickedItems.length; i += 400) {
-        const chunk = pickedItems.slice(i, i + 400);
-        const batch = writeBatch(db);
-        chunk.forEach((item) => {
-          nextOrder += 1;
-          const newQRef = doc(collection(db, 'soal_questions'));
-          const newQ: SoalQuestion = {
-            id: newQRef.id,
-            setId: targetId,
-            order: nextOrder,
-            isActive: true,
-            questionText: item.questionText,
-            options: item.options,
-            correctAnswer: item.correctAnswer,
-            timerSeconds: defaultTimer,
-            ...(item.explanation ? { explanation: item.explanation } : {}),
-            createdAt: now,
-            updatedAt: now,
-          };
-          batch.set(newQRef, newQ);
-        });
-        await batch.commit();
-      }
+      const bulkQuestions = pickedItems.map((item) => {
+        nextOrder += 1;
+        return {
+          order: nextOrder,
+          isActive: true,
+          questionText: item.questionText,
+          options: item.options,
+          correctAnswer: item.correctAnswer,
+          timerSeconds: defaultTimer,
+          explanation: item.explanation || '',
+        };
+      });
 
-      if (pickerTargetMode === 'existing') {
-        await updateDoc(doc(db, 'soal_sets', targetId), { updatedAt: now });
-      }
+      const res = await soalApiFetch('/api/soal/questions/bulk', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...(newSetPayload ? { newSet: newSetPayload } : { setId: targetId }),
+          questions: bulkQuestions,
+        }),
+      });
+      if (res?.setId) targetId = res.setId;
 
+      await onRefreshSoal?.();
       setIsMaterialPickerOpen(false);
       setSelectedSetId(targetId);
       setQuestionSearch('');
       showToast(`${pickedItems.length} soal dari materi berhasil ditambahkan ke "${targetTitle}".`);
-    } catch (err) {
-      onFirestoreError?.(err, 'write', 'soal_questions');
+    } catch (err: any) {
+      setSoalActionError(err?.message || 'Gagal mengimpor soal materi ke MySQL.');
     } finally {
       setIsImportingMaterial(false);
     }
@@ -1440,23 +1561,21 @@ export default function AdminSoal({
       setAiError('Pilih kartu soal tujuan terlebih dahulu.');
       return;
     }
+    if (!ensureAuthBeforeWrite()) return;
 
     setIsSavingAi(true);
     setAiError(null);
-    const now = new Date().toISOString();
 
     try {
       let targetId = aiTargetSetId;
       let targetTitle = '';
       let defaultTimer = 30;
       let nextOrder = 0;
+      let newSetPayload: any = undefined;
 
       if (aiTargetMode === 'new') {
-        const newSetRef = doc(collection(db, 'soal_sets'));
-        targetId = newSetRef.id;
         targetTitle = aiNewSetTitle.trim();
-        const newSet: SoalSet = {
-          id: targetId,
+        newSetPayload = {
           title: targetTitle,
           description:
             aiContextMode === 'course' && selectedAiCourse
@@ -1470,10 +1589,7 @@ export default function AdminSoal({
           titleTimerSeconds: 900,
           defaultQuestionTimerSeconds: 30,
           shuffleQuestions: false,
-          createdAt: now,
-          updatedAt: now,
         };
-        await setDoc(newSetRef, newSet);
       } else {
         const existingSet = soalSets.find((s) => s.id === aiTargetSetId);
         if (!existingSet) return;
@@ -1483,45 +1599,40 @@ export default function AdminSoal({
         nextOrder = existingList.reduce((max, item) => Math.max(max, item.order ?? 0), 0);
       }
 
-      for (let i = 0; i < selectedItems.length; i += 400) {
-        const chunk = selectedItems.slice(i, i + 400);
-        const batch = writeBatch(db);
-        chunk.forEach((item) => {
-          nextOrder += 1;
-          const newQRef = doc(collection(db, 'soal_questions'));
-          const newQ: SoalQuestion = {
-            id: newQRef.id,
-            setId: targetId,
-            order: nextOrder,
-            isActive: true,
-            questionText: item.questionText.trim(),
-            options: item.options.map((o) => ({ text: o.trim() })) as [
-              SoalOption,
-              SoalOption,
-              SoalOption,
-              SoalOption,
-            ],
-            correctAnswer: item.correctAnswer,
-            timerSeconds: defaultTimer,
-            ...(item.explanation.trim() ? { explanation: item.explanation.trim() } : {}),
-            createdAt: now,
-            updatedAt: now,
-          };
-          batch.set(newQRef, newQ);
-        });
-        await batch.commit();
-      }
+      const bulkQuestions = selectedItems.map((item) => {
+        nextOrder += 1;
+        return {
+          order: nextOrder,
+          isActive: true,
+          questionText: item.questionText.trim(),
+          options: item.options.map((o) => ({ text: o.trim() })) as [
+            SoalOption,
+            SoalOption,
+            SoalOption,
+            SoalOption,
+          ],
+          correctAnswer: item.correctAnswer,
+          timerSeconds: defaultTimer,
+          explanation: item.explanation.trim(),
+        };
+      });
 
-      if (aiTargetMode === 'existing') {
-        await updateDoc(doc(db, 'soal_sets', targetId), { updatedAt: now });
-      }
+      const res = await soalApiFetch('/api/soal/questions/bulk', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...(newSetPayload ? { newSet: newSetPayload } : { setId: targetId }),
+          questions: bulkQuestions,
+        }),
+      });
+      if (res?.setId) targetId = res.setId;
 
+      await onRefreshSoal?.();
       setIsAiModalOpen(false);
       setSelectedSetId(targetId);
       setQuestionSearch('');
       showToast(`${selectedItems.length} soal AI berhasil disimpan ke "${targetTitle}".`);
-    } catch (err) {
-      onFirestoreError?.(err, 'write', 'soal_questions');
+    } catch (err: any) {
+      setAiError(err?.message || 'Gagal menyimpan soal AI ke MySQL.');
     } finally {
       setIsSavingAi(false);
     }
@@ -1537,6 +1648,144 @@ export default function AdminSoal({
           <span className="text-sm font-bold">{toastMsg}</span>
         </div>
       )}
+
+      {/* Setup / Error Notice for Remote MySQL */}
+      {(!soalDbConfigured || soalDbError || soalActionError) && (
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/70 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <Database size={18} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-xs space-y-1 text-amber-900 dark:text-amber-200">
+              <p className="font-black">
+                {!soalDbConfigured
+                  ? 'Konfigurasi Remote MySQL (phpMyAdmin) Diperlukan'
+                  : 'Kendala Koneksi / Penyimpanan MySQL'}
+              </p>
+              <p className="font-medium leading-relaxed">
+                {soalActionError ||
+                  soalDbError ||
+                  'Tambahkan MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, dan MYSQL_DATABASE pada menu Secrets / Environment Variables.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSoalActionError(null);
+              onRefreshSoal?.();
+            }}
+            className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold inline-flex items-center gap-1.5 shrink-0 self-start sm:self-center cursor-pointer"
+          >
+            <RefreshCw size={13} />
+            Coba Muat Ulang
+          </button>
+        </div>
+      )}
+
+      {/* Passcode Verification Bar if MySQL configured & write session not yet unlocked */}
+      {soalDbConfigured && !soalAdminToken && (
+        <div className="bg-slate-100/90 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Lock size={17} className="text-brand shrink-0" />
+            <div className="text-xs">
+              <p className="font-black text-slate-800 dark:text-slate-100">
+                {!authStatus.hasEnvPasscode && !authStatus.hasClaimedPasscode
+                  ? 'Buat Passcode Admin Kelola Soal (Pertama Kali)'
+                  : 'Verifikasi Passcode Admin untuk Edit / Simpan ke MySQL'}
+              </p>
+              <p className="text-slate-600 dark:text-slate-400 font-medium">
+                {!authStatus.hasEnvPasscode && !authStatus.hasClaimedPasscode
+                  ? 'Passcode ini melindungi perubahan data Kelola Soal di server MySQL.'
+                  : 'Masukkan passcode admin agar dapat membuat, mengedit, atau menghapus soal.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setAuthPasscodeError(null);
+              setIsAuthModalOpen(true);
+            }}
+            className="px-4 py-2 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-black shrink-0 self-start sm:self-center cursor-pointer"
+          >
+            {!authStatus.hasEnvPasscode && !authStatus.hasClaimedPasscode
+              ? 'Buat Passcode'
+              : 'Buka Kunci Edit'}
+          </button>
+        </div>
+      )}
+
+      {/* Auth Modal */}
+      {isAuthModalOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[220] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-brand/10 text-brand flex items-center justify-center">
+                    <Lock size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 dark:text-white">
+                      {!authStatus.hasEnvPasscode && !authStatus.hasClaimedPasscode
+                        ? 'Buat Passcode Admin Soal'
+                        : 'Verifikasi Passcode Admin'}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      Penyimpanan Remote MySQL (phpMyAdmin)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAuthModalOpen(false)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <form onSubmit={handleAuthSubmit} className="space-y-3">
+                <input
+                  type="password"
+                  value={authPasscodeInput}
+                  onChange={(e) => setAuthPasscodeInput(e.target.value)}
+                  placeholder={
+                    !authStatus.hasEnvPasscode && !authStatus.hasClaimedPasscode
+                      ? 'Buat passcode baru (min. 4 karakter)'
+                      : 'Masukkan passcode admin'
+                  }
+                  autoFocus
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand/40"
+                />
+                {authPasscodeError && (
+                  <p className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                    {authPasscodeError}
+                  </p>
+                )}
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsAuthModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingAuth}
+                    className="px-4 py-2 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-black disabled:opacity-50"
+                  >
+                    {isSubmittingAuth
+                      ? 'Memproses...'
+                      : !authStatus.hasEnvPasscode && !authStatus.hasClaimedPasscode
+                      ? 'Simpan & Buka Akses'
+                      : 'Verifikasi'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {!selectedSet ? (
         /* ================== TOP VIEW: KARTU SOAL SESUAI JUDUL ================== */

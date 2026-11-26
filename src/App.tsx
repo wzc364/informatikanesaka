@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -439,6 +439,9 @@ export default function App() {
   const [studentCatalogFilter, setStudentCatalogFilter] = useState<'all' | 'todo' | 'done'>('all');
   const [soalSets, setSoalSets] = useState<SoalSet[]>([]);
   const [soalQuestions, setSoalQuestions] = useState<SoalQuestion[]>([]);
+  const [soalDbConfigured, setSoalDbConfigured] = useState<boolean>(true);
+  const [soalDbError, setSoalDbError] = useState<string | null>(null);
+  const [soalAdminToken, setSoalAdminToken] = useState<string | null>(null);
   const [activeSoalSetId, setActiveSoalSetId] = useState<string | null>(() => sessionStorage.getItem('activeSoalSetId'));
   const [isPreviewingSoal, setIsPreviewingSoal] = useState(false);
   const [messageTargetStudent, setMessageTargetStudent] = useState<any>(null);
@@ -452,201 +455,32 @@ export default function App() {
   const [gameScoresList, setGameScoresList] = useState<any[]>([]);
   const [assessmentCategory, setAssessmentCategory] = useState<'materi' | 'game' | 'soal'>('materi');
 
-  // Seed Pola Bilangan 20 Questions Soal Set
-  useEffect(() => {
-    const seedPolaBilanganSoal = async () => {
-      try {
-        const setId = 'pola-bilangan-20-soal';
-        const existingSet = soalSets.find(s => s.id === setId);
-        if (!existingSet) {
-          await setDoc(doc(db, 'soal_sets', setId), {
-            id: setId,
-            title: 'Ujian Pola Bilangan Aritmetika & Geometri',
-            description: '20 soal pilihan ganda tentang barisan dan deret aritmetika serta geometri. Skor 5 poin per soal, waktu pengerjaan 40 menit.',
-            isActive: true,
-            isFullScreen: true,
-            isScoreVisible: true,
-            timerMode: 'title_timer',
-            titleTimerSeconds: 2400, // 40 minutes
-            defaultQuestionTimerSeconds: 120,
-            passingScore: 75,
-            shuffleQuestions: false,
-            createdAt: new Date().toISOString()
-          });
-
-          const questionsData = [
-            {
-              id: 'pb-q1', setId: setId,
-              questionText: 'Suku ke-n dari barisan aritmetika 3, 7, 11, 15, ... adalah...',
-              options: [{ text: '4n - 1', image: '' }, { text: '4n + 1', image: '' }, { text: '3n + 4', image: '' }, { text: '4n + 3', image: '' }],
-              correctAnswer: 0,
-              explanation: 'Suku pertama a = 3, beda b = 4. Un = a + (n-1)b = 3 + 4n - 4 = 4n - 1.',
-              points: 5, timerSeconds: 120, isActive: true, order: 0
-            },
-            {
-              id: 'pb-q2', setId: setId,
-              questionText: 'Diketahui barisan aritmetika 5, 8, 11, 14, ... Suku ke-10 dari barisan tersebut adalah...',
-              options: [{ text: '29', image: '' }, { text: '32', image: '' }, { text: '35', image: '' }, { text: '38', image: '' }],
-              correctAnswer: 1,
-              explanation: 'a = 5, b = 3. U10 = a + 9b = 5 + 9(3) = 5 + 27 = 32.',
-              points: 5, timerSeconds: 120, isActive: true, order: 1
-            },
-            {
-              id: 'pb-q3', setId: setId,
-              questionText: 'Rumus suku ke-n untuk barisan geometri 2, 6, 18, 54, ... adalah...',
-              options: [{ text: '2 × 3ⁿ', image: '' }, { text: '3 × 2ⁿ⁻¹', image: '' }, { text: '2 × 3ⁿ⁻¹', image: '' }, { text: '6ⁿ⁻¹', image: '' }],
-              correctAnswer: 2,
-              explanation: 'Suku pertama a = 2, rasio r = 3. Un = a × rⁿ⁻¹ = 2 × 3ⁿ⁻¹.',
-              points: 5, timerSeconds: 120, isActive: true, order: 2
-            },
-            {
-              id: 'pb-q4', setId: setId,
-              questionText: 'Suku ke-6 dari barisan geometri 1, 2, 4, 8, ... adalah...',
-              options: [{ text: '16', image: '' }, { text: '32', image: '' }, { text: '64', image: '' }, { text: '128', image: '' }],
-              correctAnswer: 1,
-              explanation: 'a = 1, r = 2. U6 = a × r⁵ = 1 × 2⁵ = 32.',
-              points: 5, timerSeconds: 120, isActive: true, order: 3
-            },
-            {
-              id: 'pb-q5', setId: setId,
-              questionText: 'Diketahui deret aritmetika 2 + 5 + 8 + 11 + ... Jumlah 10 suku pertama adalah...',
-              options: [{ text: '145', image: '' }, { text: '150', image: '' }, { text: '155', image: '' }, { text: '160', image: '' }],
-              correctAnswer: 2,
-              explanation: 'a = 2, b = 3, n = 10. Sn = n/2 (2a + (n-1)b) = 10/2 (4 + 9(3)) = 5 (31) = 155.',
-              points: 5, timerSeconds: 120, isActive: true, order: 4
-            },
-            {
-              id: 'pb-q6', setId: setId,
-              questionText: 'Suatu barisan aritmetika memiliki suku ke-4 = 14 dan suku ke-9 = 29. Suku ke-15 adalah...',
-              options: [{ text: '41', image: '' }, { text: '44', image: '' }, { text: '47', image: '' }, { text: '50', image: '' }],
-              correctAnswer: 2,
-              explanation: 'U9 - U4 = 5b => 29 - 14 = 15 => b = 3. U4 = a + 3b = 14 => a = 5. U15 = 5 + 14(3) = 47.',
-              points: 5, timerSeconds: 120, isActive: true, order: 5
-            },
-            {
-              id: 'pb-q7', setId: setId,
-              questionText: 'Rasio dari barisan geometri 64, 32, 16, 8, ... adalah...',
-              options: [{ text: '2', image: '' }, { text: '1/2', image: '' }, { text: '-2', image: '' }, { text: '1/4', image: '' }],
-              correctAnswer: 1,
-              explanation: 'Rasio r = U2 / U1 = 32 / 64 = 1/2.',
-              points: 5, timerSeconds: 120, isActive: true, order: 6
-            },
-            {
-              id: 'pb-q8', setId: setId,
-              questionText: 'Tiga suku berikutnya dari barisan bilangan 1, 3, 6, 10, 15, ... adalah...',
-              options: [{ text: '18, 22, 27', image: '' }, { text: '21, 28, 36', image: '' }, { text: '20, 26, 33', image: '' }, { text: '21, 27, 34', image: '' }],
-              correctAnswer: 1,
-              explanation: 'Ini barisan bilangan segitiga (+2, +3, +4, +5, +6, +7, +8). Suku berikutnya: 15+6=21, 21+7=28, 28+8=36.',
-              points: 5, timerSeconds: 120, isActive: true, order: 7
-            },
-            {
-              id: 'pb-q9', setId: setId,
-              questionText: 'Suku ke-8 dari barisan geometri 3, 6, 12, 24, ... adalah...',
-              options: [{ text: '192', image: '' }, { text: '384', image: '' }, { text: '768', image: '' }, { text: '1536', image: '' }],
-              correctAnswer: 1,
-              explanation: 'a = 3, r = 2. U8 = 3 × 2⁷ = 3 × 128 = 384.',
-              points: 5, timerSeconds: 120, isActive: true, order: 8
-            },
-            {
-              id: 'pb-q10', setId: setId,
-              questionText: 'Jika suku pertama barisan aritmetika adalah 7 dan bedanya 4, maka suku ke-20 adalah...',
-              options: [{ text: '79', image: '' }, { text: '83', image: '' }, { text: '87', image: '' }, { text: '91', image: '' }],
-              correctAnswer: 1,
-              explanation: 'a = 7, b = 4. U20 = 7 + 19(4) = 7 + 76 = 83.',
-              points: 5, timerSeconds: 120, isActive: true, order: 9
-            },
-            {
-              id: 'pb-q11', setId: setId,
-              questionText: 'Amuba membelah diri menjadi 2 setiap 20 menit. Jika mula-mula ada 5 amuba, banyak amuba setelah 2 jam adalah...',
-              options: [{ text: '160', image: '' }, { text: '320', image: '' }, { text: '640', image: '' }, { text: '1280', image: '' }],
-              correctAnswer: 1,
-              explanation: '2 jam = 120 menit. Banyak pembelahan = 120 / 20 = 6 kali. U7 = 5 × 2⁶ = 5 × 64 = 320.',
-              points: 5, timerSeconds: 120, isActive: true, order: 10
-            },
-            {
-              id: 'pb-q12', setId: setId,
-              questionText: 'Diketahui barisan bilangan kuadrat 1, 4, 9, 16, 25, ... Suku ke-13 barisan tersebut adalah...',
-              options: [{ text: '144', image: '' }, { text: '169', image: '' }, { text: '196', image: '' }, { text: '225', image: '' }],
-              correctAnswer: 1,
-              explanation: 'Rumus suku ke-n adalah Un = n². U13 = 13² = 169.',
-              points: 5, timerSeconds: 120, isActive: true, order: 11
-            },
-            {
-              id: 'pb-q13', setId: setId,
-              questionText: 'Jumlah 6 suku pertama dari barisan geometri 3, 6, 12, 24, ... adalah...',
-              options: [{ text: '93', image: '' }, { text: '189', image: '' }, { text: '378', image: '' }, { text: '765', image: '' }],
-              correctAnswer: 1,
-              explanation: 'a = 3, r = 2. S6 = a(r⁶ - 1)/(r - 1) = 3(64 - 1)/(2 - 1) = 3(63) = 189.',
-              points: 5, timerSeconds: 120, isActive: true, order: 12
-            },
-            {
-              id: 'pb-q14', setId: setId,
-              questionText: 'Suku kelima barisan aritmetika adalah 21 dan suku kesepuluh adalah 41. Beda barisan tersebut adalah...',
-              options: [{ text: '3', image: '' }, { text: '4', image: '' }, { text: '5', image: '' }, { text: '6', image: '' }],
-              correctAnswer: 1,
-              explanation: 'U10 - U5 = 5b => 41 - 21 = 20 => b = 4.',
-              points: 5, timerSeconds: 120, isActive: true, order: 13
-            },
-            {
-              id: 'pb-q15', setId: setId,
-              questionText: 'Seutas tali dipotong menjadi 5 bagian membentuk barisan geometri. Jika potongan terpendek 3 cm dan terpanjang 768 cm, panjang tali semula adalah...',
-              options: [{ text: '771 cm', image: '' }, { text: '1023 cm', image: '' }, { text: '1536 cm', image: '' }, { text: '3069 cm', image: '' }],
-              correctAnswer: 1,
-              explanation: 'a = 3, U5 = 3r⁴ = 768 => r⁴ = 256 => r = 4. S5 = 3(1024 - 1)/3 = 1023 cm.',
-              points: 5, timerSeconds: 120, isActive: true, order: 14
-            },
-            {
-              id: 'pb-q16', setId: setId,
-              questionText: 'Suku ke-n suatu barisan ditentukan oleh Un = 3n² - 2. Suku ke-7 dari barisan tersebut adalah...',
-              options: [{ text: '145', image: '' }, { text: '147', image: '' }, { text: '150', image: '' }, { text: '142', image: '' }],
-              correctAnswer: 0,
-              explanation: 'U7 = 3(7)² - 2 = 3(49) - 2 = 147 - 2 = 145.',
-              points: 5, timerSeconds: 120, isActive: true, order: 15
-            },
-            {
-              id: 'pb-q17', setId: setId,
-              questionText: 'Suku ke-15 dari barisan aritmetika 50, 45, 40, 35, ... adalah...',
-              options: [{ text: '-15', image: '' }, { text: '-20', image: '' }, { text: '-25', image: '' }, { text: '20', image: '' }],
-              correctAnswer: 1,
-              explanation: 'a = 50, b = -5. U15 = 50 + 14(-5) = 50 - 70 = -20.',
-              points: 5, timerSeconds: 120, isActive: true, order: 16
-            },
-            {
-              id: 'pb-q18', setId: setId,
-              questionText: 'Suatu gedung pertunjukan memiliki 15 baris kursi. Baris pertama berisi 20 kursi, baris kedua 24 kursi, baris ketiga 28 kursi, dan seterusnya. Jumlah seluruh kursi adalah...',
-              options: [{ text: '680', image: '' }, { text: '700', image: '' }, { text: '720', image: '' }, { text: '750', image: '' }],
-              correctAnswer: 2,
-              explanation: 'a = 20, b = 4, n = 15. S15 = 15/2 (40 + 56) = 7.5 (96) = 720.',
-              points: 5, timerSeconds: 120, isActive: true, order: 17
-            },
-            {
-              id: 'pb-q19', setId: setId,
-              questionText: 'Suku tengah dari barisan aritmetika 3, 7, 11, ..., 99 adalah...',
-              options: [{ text: '49', image: '' }, { text: '51', image: '' }, { text: '53', image: '' }, { text: '55', image: '' }],
-              correctAnswer: 1,
-              explanation: 'Ut = (a + Un) / 2 = (3 + 99) / 2 = 102 / 2 = 51.',
-              points: 5, timerSeconds: 120, isActive: true, order: 18
-            },
-            {
-              id: 'pb-q20', setId: setId,
-              questionText: 'Diketahui barisan geometri dengan U2 = 6 dan U5 = 162. Suku ke-4 dari barisan tersebut adalah...',
-              options: [{ text: '18', image: '' }, { text: '36', image: '' }, { text: '54', image: '' }, { text: '108', image: '' }],
-              correctAnswer: 2,
-              explanation: 'U5 / U2 = r³ = 162 / 6 = 27 => r = 3. U2 = 2a = 6 => a = 2. U4 = 2 × 3³ = 54.',
-              points: 5, timerSeconds: 120, isActive: true, order: 19
-            }
-          ];
-
-          for (const q of questionsData) {
-            await setDoc(doc(db, 'soal_questions', q.id), q);
-          }
-        }
-      } catch (err) {
-        console.error('Error seeding pola bilangan soal set:', err);
+  const fetchSoalFromMysql = useCallback(async () => {
+    try {
+      const resp = await fetch('/api/soal');
+      const data = await resp.json().catch(() => ({}));
+      setSoalDbConfigured(data?.configured !== false);
+      if (!resp.ok) {
+        setSoalDbError(data?.error || `Gagal memuat data Kelola Soal dari MySQL (HTTP ${resp.status}).`);
+        return;
       }
-    };
-    seedPolaBilanganSoal();
-  }, [soalSets]);
+      if (data?.configured === false) {
+        setSoalSets([]);
+        setSoalQuestions([]);
+        setSoalDbError(data?.error || null);
+        return;
+      }
+      setSoalSets(Array.isArray(data?.sets) ? data.sets : []);
+      setSoalQuestions(Array.isArray(data?.questions) ? data.questions : []);
+      setSoalDbError(data?.error || null);
+    } catch (err: any) {
+      setSoalDbError(err?.message || 'Gagal menghubungi server API Kelola Soal.');
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSoalFromMysql();
+  }, [fetchSoalFromMysql]);
 
   const activeTahunPelajaran = settingsConfig?.activeTahunPelajaran || DEFAULT_TAHUN_PELAJARAN;
   const activeSemester: SemesterType = settingsConfig?.activeSemester === 'Genap' ? 'Genap' : 'Ganjil';
@@ -1355,21 +1189,6 @@ export default function App() {
       handleFirestoreError(error, OperationType.LIST, 'announcements');
     });
     unsubscribes.push(unsubAnnouncements);
-
-    // Soal Sets & Soal Questions (Global)
-    const unsubSoalSets = onSnapshot(collection(db, 'soal_sets'), (snapshot) => {
-      setSoalSets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'soal_sets');
-    });
-    unsubscribes.push(unsubSoalSets);
-
-    const unsubSoalQuestions = onSnapshot(collection(db, 'soal_questions'), (snapshot) => {
-      setSoalQuestions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'soal_questions');
-    });
-    unsubscribes.push(unsubSoalQuestions);
 
     // Admin Data
     if (isAdmin) {
@@ -3183,7 +3002,7 @@ export default function App() {
             </nav>
             <div className="pt-4 mt-4 border-t border-white/35 dark:border-white/12">
               <button 
-                onClick={() => { setIsAdmin(false); setCurrentPage('login'); }} 
+                onClick={() => { setSoalAdminToken(null); setIsAdmin(false); setCurrentPage('login'); }} 
                 className="w-full flex items-center gap-3 text-rose-600 dark:text-rose-400 hover:bg-rose-500/12 dark:hover:bg-rose-500/18 border border-transparent hover:border-rose-300/55 dark:hover:border-rose-500/30 p-3 rounded-2xl transition-colors duration-200 font-bold text-sm group"
               >
                 <div className="w-8 h-8 rounded-xl bg-rose-500/10 dark:bg-rose-500/12 border border-rose-200/50 dark:border-rose-500/20 group-hover:bg-rose-500/20 flex items-center justify-center transition-colors duration-200">
@@ -6111,22 +5930,16 @@ export default function App() {
                 soalSets={soalSets}
                 soalQuestions={soalQuestions}
                 materialConfigs={materialConfigs}
+                soalDbConfigured={soalDbConfigured}
+                soalDbError={soalDbError}
+                soalAdminToken={soalAdminToken}
+                onSetSoalAdminToken={setSoalAdminToken}
+                onRefreshSoal={fetchSoalFromMysql}
                 onPreviewSet={(set) => {
                   setActiveSoalSetId(set.id);
                   sessionStorage.setItem('activeSoalSetId', set.id);
                   setIsPreviewingSoal(true);
                   setCurrentPage('soal');
-                }}
-                onFirestoreError={(err, op, path) => {
-                  const opEnum =
-                    op === 'create'
-                      ? OperationType.CREATE
-                      : op === 'update'
-                      ? OperationType.UPDATE
-                      : op === 'delete'
-                      ? OperationType.DELETE
-                      : OperationType.WRITE;
-                  handleFirestoreError(err, opEnum, path);
                 }}
               />
             )}

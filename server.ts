@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { processAnalyzeQuestionRequest } from "./server/questionAnalyzer.mjs";
 import { processGenerateQuestionsRequest } from "./server/questionGenerator.mjs";
+import { handleSoalApiRequest } from "./server/soalMysql.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,6 +43,28 @@ async function startServer() {
   // API Route to generate multiple-choice questions with Gemini AI
   app.post("/api/generate-questions", async (req, res) => {
     const { status, payload } = await processGenerateQuestionsRequest(req.body);
+    return res.status(status).json(payload);
+  });
+
+  // API Routes for Kelola Soal stored in Remote MySQL (phpMyAdmin)
+  app.all("/api/soal", async (req, res) => {
+    const { status, payload } = await handleSoalApiRequest({
+      method: req.method,
+      subPath: '',
+      body: req.body,
+      authHeader: req.headers.authorization,
+    });
+    return res.status(status).json(payload);
+  });
+
+  app.all("/api/soal/*", async (req, res) => {
+    const rawSubPath = String(req.params?.[0] || '');
+    const { status, payload } = await handleSoalApiRequest({
+      method: req.method,
+      subPath: rawSubPath,
+      body: req.body,
+      authHeader: req.headers.authorization,
+    });
     return res.status(status).json(payload);
   });
 
