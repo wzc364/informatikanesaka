@@ -1122,6 +1122,17 @@ export default function AdminAdministrasi({
   const [selectedAgendaId, setSelectedAgendaId] = useState<string>('');
   const [absensiMode, setAbsensiMode] = useState<'input' | 'rekap'>('input');
   const [absensiDraft, setAbsensiDraft] = useState<Record<string, AbsensiStudentEntry>>({});
+  const [absensiSubView, setAbsensiSubView] = useState<'agenda_hari_ini' | 'tanggungan' | 'rekap'>('agenda_hari_ini');
+  const absensiDateAgendas = useMemo(() => {
+    return agendaList.filter((a) => a.tanggal === agendaSelectedDate);
+  }, [agendaList, agendaSelectedDate]);
+
+  const tanggunganAgendas = useMemo(() => {
+    return agendaList
+      .filter((a) => !isAgendaAttended(a.id, a.kelas, a.tanggal))
+      .sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''));
+  }, [agendaList, absensiList]);
+
   const [isSavingAbsensi, setIsSavingAbsensi] = useState(false);
 
   // Sync selected class when classOptions change
@@ -2980,19 +2991,7 @@ export default function AdminAdministrasi({
       {/* ===================================================================== */}
       {/* TAB 4: ABSENSI SISWA (Sesuai Desain Lampiran image_5f708ce4.png)        */}
       {/* ===================================================================== */}
-      {subTab === 'absensi' && (() => {
-        const [absensiSubView, setAbsensiSubView] = useState<'agenda_hari_ini' | 'tanggungan' | 'rekap'>('agenda_hari_ini');
-        const absensiDateAgendas = useMemo(() => {
-          return agendaList.filter((a) => a.tanggal === agendaSelectedDate);
-        }, [agendaList, agendaSelectedDate]);
-
-        const tanggunganAgendas = useMemo(() => {
-          return agendaList
-            .filter((a) => !isAgendaAttended(a.id, a.kelas, a.tanggal))
-            .sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''));
-        }, [agendaList, absensiList]);
-
-        return (
+      {subTab === 'absensi' && (
           <div className="space-y-6">
             {/* Top Sub-Tab Navigation Bar */}
             <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-slate-900/10 dark:bg-slate-800/60 border border-white/20 dark:border-white/10 w-fit">
@@ -3386,8 +3385,7 @@ export default function AdminAdministrasi({
               </div>
             )}
           </div>
-        );
-      })()}
+      )}
 
 
       {/* ===================================================================== */}
