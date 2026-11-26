@@ -986,10 +986,13 @@ export default function AdminAdministrasi({
       }
     }
 
-    const defaultKelas = presetKelas || matchedJadwal?.kelas || classOptions[0] || '';
-    const classExistingCount = agendaList.filter((a) => a.kelas === defaultKelas).length;
-    const totalClass = defaultKelas ? (studentsByClass[defaultKelas]?.length || 0) : 0;
-    const att = defaultKelas ? findAttendanceCounts(defaultKelas, today, matchedJadwal?.id) : null;
+    // Agenda tambahan default tanpa kelas kecuali presetKelas diberikan
+    const defaultKelas = isExtraZeroSlot
+      ? presetKelas || ''
+      : presetKelas || matchedJadwal?.kelas || classOptions[0] || '';
+    const classExistingCount = defaultKelas
+      ? agendaList.filter((a) => a.kelas === defaultKelas).length
+      : agendaList.filter((a) => !a.kelas).length;
 
     setEditingAgendaId(null);
     setAgendaForm({
@@ -1007,10 +1010,10 @@ export default function AdminAdministrasi({
       materi: '',
       kegiatan: '',
       catatan: '',
-      hadirCount: att ? att.H : totalClass,
-      sakitCount: att ? att.S : 0,
-      izinCount: att ? att.I : 0,
-      alpaCount: att ? att.A : 0,
+      hadirCount: 0,
+      sakitCount: 0,
+      izinCount: 0,
+      alpaCount: 0,
     });
     setIsAgendaModalOpen(true);
   };
@@ -1021,7 +1024,7 @@ export default function AdminAdministrasi({
       tanggal: item.tanggal,
       jadwalId: item.jadwalId || '',
       hari: item.hari || getHariFromDate(item.tanggal),
-      kelas: item.kelas,
+      kelas: item.kelas || '',
       jamKe: item.jamKe || '',
       waktuMulai: item.waktuMulai || '',
       waktuSelesai: item.waktuSelesai || '',
@@ -1042,11 +1045,14 @@ export default function AdminAdministrasi({
 
   const handleSaveAgenda = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agendaForm.kelas.trim() || !agendaForm.tanggal || !agendaForm.materi.trim()) {
-      showNotice('error', 'Tanggal, Kelas, dan Materi pokok wajib diisi.');
+    if (!agendaForm.tanggal || !agendaForm.materi.trim()) {
+      showNotice('error', 'Tanggal dan Materi pokok wajib diisi.');
       return;
     }
     const linkedTp = tpList.find((t) => t.id === agendaForm.tpId);
+    const existingItem = editingAgendaId
+      ? agendaList.find((a) => a.id === editingAgendaId)
+      : null;
     const payload = {
       tahunPelajaran: activeTahunPelajaran,
       semester: activeSemester,
@@ -1065,10 +1071,10 @@ export default function AdminAdministrasi({
       materi: agendaForm.materi.trim(),
       kegiatan: agendaForm.kegiatan.trim(),
       catatan: agendaForm.catatan.trim(),
-      hadirCount: Number(agendaForm.hadirCount) || 0,
-      sakitCount: Number(agendaForm.sakitCount) || 0,
-      izinCount: Number(agendaForm.izinCount) || 0,
-      alpaCount: Number(agendaForm.alpaCount) || 0,
+      hadirCount: existingItem ? existingItem.hadirCount ?? 0 : 0,
+      sakitCount: existingItem ? existingItem.sakitCount ?? 0 : 0,
+      izinCount: existingItem ? existingItem.izinCount ?? 0 : 0,
+      alpaCount: existingItem ? existingItem.alpaCount ?? 0 : 0,
       updatedAt: new Date().toISOString(),
     };
     try {
@@ -1081,9 +1087,10 @@ export default function AdminAdministrasi({
           createdAt: new Date().toISOString(),
         });
         showNotice('success', 'Agenda harian berhasil dicatat berdasarkan jadwal pelajaran.');
-        // Set active in absensi so teacher can immediately take attendance if needed
-        setSelectedAgendaId(newDocRef.id);
-        setAbsensiClass(payload.kelas);
+        if (payload.kelas) {
+          setSelectedAgendaId(newDocRef.id);
+          setAbsensiClass(payload.kelas);
+        }
       }
       setIsAgendaModalOpen(false);
     } catch (err) {
@@ -1123,15 +1130,34 @@ export default function AdminAdministrasi({
   const [absensiMode, setAbsensiMode] = useState<'input' | 'rekap'>('input');
   const [absensiDraft, setAbsensiDraft] = useState<Record<string, AbsensiStudentEntry>>({});
   const [absensiSubView, setAbsensiSubView] = useState<'agenda_hari_ini' | 'tanggungan' | 'rekap'>('agenda_hari_ini');
+  const [selectedRekapKelas, setSelectedRekapKelas] = useState<string>('');
+
+  // Agenda yang tercatat pada tanggal terpilih & memiliki kelas
   const absensiDateAgendas = useMemo(() => {
-    return agendaList.filter((a) => a.tanggal === agendaSelectedDate);
+    return agendaList.filter((a) => a.tanggal === agendaSelectedDate && Boolean(a.kelas?.trim()));
   }, [agendaList, agendaSelectedDate]);
 
+  // Daftar kelas unik yang tercatat di agenda tanggal terpilih (untuk Absensi Hari Ini per kelas)
+  const absensiDateClasses = useMemo(() => {
+    const set = new Set<string>();
+    absensiDateAgendas.forEach((a) => {
+      if (a.kelas?.trim()) set.add(a.kelas.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [absensiDateAgendas]);
+
+  // Tanggungan absensi: hanya agenda yang memiliki kelas & belum diisi absensinya
   const tanggunganAgendas = useMemo(() => {
     return agendaList
-      .filter((a) => !isAgendaAttended(a.id, a.kelas, a.tanggal))
+      .filter((a) => Boolean(a.kelas?.trim()) && !isAgendaAttended(a.id, a.kelas, a.tanggal))
       .sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''));
   }, [agendaList, absensiList]);
+
+  const tanggunganClassesList = useMemo(() => {
+    return Array.from(new Set(tanggunganAgendas.map((a) => a.kelas.trim())))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+  }, [tanggunganAgendas]);
 
   const [isSavingAbsensi, setIsSavingAbsensi] = useState(false);
 
@@ -1144,34 +1170,24 @@ export default function AdminAdministrasi({
     }
   }, [classOptions, absensiClass]);
 
-  // All recorded agendas for the currently selected class
-  const classAgendas = useMemo(
-    () =>
-      agendaList
-        .filter((a) => a.kelas === absensiClass)
-        .sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || '')),
-    [agendaList, absensiClass]
-  );
-
-  // Sync selectedAgendaId when classAgendas change
-  useEffect(() => {
-    if (classAgendas.length === 0) {
-      setSelectedAgendaId('');
-    } else if (!selectedAgendaId || !classAgendas.some((a) => a.id === selectedAgendaId)) {
-      // Pick the newest or first agenda of this class
-      setSelectedAgendaId(classAgendas[0].id);
-    }
-  }, [classAgendas, selectedAgendaId]);
-
   const selectedAgenda = useMemo(
-    () => classAgendas.find((a) => a.id === selectedAgendaId) || null,
-    [classAgendas, selectedAgendaId]
+    () => agendaList.find((a) => a.id === selectedAgendaId) || null,
+    [agendaList, selectedAgendaId]
   );
 
-  const absensiClassStudents = useMemo(
-    () => (absensiClass ? studentsByClass[absensiClass] || [] : []),
-    [absensiClass, studentsByClass]
-  );
+  // All recorded agendas for the currently selected agenda's class (for quick session switching)
+  const classAgendas = useMemo(() => {
+    const cls = selectedAgenda?.kelas || absensiClass;
+    if (!cls) return [];
+    return agendaList
+      .filter((a) => a.kelas === cls)
+      .sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''));
+  }, [agendaList, selectedAgenda, absensiClass]);
+
+  const absensiClassStudents = useMemo(() => {
+    const cls = selectedAgenda?.kelas || absensiClass;
+    return cls ? studentsByClass[cls] || [] : [];
+  }, [selectedAgenda, absensiClass, studentsByClass]);
 
   // Find attendance record matching the active agenda
   const existingAbsensiForSelectedAgenda = useMemo(() => {
@@ -2889,9 +2905,14 @@ export default function AdminAdministrasi({
                           </td>
                           <td className="p-4 whitespace-nowrap">
                             <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-black text-slate-800 dark:text-slate-100">
-                              KELAS {ag.kelas}
+                              {ag.kelas ? `KELAS ${ag.kelas}` : 'TANPA KELAS (UMUM)'}
                             </span>
                             <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                              {ag.jenisKegiatan && (
+                                <span className="inline-block px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-brand dark:text-blue-300 text-[10px] font-extrabold uppercase">
+                                  {ag.jenisKegiatan}
+                                </span>
+                              )}
                               {ag.mataPelajaran && (
                                 <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-extrabold uppercase text-slate-600 dark:text-slate-300">
                                   {ag.mataPelajaran}
@@ -2918,40 +2939,48 @@ export default function AdminAdministrasi({
                             )}
                           </td>
                           <td className="p-4 text-center whitespace-nowrap">
-                            <div className="inline-flex items-center gap-1 text-[11px] font-extrabold tabular-nums">
-                              <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
-                                H:{ag.hadirCount}
+                            {ag.kelas ? (
+                              <>
+                                <div className="inline-flex items-center gap-1 text-[11px] font-extrabold tabular-nums">
+                                  <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                                    H:{ag.hadirCount}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+                                    S:{ag.sakitCount}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+                                    I:{ag.izinCount}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
+                                    A:{ag.alpaCount}
+                                  </span>
+                                </div>
+                                <div className="mt-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setAbsensiClass(ag.kelas);
+                                      setSelectedAgendaId(ag.id);
+                                      setSubTab('absensi');
+                                      setAbsensiMode('input');
+                                    }}
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wide transition-all cursor-pointer ${
+                                      isAgendaAttended(ag.id, ag.kelas, ag.tanggal)
+                                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100'
+                                    }`}
+                                    title="Buka absensi untuk pertemuan agenda ini"
+                                  >
+                                    <ClipboardCheck size={11} />
+                                    {isAgendaAttended(ag.id, ag.kelas, ag.tanggal) ? 'Ubah Absensi' : 'Isi Absensi'}
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                Agenda Non-Kelas
                               </span>
-                              <span className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
-                                S:{ag.sakitCount}
-                              </span>
-                              <span className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
-                                I:{ag.izinCount}
-                              </span>
-                              <span className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
-                                A:{ag.alpaCount}
-                              </span>
-                            </div>
-                            <div className="mt-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setAbsensiClass(ag.kelas);
-                                  setSelectedAgendaId(ag.id);
-                                  setSubTab('absensi');
-                                  setAbsensiMode('input');
-                                }}
-                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wide transition-all cursor-pointer ${
-                                  isAgendaAttended(ag.id, ag.kelas, ag.tanggal)
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
-                                    : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100'
-                                }`}
-                                title="Buka absensi untuk pertemuan agenda ini"
-                              >
-                                <ClipboardCheck size={11} />
-                                {isAgendaAttended(ag.id, ag.kelas, ag.tanggal) ? 'Ubah Absensi' : 'Isi Absensi'}
-                              </button>
-                            </div>
+                            )}
                           </td>
                           <td className="p-4 text-right whitespace-nowrap">
                             <button
@@ -3000,6 +3029,7 @@ export default function AdminAdministrasi({
                 onClick={() => {
                   setAbsensiSubView('agenda_hari_ini');
                   setSelectedAgendaId('');
+                  setSelectedRekapKelas('');
                 }}
                 className={`px-4 py-2 rounded-xl text-xs font-black tracking-wide uppercase transition-all cursor-pointer ${
                   absensiSubView === 'agenda_hari_ini'
@@ -3007,13 +3037,14 @@ export default function AdminAdministrasi({
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                AGENDA HARI INI
+                ABSENSI HARI INI
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setAbsensiSubView('tanggungan');
                   setSelectedAgendaId('');
+                  setSelectedRekapKelas('');
                 }}
                 className={`px-4 py-2 rounded-xl text-xs font-black tracking-wide uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
                   absensiSubView === 'tanggungan'
@@ -3022,9 +3053,9 @@ export default function AdminAdministrasi({
                 }`}
               >
                 <span>TANGGUNGAN ABSENSI</span>
-                {tanggunganAgendas.length > 0 && (
+                {tanggunganClassesList.length > 0 && (
                   <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-extrabold tabular-nums">
-                    {tanggunganAgendas.length}
+                    {tanggunganClassesList.length}
                   </span>
                 )}
               </button>
@@ -3033,6 +3064,7 @@ export default function AdminAdministrasi({
                 onClick={() => {
                   setAbsensiSubView('rekap');
                   setSelectedAgendaId('');
+                  setSelectedRekapKelas('');
                 }}
                 className={`px-4 py-2 rounded-xl text-xs font-black tracking-wide uppercase transition-all cursor-pointer ${
                   absensiSubView === 'rekap'
@@ -3045,164 +3077,257 @@ export default function AdminAdministrasi({
             </div>
 
             {/* If an agenda is selected for input checklist, show checklist view with back button */}
-            {selectedAgenda ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3 bg-white/40 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-white/40 dark:border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAgendaId('')}
-                    className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-extrabold text-slate-700 dark:text-slate-200 inline-flex items-center gap-1.5 cursor-pointer"
-                  >
-                    ← Kembali ke Pilih Agenda
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={setAllPresent}
-                      className="px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-extrabold hover:bg-emerald-100 cursor-pointer"
-                    >
-                      Semua Hadir
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isSavingAbsensi}
-                      onClick={handleSaveAbsensi}
-                      className="px-4 py-1.5 rounded-xl bg-brand hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
-                    >
-                      <Save size={14} />
-                      {isSavingAbsensi ? 'Menyimpan...' : 'Simpan Absensi'}
-                    </button>
-                  </div>
-                </div>
+            {selectedAgenda ? (() => {
+              const activeStudents = studentsByClass[selectedAgenda.kelas] || [];
+              const maleCount = activeStudents.filter((s) =>
+                (s.jenisKelamin || '').toUpperCase().startsWith('L')
+              ).length;
+              const femaleCount = activeStudents.length - maleCount;
+              const sameContextAgendas =
+                absensiSubView === 'agenda_hari_ini'
+                  ? absensiDateAgendas.filter((a) => a.kelas === selectedAgenda.kelas)
+                  : absensiSubView === 'tanggungan'
+                  ? tanggunganAgendas.filter((a) => a.kelas === selectedAgenda.kelas)
+                  : classAgendas;
 
-                {/* Agenda Context Card */}
-                <div className="admin-glass-card rounded-2xl p-4 md:p-5 border-l-4 border-l-brand space-y-3">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-3 py-1 rounded-xl bg-brand text-white text-xs font-black uppercase">
-                        KELAS {selectedAgenda.kelas} · PERTEMUAN KE-{selectedAgenda.pertemuanKe}
+              return (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 bg-white/40 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-white/40 dark:border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAgendaId('')}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-extrabold text-slate-700 dark:text-slate-200 inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      ← Kembali ke Kartu Kelas
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={setAllPresent}
+                        className="px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-extrabold hover:bg-emerald-100 cursor-pointer"
+                      >
+                        Semua Hadir
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isSavingAbsensi}
+                        onClick={handleSaveAbsensi}
+                        className="px-4 py-1.5 rounded-xl bg-brand hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+                      >
+                        <Save size={14} />
+                        {isSavingAbsensi ? 'Menyimpan...' : 'Simpan Absensi'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Session switcher if this class has multiple recorded agendas in the current view */}
+                  {sameContextAgendas.length > 1 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Sesi Agenda Kelas {selectedAgenda.kelas}:
                       </span>
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                        <Calendar size={13} className="text-slate-400" />
-                        {selectedAgenda.hari || getHariFromDate(selectedAgenda.tanggal)}, {selectedAgenda.tanggal}
-                      </span>
-                      {selectedAgenda.jenisKegiatan && (
-                        <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-black uppercase">
-                          {selectedAgenda.jenisKegiatan}
+                      {sameContextAgendas.map((ag) => {
+                        const isAtt = isAgendaAttended(ag.id, ag.kelas, ag.tanggal);
+                        const active = ag.id === selectedAgenda.id;
+                        return (
+                          <button
+                            key={ag.id}
+                            type="button"
+                            onClick={() => {
+                              setAbsensiClass(ag.kelas);
+                              setSelectedAgendaId(ag.id);
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                              active
+                                ? 'bg-brand text-white border-brand shadow-sm'
+                                : 'bg-white/60 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-brand/50'
+                            }`}
+                          >
+                            <span>{ag.tanggal} · Jam {ag.jamKe || '1'}</span>
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                isAtt ? 'bg-emerald-400' : 'bg-amber-400'
+                              }`}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Agenda Context Card */}
+                  <div className="admin-glass-card rounded-2xl p-4 md:p-5 border-l-4 border-l-brand space-y-3">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-3 py-1 rounded-xl bg-brand text-white text-xs font-black uppercase">
+                          KELAS {selectedAgenda.kelas} · PERTEMUAN KE-{selectedAgenda.pertemuanKe}
                         </span>
-                      )}
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                          <Calendar size={13} className="text-slate-400" />
+                          {selectedAgenda.hari || getHariFromDate(selectedAgenda.tanggal)}, {selectedAgenda.tanggal}
+                        </span>
+                        {selectedAgenda.jamKe && (
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-[11px] font-bold">
+                            Jam {selectedAgenda.jamKe}
+                          </span>
+                        )}
+                        {selectedAgenda.jenisKegiatan && (
+                          <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-black uppercase">
+                            {selectedAgenda.jenisKegiatan}
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${
+                          absensiDocExists
+                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                        }`}
+                      >
+                        {absensiDocExists ? '● Absensi Tersimpan' : '○ Belum Diabsen'}
+                      </span>
                     </div>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${
-                        absensiDocExists
-                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                          : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                      }`}
-                    >
-                      {absensiDocExists ? '● Absensi Tersimpan' : '○ Belum Diabsen'}
-                    </span>
+
+                    <div className="text-xs space-y-1">
+                      <span className="block text-[10px] font-extrabold uppercase text-slate-400">Materi / Topik</span>
+                      <p className="text-sm font-extrabold text-slate-900 dark:text-white">{selectedAgenda.materi}</p>
+                      {selectedAgenda.kegiatan && <p className="text-xs text-slate-600 dark:text-slate-300">{selectedAgenda.kegiatan}</p>}
+                    </div>
                   </div>
 
-                  <div className="text-xs space-y-1">
-                    <span className="block text-[10px] font-extrabold uppercase text-slate-400">Materi / Topik</span>
-                    <p className="text-sm font-extrabold text-slate-900 dark:text-white">{selectedAgenda.materi}</p>
-                    {selectedAgenda.kegiatan && <p className="text-xs text-slate-600 dark:text-slate-300">{selectedAgenda.kegiatan}</p>}
-                  </div>
-                </div>
-
-                {/* Checklist Table */}
-                <div className="admin-glass-card rounded-2xl overflow-hidden">
-                  <div className="px-5 py-3 bg-white/30 dark:bg-white/5 border-b border-white/40 dark:border-white/10 flex items-center justify-between text-xs font-bold">
-                    <span>Presensi Siswa Kelas {selectedAgenda.kelas} · {studentsByClass[selectedAgenda.kelas]?.length || 0} Siswa</span>
-                    <div className="flex items-center gap-2 tabular-nums">
-                      <span className="text-emerald-700 dark:text-emerald-300">H:{absensiDraftCounts.H}</span>
-                      <span className="text-amber-700 dark:text-amber-300">S:{absensiDraftCounts.S}</span>
-                      <span className="text-blue-700 dark:text-blue-300">I:{absensiDraftCounts.I}</span>
-                      <span className="text-rose-700 dark:text-rose-300">A:{absensiDraftCounts.A}</span>
+                  {/* Checklist Table with Distinct Male/Female Colors */}
+                  <div className="admin-glass-card rounded-2xl overflow-hidden">
+                    <div className="px-5 py-3 bg-white/30 dark:bg-white/5 border-b border-white/40 dark:border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span>Presensi Siswa Kelas {selectedAgenda.kelas} · {activeStudents.length} Siswa</span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 text-[11px] font-black">
+                          Laki-laki: {maleCount}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 text-[11px] font-black">
+                          Perempuan: {femaleCount}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 tabular-nums">
+                        <span className="text-emerald-700 dark:text-emerald-300">H:{absensiDraftCounts.H}</span>
+                        <span className="text-amber-700 dark:text-amber-300">S:{absensiDraftCounts.S}</span>
+                        <span className="text-blue-700 dark:text-blue-300">I:{absensiDraftCounts.I}</span>
+                        <span className="text-rose-700 dark:text-rose-300">A:{absensiDraftCounts.A}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[700px]">
-                      <thead>
-                        <tr className="bg-white/20 dark:bg-white/5 border-b border-white/30 dark:border-white/10 text-slate-500 dark:text-slate-400 text-[10px] uppercase font-extrabold tracking-widest">
-                          <th className="p-3 w-14 text-center">No</th>
-                          <th className="p-3">Nama Siswa &amp; NIS</th>
-                          <th className="p-3 text-center w-56">Status Kehadiran</th>
-                          <th className="p-3">Catatan / Keterangan</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {studentsByClass[selectedAgenda.kelas]?.length > 0 ? (
-                          studentsByClass[selectedAgenda.kelas].map((st, idx) => {
-                            const entry = absensiDraft[st.id] || { status: 'H', catatan: '' };
-                            return (
-                              <tr key={st.id} className="hover:bg-blue-50/20 dark:hover:bg-slate-800/40 transition-colors">
-                                <td className="p-3 text-center text-xs font-bold text-slate-500 tabular-nums">{idx + 1}</td>
-                                <td className="p-3">
-                                  <div className="text-xs font-extrabold text-slate-900 dark:text-white">{st.nama}</div>
-                                  <div className="text-[11px] text-slate-500 font-mono">NIS: {st.nis || '-'}</div>
-                                </td>
-                                <td className="p-3 text-center">
-                                  <div className="inline-flex p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                                    {(['H', 'S', 'I', 'A'] as AttendanceStatus[]).map((stKey) => (
-                                      <button
-                                        key={stKey}
-                                        type="button"
-                                        onClick={() => setStudentAttendance(st.id, stKey)}
-                                        className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                                          entry.status === stKey
-                                            ? stKey === 'H' ? 'bg-emerald-600 text-white shadow-xs'
-                                              : stKey === 'S' ? 'bg-amber-600 text-white shadow-xs'
-                                              : stKey === 'I' ? 'bg-blue-600 text-white shadow-xs'
-                                              : 'bg-rose-600 text-white shadow-xs'
-                                            : 'text-slate-600 dark:text-slate-300 hover:bg-white/50'
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse min-w-[700px]">
+                        <thead>
+                          <tr className="bg-white/20 dark:bg-white/5 border-b border-white/30 dark:border-white/10 text-slate-500 dark:text-slate-400 text-[10px] uppercase font-extrabold tracking-widest">
+                            <th className="p-3 w-14 text-center">No</th>
+                            <th className="p-3">Nama Siswa &amp; Jenis Kelamin</th>
+                            <th className="p-3 text-center w-56">Status Kehadiran</th>
+                            <th className="p-3">Catatan / Keterangan</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {activeStudents.length > 0 ? (
+                            activeStudents.map((st, idx) => {
+                              const entry = absensiDraft[st.id] || { status: 'H', catatan: '' };
+                              const isMale = (st.jenisKelamin || '').toUpperCase().startsWith('L');
+                              return (
+                                <tr
+                                  key={st.id}
+                                  className={`transition-colors border-l-4 ${
+                                    isMale
+                                      ? 'border-l-blue-500 bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-100/50 dark:hover:bg-blue-950/35'
+                                      : 'border-l-rose-500 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-100/50 dark:hover:bg-rose-950/35'
+                                  }`}
+                                >
+                                  <td className="p-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 tabular-nums">
+                                    {idx + 1}
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span
+                                        className={`text-xs font-extrabold ${
+                                          isMale
+                                            ? 'text-blue-900 dark:text-blue-200'
+                                            : 'text-rose-800 dark:text-rose-200'
                                         }`}
                                       >
-                                        {stKey}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </td>
-                                <td className="p-3">
-                                  <input
-                                    type="text"
-                                    value={entry.catatan || ''}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setAbsensiDraft((prev) => ({
-                                        ...prev,
-                                        [st.id]: { ...prev[st.id], catatan: val },
-                                      }));
-                                    }}
-                                    placeholder="Catatan khusus..."
-                                    className="w-full px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs font-medium"
-                                  />
-                                </td>
-                              </tr>
-                            );
-                          })
-                        ) : (
-                          <tr>
-                            <td colSpan={4} className="p-8 text-center text-slate-400 text-xs font-semibold">
-                              Tidak ada data siswa terdaftar di Kelas {selectedAgenda.kelas}. Silakan tambahkan siswa di menu Siswa &amp; Kelas.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                                        {st.nama}
+                                      </span>
+                                      <span
+                                        className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase border ${
+                                          isMale
+                                            ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/70 dark:text-blue-300 dark:border-blue-700/60'
+                                            : 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/70 dark:text-rose-300 dark:border-rose-700/60'
+                                        }`}
+                                      >
+                                        {isMale ? 'L · Laki-laki' : 'P · Perempuan'}
+                                      </span>
+                                    </div>
+                                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                                      NIS: {st.nis || '-'}
+                                    </div>
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    <div className="inline-flex p-0.5 rounded-xl bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                      {(['H', 'S', 'I', 'A'] as AttendanceStatus[]).map((stKey) => (
+                                        <button
+                                          key={stKey}
+                                          type="button"
+                                          onClick={() => setStudentAttendance(st.id, stKey)}
+                                          className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                                            entry.status === stKey
+                                              ? stKey === 'H' ? 'bg-emerald-600 text-white shadow-xs'
+                                                : stKey === 'S' ? 'bg-amber-600 text-white shadow-xs'
+                                                : stKey === 'I' ? 'bg-blue-600 text-white shadow-xs'
+                                                : 'bg-rose-600 text-white shadow-xs'
+                                              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                          }`}
+                                        >
+                                          {stKey}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </td>
+                                  <td className="p-3">
+                                    <input
+                                      type="text"
+                                      value={entry.catatan || ''}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setAbsensiDraft((prev) => ({
+                                          ...prev,
+                                          [st.id]: { ...prev[st.id], catatan: val },
+                                        }));
+                                      }}
+                                      placeholder="Catatan khusus..."
+                                      className="w-full px-3 py-1.5 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-medium"
+                                    />
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          ) : (
+                            <tr>
+                              <td colSpan={4} className="p-8 text-center text-slate-400 text-xs font-semibold">
+                                Tidak ada data siswa terdaftar di Kelas {selectedAgenda.kelas}. Silakan tambahkan siswa di menu Siswa &amp; Kelas.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : absensiSubView === 'agenda_hari_ini' ? (
+              );
+            })() : absensiSubView === 'agenda_hari_ini' ? (
               <div className="space-y-5">
-                {/* Header: Pilih Agenda Mengajar + Date Picker */}
+                {/* Header: Absensi Hari Ini + Date Picker */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
-                      Pilih Agenda Mengajar
+                      Absensi Hari Ini
                     </h3>
                     <p className="text-xs font-bold text-brand dark:text-blue-400 uppercase tracking-wide mt-0.5">
-                      {agendaSelectedHari.toUpperCase()}, {new Date(agendaSelectedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {agendaSelectedHari.toUpperCase()}, {new Date(agendaSelectedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} · Hanya kelas yang sudah tercatat di agenda tanggal ini
                     </p>
                   </div>
 
@@ -3215,7 +3340,7 @@ export default function AdminAdministrasi({
                         onChange={(e) => {
                           if (e.target.value) setAgendaSelectedDate(e.target.value);
                         }}
-                        aria-label="Pilih tanggal agenda absensi"
+                        aria-label="Pilih tanggal absensi hari ini"
                         className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none tabular-nums"
                       />
                     </div>
@@ -3231,26 +3356,35 @@ export default function AdminAdministrasi({
                   </div>
                 </div>
 
-                {/* Grid of Agenda Cards */}
-                {absensiDateAgendas.length > 0 ? (
+                {/* Grid of Class Cards (1 card per class recorded in today's agenda) */}
+                {absensiDateClasses.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {absensiDateAgendas.map((ag, idx) => {
-                      const attended = isAgendaAttended(ag.id, ag.kelas, ag.tanggal);
+                    {absensiDateClasses.map((cls, idx) => {
+                      const classDayAgendas = absensiDateAgendas.filter((a) => a.kelas === cls);
+                      const pendingAgenda = classDayAgendas.find(
+                        (ag) => !isAgendaAttended(ag.id, ag.kelas, ag.tanggal)
+                      );
+                      const primaryAgenda = pendingAgenda || classDayAgendas[0];
+                      const allDone = !pendingAgenda;
                       const cardTheme = getAgendaCardTheme(idx);
+                      const studentCount = studentsByClass[cls]?.length || 0;
+
                       return (
                         <div
-                          key={ag.id}
+                          key={cls}
                           onClick={() => {
-                            setAbsensiClass(ag.kelas);
-                            setSelectedAgendaId(ag.id);
+                            if (primaryAgenda) {
+                              setAbsensiClass(cls);
+                              setSelectedAgendaId(primaryAgenda.id);
+                            }
                           }}
                           className={`${cardTheme} rounded-2xl p-5 text-white relative overflow-hidden flex flex-col justify-between gap-5 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl`}
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="px-3 py-1 rounded-xl bg-white/20 backdrop-blur-xs text-xl font-black uppercase tracking-tight">
-                              {ag.kelas ? `KELAS ${ag.kelas}` : 'UMUM'}
+                            <span className="px-3.5 py-1.5 rounded-xl bg-white/20 backdrop-blur-xs text-xl font-black uppercase tracking-tight">
+                              {cls}
                             </span>
-                            {attended ? (
+                            {allDone ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-400/30 border border-emerald-200/40 text-[10px] font-black uppercase tracking-wider">
                                 <Check size={11} /> SELESAI
                               </span>
@@ -3263,17 +3397,32 @@ export default function AdminAdministrasi({
 
                           <div className="space-y-1.5">
                             <div className="flex flex-wrap items-center gap-2 text-[11px] font-black text-white/90">
-                              <span className="px-2 py-0.5 rounded bg-white/20">JAM {ag.jamKe || '1'}</span>
-                              <span className="px-2 py-0.5 rounded bg-white/20 uppercase">{ag.jenisKegiatan || 'KBM'}</span>
+                              <span className="px-2 py-0.5 rounded bg-white/20">
+                                JAM {primaryAgenda?.jamKe || '1'}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-white/20 uppercase">
+                                {primaryAgenda?.jenisKegiatan || 'KBM'}
+                              </span>
+                              {classDayAgendas.length > 1 && (
+                                <span className="px-2 py-0.5 rounded bg-white/25">
+                                  {classDayAgendas.length} SESI
+                                </span>
+                              )}
                             </div>
                             <h4 className="text-base font-extrabold text-white leading-snug line-clamp-2">
-                              {ag.materi}
+                              {primaryAgenda?.materi || `Kelas ${cls}`}
                             </h4>
                           </div>
 
                           <div className="border-t border-white/15 pt-3 flex items-center justify-between text-xs font-black uppercase tracking-wide">
-                            <span className="text-white/80">ISI ABSENSI</span>
-                            <ArrowRight size={15} />
+                            <span className="text-white/90 inline-flex items-center gap-1.5">
+                              {allDone ? 'UBAH / LIHAT ABSENSI' : 'ISI ABSENSI'}
+                              <ArrowRight size={14} />
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-white/85">
+                              <Users size={13} />
+                              {studentCount}
+                            </span>
                           </div>
                         </div>
                       );
@@ -3286,10 +3435,10 @@ export default function AdminAdministrasi({
                     </div>
                     <div>
                       <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                        Belum Ada Agenda Mengajar Tercatat pada Tanggal {agendaSelectedDate}
+                        Belum Ada Kelas Tercatat di Agenda Tanggal {agendaSelectedDate}
                       </h4>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Silakan catat agenda harian atau pilih tanggal lain yang memiliki agenda mengajar.
+                        Catat agenda harian kelas terlebih dahulu atau pilih tanggal lain yang sudah memiliki agenda.
                       </p>
                     </div>
                     <button
@@ -3309,79 +3458,433 @@ export default function AdminAdministrasi({
             ) : absensiSubView === 'tanggungan' ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                    Daftar Tanggungan Absensi Belum Diisi ({tanggunganAgendas.length})
-                  </h3>
-                </div>
-
-                <div className="admin-glass-card rounded-2xl overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[700px]">
-                      <thead>
-                        <tr className="bg-white/30 dark:bg-white/5 border-b border-white/40 dark:border-white/10 text-slate-500 text-[10px] uppercase font-extrabold tracking-widest">
-                          <th className="p-4">Tanggal &amp; Jam</th>
-                          <th className="p-4">Kelas</th>
-                          <th className="p-4">Materi &amp; Kegiatan</th>
-                          <th className="p-4 text-right">Aksi</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {tanggunganAgendas.length > 0 ? (
-                          tanggunganAgendas.map((ag) => (
-                            <tr key={ag.id} className="hover:bg-blue-50/30 transition-colors align-top">
-                              <td className="p-4 text-xs font-bold text-slate-800 dark:text-slate-200 tabular-nums whitespace-nowrap">
-                                <div>{ag.tanggal}</div>
-                                <div className="text-[11px] text-slate-500">Jam {ag.jamKe || '-'}</div>
-                              </td>
-                              <td className="p-4 whitespace-nowrap">
-                                <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-black">
-                                  {ag.kelas}
-                                </span>
-                              </td>
-                              <td className="p-4 max-w-md">
-                                <div className="text-sm font-extrabold text-slate-900 dark:text-white">{ag.materi}</div>
-                                <div className="text-xs text-slate-500 mt-0.5">{ag.jenisKegiatan || 'KBM'}</div>
-                              </td>
-                              <td className="p-4 text-right whitespace-nowrap">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setAbsensiClass(ag.kelas);
-                                    setSelectedAgendaId(ag.id);
-                                  }}
-                                  className="px-3.5 py-2 rounded-xl bg-brand text-white text-xs font-extrabold inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
-                                >
-                                  <ClipboardCheck size={13} />
-                                  Isi Absensi Sekarang
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={4} className="p-12 text-center text-slate-400 text-sm font-semibold">
-                              Luar biasa! Tidak ada tanggungan absensi. Semua agenda telah terisi presensinya.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                      Kartu Kelas Tanggungan Absensi ({tanggunganClassesList.length} Kelas)
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Kelas yang sudah tercatat di agenda namun absensi siswanya belum diisi. Klik kartu kelas untuk menyelesaikan absensi.
+                    </p>
                   </div>
                 </div>
+
+                {tanggunganClassesList.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {tanggunganClassesList.map((cls, idx) => {
+                      const classTanggungan = tanggunganAgendas.filter((a) => a.kelas === cls);
+                      const cardTheme = getAgendaCardTheme(idx);
+                      const studentCount = studentsByClass[cls]?.length || 0;
+                      return (
+                        <div
+                          key={cls}
+                          onClick={() => {
+                            if (classTanggungan.length > 0) {
+                              setAbsensiClass(cls);
+                              setSelectedAgendaId(classTanggungan[0].id);
+                            }
+                          }}
+                          className={`${cardTheme} rounded-2xl p-5 text-white relative overflow-hidden flex flex-col justify-between gap-5 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="px-3.5 py-1.5 rounded-xl bg-white/20 backdrop-blur-xs text-xl font-black uppercase tracking-tight">
+                              KELAS {cls}
+                            </span>
+                            <span className="px-2.5 py-1 rounded-full bg-rose-500 text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
+                              {classTanggungan.length} TANGGUNGAN
+                            </span>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-white/90">
+                              <span className="px-2 py-0.5 rounded bg-white/20">
+                                {classTanggungan[0]?.tanggal}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-white/20">
+                                Jam {classTanggungan[0]?.jamKe || '1'}
+                              </span>
+                            </div>
+                            <h4 className="text-base font-extrabold text-white leading-snug line-clamp-2">
+                              {classTanggungan[0]?.materi || 'Pertemuan Pembelajaran'}
+                            </h4>
+                          </div>
+
+                          <div className="border-t border-white/15 pt-3 flex items-center justify-between text-xs font-black uppercase tracking-wide">
+                            <span className="text-white/95 inline-flex items-center gap-1.5">
+                              SELESAIKAN ABSENSI
+                              <ArrowRight size={14} />
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-white/85">
+                              <Users size={13} />
+                              {studentCount}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="admin-glass-card rounded-2xl p-12 text-center text-slate-400 text-sm font-semibold">
+                    Luar biasa! Tidak ada tanggungan absensi. Semua agenda kelas telah terisi presensinya.
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="admin-glass-card rounded-2xl p-8 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                    Rekapitulasi Kehadiran Siswa Semester {activeSemester} (TA {activeTahunPelajaran})
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-500">
-                  Rekapitulasi kehadiran dihitung otomatis dari seluruh presensi agenda harian yang tercatat di semester ini.
-                </p>
-                <div className="admin-glass-card rounded-2xl p-6 text-center text-slate-500 text-xs font-semibold">
-                  Gunakan menu Rekap Semester atau Ekspor Rekap Absensi pada tab Rekapitulasi di bawah untuk mengunduh laporan rekap kehadiran lengkap.
-                </div>
+              /* REKAPITULASI ABSENSI */
+              <div className="space-y-5">
+                {!selectedRekapKelas ? (
+                  <>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                          Rekapitulasi Absensi Semua Kelas (Semester {activeSemester})
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          Pilih kartu kelas untuk melihat daftar rekap semua absensi yang telah diisi guru.
+                        </p>
+                      </div>
+                    </div>
+
+                    {classOptions.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {classOptions.map((cls, idx) => {
+                          const cardTheme = getAgendaCardTheme(idx);
+                          const count = studentsByClass[cls]?.length || 0;
+                          const classFilledRecords = absensiList.filter((a) => a.kelas === cls);
+
+                          return (
+                            <div
+                              key={cls}
+                              onClick={() => setSelectedRekapKelas(cls)}
+                              className={`${cardTheme} rounded-2xl p-5 text-white relative overflow-hidden flex flex-col justify-between gap-5 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="px-3.5 py-1.5 rounded-xl bg-white/25 backdrop-blur-xs text-xl font-black uppercase tracking-tight">
+                                  KELAS {cls}
+                                </span>
+                                <span className="px-2.5 py-1 rounded-full bg-white/20 text-[10px] font-black uppercase tracking-wider">
+                                  {count} SISWA
+                                </span>
+                              </div>
+
+                              <div className="space-y-1">
+                                <div className="text-sm font-black text-white">
+                                  {classFilledRecords.length} Pertemuan Terisi
+                                </div>
+                                <div className="text-xs font-medium text-white/85">
+                                  Klik untuk melihat daftar rekap absen lengkap
+                                </div>
+                              </div>
+
+                              <div className="border-t border-white/15 pt-3 flex items-center justify-between text-xs font-black uppercase tracking-wide">
+                                <span className="text-white/95">BUKA REKAP ABSEN</span>
+                                <ChevronRight size={15} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="admin-glass-card rounded-2xl p-12 text-center text-slate-400 text-sm font-semibold">
+                        Belum ada kelas terdaftar.
+                      </div>
+                    )}
+                  </>
+                ) : (() => {
+                  const rekapStudents = studentsByClass[selectedRekapKelas] || [];
+                  const classFilledAbsensi = absensiList
+                    .filter((a) => a.kelas === selectedRekapKelas)
+                    .slice()
+                    .sort((a, b) => (a.tanggal || '').localeCompare(b.tanggal || ''));
+
+                  const handleExportKelasRekapCsv = () => {
+                    const headers = [
+                      'No',
+                      'NIS',
+                      'Nama Siswa',
+                      'L/P',
+                      ...classFilledAbsensi.map(
+                        (rec, i) => `P${rec.pertemuanKe || i + 1} (${rec.tanggal})`
+                      ),
+                      'Hadir (H)',
+                      'Sakit (S)',
+                      'Izin (I)',
+                      'Alpa (A)',
+                      '% Hadir',
+                    ];
+                    const rows = rekapStudents.map((s, idx) => {
+                      let H = 0, S = 0, I = 0, A = 0;
+                      const sessionStatuses = classFilledAbsensi.map((rec) => {
+                        const st = rec.entries?.[s.id]?.status || '-';
+                        if (st === 'H') H++;
+                        else if (st === 'S') S++;
+                        else if (st === 'I') I++;
+                        else if (st === 'A') A++;
+                        return st;
+                      });
+                      const total = H + S + I + A;
+                      const pct = total > 0 ? `${Math.round((H / total) * 100)}%` : '-';
+                      const isMale = (s.jenisKelamin || '').toUpperCase().startsWith('L');
+                      return [
+                        idx + 1,
+                        s.nis || '-',
+                        s.nama,
+                        isMale ? 'L' : 'P',
+                        ...sessionStatuses,
+                        H,
+                        S,
+                        I,
+                        A,
+                        pct,
+                      ];
+                    });
+                    downloadCsv(
+                      `Rekap_Absensi_Kelas_${selectedRekapKelas}_${slugifyTermPart(activeTahunPelajaran)}_${activeSemester}.csv`,
+                      headers,
+                      rows
+                    );
+                  };
+
+                  return (
+                    <div className="space-y-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3 bg-white/40 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-white/40 dark:border-white/10">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRekapKelas('')}
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-extrabold text-slate-700 dark:text-slate-200 inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          ← Kembali ke Semua Kartu Kelas
+                        </button>
+                        <div className="flex items-center gap-2">
+                          <span className="px-3 py-1 rounded-xl bg-brand/10 dark:bg-blue-950/60 text-brand dark:text-blue-300 text-xs font-black uppercase">
+                            Kelas {selectedRekapKelas} · {classFilledAbsensi.length} Pertemuan Terisi
+                          </span>
+                          {rekapStudents.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleExportKelasRekapCsv}
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                            >
+                              <Download size={13} />
+                              Export CSV
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Riwayat Pertemuan yang Sudah Diabsen Guru */}
+                      <div className="admin-glass-card rounded-2xl overflow-hidden">
+                        <div className="px-5 py-3.5 bg-white/30 dark:bg-white/5 border-b border-white/40 dark:border-white/10 flex items-center justify-between">
+                          <h4 className="text-xs md:text-sm font-black uppercase tracking-wide text-slate-900 dark:text-white">
+                            Daftar Pertemuan Absensi yang Telah Diisi Guru ({classFilledAbsensi.length})
+                          </h4>
+                        </div>
+                        {classFilledAbsensi.length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[680px]">
+                              <thead>
+                                <tr className="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 text-[10px] uppercase font-extrabold tracking-widest text-slate-500 dark:text-slate-400">
+                                  <th className="p-3 w-12 text-center">No</th>
+                                  <th className="p-3">Tanggal &amp; Jam</th>
+                                  <th className="p-3">Pertemuan &amp; Materi</th>
+                                  <th className="p-3 text-center">Rekap (H / S / I / A)</th>
+                                  <th className="p-3 text-right">Aksi</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {classFilledAbsensi.map((rec, idx) => {
+                                  let H = 0, S = 0, I = 0, A = 0;
+                                  Object.values(rec.entries || {}).forEach((ent) => {
+                                    if (ent?.status === 'H') H++;
+                                    else if (ent?.status === 'S') S++;
+                                    else if (ent?.status === 'I') I++;
+                                    else if (ent?.status === 'A') A++;
+                                  });
+                                  return (
+                                    <tr key={rec.id} className="hover:bg-blue-50/30 dark:hover:bg-slate-800/40">
+                                      <td className="p-3 text-center text-xs font-bold text-slate-500 tabular-nums">{idx + 1}</td>
+                                      <td className="p-3 text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap tabular-nums">
+                                        {rec.tanggal} {rec.jamKe ? `· Jam ${rec.jamKe}` : ''}
+                                      </td>
+                                      <td className="p-3">
+                                        <div className="text-xs font-extrabold text-slate-900 dark:text-white">
+                                          Pertemuan ke-{rec.pertemuanKe || idx + 1}
+                                        </div>
+                                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                                          {rec.materi || '-'}
+                                        </div>
+                                      </td>
+                                      <td className="p-3 text-center whitespace-nowrap">
+                                        <div className="inline-flex items-center gap-1 text-[11px] font-extrabold tabular-nums">
+                                          <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">H:{H}</span>
+                                          <span className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">S:{S}</span>
+                                          <span className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">I:{I}</span>
+                                          <span className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">A:{A}</span>
+                                        </div>
+                                      </td>
+                                      <td className="p-3 text-right whitespace-nowrap">
+                                        {rec.agendaId && agendaList.some((ag) => ag.id === rec.agendaId) ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setAbsensiClass(selectedRekapKelas);
+                                              setSelectedAgendaId(rec.agendaId!);
+                                            }}
+                                            className="px-2.5 py-1 rounded-lg bg-brand/10 dark:bg-blue-950/60 text-brand dark:text-blue-300 text-[11px] font-extrabold hover:bg-brand/20 cursor-pointer"
+                                          >
+                                            Detail / Ubah
+                                          </button>
+                                        ) : (
+                                          <span className="text-[11px] text-slate-400">Tersimpan</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="p-8 text-center text-slate-400 text-xs font-semibold">
+                            Belum ada absensi yang diisi guru untuk Kelas {selectedRekapKelas} pada Semester {activeSemester}.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Matriks Rekap Kehadiran Seluruh Siswa Kelas Terpilih */}
+                      <div className="admin-glass-card rounded-2xl overflow-hidden">
+                        <div className="px-5 py-4 bg-white/30 dark:bg-white/5 border-b border-white/40 dark:border-white/10 flex flex-wrap items-center justify-between gap-2">
+                          <h4 className="text-xs md:text-sm font-black uppercase tracking-wide text-slate-900 dark:text-white">
+                            Rekapitulasi Kehadiran Per Siswa · Kelas {selectedRekapKelas}
+                          </h4>
+                          <span className="text-xs font-bold text-slate-500">
+                            {rekapStudents.length} Siswa
+                          </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse min-w-[760px]">
+                            <thead>
+                              <tr className="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 text-[10px] uppercase font-extrabold tracking-widest text-slate-500 dark:text-slate-400">
+                                <th className="p-3 w-12 text-center">No</th>
+                                <th className="p-3">NIS</th>
+                                <th className="p-3">Nama Siswa &amp; JK</th>
+                                {classFilledAbsensi.map((rec, i) => (
+                                  <th
+                                    key={rec.id}
+                                    className="p-2 text-center whitespace-nowrap"
+                                    title={`${rec.tanggal} - ${rec.materi || ''}`}
+                                  >
+                                    <div>P{rec.pertemuanKe || i + 1}</div>
+                                    <div className="text-[9px] font-normal text-slate-400">{rec.tanggal.slice(5)}</div>
+                                  </th>
+                                ))}
+                                <th className="p-3 text-center">H</th>
+                                <th className="p-3 text-center">S</th>
+                                <th className="p-3 text-center">I</th>
+                                <th className="p-3 text-center">A</th>
+                                <th className="p-3 text-center">% Hadir</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                              {rekapStudents.length > 0 ? (
+                                rekapStudents.map((s, idx) => {
+                                  let H = 0, S = 0, I = 0, A = 0;
+                                  classFilledAbsensi.forEach((rec) => {
+                                    const st = rec.entries?.[s.id]?.status;
+                                    if (st === 'H') H++;
+                                    else if (st === 'S') S++;
+                                    else if (st === 'I') I++;
+                                    else if (st === 'A') A++;
+                                  });
+                                  const total = H + S + I + A;
+                                  const pct = total > 0 ? Math.round((H / total) * 100) : 0;
+                                  const isMale = (s.jenisKelamin || '').toUpperCase().startsWith('L');
+
+                                  return (
+                                    <tr
+                                      key={s.id}
+                                      className={`border-l-4 transition-colors ${
+                                        isMale
+                                          ? 'border-l-blue-500 bg-blue-50/35 dark:bg-blue-950/15 hover:bg-blue-100/40 dark:hover:bg-blue-950/30'
+                                          : 'border-l-rose-500 bg-rose-50/35 dark:bg-rose-950/15 hover:bg-rose-100/40 dark:hover:bg-rose-950/30'
+                                      }`}
+                                    >
+                                      <td className="p-3 text-center text-xs font-bold text-slate-500 tabular-nums">{idx + 1}</td>
+                                      <td className="p-3 text-xs font-mono text-slate-500">{s.nis || '-'}</td>
+                                      <td className="p-3">
+                                        <div className="flex items-center gap-2">
+                                          <span
+                                            className={`text-sm font-extrabold ${
+                                              isMale
+                                                ? 'text-blue-900 dark:text-blue-200'
+                                                : 'text-rose-800 dark:text-rose-200'
+                                            }`}
+                                          >
+                                            {s.nama}
+                                          </span>
+                                          <span
+                                            className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                                              isMale
+                                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
+                                                : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                                            }`}
+                                          >
+                                            {isMale ? 'L' : 'P'}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      {classFilledAbsensi.map((rec) => {
+                                        const st = rec.entries?.[s.id]?.status;
+                                        return (
+                                          <td key={rec.id} className="p-2 text-center text-[11px] font-black tabular-nums">
+                                            {st ? (
+                                              <span
+                                                className={`inline-block w-6 py-0.5 rounded ${
+                                                  st === 'H'
+                                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                                    : st === 'S'
+                                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                                                    : st === 'I'
+                                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
+                                                    : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                                                }`}
+                                              >
+                                                {st}
+                                              </span>
+                                            ) : (
+                                              <span className="text-slate-300 dark:text-slate-600">-</span>
+                                            )}
+                                          </td>
+                                        );
+                                      })}
+                                      <td className="p-3 text-center font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{H}</td>
+                                      <td className="p-3 text-center font-bold text-amber-700 dark:text-amber-400 tabular-nums">{S}</td>
+                                      <td className="p-3 text-center font-bold text-blue-700 dark:text-blue-400 tabular-nums">{I}</td>
+                                      <td className="p-3 text-center font-bold text-rose-700 dark:text-rose-400 tabular-nums">{A}</td>
+                                      <td className="p-3 text-center">
+                                        <span className="px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-800 text-xs font-black text-slate-800 dark:text-slate-100 tabular-nums border border-slate-200 dark:border-slate-700">
+                                          {total > 0 ? `${pct}%` : '-'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              ) : (
+                                <tr>
+                                  <td
+                                    colSpan={8 + classFilledAbsensi.length}
+                                    className="p-8 text-center text-slate-400 text-xs font-semibold"
+                                  >
+                                    Tidak ada siswa di kelas {selectedRekapKelas}.
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -4313,10 +4816,6 @@ export default function AdminAdministrasi({
                         ) ||
                         jadwalList.find((j) => !j.isBreak && j.hari === nextHari);
 
-                      const att = agendaForm.kelas
-                        ? findAttendanceCounts(agendaForm.kelas, nextDate, matching?.id)
-                        : null;
-
                       setAgendaForm((prev) => ({
                         ...prev,
                         tanggal: nextDate,
@@ -4330,9 +4829,6 @@ export default function AdminAdministrasi({
                               waktuSelesai: matching.waktuSelesai,
                               mataPelajaran: matching.mataPelajaran || 'Informatika',
                             }
-                          : {}),
-                        ...(att
-                          ? { hadirCount: att.H, sakitCount: att.S, izinCount: att.I, alpaCount: att.A }
                           : {}),
                       }));
                     }}
@@ -4380,8 +4876,6 @@ export default function AdminAdministrasi({
                     const found = jadwalList.find((j) => j.id === jId);
                     if (found) {
                       const classCount = agendaList.filter((a) => a.kelas === found.kelas).length;
-                      const totalStudents = studentsByClass[found.kelas]?.length || 0;
-                      const att = findAttendanceCounts(found.kelas, agendaForm.tanggal, found.id);
                       setAgendaForm((prev) => ({
                         ...prev,
                         jadwalId: found.id,
@@ -4392,10 +4886,6 @@ export default function AdminAdministrasi({
                         waktuSelesai: found.waktuSelesai,
                         mataPelajaran: found.mataPelajaran || 'Informatika',
                         pertemuanKe: String(classCount + 1),
-                        hadirCount: att ? att.H : totalStudents,
-                        sakitCount: 0,
-                        izinCount: 0,
-                        alpaCount: 0,
                       }));
                     }
                   }}
@@ -4438,26 +4928,19 @@ export default function AdminAdministrasi({
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
-                  Kelas
+                  Kelas (Opsional untuk Agenda Tambahan)
                 </label>
                 {classOptions.length > 0 ? (
                   <select
                     value={agendaForm.kelas}
                     onChange={(e) => {
                       const nextKelas = e.target.value;
-                      const att = nextKelas ? findAttendanceCounts(nextKelas, agendaForm.tanggal) : null;
-                      const total = nextKelas ? (studentsByClass[nextKelas]?.length || 0) : 0;
                       setAgendaForm((prev) => ({
                         ...prev,
                         kelas: nextKelas,
-                        hadirCount: att ? att.H : total,
-                        sakitCount: att ? att.S : 0,
-                        izinCount: att ? att.I : 0,
-                        alpaCount: att ? att.A : 0,
                       }));
                     }}
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100"
-                    required
                   >
                     <option value="">-- Tanpa Kelas (Agenda Umum) --</option>
                     {classOptions.map((c) => (
@@ -4469,7 +4952,7 @@ export default function AdminAdministrasi({
                     type="text"
                     value={agendaForm.kelas}
                     onChange={(e) => setAgendaForm({ ...agendaForm, kelas: e.target.value })}
-                    placeholder="9H"
+                    placeholder="Kosongkan jika tanpa kelas..."
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold"
                   />
                 )}
@@ -4479,13 +4962,27 @@ export default function AdminAdministrasi({
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">
                   Jam Ke- / Jam Pukul
                 </label>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <input
                     type="text"
                     value={agendaForm.jamKe}
-                    onChange={(e) => setAgendaForm({ ...agendaForm, jamKe: e.target.value })}
+                    onChange={(e) => {
+                      const nextJam = e.target.value;
+                      const range = parseSlotRange(nextJam);
+                      const hasDigits = /\d/.test(nextJam) && range.from > 0;
+                      const dayName = getHariFromDate(agendaForm.tanggal);
+                      const times = hasDigits && nextJam.trim() !== '0'
+                        ? getSlotRangeTimes(dayName, range.from, range.to)
+                        : null;
+                      setAgendaForm((prev) => ({
+                        ...prev,
+                        jamKe: nextJam,
+                        ...(times ? { waktuMulai: times.mulai, waktuSelesai: times.selesai } : {}),
+                      }));
+                    }}
                     placeholder="0 atau 1-2"
-                    className="w-20 px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-center"
+                    className="w-24 px-2.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-center"
+                    title="Isi Jam ke- (contoh: 0, 1, 1-2) atau langsung atur jam pukul di kanan"
                   />
                   <input
                     type="time"
@@ -4540,55 +5037,6 @@ export default function AdminAdministrasi({
                   placeholder="Pendahuluan, praktik lab, diskusi, penutup..."
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm"
                 />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300">Ringkasan Kehadiran Siswa</label>
-                  {agendaForm.kelas && agendaForm.tanggal && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const att = findAttendanceCounts(agendaForm.kelas, agendaForm.tanggal);
-                        if (att) {
-                          setAgendaForm((prev) => ({
-                            ...prev,
-                            hadirCount: att.H,
-                            sakitCount: att.S,
-                            izinCount: att.I,
-                            alpaCount: att.A,
-                          }));
-                        } else {
-                          showNotice('info', 'Belum ada data absensi tersimpan untuk kelas & tanggal tersebut.');
-                        }
-                      }}
-                      className="text-[11px] font-bold text-brand dark:text-blue-400 hover:underline cursor-pointer"
-                    >
-                      Ambil dari Absensi Tanggal Ini
-                    </button>
-                  )}
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { key: 'hadirCount', label: 'Hadir' },
-                    { key: 'sakitCount', label: 'Sakit' },
-                    { key: 'izinCount', label: 'Izin' },
-                    { key: 'alpaCount', label: 'Alpa' },
-                  ].map((f) => (
-                    <div key={f.key}>
-                      <span className="block text-[10px] font-bold text-slate-500 mb-0.5">{f.label}</span>
-                      <input
-                        type="number"
-                        min={0}
-                        value={(agendaForm as any)[f.key]}
-                        onChange={(e) =>
-                          setAgendaForm({ ...agendaForm, [f.key]: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold"
-                      />
-                    </div>
-                  ))}
-                </div>
               </div>
 
               <div>
