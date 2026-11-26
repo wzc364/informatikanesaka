@@ -17,11 +17,24 @@ async function readJsonBody(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
+function extractSubPath(req) {
+  const qp = req.query?.__soalPath;
+  if (Array.isArray(qp) && qp.length > 0) {
+    return qp.join('/').replace(/^\/+|\/+$/g, '');
+  }
+  if (typeof qp === 'string' && qp.trim()) {
+    return qp.trim().replace(/^\/+|\/+$/g, '');
+  }
+  const rawUrl = String(req.url || '').split('?')[0];
+  return rawUrl.replace(/^\/api\/soal\/?/, '').replace(/^\/+|\/+$/g, '');
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method === 'OPTIONS') {
       return res.status(204).end();
     }
+
     let body = {};
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       try {
@@ -30,9 +43,9 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Format payload JSON tidak valid.' });
       }
     }
-    const slug = req.query?.slug;
-    const subPath = Array.isArray(slug) ? slug.join('/') : String(slug || '');
-    const { handleSoalApiRequest } = await import('../../server/soalMysql.mjs');
+
+    const subPath = extractSubPath(req);
+    const { handleSoalApiRequest } = await import('../server/soalMysql.mjs');
     const { status, payload } = await handleSoalApiRequest({
       method: req.method,
       subPath,
@@ -41,9 +54,11 @@ export default async function handler(req, res) {
     });
     return res.status(status).json(payload);
   } catch (err) {
-    console.error('Fatal error in /api/soal/*:', err);
+    console.error('Fatal error in /api/soal:', err);
     return res.status(500).json({
-      error: err?.message || 'Terjadi kesalahan internal pada API Kelola Soal.',
+      error:
+        err?.message ||
+        'Terjadi kesalahan internal pada API Kelola Soal. Periksa Environment Variables MySQL di Vercel.',
     });
   }
 }

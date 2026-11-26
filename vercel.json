@@ -6,9 +6,20 @@
     },
     "api/generate-questions.js": {
       "maxDuration": 60
+    },
+    "api/soal.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
+    {
+      "source": "/api/soal",
+      "destination": "/api/soal"
+    },
+    {
+      "source": "/api/soal/:path*",
+      "destination": "/api/soal?__soalPath=:path*"
+    },
     {
       "source": "/api/:path*",
       "destination": "/api/:path*"

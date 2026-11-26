@@ -1,10 +1,8 @@
 import crypto from 'crypto';
 import mysql from 'mysql2/promise';
 
-const TOKEN_SECRET =
-  process.env.SOAL_AUTH_SECRET ||
-  process.env.ADMIN_SESSION_SECRET ||
-  crypto.randomBytes(32).toString('hex');
+let cachedSigningSecret = '';
+const FALLBACK_MEMORY_SECRET = crypto.randomBytes(32).toString('hex');
 
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
 
@@ -557,15 +555,53 @@ async function saveClaimedPasscodeHash(hashValue) {
   }
 }
 
-function issueAdminToken() {
+async function getSigningSecret() {
+  const envSecret = String(
+    process.env.SOAL_AUTH_SECRET || process.env.ADMIN_SESSION_SECRET || ''
+  ).trim();
+  if (envSecret) return envSecret;
+  if (cachedSigningSecret) return cachedSigningSecret;
+
+  if (isMysqlConfigured()) {
+    try {
+      const activePool = await ensureSchema();
+      const [rows] = await activePool.execute(
+        'SELECT config_value FROM soal_admin_config WHERE config_key = ? LIMIT 1',
+        ['auth_signing_secret']
+      );
+      if (Array.isArray(rows) && rows.length > 0 && rows[0]?.config_value) {
+        cachedSigningSecret = String(rows[0].config_value);
+        return cachedSigningSecret;
+      }
+      const generated = crypto.randomBytes(32).toString('hex');
+      const now = new Date().toISOString();
+      await activePool.execute(
+        'INSERT IGNORE INTO soal_admin_config (config_key, config_value, updated_at) VALUES (?, ?, ?)',
+        ['auth_signing_secret', generated, now]
+      );
+      const [reRead] = await activePool.execute(
+        'SELECT config_value FROM soal_admin_config WHERE config_key = ? LIMIT 1',
+        ['auth_signing_secret']
+      );
+      cachedSigningSecret = String(reRead?.[0]?.config_value || generated);
+      return cachedSigningSecret;
+    } catch {
+      // Fall back to in-memory secret if DB unavailable
+    }
+  }
+  return FALLBACK_MEMORY_SECRET;
+}
+
+async function issueAdminToken() {
+  const secret = await getSigningSecret();
   const payload = Buffer.from(
     JSON.stringify({ role: 'admin', exp: Date.now() + TOKEN_TTL_MS })
   ).toString('base64url');
-  const sig = crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
   return `${payload}.${sig}`;
 }
 
-export function verifyAdminToken(authHeader) {
+export async function verifyAdminToken(authHeader) {
   if (!authHeader || typeof authHeader !== 'string') return false;
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
   if (!match) return false;
@@ -573,8 +609,9 @@ export function verifyAdminToken(authHeader) {
   const parts = token.split('.');
   if (parts.length !== 2) return false;
   const [payloadB64, sigB64] = parts;
+  const secret = await getSigningSecret();
   const expectedSig = crypto
-    .createHmac('sha256', TOKEN_SECRET)
+    .createHmac('sha256', secret)
     .update(payloadB64)
     .digest('base64url');
 
@@ -647,7 +684,7 @@ export async function handleSoalApiRequest({ method, subPath, body, authHeader }
         configured: isMysqlConfigured(),
         hasEnvPasscode: Boolean(envPasscode),
         hasClaimedPasscode: Boolean(claimedHash),
-        authenticated: verifyAdminToken(authHeader),
+        authenticated: await verifyAdminToken(authHeader),
       },
     };
   }
@@ -663,7 +700,7 @@ export async function handleSoalApiRequest({ method, subPath, body, authHeader }
       if (!safeEqualStrings(passcode, envPasscode)) {
         return { status: 401, payload: { error: 'Passcode admin tidak sesuai.' } };
       }
-      return { status: 200, payload: { token: issueAdminToken() } };
+      return { status: 200, payload: { token: await issueAdminToken() } };
     }
 
     const claimedHash = await getClaimedPasscodeHash();
@@ -680,7 +717,7 @@ export async function handleSoalApiRequest({ method, subPath, body, authHeader }
     if (!verifyPasscodeHash(passcode, claimedHash)) {
       return { status: 401, payload: { error: 'Passcode admin tidak sesuai.' } };
     }
-    return { status: 200, payload: { token: issueAdminToken() } };
+    return { status: 200, payload: { token: await issueAdminToken() } };
   }
 
   // First-run passcode claim (disabled automatically once ADMIN_PASSCODE env is set or hash claimed)
@@ -706,7 +743,7 @@ export async function handleSoalApiRequest({ method, subPath, body, authHeader }
     try {
       const hashed = hashPasscode(passcode);
       await saveClaimedPasscodeHash(hashed);
-      return { status: 201, payload: { token: issueAdminToken() } };
+      return { status: 201, payload: { token: await issueAdminToken() } };
     } catch (err) {
       const mapped = formatDbError(err);
       return { status: mapped.status, payload: { error: mapped.message, code: mapped.code } };
@@ -722,7 +759,7 @@ export async function handleSoalApiRequest({ method, subPath, body, authHeader }
           configured: false,
           connected: false,
           message:
-            'Koneksi MySQL (phpMyAdmin) belum dikonfigurasi pada Secrets / Environment Variables.',
+            'Koneksi MySQL (phpMyAdmin) belum dikonfigurasi pada Environment Variables (Vercel) / Secrets.',
         },
       };
     }
@@ -749,7 +786,7 @@ export async function handleSoalApiRequest({ method, subPath, body, authHeader }
           sets: [],
           questions: [],
           error:
-            'Penyimpanan Kelola Soal menggunakan MySQL (phpMyAdmin), namun Secrets MYSQL_HOST, MYSQL_USER, dan MYSQL_DATABASE belum diisi.',
+            'Penyimpanan Kelola Soal menggunakan MySQL (phpMyAdmin), namun Environment Variables MYSQL_HOST, MYSQL_USER, dan MYSQL_DATABASE belum terbaca di server.',
         },
       };
     }
@@ -785,7 +822,7 @@ export async function handleSoalApiRequest({ method, subPath, body, authHeader }
   }
 
   // All write operations require valid admin Bearer token
-  if (!verifyAdminToken(authHeader)) {
+  if (!(await verifyAdminToken(authHeader))) {
     return {
       status: 401,
       payload: {
