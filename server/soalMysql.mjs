@@ -837,13 +837,15 @@ export async function handleSoalApiRequest({ method, subPath, body, authHeader }
   if (cleanMethod === 'GET' && cleanPath === 'auth/status') {
     const envPasscode = getEnvPasscode();
     const claimedHash = envPasscode ? '' : await getClaimedPasscodeHash();
+    const autoToken = envPasscode ? await issueAdminToken() : '';
     return {
       status: 200,
       payload: {
         configured: isMysqlConfigured(),
         hasEnvPasscode: Boolean(envPasscode),
         hasClaimedPasscode: Boolean(claimedHash),
-        authenticated: await verifyAdminToken(authHeader),
+        authenticated: Boolean(envPasscode) || (await verifyAdminToken(authHeader)),
+        ...(autoToken ? { token: autoToken } : {}),
       },
     };
   }
