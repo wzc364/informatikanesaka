@@ -412,12 +412,26 @@ export default function AdminSoal({
     let cancelled = false;
     fetch('/api/soal/auth/status')
       .then((res) => res.json())
-      .then((data) => {
+      .then(async (data) => {
         if (cancelled || !data) return;
         setAuthStatus({
           hasEnvPasscode: Boolean(data.hasEnvPasscode),
           hasClaimedPasscode: Boolean(data.hasClaimedPasscode),
         });
+
+        if (data.hasEnvPasscode && !soalAdminToken) {
+          try {
+            const loginResp = await fetch('/api/soal/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ passcode: 'auto' }),
+            });
+            const loginData = await loginResp.json().catch(() => ({}));
+            if (loginResp.ok && loginData?.token) {
+              onSetSoalAdminToken?.(String(loginData.token));
+            }
+          } catch {}
+        }
       })
       .catch(() => {});
     return () => {

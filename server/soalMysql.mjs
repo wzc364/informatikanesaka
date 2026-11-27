@@ -323,7 +323,25 @@ async function callPhpBridge(action, payload = {}) {
     if (err?.name === 'AbortError') {
       throw new Error('Waktu koneksi ke PHP_SOAL_API_URL habis (timeout).');
     }
-    throw err;
+    const causeCode = err?.cause?.code || err?.code || '';
+    const causeMsg = err?.cause?.message || '';
+    if (
+      causeCode === 'DEPTH_ZERO_SELF_SIGNED_CERT' ||
+      causeCode === 'SELF_SIGNED_CERT_IN_CHAIN' ||
+      causeCode === 'ERR_TLS_CERT_ALTNAME_INVALID' ||
+      causeCode === 'CERT_HAS_EXPIRED' ||
+      causeCode === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE'
+    ) {
+      throw new Error(
+        `Sertifikat SSL (https://) di PHP_SOAL_API_URL belum valid (${causeCode}). Gunakan http://db.smpn1kawali.sch.id/soal_api.php sementara lalu Redeploy, atau aktifkan SSL valid (AutoSSL/Cloudflare).`
+      );
+    }
+    const detail = [causeCode, causeMsg].filter(Boolean).join(' - ');
+    throw new Error(
+      detail
+        ? `Gagal menghubungi PHP_SOAL_API_URL (${detail}).`
+        : err?.message || 'Gagal menghubungi PHP_SOAL_API_URL.'
+    );
   } finally {
     clearTimeout(timer);
   }
@@ -838,7 +856,7 @@ export async function handleSoalApiRequest({ method, subPath, body, authHeader }
     }
     const envPasscode = getEnvPasscode();
     if (envPasscode) {
-      if (!safeEqualStrings(passcode, envPasscode)) {
+      if (passcode && !safeEqualStrings(passcode, envPasscode)) {
         return { status: 401, payload: { error: 'Passcode admin tidak sesuai.' } };
       }
       return { status: 200, payload: { token: await issueAdminToken() } };

@@ -457,7 +457,13 @@ export default function App() {
 
   const fetchSoalFromMysql = useCallback(async () => {
     try {
-      const resp = await fetch('/api/soal');
+      const resp = await fetch('/api/soal', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
       const data = await resp.json().catch(() => ({}));
       setSoalDbConfigured(data?.configured !== false);
       if (!resp.ok) {
@@ -481,6 +487,41 @@ export default function App() {
   useEffect(() => {
     fetchSoalFromMysql();
   }, [fetchSoalFromMysql]);
+
+  useEffect(() => {
+    if (
+      currentPage === 'student_dashboard' ||
+      currentPage === 'admin' ||
+      currentPage === 'soal_confirm' ||
+      currentPage === 'soal'
+    ) {
+      fetchSoalFromMysql();
+    }
+  }, [currentPage, studentTab, adminTab, fetchSoalFromMysql]);
+
+  useEffect(() => {
+    if (currentPage !== 'student_dashboard' && currentPage !== 'admin') return;
+    const handleRefreshIfVisible = () => {
+      if (document.visibilityState === 'visible') {
+        fetchSoalFromMysql();
+      }
+    };
+    window.addEventListener('focus', handleRefreshIfVisible);
+    document.addEventListener('visibilitychange', handleRefreshIfVisible);
+    const intervalId =
+      currentPage === 'student_dashboard'
+        ? window.setInterval(() => {
+            if (document.visibilityState === 'visible') {
+              fetchSoalFromMysql();
+            }
+          }, 15000)
+        : null;
+    return () => {
+      window.removeEventListener('focus', handleRefreshIfVisible);
+      document.removeEventListener('visibilitychange', handleRefreshIfVisible);
+      if (intervalId !== null) window.clearInterval(intervalId);
+    };
+  }, [currentPage, fetchSoalFromMysql]);
 
   const activeTahunPelajaran = settingsConfig?.activeTahunPelajaran || DEFAULT_TAHUN_PELAJARAN;
   const activeSemester: SemesterType = settingsConfig?.activeSemester === 'Genap' ? 'Genap' : 'Ganjil';
@@ -1700,14 +1741,14 @@ export default function App() {
             <button
               onClick={() => setStudentTab('soal')}
               className={cn(
-                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer",
+                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer tabular-nums",
                 studentTab === 'soal'
                   ? "bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-2xs"
                   : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               )}
             >
               <ClipboardList size={14} />
-              <span>Latihan Soal</span>
+              <span>{activeSoalSets.length > 0 ? `Latihan Soal (${activeSoalSets.length})` : 'Latihan Soal'}</span>
             </button>
             <button
               onClick={() => setStudentTab('games')}
@@ -1779,12 +1820,12 @@ export default function App() {
           <button
             onClick={() => setStudentTab('soal')}
             className={cn(
-              "flex-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer transition-colors",
+              "flex-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer transition-colors tabular-nums",
               studentTab === 'soal' ? "bg-emerald-600 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             )}
           >
             <ClipboardList size={13} />
-            <span>Soal</span>
+            <span>{activeSoalSets.length > 0 ? `Soal (${activeSoalSets.length})` : 'Soal'}</span>
           </button>
           <button
             onClick={() => setStudentTab('games')}
@@ -1852,15 +1893,22 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Paket Soal</div>
+                <button
+                  type="button"
+                  onClick={() => setStudentTab('soal')}
+                  className="space-y-1.5 text-left group cursor-pointer rounded-xl -m-1.5 p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                  title="Buka tab Latihan Soal"
+                >
+                  <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    Paket Soal
+                  </div>
                   <div className="text-lg md:text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                     {completedSoalCount}<span className="text-slate-400 dark:text-slate-500 text-sm font-semibold">/{activeSoalSets.length}</span>
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div className="h-full bg-emerald-600 rounded-full transition-all duration-300" style={{ width: `${soalProgressPct}%` }} />
                   </div>
-                </div>
+                </button>
 
                 <div className="space-y-1">
                   <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Rata-Rata Skor</div>
@@ -2434,13 +2482,29 @@ export default function App() {
                         <ClipboardList size={26} />
                       </div>
                       <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 mb-1">
-                        {activeSoalSets.length === 0 ? 'Belum Ada Paket Soal Aktif' : 'Tidak Ada Paket Soal Cocok'}
+                        {soalDbError
+                          ? 'Gagal Memuat Paket Soal'
+                          : activeSoalSets.length === 0
+                          ? 'Belum Ada Paket Soal Aktif'
+                          : 'Tidak Ada Paket Soal Cocok'}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
-                        {activeSoalSets.length === 0
-                          ? 'Paket soal akan tampil di sini setelah guru mengaktifkan kartu soal.'
+                        {soalDbError
+                          ? soalDbError
+                          : activeSoalSets.length === 0
+                          ? 'Paket soal akan tampil di sini setelah guru mengaktifkan kartu soal beserta butir soalnya.'
                           : 'Coba ubah kata kunci pencarian atau pilih filter "Semua".'}
                       </p>
+                      {(soalDbError || activeSoalSets.length === 0) && (
+                        <button
+                          type="button"
+                          onClick={() => fetchSoalFromMysql()}
+                          className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                        >
+                          <RotateCcw size={13} />
+                          Muat Ulang Soal
+                        </button>
+                      )}
                     </div>
                   )
                 ) : (
@@ -2571,6 +2635,16 @@ export default function App() {
                           ? 'Materi akan muncul di sini setelah guru mengaktifkannya.'
                           : 'Coba ubah kata kunci pencarian atau pilih filter "Semua".'}
                       </p>
+                      {activeCoursesList.length === 0 && activeSoalSets.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setStudentTab('soal')}
+                          className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                        >
+                          <ClipboardList size={14} />
+                          Buka Latihan Soal ({activeSoalSets.length} Paket)
+                        </button>
+                      )}
                     </div>
                   )
                 )}

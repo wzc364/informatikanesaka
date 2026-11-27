@@ -48,6 +48,9 @@ async function startServer() {
 
   // API Routes for Kelola Soal stored in Remote MySQL (phpMyAdmin)
   app.all("/api/soal", async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const { status, payload } = await handleSoalApiRequest({
       method: req.method,
       subPath: '',
@@ -58,6 +61,9 @@ async function startServer() {
   });
 
   app.all("/api/soal/*", async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const rawSubPath = String(req.params?.[0] || '');
     const { status, payload } = await handleSoalApiRequest({
       method: req.method,
