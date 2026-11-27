@@ -75,7 +75,8 @@ import {
   Moon,
   FolderKanban,
   CalendarDays,
-  Copy
+  Copy,
+  Download
 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
@@ -92,16 +93,19 @@ import Login from './components/Login';
 import AdminGames from './components/AdminGames';
 import AdminSoal from './components/AdminSoal';
 import AdminAdministrasi from './components/AdminAdministrasi';
+import ImportAssessmentToNilaiModal from './components/ImportAssessmentToNilaiModal';
 import StudentSoalRunner from './components/StudentSoalRunner';
 import { AdminMaterialPrintModal } from './components/AdminMaterialPrintModal';
 import { AdminQuestionAnalysis } from './components/AdminQuestionAnalysis';
 import {
+  AdministrasiSubTab,
   DEFAULT_JADWAL_SCHEDULE_SETTINGS,
   DEFAULT_SEMESTER,
   DEFAULT_TAHUN_PELAJARAN,
   DEFAULT_TAHUN_PELAJARAN_LIST,
   JadwalPelajaranItem,
   JadwalScheduleSettings,
+  NilaiSubTab,
   SemesterType,
   buildScopedAssessmentDocId,
   buildScopedMaterialDocId,
@@ -112,7 +116,7 @@ import {
 } from './administrasiTypes';
 import { resolveCourseImageUrl, getPublicFallbackImageUrl } from './courseImageMap';
 import { APP_BACKGROUNDS, getBackgroundPreset } from './backgrounds';
-import { dedupeHighestGameScores, formatScoreTimestamp, getScoreTimestampMs } from './scoreUtils';
+import { dedupeHighestGameScores, formatScoreTimestamp, getScoreTimestampMs, isSoalAssessment, naturalCompareKelas } from './scoreUtils';
 import courseCoverSystemsFlat from './assets/images/course_cover_systems_flat_1795244678070.jpg';
 import courseCoverCodingFlat from './assets/images/course_cover_coding_flat_1795244677820.jpg';
 import courseCoverDataFlat from './assets/images/course_cover_data_flat_1795244677214.jpg';
@@ -450,7 +454,27 @@ export default function App() {
     course: null,
     kelas: null
   });
-  const [assessmentSort, setAssessmentSort] = useState<'name' | 'time'>('name');
+  const [assessmentSort, setAssessmentSort] = useState<'name' | 'time' | 'score'>('name');
+  const [assessmentSearch, setAssessmentSearch] = useState('');
+  const [showIncompleteInAssessment, setShowIncompleteInAssessment] = useState(false);
+  const [confirmDeleteGameScoreId, setConfirmDeleteGameScoreId] = useState<string | null>(null);
+  const [importNilaiTarget, setImportNilaiTarget] = useState<{
+    sourceType: 'materi' | 'soal';
+    sourceTitle: string;
+    kelas: string;
+    entries: any[];
+  } | null>(null);
+  const [assessmentBannerNotice, setAssessmentBannerNotice] = useState<{
+    message: string;
+    targetSubTab: NilaiSubTab;
+    targetKelas: string;
+  } | null>(null);
+  const [administrasiNavRequest, setAdministrasiNavRequest] = useState<{
+    subTab?: AdministrasiSubTab;
+    nilaiSubTab?: NilaiSubTab;
+    kelas?: string;
+    nonce: number;
+  } | null>(null);
   const [dashboardClassFilter, setDashboardClassFilter] = useState<string>('all');
   const [gameScoresList, setGameScoresList] = useState<any[]>([]);
   const [assessmentCategory, setAssessmentCategory] = useState<'materi' | 'game' | 'soal'>('materi');
@@ -602,27 +626,83 @@ export default function App() {
     return classMap;
   }, [scopedStudents]);
 
+  const scopedMateriAssessments = useMemo(
+    () => scopedAssessments.filter(a => !isSoalAssessment(a)),
+    [scopedAssessments]
+  );
+
+  const scopedSoalAssessments = useMemo(
+    () => scopedAssessments.filter(a => isSoalAssessment(a)),
+    [scopedAssessments]
+  );
+
   const groupedAssessments = useMemo(() => {
     const data: Record<string, { title: string; classes: Record<string, { name: string; results: any[] }> }> = {};
-    scopedAssessments.forEach(a => {
-      if (!data[a.courseTitle]) {
-        data[a.courseTitle] = { title: a.courseTitle, classes: {} };
+    scopedMateriAssessments.forEach(a => {
+      const title = a.courseTitle || 'Materi Pembelajaran';
+      const kelasName = a.studentKelas || 'Tanpa Kelas';
+      if (!data[title]) {
+        data[title] = { title, classes: {} };
       }
-      if (!data[a.courseTitle].classes[a.studentKelas]) {
-        data[a.courseTitle].classes[a.studentKelas] = { name: a.studentKelas, results: [] };
+      if (!data[title].classes[kelasName]) {
+        data[title].classes[kelasName] = { name: kelasName, results: [] };
       }
-      data[a.courseTitle].classes[a.studentKelas].results.push(a);
+      data[title].classes[kelasName].results.push(a);
     });
     return data;
-  }, [scopedAssessments]);
+  }, [scopedMateriAssessments]);
+
+  const groupedSoalAssessments = useMemo(() => {
+    const data: Record<string, { title: string; classes: Record<string, { name: string; results: any[] }> }> = {};
+    scopedSoalAssessments.forEach(a => {
+      const title = a.courseTitle || 'Paket Soal Ujian';
+      const kelasName = a.studentKelas || 'Tanpa Kelas';
+      if (!data[title]) {
+        data[title] = { title, classes: {} };
+      }
+      if (!data[title].classes[kelasName]) {
+        data[title].classes[kelasName] = { name: kelasName, results: [] };
+      }
+      data[title].classes[kelasName].results.push(a);
+    });
+    return data;
+  }, [scopedSoalAssessments]);
+
+  const bestAdminGameScores = useMemo(() => dedupeHighestGameScores(gameScoresList), [gameScoresList]);
+
+  const groupedGameScores = useMemo(() => {
+    const data: Record<string, { title: string; classes: Record<string, { name: string; results: any[] }> }> = {};
+    bestAdminGameScores.forEach(s => {
+      const title = s.gameTitle || s.gameId || 'Game Edukasi';
+      const kelasName = s.kelas || s.studentKelas || 'Umum';
+      if (!data[title]) {
+        data[title] = { title, classes: {} };
+      }
+      if (!data[title].classes[kelasName]) {
+        data[title].classes[kelasName] = { name: kelasName, results: [] };
+      }
+      data[title].classes[kelasName].results.push(s);
+    });
+    return data;
+  }, [bestAdminGameScores]);
 
   useEffect(() => {
-    if (assessmentNav.course && !groupedAssessments[assessmentNav.course]) {
+    const activeMap =
+      assessmentCategory === 'materi'
+        ? groupedAssessments
+        : assessmentCategory === 'soal'
+        ? groupedSoalAssessments
+        : groupedGameScores;
+    if (assessmentNav.course && !activeMap[assessmentNav.course]) {
       setAssessmentNav({ course: null, kelas: null });
-    } else if (assessmentNav.course && assessmentNav.kelas && (!groupedAssessments[assessmentNav.course] || !groupedAssessments[assessmentNav.course].classes[assessmentNav.kelas])) {
+    } else if (
+      assessmentNav.course &&
+      assessmentNav.kelas &&
+      (!activeMap[assessmentNav.course] || !activeMap[assessmentNav.course].classes[assessmentNav.kelas])
+    ) {
       setAssessmentNav(prev => ({ ...prev, kelas: null }));
     }
-  }, [groupedAssessments, assessmentNav]);
+  }, [assessmentCategory, groupedAssessments, groupedSoalAssessments, groupedGameScores, assessmentNav]);
   const [studentAssessments, setStudentAssessments] = useState<any[]>([]);
   const [studentGameScores, setStudentGameScores] = useState<any[]>([]);
   const scopedStudentAssessments = useMemo(() => {
@@ -633,7 +713,6 @@ export default function App() {
     });
   }, [studentAssessments, activeTahunPelajaran, activeSemester]);
   const unreadNotifications = useMemo(() => notifications.filter(n => n.isRead !== true), [notifications]);
-  const bestAdminGameScores = useMemo(() => dedupeHighestGameScores(gameScoresList), [gameScoresList]);
   const currentBgPreset = useMemo(() => getBackgroundPreset(settingsConfig?.backgroundPreset), [settingsConfig?.backgroundPreset]);
   const [currentScore, setCurrentScore] = useState(100);
   const [courseCompleted, setCourseCompleted] = useState(false);
@@ -4784,344 +4863,857 @@ export default function App() {
                 )}
               </>
             )}
-            {adminTab === 'assessments' && (
-              <div className="space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  {/* 3 Categories Switcher Pills */}
-                  <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white/30 dark:bg-white/5 rounded-2xl border border-white/50 dark:border-white/12 w-fit">
-                    <button
-                      onClick={() => { setAssessmentCategory('materi'); setAssessmentNav({ course: null, kelas: null }); }}
-                      className={cn(
-                        "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2",
-                        assessmentCategory === 'materi' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                      )}
-                    >
-                      <BookOpen size={16} />
-                      Hasil Nilai Materi ({scopedAssessments.length})
-                    </button>
-                    <button
-                      onClick={() => { setAssessmentCategory('game'); setAssessmentNav({ course: null, kelas: null }); }}
-                      className={cn(
-                        "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2",
-                        assessmentCategory === 'game' ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                      )}
-                    >
-                      <Gamepad2 size={16} />
-                      Hasil Skor Game ({bestAdminGameScores.length})
-                    </button>
-                    <button
-                      onClick={() => { setAssessmentCategory('soal'); setAssessmentNav({ course: null, kelas: null }); }}
-                      className={cn(
-                        "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2",
-                        assessmentCategory === 'soal' ? "bg-amber-600 text-white shadow-md shadow-amber-600/20" : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                      )}
-                    >
-                      <ClipboardList size={16} />
-                      Hasil Nilai Soal / Ujian ({scopedAssessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).length})
-                    </button>
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800/70 text-xs font-extrabold text-brand dark:text-blue-300 tabular-nums">
-                    <CalendarDays size={13} />
-                    TA {activeTahunPelajaran} · Sem {activeSemester}
-                  </span>
-                </div>
+            {adminTab === 'assessments' && (() => {
+              const activeGroupMap =
+                assessmentCategory === 'materi'
+                  ? groupedAssessments
+                  : assessmentCategory === 'game'
+                  ? groupedGameScores
+                  : groupedSoalAssessments;
+              const groupList = Object.values(activeGroupMap).sort((a, b) =>
+                a.title.localeCompare(b.title, 'id-ID')
+              );
+              const selectedGroup = assessmentNav.course ? activeGroupMap[assessmentNav.course] : null;
+              const selectedClassData =
+                selectedGroup && assessmentNav.kelas ? selectedGroup.classes[assessmentNav.kelas] : null;
 
-                {/* CATEGORY 1: HASIL NILAI MATERI */}
-                {assessmentCategory === 'materi' && (
-                  <div className="space-y-6 animate-in fade-in duration-300">
-                    {/* Header & Navigation */}
-                    <div className="flex items-center gap-3">
-                      <button 
-                        onClick={() => setAssessmentNav({ course: null, kelas: null })}
+              const isMateri = assessmentCategory === 'materi';
+              const isGame = assessmentCategory === 'game';
+              const isSoal = assessmentCategory === 'soal';
+
+              const categoryAccentBtn = isMateri
+                ? 'bg-brand text-white shadow-md shadow-brand/20'
+                : isGame
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                : 'bg-amber-600 text-white shadow-md shadow-amber-600/20';
+
+              const categoryBadge = isMateri
+                ? 'bg-brand/10 dark:bg-blue-950/60 text-brand dark:text-blue-300 border-brand/20'
+                : isGame
+                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/70'
+                : 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/70';
+
+              const renderScoreCsvExport = (title: string, kelas: string, rowsData: any[]) => {
+                const headers = isGame
+                  ? ['No', 'Nama Siswa', 'Kelas', 'Game & Stage', 'Skor Tertinggi', 'Waktu']
+                  : ['No', 'NISN', 'Nama Siswa', 'Kelas', isSoal ? 'Paket Soal' : 'Materi', 'Nilai', 'Waktu Selesai'];
+                const csvRows = rowsData.map((r, i) => {
+                  if (isGame) {
+                    return [
+                      i + 1,
+                      r.studentName || 'Siswa',
+                      r.kelas || r.studentKelas || kelas,
+                      r.gameTitle || r.gameId || title,
+                      Number(r.score ?? 0),
+                      formatScoreTimestamp(r),
+                    ];
+                  }
+                  const stu = scopedStudents.find(s => s.id === r.studentId || s.nis === r.studentNis);
+                  return [
+                    i + 1,
+                    stu?.nis || r.studentNis || '-',
+                    r.studentName || stu?.nama || 'Siswa',
+                    r.studentKelas || kelas,
+                    r.courseTitle || title,
+                    Number(r.score ?? 0),
+                    r.completedAt ? new Date(r.completedAt).toLocaleString('id-ID') : '-',
+                  ];
+                });
+                const esc = (v: string | number) => {
+                  const s = String(v ?? '');
+                  return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+                };
+                const content = [headers.map(esc).join(','), ...csvRows.map(r => r.map(esc).join(','))].join('\n');
+                const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `Hasil_${assessmentCategory}_${slugifyTermPart(title)}_${slugifyTermPart(kelas)}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+              };
+
+              return (
+                <div className="space-y-6">
+                  {/* Top Bar: 3 Kategori Asesmen & Tahun Pelajaran */}
+                  <div className="admin-glass-card rounded-3xl p-4 md:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/90 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 w-fit">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAssessmentCategory('materi');
+                          setAssessmentNav({ course: null, kelas: null });
+                          setAssessmentSearch('');
+                          setShowIncompleteInAssessment(false);
+                        }}
                         className={cn(
-                          "p-2 rounded-xl transition-colors",
-                          assessmentNav.course ? "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200" : "text-slate-300 dark:text-slate-600 pointer-events-none"
+                          "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer",
+                          isMateri ? categoryAccentBtn : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                         )}
                       >
-                        <BookOpen size={20} />
+                        <BookOpen size={15} />
+                        <span>Hasil Nilai Materi</span>
+                        <span className={cn("px-1.5 py-0.5 rounded-md text-[10px] font-black tabular-nums", isMateri ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200")}>
+                          {scopedMateriAssessments.length}
+                        </span>
                       </button>
-                      {assessmentNav.course && <ChevronRight size={16} className="text-slate-400 dark:text-slate-500" />}
-                      {assessmentNav.course && (
-                        <button 
-                          onClick={() => setAssessmentNav(prev => ({ ...prev, kelas: null }))}
-                          className={cn(
-                            "font-bold transition-colors",
-                            assessmentNav.kelas ? "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" : "text-slate-900 dark:text-white"
-                          )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAssessmentCategory('soal');
+                          setAssessmentNav({ course: null, kelas: null });
+                          setAssessmentSearch('');
+                          setShowIncompleteInAssessment(false);
+                        }}
+                        className={cn(
+                          "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer",
+                          isSoal ? categoryAccentBtn : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                        )}
+                      >
+                        <ClipboardList size={15} />
+                        <span>Hasil Nilai Soal / Ujian</span>
+                        <span className={cn("px-1.5 py-0.5 rounded-md text-[10px] font-black tabular-nums", isSoal ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200")}>
+                          {scopedSoalAssessments.length}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAssessmentCategory('game');
+                          setAssessmentNav({ course: null, kelas: null });
+                          setAssessmentSearch('');
+                          setShowIncompleteInAssessment(false);
+                        }}
+                        className={cn(
+                          "px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer",
+                          isGame ? categoryAccentBtn : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                        )}
+                      >
+                        <Gamepad2 size={15} />
+                        <span>Hasil Skor Game</span>
+                        <span className={cn("px-1.5 py-0.5 rounded-md text-[10px] font-black tabular-nums", isGame ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200")}>
+                          {bestAdminGameScores.length}
+                        </span>
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800/70 text-xs font-extrabold text-brand dark:text-blue-300 tabular-nums">
+                        <CalendarDays size={13} />
+                        TA {activeTahunPelajaran} · Sem {activeSemester}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Success Banner after Importing to Kelola Administrasi -> Nilai */}
+                  {assessmentBannerNotice && (
+                    <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                          <CheckCircle size={18} />
+                        </div>
+                        <p className="text-xs md:text-sm font-bold text-emerald-900 dark:text-emerald-100">
+                          {assessmentBannerNotice.message}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdministrasiNavRequest({
+                              subTab: 'nilai',
+                              nilaiSubTab: assessmentBannerNotice.targetSubTab,
+                              kelas: assessmentBannerNotice.targetKelas,
+                              nonce: Date.now(),
+                            });
+                            setAdminTab('administrasi');
+                          }}
+                          className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm"
                         >
-                          {assessmentNav.course}
+                          <span>Buka Halaman Nilai</span>
+                          <ArrowRight size={14} />
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => setAssessmentBannerNotice(null)}
+                          className="p-2 rounded-xl text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 cursor-pointer"
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Breadcrumb Navigation */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-extrabold">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAssessmentNav({ course: null, kelas: null });
+                          setAssessmentSearch('');
+                          setShowIncompleteInAssessment(false);
+                        }}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors cursor-pointer",
+                          assessmentNav.course
+                            ? "bg-white/70 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-brand"
+                            : "bg-brand/10 dark:bg-blue-950/60 text-brand dark:text-blue-300 border border-brand/20"
+                        )}
+                      >
+                        {isMateri ? <BookOpen size={14} /> : isGame ? <Gamepad2 size={14} /> : <ClipboardList size={14} />}
+                        <span>
+                          {isMateri ? 'Semua Modul Materi' : isGame ? 'Semua Game Edukasi' : 'Semua Paket Soal / Ujian'}
+                        </span>
+                      </button>
+
+                      {assessmentNav.course && (
+                        <>
+                          <ChevronRight size={15} className="text-slate-400" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAssessmentNav(prev => ({ ...prev, kelas: null }));
+                              setAssessmentSearch('');
+                              setShowIncompleteInAssessment(false);
+                            }}
+                            className={cn(
+                              "px-3 py-1.5 rounded-xl transition-colors cursor-pointer max-w-[260px] truncate",
+                              assessmentNav.kelas
+                                ? "bg-white/70 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-brand"
+                                : "bg-brand/10 dark:bg-blue-950/60 text-brand dark:text-blue-300 border border-brand/20"
+                            )}
+                          >
+                            {assessmentNav.course}
+                          </button>
+                        </>
                       )}
-                      {assessmentNav.kelas && <ChevronRight size={16} className="text-slate-400 dark:text-slate-500" />}
+
                       {assessmentNav.kelas && (
-                        <span className="font-bold text-slate-900 dark:text-white">Kelas {assessmentNav.kelas}</span>
+                        <>
+                          <ChevronRight size={15} className="text-slate-400" />
+                          <span className="px-3 py-1.5 rounded-xl bg-brand text-white shadow-xs">
+                            Kelas {assessmentNav.kelas}
+                          </span>
+                        </>
                       )}
                     </div>
 
-                    {!assessmentNav.course ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {Object.values(groupedAssessments).length > 0 ? Object.values(groupedAssessments).map((courseData) => {
-                          const totalSubmissions = Object.values(courseData.classes).reduce((acc, c) => acc + c.results.length, 0);
-                          const avgScore = totalSubmissions > 0 ? Math.round(Object.values(courseData.classes).reduce((acc, c) => acc + c.results.reduce((s, r) => s + r.score, 0), 0) / totalSubmissions) : 0;
-                          
+                    {assessmentNav.course && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (assessmentNav.kelas) {
+                            setAssessmentNav(prev => ({ ...prev, kelas: null }));
+                          } else {
+                            setAssessmentNav({ course: null, kelas: null });
+                          }
+                          setAssessmentSearch('');
+                          setShowIncompleteInAssessment(false);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+                      >
+                        &larr; {assessmentNav.kelas ? 'Kembali ke Kartu Kelas' : 'Kembali ke Daftar Kategori'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* LEVEL 1: DAFTAR KARTU MODUL / PAKET SOAL / GAME */}
+                  {!assessmentNav.course && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {groupList.length > 0 ? (
+                        groupList.map((group) => {
+                          const classEntries = Object.values(group.classes);
+                          const allResults = classEntries.flatMap(c => c.results);
+                          const totalSubmissions = allResults.length;
+                          const avgScore =
+                            totalSubmissions > 0
+                              ? Math.round(allResults.reduce((acc, r) => acc + Number(r.score || 0), 0) / totalSubmissions)
+                              : 0;
+                          const maxScore =
+                            totalSubmissions > 0
+                              ? Math.max(...allResults.map(r => Number(r.score || 0)))
+                              : 0;
+
                           return (
-                            <button 
-                              key={courseData.title}
-                              onClick={() => setAssessmentNav({ course: courseData.title, kelas: null })}
-                              className="admin-glass-card p-6 rounded-3xl text-left hover:border-brand/40 dark:hover:border-blue-500/50 group hover:shadow-lg hover:shadow-brand/10 transition-all duration-300 flex flex-col relative overflow-hidden"
+                            <div
+                              key={group.title}
+                              onClick={() => setAssessmentNav({ course: group.title, kelas: null })}
+                              className="admin-glass-card p-6 rounded-3xl text-left hover:border-brand/40 dark:hover:border-blue-500/50 group hover:shadow-lg transition-all duration-300 flex flex-col justify-between gap-4 cursor-pointer relative overflow-hidden"
                             >
-                              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity dark:text-slate-400">
-                                <BookOpen size={64} />
-                              </div>
-                              <div className="w-14 h-14 bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-brand group-hover:text-white transition-all duration-300 shadow-xs">
-                                <BookOpen size={28} />
-                              </div>
-                              <h4 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2 leading-tight group-hover:text-brand dark:group-hover:text-blue-400 transition-colors">{courseData.title}</h4>
-                              
-                              <div className="mt-auto space-y-4">
-                                <div className="flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 tabular-nums">
-                                  <span className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
-                                    <Users size={12} className="text-brand dark:text-blue-400" /> {Object.keys(courseData.classes).length} Kelas
-                                  </span>
-                                  <span className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
-                                    <CheckCircle size={12} className="text-emerald-500" /> {totalSubmissions} Done
+                              <div className="space-y-3">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className={cn(
+                                    "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105",
+                                    isMateri
+                                      ? "bg-brand/10 dark:bg-blue-900/40 text-brand dark:text-blue-400"
+                                      : isGame
+                                      ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400"
+                                      : "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400"
+                                  )}>
+                                    {isMateri ? <BookOpen size={22} /> : isGame ? <Gamepad2 size={22} /> : <ClipboardList size={22} />}
+                                  </div>
+                                  <span className={cn("px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-wider", categoryBadge)}>
+                                    {isMateri ? 'Materi' : isGame ? 'Game Edukasi' : 'Soal / Ujian'}
                                   </span>
                                 </div>
 
-                                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                                  <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Rerata Skor</span>
+                                <h4 className="text-lg font-black text-slate-900 dark:text-white leading-snug group-hover:text-brand dark:group-hover:text-blue-400 transition-colors">
+                                  {group.title}
+                                </h4>
+
+                                <div className="flex flex-wrap items-center gap-2 text-[11px] font-extrabold text-slate-600 dark:text-slate-300 tabular-nums">
+                                  <span className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+                                    <Users size={12} className="text-brand dark:text-blue-400" />
+                                    {classEntries.length} Kartu Kelas
+                                  </span>
+                                  <span className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+                                    <CheckCircle size={12} className="text-emerald-500" />
+                                    {totalSubmissions} {isGame ? 'Rekor' : 'Selesai'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="pt-4 border-t border-slate-200/70 dark:border-slate-800 flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-4 tabular-nums">
+                                  <div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                                      {isGame ? 'Skor Tertinggi' : 'Rata-rata'}
+                                    </span>
+                                    <span className={cn(
+                                      "text-lg font-black",
+                                      (isGame ? maxScore : avgScore) >= 80
+                                        ? "text-emerald-600 dark:text-emerald-400"
+                                        : (isGame ? maxScore : avgScore) >= 60
+                                        ? "text-amber-600 dark:text-amber-400"
+                                        : "text-rose-600 dark:text-rose-400"
+                                    )}>
+                                      {isGame ? maxScore : avgScore}
+                                    </span>
+                                  </div>
+                                  {!isGame && (
+                                    <div>
+                                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Tertinggi</span>
+                                      <span className="text-lg font-black text-slate-700 dark:text-slate-200">{maxScore}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 group-hover:bg-brand group-hover:text-white text-xs font-extrabold text-slate-700 dark:text-slate-200 transition-colors">
+                                  <span>Kartu Kelas</span>
+                                  <ChevronRight size={15} />
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="col-span-full py-16 admin-glass-card rounded-3xl border-2 border-dashed flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 text-center px-6">
+                          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
+                            {isMateri ? <BookOpen size={30} className="opacity-40" /> : isGame ? <Gamepad2 size={30} className="opacity-40" /> : <ClipboardList size={30} className="opacity-40" />}
+                          </div>
+                          <p className="font-extrabold text-base text-slate-700 dark:text-slate-200">
+                            Belum Ada Data {isMateri ? 'Nilai Materi' : isGame ? 'Skor Game' : 'Nilai Soal / Ujian'}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md">
+                            Data kartu kelas dan nilai siswa akan otomatis tampil setelah siswa menyelesaikan {isMateri ? 'modul materi' : isGame ? 'permainan edukasi' : 'paket soal ujian'}.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* LEVEL 2: KARTU-KARTU KELAS */}
+                  {assessmentNav.course && !assessmentNav.kelas && selectedGroup && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                      {Object.values(selectedGroup.classes)
+                        .sort((a, b) => naturalCompareKelas(a.name, b.name))
+                        .map((classData) => {
+                          const totalInClass = groupedClasses[classData.name] || classData.results.length;
+                          const uniqueStudentKeys = new Set(
+                            classData.results.map(r => String(r.studentId || r.studentNis || r.studentName || r.id))
+                          );
+                          const completedStudentsCount = uniqueStudentKeys.size;
+                          const progressPct = totalInClass > 0 ? Math.min(100, Math.round((completedStudentsCount / totalInClass) * 100)) : 100;
+                          const avgScore =
+                            classData.results.length > 0
+                              ? Math.round(classData.results.reduce((acc, r) => acc + Number(r.score || 0), 0) / classData.results.length)
+                              : 0;
+                          const maxScore =
+                            classData.results.length > 0
+                              ? Math.max(...classData.results.map(r => Number(r.score || 0)))
+                              : 0;
+
+                          return (
+                            <div
+                              key={classData.name}
+                              className="admin-glass-card rounded-3xl p-5 flex flex-col justify-between gap-4 hover:border-brand/40 dark:hover:border-blue-500/40 hover:shadow-lg transition-all"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAssessmentNav({ course: selectedGroup.title, kelas: classData.name });
+                                  setAssessmentSearch('');
+                                }}
+                                className="text-left space-y-3 group cursor-pointer"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className={cn(
+                                    "px-3 py-1 rounded-xl text-xs font-black",
+                                    isMateri
+                                      ? "bg-brand text-white"
+                                      : isGame
+                                      ? "bg-indigo-600 text-white"
+                                      : "bg-amber-600 text-white"
+                                  )}>
+                                    Kelas {classData.name}
+                                  </span>
+                                  <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 tabular-nums">
+                                    {completedStudentsCount}/{totalInClass} siswa
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                    <div
+                                      className={cn(
+                                        "h-full rounded-full transition-all",
+                                        isMateri ? "bg-brand" : isGame ? "bg-indigo-600" : "bg-amber-500"
+                                      )}
+                                      style={{ width: `${progressPct}%` }}
+                                    />
+                                  </div>
+                                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">
+                                    <span>Ketuntasan Partisipasi</span>
+                                    <span className="text-slate-700 dark:text-slate-200">{progressPct}%</span>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2 pt-2">
+                                  <div className="rounded-xl bg-slate-50 dark:bg-slate-800/70 p-2.5 border border-slate-200/70 dark:border-slate-700/70">
+                                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Rata-rata</span>
                                     <span className={cn(
                                       "text-lg font-black tabular-nums",
                                       avgScore >= 80 ? "text-emerald-600 dark:text-emerald-400" : avgScore >= 60 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
-                                    )}>{avgScore}</span>
+                                    )}>
+                                      {avgScore}
+                                    </span>
                                   </div>
-                                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 dark:text-slate-300 flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors duration-300">
-                                    <ChevronRight size={20} />
+                                  <div className="rounded-xl bg-slate-50 dark:bg-slate-800/70 p-2.5 border border-slate-200/70 dark:border-slate-700/70">
+                                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Tertinggi</span>
+                                    <span className="text-lg font-black text-slate-800 dark:text-white tabular-nums">
+                                      {maxScore}
+                                    </span>
                                   </div>
                                 </div>
+                              </button>
+
+                              <div className="pt-3 border-t border-slate-200/70 dark:border-slate-800 flex flex-col gap-2">
+                                {(isMateri || isSoal) && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setImportNilaiTarget({
+                                        sourceType: isSoal ? 'soal' : 'materi',
+                                        sourceTitle: selectedGroup.title,
+                                        kelas: classData.name,
+                                        entries: classData.results,
+                                      })
+                                    }
+                                    className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+                                  >
+                                    <Send size={13} />
+                                    <span>Masukkan ke Nilai</span>
+                                  </button>
+                                )}
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setAssessmentNav({ course: selectedGroup.title, kelas: classData.name });
+                                      setAssessmentSearch('');
+                                    }}
+                                    className="flex-1 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-brand hover:text-white text-slate-700 dark:text-slate-200 text-xs font-extrabold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                                  >
+                                    <span>Detail Siswa</span>
+                                    <ChevronRight size={14} />
+                                  </button>
+                                  {!isGame && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        deleteAssessment({
+                                          courseTitle: selectedGroup.title,
+                                          kelas: classData.name,
+                                          isBulkClass: true,
+                                        })
+                                      }
+                                      className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-600 text-rose-600 dark:text-rose-400 hover:text-white transition-colors cursor-pointer"
+                                      title={`Hapus semua nilai Kelas ${classData.name}`}
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            </button>
-                          );
-                        }) : (
-                          <div className="col-span-full py-20 admin-glass-card rounded-3xl border-2 border-dashed flex flex-col items-center justify-center text-slate-500 dark:text-slate-400">
-                            <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
-                              <TrendingUp size={40} className="opacity-30" />
                             </div>
-                            <p className="font-extrabold text-lg tracking-tight mb-1 text-slate-700 dark:text-slate-200">Belum Ada Data Asesmen Materi</p>
-                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Data akan muncul setelah siswa menyelesaikan modul materi.</p>
+                          );
+                        })}
+                    </div>
+                  )}
+
+                  {/* LEVEL 3: TABEL NILAI SISWA PER KELAS */}
+                  {assessmentNav.course && assessmentNav.kelas && selectedClassData && (() => {
+                    const classStudents = scopedStudents
+                      .filter(s => s.kelas === assessmentNav.kelas)
+                      .sort((a, b) => a.nama.localeCompare(b.nama, 'id-ID'));
+
+                    const q = assessmentSearch.trim().toLowerCase();
+                    const sortedResults = [...selectedClassData.results]
+                      .filter(r => {
+                        if (!q) return true;
+                        return (
+                          String(r.studentName || '').toLowerCase().includes(q) ||
+                          String(r.studentNis || '').toLowerCase().includes(q)
+                        );
+                      })
+                      .sort((a, b) => {
+                        if (assessmentSort === 'score') {
+                          return Number(b.score || 0) - Number(a.score || 0);
+                        }
+                        if (assessmentSort === 'time') {
+                          const tA = isGame ? getScoreTimestampMs(a) : new Date(a.completedAt || 0).getTime();
+                          const tB = isGame ? getScoreTimestampMs(b) : new Date(b.completedAt || 0).getTime();
+                          return tB - tA;
+                        }
+                        return String(a.studentName || '').localeCompare(String(b.studentName || ''), 'id-ID');
+                      });
+
+                    const completedStudentIdSet = new Set(
+                      selectedClassData.results.map(r => String(r.studentId || ''))
+                    );
+                    const completedStudentNameSet = new Set(
+                      selectedClassData.results.map(r => String(r.studentName || '').trim().toLowerCase())
+                    );
+                    const incompleteStudents = classStudents.filter(
+                      s => !completedStudentIdSet.has(s.id) && !completedStudentNameSet.has(s.nama.trim().toLowerCase())
+                    );
+
+                    const classAvg =
+                      selectedClassData.results.length > 0
+                        ? Math.round(selectedClassData.results.reduce((acc, r) => acc + Number(r.score || 0), 0) / selectedClassData.results.length)
+                        : 0;
+
+                    return (
+                      <div className="space-y-4">
+                        {/* Action & Filter Header */}
+                        <div className="admin-glass-card rounded-3xl p-4 md:p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={cn("px-2.5 py-0.5 rounded-lg border text-[10px] font-black uppercase", categoryBadge)}>
+                                {isMateri ? 'Nilai Materi' : isGame ? 'Skor Game' : 'Nilai Soal / Ujian'}
+                              </span>
+                              <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400 tabular-nums">
+                                {selectedClassData.results.length} data · Rata-rata: <strong className="text-slate-900 dark:text-white">{classAvg}</strong>
+                              </span>
+                            </div>
+                            <h3 className="text-lg md:text-xl font-black text-slate-900 dark:text-white mt-1">
+                              {assessmentNav.course} — Kelas {assessmentNav.kelas}
+                            </h3>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            {(isMateri || isSoal) && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setImportNilaiTarget({
+                                    sourceType: isSoal ? 'soal' : 'materi',
+                                    sourceTitle: assessmentNav.course!,
+                                    kelas: assessmentNav.kelas!,
+                                    entries: selectedClassData.results,
+                                  })
+                                }
+                                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm cursor-pointer"
+                              >
+                                <Send size={14} />
+                                <span>Masukkan ke Halaman Nilai</span>
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                renderScoreCsvExport(assessmentNav.course!, assessmentNav.kelas!, sortedResults)
+                              }
+                              className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-extrabold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Download size={14} />
+                              <span>Export CSV</span>
+                            </button>
+
+                            {!isGame && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  deleteAssessment({
+                                    courseTitle: assessmentNav.course!,
+                                    kelas: assessmentNav.kelas!,
+                                    isBulkClass: true,
+                                  })
+                                }
+                                className="px-3.5 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white text-xs font-extrabold flex items-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <Trash2 size={14} />
+                                <span>Reset Kelas</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Search, Sort & Belum Selesai Toggle */}
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex flex-wrap items-center gap-2.5 flex-1">
+                            <div className="relative flex-1 min-w-[200px] max-w-xs">
+                              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                              <input
+                                type="text"
+                                value={assessmentSearch}
+                                onChange={(e) => setAssessmentSearch(e.target.value)}
+                                placeholder="Cari nama atau NISN siswa..."
+                                className="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100"
+                              />
+                            </div>
+
+                            <select
+                              value={assessmentSort}
+                              onChange={(e) => setAssessmentSort(e.target.value as 'name' | 'time' | 'score')}
+                              className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200"
+                            >
+                              <option value="name">Urutkan: Nama A-Z</option>
+                              <option value="score">Urutkan: Nilai Tertinggi</option>
+                              <option value="time">Urutkan: Waktu Terbaru</option>
+                            </select>
+                          </div>
+
+                          {incompleteStudents.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setShowIncompleteInAssessment(v => !v)}
+                              className={cn(
+                                "px-3 py-2 rounded-xl text-xs font-extrabold border transition-colors cursor-pointer tabular-nums",
+                                showIncompleteInAssessment
+                                  ? "bg-amber-600 border-amber-600 text-white"
+                                  : "bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300"
+                              )}
+                            >
+                              {showIncompleteInAssessment ? 'Sembunyikan' : 'Lihat'} Belum Selesai ({incompleteStudents.length})
+                            </button>
+                          )}
+                        </div>
+
+                        {showIncompleteInAssessment && incompleteStudents.length > 0 && (
+                          <div className="rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 p-4 space-y-2">
+                            <p className="text-xs font-black text-amber-900 dark:text-amber-200">
+                              Siswa Kelas {assessmentNav.kelas} yang Belum Mengerjakan ({incompleteStudents.length}):
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {incompleteStudents.map(st => (
+                                <span
+                                  key={st.id}
+                                  className="px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-900/70 border border-amber-200 dark:border-amber-800 text-xs font-bold text-slate-700 dark:text-slate-200"
+                                >
+                                  {st.nama}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         )}
-                      </div>
-                    ) : !assessmentNav.kelas ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {assessmentNav.course && groupedAssessments[assessmentNav.course] ? Object.values(groupedAssessments[assessmentNav.course].classes).map((classData) => {
-                          const submissions = classData.results.length;
-                          const avgScore = submissions > 0 ? Math.round(classData.results.reduce((acc, r) => acc + r.score, 0) / submissions) : 0;
 
-                          return (
-                            <button 
-                              key={classData.name}
-                              onClick={() => setAssessmentNav({ ...assessmentNav, kelas: classData.name })}
-                              className="admin-glass-card p-6 rounded-3xl text-left hover:border-brand/40 dark:hover:border-blue-500/50 group hover:shadow-lg hover:shadow-brand/5 transition-all duration-300 flex flex-col relative"
-                            >
-                              <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl flex items-center justify-center mb-6 group-hover:bg-brand group-hover:text-white transition-all duration-300">
-                                <Users size={24} />
-                              </div>
-                              <h4 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-1">Kelas {classData.name}</h4>
-                              <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-6 tabular-nums">
-                                <CheckCircle size={10} className="text-emerald-500" />
-                                {submissions} Siswa Selesai
-                              </div>
-                              
-                              <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                                <div className="flex flex-col">
-                                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Nilai Rata-rata</span>
-                                  <span className={cn(
-                                    "text-lg font-black tabular-nums",
-                                    avgScore >= 80 ? "text-emerald-600 dark:text-emerald-400" : avgScore >= 60 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
-                                  )}>{avgScore}</span>
-                                </div>
-                                <div className="flex -space-x-2">
-                                  {[1, 2, 3].map(i => (
-                                    <div key={i} className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[8px] font-black text-slate-600 dark:text-slate-300 uppercase">
-                                      {classData.name[0]}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                              
-                              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-                                <ChevronRight size={16} className="text-brand dark:text-blue-400" />
-                              </div>
-                            </button>
-                          );
-                        }) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-
-                {/* CATEGORY 2: HASIL SKOR GAME */}
-                {assessmentCategory === 'game' && (
-                  <div className="space-y-6 animate-in fade-in duration-300">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">Hasil Skor Tertinggi Game Edukasi</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Hanya menampilkan 1 skor tertinggi per siswa untuk setiap game atau stage permainan.</p>
-                      </div>
-                      <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-extrabold text-xs rounded-xl border border-indigo-200 dark:border-indigo-800/70 tabular-nums">
-                        Total {bestAdminGameScores.length} Rekor Game
-                      </span>
-                    </div>
-
-                    <div className="admin-glass-card rounded-3xl overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[700px]">
-                          <thead>
-                            <tr className="bg-white/25 dark:bg-white/5 border-b border-white/40 dark:border-white/10 text-slate-600 dark:text-slate-300 text-[10px] uppercase font-extrabold tracking-wider">
-                              <th className="p-4 pl-6">Siswa</th>
-                              <th className="p-4">Kelas</th>
-                              <th className="p-4">Judul Game & Stage</th>
-                              <th className="p-4 text-center">Skor Tertinggi</th>
-                              <th className="p-4 text-center">Diperbarui</th>
-                              <th className="p-4 text-right pr-6">Aksi</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {bestAdminGameScores.length > 0 ? (
-                              [...bestAdminGameScores]
-                                .sort((a, b) => Number(b.score || 0) - Number(a.score || 0) || getScoreTimestampMs(b) - getScoreTimestampMs(a))
-                                .map(scoreItem => (
-                                <tr key={scoreItem.id} className="hover:bg-indigo-50/30 dark:hover:bg-indigo-950/30 transition-colors">
-                                  <td className="p-4 pl-6 font-bold text-slate-900 dark:text-white text-sm">
-                                    {scoreItem.studentName || 'Siswa'}
-                                  </td>
-                                  <td className="p-4">
-                                    <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold">
-                                      Kelas {scoreItem.kelas || scoreItem.studentKelas || '-'}
-                                    </span>
-                                  </td>
-                                  <td className="p-4 font-semibold text-slate-800 dark:text-slate-200 text-xs flex items-center gap-1.5">
-                                    <Gamepad2 size={14} className="text-indigo-600 dark:text-indigo-400" />
-                                    {scoreItem.gameTitle || scoreItem.gameId || 'Game Edukasi'}
-                                  </td>
-                                  <td className="p-4 text-center">
-                                    <span className="px-3 py-1 bg-indigo-600 text-white rounded-xl text-xs font-black tabular-nums">
-                                      {scoreItem.score ?? 0} Poin
-                                    </span>
-                                  </td>
-                                  <td className="p-4 text-center text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-                                    {formatScoreTimestamp(scoreItem)}
-                                  </td>
-                                  <td className="p-4 text-right pr-6">
-                                    <button
-                                      onClick={async () => {
-                                        if (!confirm('Hapus skor game ini?')) return;
-                                        try {
-                                          await deleteDoc(doc(db, 'game_scores', scoreItem.id));
-                                        } catch (err) {
-                                          console.error(err);
-                                        }
-                                      }}
-                                      className="p-1.5 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-600 dark:hover:bg-rose-600 text-rose-600 dark:text-rose-400 hover:text-white rounded-xl transition-all"
-                                      title="Hapus Skor"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  </td>
+                        {/* Students Score Table */}
+                        <div className="admin-glass-card rounded-3xl overflow-hidden">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[650px]">
+                              <thead>
+                                <tr className="bg-white/30 dark:bg-white/5 border-b border-white/40 dark:border-white/10 text-slate-600 dark:text-slate-300 text-[10px] uppercase font-extrabold tracking-wider">
+                                  <th className="p-4 pl-6 w-12">No</th>
+                                  <th className="p-4">Nama Siswa</th>
+                                  <th className="p-4 text-center">{isGame ? 'Skor Tertinggi' : 'Nilai'}</th>
+                                  <th className="p-4 text-center">{isGame ? 'Diperbarui' : 'Waktu Selesai'}</th>
+                                  <th className="p-4 text-right pr-6">Aksi</th>
                                 </tr>
-                              ))
-                            ) : (
-                              <tr>
-                                <td colSpan={6} className="p-12 text-center text-slate-400 dark:text-slate-500 font-semibold">
-                                  Belum ada skor game yang tersimpan.
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {sortedResults.length > 0 ? (
+                                  sortedResults.map((item, idx) => {
+                                    const numScore = Number(item.score ?? 0);
+                                    const stu = scopedStudents.find(
+                                      s => s.id === item.studentId || s.nis === item.studentNis
+                                    );
+                                    return (
+                                      <tr
+                                        key={item.id}
+                                        className="hover:bg-slate-50/60 dark:hover:bg-slate-800/35 transition-colors"
+                                      >
+                                        <td className="p-4 pl-6 text-xs font-bold text-slate-400 tabular-nums">
+                                          {idx + 1}
+                                        </td>
+                                        <td className="p-4">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-bold text-slate-900 dark:text-white text-sm">
+                                              {item.studentName || stu?.nama || 'Siswa'}
+                                            </span>
+                                            {(item.cheatAttempts > 0 || item.tabSwitches > 0) && (
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 text-[10px] font-black">
+                                                <AlertTriangle size={11} />
+                                                {item.cheatAttempts || item.tabSwitches}x Pindah Tab
+                                              </span>
+                                            )}
+                                          </div>
+                                          <p className="text-[11px] font-mono text-slate-400">
+                                            NISN: {stu?.nis || item.studentNis || '-'}
+                                          </p>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                          <span
+                                            className={cn(
+                                              "inline-block px-3 py-1 rounded-xl text-xs font-black tabular-nums",
+                                              isGame
+                                                ? "bg-indigo-600 text-white"
+                                                : numScore >= 80
+                                                ? "bg-emerald-600 text-white"
+                                                : numScore >= 60
+                                                ? "bg-amber-500 text-white"
+                                                : "bg-rose-600 text-white"
+                                            )}
+                                          >
+                                            {numScore}{isGame ? ' Poin' : ''}
+                                          </span>
+                                        </td>
+                                        <td className="p-4 text-center text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                                          {isGame
+                                            ? formatScoreTimestamp(item)
+                                            : item.completedAt
+                                            ? new Date(item.completedAt).toLocaleString('id-ID')
+                                            : '-'}
+                                        </td>
+                                        <td className="p-4 text-right pr-6">
+                                          {isGame ? (
+                                            confirmDeleteGameScoreId === item.id ? (
+                                              <div className="inline-flex items-center gap-1.5">
+                                                <button
+                                                  type="button"
+                                                  onClick={async () => {
+                                                    try {
+                                                      await deleteDoc(doc(db, 'game_scores', item.id));
+                                                      setConfirmDeleteGameScoreId(null);
+                                                    } catch (err) {
+                                                      handleFirestoreError(err, OperationType.DELETE, `game_scores/${item.id}`);
+                                                    }
+                                                  }}
+                                                  className="px-2.5 py-1 bg-rose-600 text-white rounded-lg text-[11px] font-black cursor-pointer"
+                                                >
+                                                  Hapus
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setConfirmDeleteGameScoreId(null)}
+                                                  className="px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[11px] font-bold cursor-pointer"
+                                                >
+                                                  Batal
+                                                </button>
+                                              </div>
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                onClick={() => setConfirmDeleteGameScoreId(item.id)}
+                                                className="p-1.5 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-600 text-rose-600 dark:text-rose-400 hover:text-white rounded-xl transition-all cursor-pointer"
+                                                title="Hapus Skor Game"
+                                              >
+                                                <Trash2 size={14} />
+                                              </button>
+                                            )
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                deleteAssessment({
+                                                  id: item.id,
+                                                  studentName: item.studentName,
+                                                  courseTitle: item.courseTitle,
+                                                  score: item.score,
+                                                  kelas: item.studentKelas,
+                                                })
+                                              }
+                                              className="p-1.5 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-600 text-rose-600 dark:text-rose-400 hover:text-white rounded-xl transition-all cursor-pointer"
+                                              title="Hapus Nilai"
+                                            >
+                                              <Trash2 size={14} />
+                                            </button>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })
+                                ) : (
+                                  <tr>
+                                    <td colSpan={5} className="p-10 text-center text-slate-400 dark:text-slate-500 text-sm font-semibold">
+                                      Tidak ada data nilai siswa yang cocok dengan filter pencarian.
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                )}
+                    );
+                  })()}
 
-                {/* CATEGORY 3: HASIL NILAI SOAL */}
-                {assessmentCategory === 'soal' && (
-                  <div className="space-y-6 animate-in fade-in duration-300">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">Hasil Nilai Soal & Ujian Siswa</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Hasil pengerjaan paket soal latihan dan ujian pilihan ganda.</p>
-                      </div>
-                      <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 font-extrabold text-xs rounded-xl border border-amber-200 dark:border-amber-800/70">
-                        Total {scopedAssessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).length} Ujian Selesai
-                      </span>
-                    </div>
-
-                    <div className="admin-glass-card rounded-3xl overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[700px]">
-                          <thead>
-                            <tr className="bg-white/25 dark:bg-white/5 border-b border-white/40 dark:border-white/10 text-slate-600 dark:text-slate-300 text-[10px] uppercase font-extrabold tracking-wider">
-                              <th className="p-4 pl-6">Siswa</th>
-                              <th className="p-4">Kelas</th>
-                              <th className="p-4">Paket Soal</th>
-                              <th className="p-4 text-center">Nilai / Skor</th>
-                              <th className="p-4 text-center">Waktu Selesai</th>
-                              <th className="p-4 text-right pr-6">Aksi</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {scopedAssessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).length > 0 ? (
-                              scopedAssessments.filter(a => a.isSoal || a.courseId?.includes('soal') || a.courseTitle?.toLowerCase().includes('ujian') || a.courseTitle?.toLowerCase().includes('soal')).map(item => (
-                                <tr key={item.id} className="hover:bg-amber-50/30 dark:hover:bg-amber-950/25 transition-colors">
-                                  <td className="p-4 pl-6 font-bold text-slate-900 dark:text-white text-sm">
-                                    {item.studentName}
-                                  </td>
-                                  <td className="p-4">
-                                    <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold">
-                                      Kelas {item.studentKelas || '-'}
-                                    </span>
-                                  </td>
-                                  <td className="p-4 font-semibold text-slate-800 dark:text-slate-200 text-xs flex items-center gap-1.5">
-                                    <ClipboardList size={14} className="text-amber-600 dark:text-amber-400" />
-                                    {item.courseTitle || 'Paket Soal Ujian'}
-                                  </td>
-                                  <td className="p-4 text-center">
-                                    <span className="px-3 py-1 bg-amber-600 text-white rounded-xl text-xs font-black tabular-nums">
-                                      {item.score} Poin
-                                    </span>
-                                  </td>
-                                  <td className="p-4 text-center text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-                                    {item.completedAt ? new Date(item.completedAt).toLocaleString('id-ID') : '-'}
-                                  </td>
-                                  <td className="p-4 text-right pr-6">
-                                    <button
-                                      onClick={() => deleteAssessment(item.id)}
-                                      className="p-1.5 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-600 dark:hover:bg-rose-600 text-rose-600 dark:text-rose-400 hover:text-white rounded-xl transition-all"
-                                      title="Hapus Nilai"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))
-                            ) : (
-                              <tr>
-                                <td colSpan={6} className="p-12 text-center text-slate-400 dark:text-slate-500 font-semibold">
-                                  Belum ada hasil ujian soal yang tersimpan.
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  {/* Modal: Masukkan Nilai Materi / Soal ke Kelola Administrasi -> Nilai */}
+                  <ImportAssessmentToNilaiModal
+                    isOpen={Boolean(importNilaiTarget)}
+                    onClose={() => setImportNilaiTarget(null)}
+                    sourceType={importNilaiTarget?.sourceType || 'materi'}
+                    sourceTitle={importNilaiTarget?.sourceTitle || ''}
+                    kelas={importNilaiTarget?.kelas || ''}
+                    activeTahunPelajaran={activeTahunPelajaran}
+                    activeSemester={activeSemester}
+                    classStudents={
+                      importNilaiTarget
+                        ? scopedStudents
+                            .filter(s => s.kelas === importNilaiTarget.kelas)
+                            .sort((a, b) => a.nama.localeCompare(b.nama, 'id-ID'))
+                        : []
+                    }
+                    assessmentEntries={importNilaiTarget?.entries || []}
+                    onSuccess={(message, targetSubTab, targetKelas) => {
+                      setAssessmentBannerNotice({ message, targetSubTab, targetKelas });
+                    }}
+                    onFirestoreError={(err, op, path) => {
+                      const opEnum =
+                        op === 'create'
+                          ? OperationType.CREATE
+                          : op === 'update'
+                          ? OperationType.UPDATE
+                          : op === 'delete'
+                          ? OperationType.DELETE
+                          : op === 'list'
+                          ? OperationType.LIST
+                          : op === 'get'
+                          ? OperationType.GET
+                          : OperationType.WRITE;
+                      handleFirestoreError(err, opEnum, path);
+                    }}
+                  />
+                </div>
+              );
+            })()}
             {adminTab === 'history' && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
@@ -5977,6 +6569,7 @@ export default function App() {
                 students={scopedStudents}
                 assessments={scopedAssessments}
                 jadwalSettings={settingsConfig.jadwalSettings || DEFAULT_JADWAL_SCHEDULE_SETTINGS}
+                navigationRequest={administrasiNavRequest}
                 onNavigateTab={(tab) => setAdminTab(tab)}
                 onOpenStudentDetail={(student) => setStudentDetail({ student, score: getStudentScore(student.id) })}
                 onFirestoreError={(err, op, path) => {
@@ -6004,6 +6597,9 @@ export default function App() {
                 soalSets={soalSets}
                 soalQuestions={soalQuestions}
                 materialConfigs={materialConfigs}
+                activeTahunPelajaran={activeTahunPelajaran}
+                activeSemester={activeSemester}
+                assessments={scopedAssessments}
                 soalDbConfigured={soalDbConfigured}
                 soalDbError={soalDbError}
                 soalAdminToken={soalAdminToken}
@@ -6014,6 +6610,21 @@ export default function App() {
                   sessionStorage.setItem('activeSoalSetId', set.id);
                   setIsPreviewingSoal(true);
                   setCurrentPage('soal');
+                }}
+                onFirestoreError={(err, op, path) => {
+                  const opEnum =
+                    op === 'create'
+                      ? OperationType.CREATE
+                      : op === 'update'
+                      ? OperationType.UPDATE
+                      : op === 'delete'
+                      ? OperationType.DELETE
+                      : op === 'list'
+                      ? OperationType.LIST
+                      : op === 'get'
+                      ? OperationType.GET
+                      : OperationType.WRITE;
+                  handleFirestoreError(err, opEnum, path);
                 }}
               />
             )}

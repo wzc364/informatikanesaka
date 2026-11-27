@@ -35,23 +35,41 @@ import {
   Loader2,
   RefreshCw,
   Database,
+  Target,
+  Send,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { COURSES } from '../constants';
+import {
+  DEFAULT_SEMESTER,
+  DEFAULT_TAHUN_PELAJARAN,
+  SemesterType,
+  TujuanPembelajaranItem,
+} from '../administrasiTypes';
 import { QuestionAnalysisResult } from '../questionAnalysisTypes';
 import { SoalOption, SoalQuestion, SoalSet } from '../types';
+import { db } from '../firebase';
+import { collection, deleteField, doc, onSnapshot, setDoc } from 'firebase/firestore';
+import {
+  exportSoalScoresToAdministrasi,
+  SoalExportTarget,
+  SoalSetTpLink,
+} from '../soalExportUtils';
 
 interface AdminSoalProps {
   soalSets: SoalSet[];
   soalQuestions: SoalQuestion[];
   materialConfigs?: Record<string, { isActive?: boolean }>;
+  activeTahunPelajaran?: string;
+  activeSemester?: SemesterType;
+  assessments?: any[];
   soalDbConfigured?: boolean;
   soalDbError?: string | null;
   soalAdminToken?: string | null;
   onSetSoalAdminToken?: (token: string | null) => void;
   onRefreshSoal?: () => Promise<void>;
   onPreviewSet: (set: SoalSet) => void;
-  onFirestoreError?: (error: unknown, op: 'create' | 'update' | 'delete' | 'write', path: string) => void;
+  onFirestoreError?: (error: unknown, op: 'create' | 'update' | 'delete' | 'list' | 'get' | 'write', path: string) => void;
 }
 
 const CARD_THEMES = [
@@ -284,16 +302,243 @@ export default function AdminSoal({
   soalSets,
   soalQuestions,
   materialConfigs,
+  activeTahunPelajaran = DEFAULT_TAHUN_PELAJARAN,
+  activeSemester = DEFAULT_SEMESTER,
+  assessments = [],
   soalDbConfigured = true,
   soalDbError = null,
   soalAdminToken = null,
   onSetSoalAdminToken,
   onRefreshSoal,
   onPreviewSet,
+  onFirestoreError,
 }: AdminSoalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
   const [questionSearch, setQuestionSearch] = useState('');
+
+  // Tujuan Pembelajaran & Export Nilai Otomatis reference per Kartu Soal
+  const [allTp, setAllTp] = useState<TujuanPembelajaranItem[]>([]);
+  const [setTpLinks, setSetTpLinks] = useState<Record<string, SoalSetTpLink>>({});
+  const [syncingSetId, setSyncingSetId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubTp = onSnapshot(
+      collection(db, 'tujuan_pembelajaran'),
+      (snap) => {
+        setAllTp(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as TujuanPembelajaranItem)));
+      },
+      (err) => {
+        onFirestoreError?.(err, 'list', 'tujuan_pembelajaran');
+      }
+    );
+    const unsubLinks = onSnapshot(
+      doc(db, 'app_settings', 'soal_set_tp_links'),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data() as any;
+          setSetTpLinks(data?.links && typeof data.links === 'object' ? data.links : {});
+        } else {
+          setSetTpLinks({});
+        }
+      },
+      (err) => {
+        onFirestoreError?.(err, 'get', 'app_settings/soal_set_tp_links');
+      }
+    );
+    return () => {
+      unsubTp();
+      unsubLinks();
+    };
+  }, [onFirestoreError]);
+
+  const tpList = useMemo(
+    () =>
+      allTp
+        .filter((tp) => (tp.tahunPelajaran || DEFAULT_TAHUN_PELAJARAN) === activeTahunPelajaran)
+        .sort((a, b) => (a.kodeTp || '').localeCompare(b.kodeTp || '')),
+    [allTp, activeTahunPelajaran]
+  );
+
+  // Map existing assessments by SoalSet id
+  const assessmentEntriesBySetId = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    assessments.forEach((a) => {
+      const cid = String(a?.courseId || '').trim();
+      if (!cid.startsWith('soal_')) return;
+      const sId = cid.slice(5);
+      if (!sId) return;
+      if (!map[sId]) map[sId] = [];
+      map[sId].push(a);
+    });
+    return map;
+  }, [assessments]);
+
+  const syncSetScoresToAdministrasi = async (
+    setObj: { id: string; title: string },
+    linkObj: SoalSetTpLink,
+    silentIfEmpty = false
+  ) => {
+    if (!linkObj.tpId || (linkObj.exportTarget !== 'sumatif_tp' && linkObj.exportTarget !== 'praktikum_tp' && linkObj.exportTarget !== 'asesmen_harian')) {
+      return;
+    }
+    const entries = assessmentEntriesBySetId[setObj.id] || [];
+    const studentScores = entries
+      .filter((e) => e?.studentId && e?.studentKelas)
+      .map((e) => ({
+        studentId: String(e.studentId),
+        kelas: String(e.studentKelas),
+        score: Number(e.score) || 0,
+      }));
+
+    if (studentScores.length === 0) {
+      if (!silentIfEmpty) {
+        showToast(
+          `Pengaturan disimpan. Belum ada nilai siswa untuk kartu "${setObj.title}" — nilai siswa baru akan otomatis terkirim saat ujian selesai.`
+        );
+      }
+      return;
+    }
+
+    setSyncingSetId(setObj.id);
+    try {
+      const res = await exportSoalScoresToAdministrasi({
+        setId: setObj.id,
+        setTitle: setObj.title,
+        link: linkObj,
+        tahunPelajaran: activeTahunPelajaran,
+        semester: activeSemester,
+        studentScores,
+        onFirestoreError,
+      });
+      const destLabel =
+        res.target === 'praktikum_tp'
+          ? 'Praktikum TP'
+          : res.target === 'sumatif_tp'
+          ? 'Sumatif TP'
+          : 'Asesmen Harian';
+      showToast(
+        `${res.exportedStudents} nilai siswa (${res.exportedClasses.join(', ')}) langsung dikirim ke ${destLabel} (TP ${res.tpKode}).`
+      );
+    } catch (err: any) {
+      showToast(err?.message || 'Gagal mengirim nilai ke Kelola Administrasi.');
+    } finally {
+      setSyncingSetId(null);
+    }
+  };
+
+  const saveSetConfigLink = async (
+    setId: string,
+    tpId: string,
+    exportTarget: SoalExportTarget,
+    options?: { setTitle?: string; autoSyncExisting?: boolean }
+  ): Promise<SoalSetTpLink | null> => {
+    if (!setId) return null;
+    const cleanTpId = (tpId || '').trim();
+    const matchedTp = cleanTpId
+      ? tpList.find((t) => t.id === cleanTpId) || allTp.find((t) => t.id === cleanTpId)
+      : null;
+
+    const effectiveExportTarget: SoalExportTarget = matchedTp ? exportTarget : 'none';
+
+    if (!matchedTp && !setTpLinks[setId]) {
+      return null;
+    }
+
+    const nextLink: SoalSetTpLink | null = matchedTp
+      ? {
+          tpId: matchedTp.id,
+          tpKode: matchedTp.kodeTp,
+          tpDeskripsi: matchedTp.deskripsi,
+          tahunPelajaran: matchedTp.tahunPelajaran || activeTahunPelajaran,
+          exportTarget: effectiveExportTarget,
+          updatedAt: new Date().toISOString(),
+        }
+      : null;
+
+    try {
+      await setDoc(
+        doc(db, 'app_settings', 'soal_set_tp_links'),
+        {
+          links: {
+            [setId]: nextLink ? nextLink : deleteField(),
+          },
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+
+      if (!matchedTp) {
+        showToast('Tujuan Pembelajaran kartu diatur ke Tanpa TP.');
+      } else if (
+        options?.autoSyncExisting &&
+        (effectiveExportTarget === 'sumatif_tp' ||
+          effectiveExportTarget === 'praktikum_tp' ||
+          effectiveExportTarget === 'asesmen_harian')
+      ) {
+        const titleForSync =
+          options.setTitle || soalSets.find((s) => s.id === setId)?.title || matchedTp.kodeTp;
+        await syncSetScoresToAdministrasi(
+          { id: setId, title: titleForSync },
+          nextLink!,
+          false
+        );
+      } else {
+        const expText =
+          effectiveExportTarget === 'sumatif_tp'
+            ? ' • Auto-Export ke Sumatif TP'
+            : effectiveExportTarget === 'praktikum_tp'
+            ? ' • Auto-Export ke Praktikum TP'
+            : effectiveExportTarget === 'asesmen_harian'
+            ? ' • Auto-Export ke Asesmen Harian'
+            : '';
+        showToast(`TP kartu diatur ke ${matchedTp.kodeTp}${expText}.`);
+      }
+
+      return nextLink;
+    } catch (err: any) {
+      onFirestoreError?.(err, 'write', 'app_settings/soal_set_tp_links');
+      showToast(err?.message || 'Gagal menyimpan pengaturan TP / Export Nilai.');
+      return null;
+    }
+  };
+
+  const saveSetTpLink = async (setId: string, tpId: string) => {
+    const existingExport = setTpLinks[setId]?.exportTarget || 'none';
+    const nextExport = tpId.trim() ? existingExport : 'none';
+    await saveSetConfigLink(setId, tpId, nextExport, {
+      autoSyncExisting: Boolean(tpId.trim() && nextExport !== 'none'),
+    });
+  };
+
+  const handleChangeSetExportTarget = async (
+    s: SoalSet,
+    nextTarget: SoalExportTarget
+  ) => {
+    const currentTpId = setTpLinks[s.id]?.tpId || '';
+    if (!currentTpId && nextTarget !== 'none') {
+      showToast('Pilih Tujuan Pembelajaran (TP) pada kartu soal terlebih dahulu.');
+      return;
+    }
+    await saveSetConfigLink(s.id, currentTpId, nextTarget, {
+      setTitle: s.title,
+      autoSyncExisting: nextTarget !== 'none',
+    });
+  };
+
+  const handleSyncSetScoresNow = async (s: SoalSet) => {
+    const link = setTpLinks[s.id];
+    if (
+      !link?.tpId ||
+      (link.exportTarget !== 'sumatif_tp' &&
+        link.exportTarget !== 'praktikum_tp' &&
+        link.exportTarget !== 'asesmen_harian')
+    ) {
+      showToast('Pilih TP dan tujuan Export Nilai terlebih dahulu.');
+      return;
+    }
+    await syncSetScoresToAdministrasi({ id: s.id, title: s.title }, link, false);
+  };
 
   // Create / Edit SoalSet Modal
   const [isSetModalOpen, setIsSetModalOpen] = useState(false);
@@ -301,6 +546,8 @@ export default function AdminSoal({
   const [setTitle, setSetTitle] = useState('');
   const [setDesc, setSetDesc] = useState('');
   const [setKelas, setSetKelas] = useState('Semua Kelas');
+  const [setTpId, setSetTpId] = useState('');
+  const [setExportTarget, setSetExportTarget] = useState<SoalExportTarget>('none');
   const [setIsActive, setSetIsActive] = useState(true);
   const [isSavingSet, setIsSavingSet] = useState(false);
 
@@ -549,13 +796,17 @@ export default function AdminSoal({
     );
     if (!searchQuery.trim()) return sorted;
     const q = searchQuery.toLowerCase();
-    return sorted.filter(
-      s =>
+    return sorted.filter(s => {
+      const tpInfo = setTpLinks[s.id];
+      return (
         s.title.toLowerCase().includes(q) ||
         (s.description || '').toLowerCase().includes(q) ||
-        (s.kelas || '').toLowerCase().includes(q)
-    );
-  }, [soalSets, searchQuery]);
+        (s.kelas || '').toLowerCase().includes(q) ||
+        (tpInfo?.tpKode || '').toLowerCase().includes(q) ||
+        (tpInfo?.tpDeskripsi || '').toLowerCase().includes(q)
+      );
+    });
+  }, [soalSets, searchQuery, setTpLinks]);
 
   const activeSetQuestions = useMemo(() => {
     if (!selectedSet) return [];
@@ -580,6 +831,8 @@ export default function AdminSoal({
     setSetTitle('');
     setSetDesc('');
     setSetKelas('Semua Kelas');
+    setSetTpId('');
+    setSetExportTarget('none');
     setSetIsActive(true);
     setIsSetModalOpen(true);
   };
@@ -589,6 +842,11 @@ export default function AdminSoal({
     setSetTitle(s.title);
     setSetDesc(s.description || '');
     setSetKelas(s.kelas || 'Semua Kelas');
+    const existingLink = setTpLinks[s.id];
+    setSetTpId(existingLink?.tpId || '');
+    setSetExportTarget(
+      existingLink?.tpId && existingLink?.exportTarget ? existingLink.exportTarget : 'none'
+    );
     setSetIsActive(s.isActive);
     setIsSetModalOpen(true);
   };
@@ -600,6 +858,7 @@ export default function AdminSoal({
     setIsSavingSet(true);
     setSoalActionError(null);
     try {
+      const effectiveExport = setTpId.trim() ? setExportTarget : 'none';
       if (editingSet) {
         await soalApiFetch(`/api/soal/sets/${encodeURIComponent(editingSet.id)}`, {
           method: 'PUT',
@@ -610,8 +869,14 @@ export default function AdminSoal({
             isActive: setIsActive,
           }),
         });
+        await saveSetConfigLink(editingSet.id, setTpId, effectiveExport, {
+          setTitle: setTitle.trim(),
+          autoSyncExisting: Boolean(setTpId.trim() && effectiveExport !== 'none'),
+        });
         await onRefreshSoal?.();
-        showToast('Kartu soal berhasil diperbarui.');
+        if (effectiveExport === 'none') {
+          showToast('Kartu soal berhasil diperbarui.');
+        }
       } else {
         const res = await soalApiFetch('/api/soal/sets', {
           method: 'POST',
@@ -628,6 +893,12 @@ export default function AdminSoal({
             shuffleQuestions: false,
           }),
         });
+        if (res?.set?.id && setTpId) {
+          await saveSetConfigLink(res.set.id, setTpId, effectiveExport, {
+            setTitle: setTitle.trim(),
+            autoSyncExisting: false,
+          });
+        }
         await onRefreshSoal?.();
         if (res?.set?.id) setSelectedSetId(res.set.id);
         showToast('Kartu soal baru dibuat di MySQL! Silakan tambahkan soal.');
@@ -884,6 +1155,9 @@ export default function AdminSoal({
         await soalApiFetch(`/api/soal/sets/${encodeURIComponent(deleteConfirm.id)}`, {
           method: 'DELETE',
         });
+        if (setTpLinks[deleteConfirm.id]) {
+          await saveSetTpLink(deleteConfirm.id, '');
+        }
         await onRefreshSoal?.();
         if (selectedSetId === deleteConfirm.id) setSelectedSetId(null);
         showToast('Kartu soal beserta seluruh soal di dalamnya berhasil dihapus.');
@@ -1805,8 +2079,8 @@ export default function AdminSoal({
         )}
 
       {!selectedSet ? (
-        /* ================== TOP VIEW: KARTU SOAL SESUAI JUDUL ================== */
-        <>
+          /* ================== TOP VIEW: KARTU SOAL SESUAI JUDUL ================== */
+          <>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
             <div>
               <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Bank & Kartu Soal (PG 4 Opsi)</h2>
@@ -1891,6 +2165,30 @@ export default function AdminSoal({
                               {set.kelas}
                             </span>
                           )}
+                          {setTpLinks[set.id]?.tpKode ? (
+                            <span
+                              title={setTpLinks[set.id]?.tpDeskripsi || setTpLinks[set.id]?.tpKode}
+                              className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-emerald-500/15 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 font-mono"
+                            >
+                              TP: {setTpLinks[set.id].tpKode}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-200/70 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                              Tanpa TP
+                            </span>
+                          )}
+                          {setTpLinks[set.id]?.tpId &&
+                            (setTpLinks[set.id]?.exportTarget === 'sumatif_tp' ||
+                              setTpLinks[set.id]?.exportTarget === 'praktikum_tp' ||
+                              setTpLinks[set.id]?.exportTarget === 'asesmen_harian') && (
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-brand/15 text-brand dark:text-blue-300 border border-brand/25">
+                                {setTpLinks[set.id]?.exportTarget === 'sumatif_tp'
+                                  ? '→ Sumatif TP'
+                                  : setTpLinks[set.id]?.exportTarget === 'praktikum_tp'
+                                  ? '→ Praktik TP'
+                                  : '→ Asesmen Harian'}
+                              </span>
+                            )}
                         </div>
                         <h3 className={`font-black text-xl leading-snug ${theme.title}`}>
                           {set.title}
@@ -1937,6 +2235,120 @@ export default function AdminSoal({
                             : `Per Judul (${formatDurationShort(set.titleTimerSeconds)})`}
                         </span>
                       </div>
+                      <div className="pt-1.5 border-t border-slate-200/80 dark:border-slate-700/80 space-y-1">
+                        <label className="flex items-center gap-1.5 text-[11px] font-extrabold text-slate-600 dark:text-slate-300">
+                          <Target size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>Tujuan Pembelajaran:</span>
+                        </label>
+                        <select
+                          value={setTpLinks[set.id]?.tpId || ''}
+                          onChange={(e) => saveSetTpLink(set.id, e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white/85 dark:bg-slate-900/85 border border-slate-300/80 dark:border-slate-700 text-[11px] font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        >
+                          <option value="">-- Tanpa TP --</option>
+                          {tpList.map((tp) => (
+                            <option key={tp.id} value={tp.id}>
+                              {tp.kodeTp} ({tp.kelas}) — {tp.deskripsi.slice(0, 55)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {(() => {
+                        const curTpId = setTpLinks[set.id]?.tpId || '';
+                        const curExport: SoalExportTarget = curTpId
+                          ? setTpLinks[set.id]?.exportTarget || 'none'
+                          : 'none';
+                        const setSubmissionsCount = new Set(
+                          (assessmentEntriesBySetId[set.id] || [])
+                            .map((e) => e.studentId)
+                            .filter(Boolean)
+                        ).size;
+                        return (
+                          <div className="pt-1.5 border-t border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
+                            <label className="flex items-center justify-between gap-1.5 text-[11px] font-extrabold text-slate-600 dark:text-slate-300">
+                              <span className="flex items-center gap-1.5">
+                                <Send size={12} className="text-brand shrink-0" />
+                                <span>Export Nilai Otomatis:</span>
+                              </span>
+                              {curTpId && curExport !== 'none' && (
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-black">
+                                  Aktif
+                                </span>
+                              )}
+                            </label>
+                            <select
+                              value={curExport}
+                              disabled={!curTpId || syncingSetId === set.id}
+                              onChange={(e) =>
+                                handleChangeSetExportTarget(
+                                  set,
+                                  e.target.value as SoalExportTarget
+                                )
+                              }
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-white/85 dark:bg-slate-900/85 border border-slate-300/80 dark:border-slate-700 text-[11px] font-bold text-slate-800 dark:text-slate-100 disabled:opacity-55 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                            >
+                              <option value="none">
+                                {curTpId
+                                  ? '-- Tidak Auto-Export (Manual) --'
+                                  : '-- Pilih TP dulu untuk Export Nilai --'}
+                              </option>
+                              <option value="sumatif_tp">
+                                Kirim ke Sumatif TP (Sumatif Lingkup Materi)
+                              </option>
+                              <option value="praktikum_tp">
+                                Kirim ke Praktikum TP (Praktik)
+                              </option>
+                              <option value="asesmen_harian">
+                                Kirim ke Asesmen Harian (Agenda KBM)
+                              </option>
+                            </select>
+                            {curTpId && curExport === 'asesmen_harian' && (
+                              <div className="space-y-1 pt-1">
+                                <span className="text-[10px] font-bold text-slate-500 block">
+                                  Pilih Kelas &amp; Agenda Harian:
+                                </span>
+                                <select
+                                  value={setTpLinks[set.id]?.selectedAgendaClass || 'all'}
+                                  onChange={async (e) => {
+                                    const val = e.target.value;
+                                    const cur = setTpLinks[set.id] || { tpId: curTpId, tpKode: '', exportTarget: 'asesmen_harian' };
+                                    await saveSetConfigLink(set.id, curTpId, 'asesmen_harian', { autoSyncExisting: false });
+                                    // Update selectedAgendaClass in doc
+                                    await setDoc(
+                                      doc(db, 'app_settings', 'soal_set_tp_links'),
+                                      { links: { [set.id]: { ...cur, selectedAgendaClass: val, selectedAgendaId: '' } } },
+                                      { merge: true }
+                                    );
+                                  }}
+                                  className="w-full px-2 py-1 rounded bg-white dark:bg-slate-900 border text-[10px] font-bold"
+                                >
+                                  <option value="all">Semua Kelas (Otomatis per kelas)</option>
+                                  {Array.from(new Set(assessments.filter(a => a.courseId === `soal_${set.id}`).map(a => a.studentKelas))).filter(Boolean).map(cls => (
+                                    <option key={cls} value={cls}>Kelas {cls}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+                            {curTpId && curExport !== 'none' && (
+                              <button
+                                type="button"
+                                disabled={syncingSetId === set.id}
+                                onClick={() => handleSyncSetScoresNow(set)}
+                                className="w-full py-1.5 px-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/70 text-brand dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 text-[11px] font-extrabold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                              >
+                                {syncingSetId === set.id ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  <Send size={12} />
+                                )}
+                                <span>
+                                  Kirim Nilai Sekarang ({setSubmissionsCount} siswa)
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                       <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-200/80 dark:border-slate-700/80">
                         <span>{set.isFullScreen ? '🔒 Wajib Fullscreen (Anti-Curang)' : '🔓 Mode Normal'}</span>
                         <span>{set.isScoreVisible !== false ? '👁️ Nilai Tampil' : '👁️‍🗨️ Nilai Tersembunyi'}</span>
@@ -2076,6 +2488,25 @@ export default function AdminSoal({
                             🔒 Anti-Curang Fullscreen
                           </span>
                         )}
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          <Target size={11} />
+                          {setTpLinks[selectedSet.id]?.tpKode
+                            ? `TP: ${setTpLinks[selectedSet.id].tpKode}`
+                            : 'Tanpa TP'}
+                        </span>
+                        {setTpLinks[selectedSet.id]?.tpId &&
+                          (setTpLinks[selectedSet.id]?.exportTarget === 'sumatif_tp' ||
+                            setTpLinks[selectedSet.id]?.exportTarget === 'praktikum_tp' ||
+                            setTpLinks[selectedSet.id]?.exportTarget === 'asesmen_harian') && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/70 text-brand dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                              <Send size={11} />
+                              {setTpLinks[selectedSet.id]?.exportTarget === 'sumatif_tp'
+                                ? 'Auto-Export → Sumatif TP'
+                                : setTpLinks[selectedSet.id]?.exportTarget === 'praktikum_tp'
+                                ? 'Auto-Export → Praktik TP'
+                                : 'Auto-Export → Asesmen Harian'}
+                            </span>
+                          )}
                       </div>
                       <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">{selectedSet.title}</h2>
                       {selectedSet.description && (
@@ -2435,6 +2866,59 @@ export default function AdminSoal({
                   placeholder="Contoh: Semua Kelas / Kelas 7 / Kelas 8"
                   className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/40"
                 />
+              </div>
+
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1.5">
+                  Tujuan Pembelajaran (Kelola Administrasi — Opsional)
+                </label>
+                <select
+                  value={setTpId}
+                  onChange={(e) => {
+                    const nextTp = e.target.value;
+                    setSetTpId(nextTp);
+                    if (!nextTp) setSetExportTarget('none');
+                  }}
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                >
+                  <option value="">-- Tanpa TP (Default) --</option>
+                  {tpList.map((tp) => (
+                    <option key={tp.id} value={tp.id}>
+                      {tp.kodeTp} ({tp.kelas}) — {tp.deskripsi}
+                    </option>
+                  ))}
+                </select>
+                {tpList.length === 0 && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Belum ada Tujuan Pembelajaran untuk TA {activeTahunPelajaran}. Anda dapat menambahkannya di Kelola Administrasi &rarr; Tujuan Pembelajaran.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1.5">
+                  Export Nilai Langsung (Otomatis)
+                </label>
+                <select
+                  value={setTpId ? setExportTarget : 'none'}
+                  disabled={!setTpId}
+                  onChange={(e) => setSetExportTarget(e.target.value as SoalExportTarget)}
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 disabled:opacity-55 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                >
+                  <option value="none">
+                    {setTpId
+                      ? '-- Tidak Auto-Export (Manual) --'
+                      : '-- Pilih Tujuan Pembelajaran dulu --'}
+                  </option>
+                  <option value="sumatif_tp">Langsung kirim ke Sumatif TP (Sumatif Lingkup Materi)</option>
+                  <option value="praktikum_tp">Langsung kirim ke Praktikum TP (Praktik)</option>
+                  <option value="asesmen_harian">
+                    Langsung kirim ke Asesmen Harian (Agenda KBM)
+                  </option>
+                </select>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  Jika aktif, nilai siswa yang mengerjakan kartu soal ini akan langsung terkirim ke Nilai Sumatif atau Asesmen Harian sesuai TP yang dipilih.
+                </p>
               </div>
 
               <div>

@@ -41,6 +41,7 @@ import {
   BookOpen,
   ChevronRight,
   Lock,
+  Send,
 } from 'lucide-react';
 import { db } from '../firebase';
 import {
@@ -82,12 +83,21 @@ import {
   TujuanPembelajaranItem,
 } from '../administrasiTypes';
 
+import ImportAssessmentToNilaiModal from './ImportAssessmentToNilaiModal';
+import { isSoalAssessment } from '../scoreUtils';
+
 interface AdminAdministrasiProps {
   activeTahunPelajaran: string;
   activeSemester: SemesterType;
   students: ScopedStudent[];
   assessments: any[];
   jadwalSettings?: JadwalScheduleSettings;
+  navigationRequest?: {
+    subTab?: AdministrasiSubTab;
+    nilaiSubTab?: NilaiSubTab;
+    kelas?: string;
+    nonce: number;
+  } | null;
   onNavigateTab?: (tab: 'student_management' | 'settings' | 'materials') => void;
   onOpenStudentDetail?: (student: ScopedStudent) => void;
   onFirestoreError?: (
@@ -131,6 +141,7 @@ export default function AdminAdministrasi({
   students,
   assessments,
   jadwalSettings,
+  navigationRequest,
   onNavigateTab,
   onOpenStudentDetail,
   onFirestoreError,
@@ -142,6 +153,12 @@ export default function AdminAdministrasi({
   const [subTab, setSubTab] = useState<AdministrasiSubTab>('jadwal');
   const [nilaiSubTab, setNilaiSubTab] = useState<NilaiSubTab>('sumatif');
   const [notice, setNotice] = useState<FeedbackNotice>(null);
+  const [importNilaiModalTarget, setImportNilaiModalTarget] = useState<{
+    sourceType: 'materi' | 'soal';
+    sourceTitle: string;
+    kelas: string;
+    entries: any[];
+  } | null>(null);
 
   // Scoped Firestore collections
   const [allJadwal, setAllJadwal] = useState<JadwalPelajaranItem[]>([]);
@@ -1605,10 +1622,112 @@ export default function AdminAdministrasi({
     }
   }, [classOptions, nilaiClass]);
 
+  useEffect(() => {
+    if (!navigationRequest) return;
+    if (navigationRequest.subTab) setSubTab(navigationRequest.subTab);
+    if (navigationRequest.nilaiSubTab) setNilaiSubTab(navigationRequest.nilaiSubTab);
+    if (navigationRequest.kelas && classOptions.includes(navigationRequest.kelas)) {
+      setNilaiClass(navigationRequest.kelas);
+    }
+  }, [navigationRequest, classOptions]);
+
   const nilaiClassStudents = useMemo(
     () => (nilaiClass ? studentsByClass[nilaiClass] || [] : []),
     [nilaiClass, studentsByClass]
   );
+
+  const { nilaiMateriGroups, nilaiSoalGroups } = useMemo(() => {
+    const buildGroups = (sourceType: 'materi' | 'soal') => {
+      if (!nilaiClass) return [];
+      const classStuIds = new Set(nilaiClassStudents.map((s) => s.id));
+      const classStuNisSet = new Set(
+        nilaiClassStudents.map((s) => (s.nis || '').trim()).filter(Boolean)
+      );
+      const filtered = assessments.filter((a) => {
+        const matchesKind = sourceType === 'soal' ? isSoalAssessment(a) : !isSoalAssessment(a);
+        if (!matchesKind) return false;
+        const k = (a.studentKelas || '').trim();
+        if (k === nilaiClass.trim()) return true;
+        if (a.studentId && classStuIds.has(a.studentId)) return true;
+        if (a.studentNis && classStuNisSet.has(String(a.studentNis).trim())) return true;
+        return false;
+      });
+
+      const byTitle = new Map<string, any[]>();
+      filtered.forEach((a) => {
+        const title =
+          (a.courseTitle || '').trim() ||
+          (sourceType === 'soal' ? 'Paket Soal / Ujian' : 'Modul Materi');
+        const arr = byTitle.get(title) || [];
+        arr.push(a);
+        byTitle.set(title, arr);
+      });
+
+      const resolveStudentId = (entry: any): string | null => {
+        if (entry.studentId && classStuIds.has(entry.studentId)) return entry.studentId;
+        if (entry.studentNis) {
+          const nisStr = String(entry.studentNis).trim();
+          const byNis = nilaiClassStudents.find((s) => (s.nis || '').trim() === nisStr);
+          if (byNis) return byNis.id;
+        }
+        if (entry.studentName) {
+          const nm = String(entry.studentName).trim().toLowerCase();
+          const byName = nilaiClassStudents.find((s) => s.nama.trim().toLowerCase() === nm);
+          if (byName) return byName.id;
+        }
+        return null;
+      };
+
+      return Array.from(byTitle.entries())
+        .map(([title, entries]) => {
+          const byStudent: Record<
+            string,
+            { bestScore: number; latestAt?: string; attempts: number }
+          > = {};
+          entries.forEach((e) => {
+            const sid = resolveStudentId(e);
+            if (!sid) return;
+            const sc = Math.round(Math.max(0, Math.min(100, Number(e.score) || 0)));
+            const prev = byStudent[sid];
+            if (!prev) {
+              byStudent[sid] = {
+                bestScore: sc,
+                latestAt: e.completedAt,
+                attempts: 1,
+              };
+            } else {
+              const prevMs = prev.latestAt ? new Date(prev.latestAt).getTime() : 0;
+              const currMs = e.completedAt ? new Date(e.completedAt).getTime() : 0;
+              byStudent[sid] = {
+                bestScore: Math.max(prev.bestScore, sc),
+                latestAt: currMs > prevMs ? e.completedAt : prev.latestAt,
+                attempts: prev.attempts + 1,
+              };
+            }
+          });
+
+          const scoresList = Object.values(byStudent).map((v) => v.bestScore);
+          const avgScore =
+            scoresList.length > 0
+              ? Math.round(scoresList.reduce((acc, v) => acc + v, 0) / scoresList.length)
+              : 0;
+
+          return {
+            title,
+            entries,
+            byStudent,
+            completedCount: scoresList.length,
+            avgScore,
+          };
+        })
+        .sort((a, b) => a.title.localeCompare(b.title));
+    };
+
+    return {
+      nilaiMateriGroups: buildGroups('materi'),
+      nilaiSoalGroups: buildGroups('soal'),
+    };
+  }, [assessments, nilaiClass, nilaiClassStudents]);
 
   const doesTpMatchClass = (tpKelas: string, targetClass: string): boolean => {
     const tpK = (tpKelas || '').trim().toUpperCase();
@@ -6025,6 +6144,7 @@ export default function AdminAdministrasi({
               </div>
             </div>
           )}
+
         </div>
       )}
 
@@ -6954,6 +7074,25 @@ export default function AdminAdministrasi({
         </div>,
         document.body
       )}
+
+      <ImportAssessmentToNilaiModal
+        isOpen={Boolean(importNilaiModalTarget)}
+        onClose={() => setImportNilaiModalTarget(null)}
+        sourceType={importNilaiModalTarget?.sourceType || 'materi'}
+        sourceTitle={importNilaiModalTarget?.sourceTitle || ''}
+        kelas={importNilaiModalTarget?.kelas || nilaiClass}
+        activeTahunPelajaran={activeTahunPelajaran}
+        activeSemester={activeSemester}
+        classStudents={
+          studentsByClass[importNilaiModalTarget?.kelas || nilaiClass] || nilaiClassStudents
+        }
+        assessmentEntries={importNilaiModalTarget?.entries || []}
+        onSuccess={(msg, targetSubTab) => {
+          showNotice('success', msg);
+          setNilaiSubTab(targetSubTab);
+        }}
+        onFirestoreError={onFirestoreError}
+      />
     </div>
   );
 }

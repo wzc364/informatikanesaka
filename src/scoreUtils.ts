@@ -55,3 +55,19 @@ export function dedupeHighestGameScores(scores: any[], excludeAdminPreview = fal
 
   return Object.values(bestMap).sort((a, b) => Number(b?.score ?? 0) - Number(a?.score ?? 0));
 }
+
+export function isSoalAssessment(a: any): boolean {
+  return Boolean(
+    a?.isSoal ||
+      String(a?.courseId || '').startsWith('soal_') ||
+      String(a?.courseId || '').toLowerCase().includes('soal')
+  );
+}
+
+export function naturalCompareKelas(a: string, b: string): number {
+  return String(a || '').localeCompare(String(b || ''), 'id-ID', {
+    numeric: true,
+    sensitivity: 'base',
+  });
+}
+
