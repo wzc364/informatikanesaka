@@ -23,11 +23,14 @@ export interface SoalOption {
   image?: string;
 }
 
+export type SoalSetType = 'biasa' | 'sumatif';
+
 export interface SoalSet {
   id: string;
   title: string;
   description: string;
   kelas?: string;
+  soalType?: SoalSetType;
   isActive: boolean;
   isFullScreen?: boolean;
   isScoreVisible?: boolean;

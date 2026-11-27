@@ -19,7 +19,6 @@ import { db } from '../firebase';
 import {
   collection,
   doc,
-  getDoc,
   setDoc,
   deleteDoc,
   addDoc,
@@ -34,10 +33,6 @@ import {
   DEFAULT_TAHUN_PELAJARAN,
   SemesterType,
 } from '../administrasiTypes';
-import {
-  exportSoalScoresToAdministrasi,
-  SoalSetTpLink,
-} from '../soalExportUtils';
 
 interface StudentSoalRunnerProps {
   soalSet: SoalSet;
@@ -73,21 +68,19 @@ export default function StudentSoalRunner({
   isDarkMode = false,
   onToggleDarkMode,
 }: StudentSoalRunnerProps) {
-  // Filter active questions & optionally shuffle once per session
+  // Order all questions & optionally shuffle once per session
   const [orderedQuestions] = useState<SoalQuestion[]>(() => {
-    const activeOnly = questions
-      .filter(q => q.isActive !== false)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const sorted = [...questions].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     if (soalSet.shuffleQuestions && !isAdminPreview) {
-      const copy = [...activeOnly];
+      const copy = [...sorted];
       for (let i = copy.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [copy[i], copy[j]] = [copy[j], copy[i]];
       }
       return copy;
     }
-    return activeOnly;
+    return sorted;
   });
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -290,41 +283,6 @@ export default function StudentSoalRunner({
           score,
           timestamp: new Date().toISOString(),
         });
-
-        // Auto-export nilai langsung ke Nilai Sumatif atau Asesmen Harian sesuai pengaturan Kartu Soal
-        try {
-          const linkSnap = await getDoc(doc(db, 'app_settings', 'soal_set_tp_links'));
-          if (linkSnap.exists()) {
-            const linksMap = (linkSnap.data() as any)?.links || {};
-            const setLink = linksMap[soalSet.id] as SoalSetTpLink | undefined;
-            if (
-              setLink?.tpId &&
-              (setLink.exportTarget === 'sumatif_tp' ||
-                setLink.exportTarget === 'praktikum_tp' ||
-                setLink.exportTarget === 'asesmen_harian') &&
-              currentStudent.kelas
-            ) {
-              await exportSoalScoresToAdministrasi({
-                setId: soalSet.id,
-                setTitle: soalSet.title,
-                link: setLink,
-                tahunPelajaran: activeTahunPelajaran,
-                semester: activeSemester,
-                studentScores: [
-                  {
-                    studentId: currentStudent.id,
-                    kelas: currentStudent.kelas,
-                    score,
-                  },
-                ],
-                onFirestoreError: (err, _op, path) =>
-                  onFirestoreError?.(err, 'write', path),
-              });
-            }
-          }
-        } catch (exportErr) {
-          console.error('Auto-export nilai Kartu Soal gagal:', exportErr);
-        }
       } catch (err) {
         onFirestoreError?.(err, 'write', 'assessments');
       }

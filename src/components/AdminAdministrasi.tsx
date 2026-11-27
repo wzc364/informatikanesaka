@@ -42,12 +42,15 @@ import {
   ChevronRight,
   Lock,
   Send,
+  ClipboardList,
+  Power,
 } from 'lucide-react';
 import { db } from '../firebase';
 import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   onSnapshot,
   setDoc,
@@ -82,6 +85,8 @@ import {
   slugifyTermPart,
   TujuanPembelajaranItem,
 } from '../administrasiTypes';
+import { SoalQuestion, SoalSet, SoalSetType } from '../types';
+import { AsesmenHarianSoalLink, SoalSetTpLink } from '../soalExportUtils';
 
 import ImportAssessmentToNilaiModal from './ImportAssessmentToNilaiModal';
 import { isSoalAssessment } from '../scoreUtils';
@@ -91,6 +96,8 @@ interface AdminAdministrasiProps {
   activeSemester: SemesterType;
   students: ScopedStudent[];
   assessments: any[];
+  soalSets?: SoalSet[];
+  soalQuestions?: SoalQuestion[];
   jadwalSettings?: JadwalScheduleSettings;
   navigationRequest?: {
     subTab?: AdministrasiSubTab;
@@ -140,6 +147,8 @@ export default function AdminAdministrasi({
   activeSemester,
   students,
   assessments,
+  soalSets = [],
+  soalQuestions = [],
   jadwalSettings,
   navigationRequest,
   onNavigateTab,
@@ -168,6 +177,15 @@ export default function AdminAdministrasi({
   const [allSumatif, setAllSumatif] = useState<NilaiSumatifItem[]>([]);
   const [allAsesmenHarian, setAllAsesmenHarian] = useState<NilaiAsesmenHarianItem[]>([]);
   const [allRapor, setAllRapor] = useState<NilaiRaporEntry[]>([]);
+  const [soalSetTpLinks, setSoalSetTpLinks] = useState<Record<string, SoalSetTpLink>>({});
+  const [asesmenHarianSoalLinks, setAsesmenHarianSoalLinks] = useState<Record<string, AsesmenHarianSoalLink>>({});
+
+  // Aktifkan Soal modal state (for Asesmen Harian column header)
+  const [asesmenSoalModalAgenda, setAsesmenSoalModalAgenda] = useState<AgendaHarianItem | null>(null);
+  const [asesmenSoalSearch, setAsesmenSoalSearch] = useState('');
+  const [asesmenSoalTypeFilter, setAsesmenSoalTypeFilter] = useState<'all' | SoalSetType>('all');
+  const [asesmenSoalFillOnlyEmpty, setAsesmenSoalFillOnlyEmpty] = useState(false);
+  const [isActivatingAsesmenSoal, setIsActivatingAsesmenSoal] = useState(false);
 
   const onFirestoreErrorRef = useRef(onFirestoreError);
   useEffect(() => {
@@ -261,6 +279,34 @@ export default function AdminAdministrasi({
           }
         },
         (err) => onFirestoreErrorRef.current?.(err, 'get', 'app_settings/rapor_weights')
+      )
+    );
+
+    unsubs.push(
+      onSnapshot(
+        doc(db, 'app_settings', 'soal_set_tp_links'),
+        (snap) => {
+          if (snap.exists()) {
+            setSoalSetTpLinks((snap.data() || {}) as Record<string, SoalSetTpLink>);
+          } else {
+            setSoalSetTpLinks({});
+          }
+        },
+        (err) => onFirestoreErrorRef.current?.(err, 'get', 'app_settings/soal_set_tp_links')
+      )
+    );
+
+    unsubs.push(
+      onSnapshot(
+        doc(db, 'app_settings', 'asesmen_harian_soal_links'),
+        (snap) => {
+          if (snap.exists()) {
+            setAsesmenHarianSoalLinks((snap.data() || {}) as Record<string, AsesmenHarianSoalLink>);
+          } else {
+            setAsesmenHarianSoalLinks({});
+          }
+        },
+        (err) => onFirestoreErrorRef.current?.(err, 'get', 'app_settings/asesmen_harian_soal_links')
       )
     );
 
@@ -2270,6 +2316,188 @@ export default function AdminAdministrasi({
       headers,
       rows
     );
+  };
+
+  // Bank Soal enrichment + question counts for Aktifkan Soal in Asesmen Harian
+  const enrichedSoalSets = useMemo(() => {
+    return soalSets.map((s) => {
+      const link = soalSetTpLinks[s.id];
+      return {
+        ...s,
+        soalType: (link?.soalType || s.soalType || 'biasa') as SoalSetType,
+        linkedTpKode: link?.tpKode || '',
+      };
+    });
+  }, [soalSets, soalSetTpLinks]);
+
+  const soalQuestionCountMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    soalQuestions.forEach((q) => {
+      map[q.setId] = (map[q.setId] || 0) + 1;
+    });
+    return map;
+  }, [soalQuestions]);
+
+  const getMatchedSoalScoresForAgenda = (setId: string, ag: AgendaHarianItem) => {
+    const courseKey = `soal_${setId}`;
+    const classStuIds = new Set(nilaiClassStudents.map((s) => s.id));
+    const resolveStudentId = (entry: any): string | null => {
+      if (entry.studentId && classStuIds.has(entry.studentId)) return entry.studentId;
+      if (entry.studentNis) {
+        const nisStr = String(entry.studentNis).trim();
+        const byNis = nilaiClassStudents.find((s) => (s.nis || '').trim() === nisStr);
+        if (byNis) return byNis.id;
+      }
+      if (entry.studentName) {
+        const nm = String(entry.studentName).trim().toLowerCase();
+        const byName = nilaiClassStudents.find((s) => s.nama.trim().toLowerCase() === nm);
+        if (byName) return byName.id;
+      }
+      return null;
+    };
+
+    const bestScoresByStudent: Record<string, number> = {};
+    assessments.forEach((a) => {
+      if (a.courseId !== courseKey) return;
+      const sid = resolveStudentId(a);
+      if (!sid) return;
+      const attStatus = getStudentAttendanceStatusForAgenda(ag, sid);
+      if (attStatus === 'S' || attStatus === 'I' || attStatus === 'A') return;
+      const sc = Math.round(Math.max(0, Math.min(100, Number(a.score) || 0)));
+      if (bestScoresByStudent[sid] === undefined || sc > bestScoresByStudent[sid]) {
+        bestScoresByStudent[sid] = sc;
+      }
+    });
+
+    return {
+      bestScoresByStudent,
+      matchedCount: Object.keys(bestScoresByStudent).length,
+    };
+  };
+
+  const handleActivateAndFillAsesmenSoal = async (
+    ag: AgendaHarianItem,
+    selectedSet: SoalSet,
+    options: { fillScores: boolean }
+  ) => {
+    if (!nilaiClass) return;
+    setIsActivatingAsesmenSoal(true);
+    const nowIso = new Date().toISOString();
+    try {
+      await setDoc(
+        doc(db, 'app_settings', 'asesmen_harian_soal_links'),
+        {
+          [ag.id]: {
+            agendaId: ag.id,
+            kelas: nilaiClass,
+            setId: selectedSet.id,
+            setTitle: selectedSet.title,
+            isActive: true,
+            tahunPelajaran: activeTahunPelajaran,
+            semester: activeSemester,
+            updatedAt: nowIso,
+          } as AsesmenHarianSoalLink,
+        },
+        { merge: true }
+      );
+
+      if (options.fillScores) {
+        const { bestScoresByStudent, matchedCount } = getMatchedSoalScoresForAgenda(
+          selectedSet.id,
+          ag
+        );
+        const existingCol = { ...(asesmenHarianDraft[ag.id] || {}) };
+        let updatedCount = 0;
+
+        nilaiClassStudents.forEach((s) => {
+          const attStatus = getStudentAttendanceStatusForAgenda(ag, s.id);
+          if (attStatus === 'S' || attStatus === 'I' || attStatus === 'A') return;
+          const incoming = bestScoresByStudent[s.id];
+          if (incoming === undefined) return;
+          const currVal = (existingCol[s.id] || '').trim();
+          if (asesmenSoalFillOnlyEmpty && currVal !== '') return;
+          existingCol[s.id] = String(incoming);
+          updatedCount++;
+        });
+
+        setAsesmenHarianDraft((prev) => ({
+          ...prev,
+          [ag.id]: existingCol,
+        }));
+
+        const saved =
+          asesmenHarianList.find((a) => a.agendaId === ag.id || a.id === ag.id) || null;
+        const docId = saved?.id || ag.id;
+        const cleanScores: Record<string, number> = {};
+        nilaiClassStudents.forEach((s) => {
+          const attStatus = getStudentAttendanceStatusForAgenda(ag, s.id);
+          if (attStatus === 'S' || attStatus === 'I' || attStatus === 'A') return;
+          const raw = (existingCol[s.id] || '').trim();
+          if (raw !== '') {
+            const num = Math.max(0, Math.min(100, Number(raw)));
+            if (!Number.isNaN(num)) {
+              cleanScores[s.id] = Math.round(num);
+            }
+          }
+        });
+
+        await setDoc(
+          doc(db, 'nilai_asesmen_harian', docId),
+          {
+            agendaId: ag.id,
+            tahunPelajaran: activeTahunPelajaran,
+            semester: activeSemester,
+            kelas: nilaiClass,
+            tanggal: ag.tanggal,
+            materi: ag.materi,
+            tpId: ag.tpId || '',
+            tpKode: ag.tpKode || '',
+            scores: cleanScores,
+            notes: saved?.notes || {},
+            createdAt: saved?.createdAt || nowIso,
+            updatedAt: nowIso,
+          },
+          { merge: true }
+        );
+
+        showNotice(
+          'success',
+          matchedCount > 0
+            ? `Soal "${selectedSet.title}" diaktifkan untuk Kelas ${nilaiClass} & ${updatedCount} nilai siswa berhasil diisi ke tabel.`
+            : `Soal "${selectedSet.title}" diaktifkan untuk Kelas ${nilaiClass}. Nilai akan siap ditarik setelah siswa mengerjakan soal.`
+        );
+      } else {
+        showNotice(
+          'success',
+          `Soal "${selectedSet.title}" berhasil diaktifkan untuk Asesmen Harian "${ag.materi}" di Kelas ${nilaiClass}.`
+        );
+      }
+      setAsesmenSoalModalAgenda(null);
+    } catch (err) {
+      onFirestoreError?.(err, 'write', 'app_settings/asesmen_harian_soal_links');
+      showNotice('error', 'Gagal mengaktifkan atau mengisi nilai dari Bank Soal.');
+    } finally {
+      setIsActivatingAsesmenSoal(false);
+    }
+  };
+
+  const handleDeactivateAsesmenSoal = async (ag: AgendaHarianItem) => {
+    try {
+      await setDoc(
+        doc(db, 'app_settings', 'asesmen_harian_soal_links'),
+        {
+          [ag.id]: deleteField(),
+        },
+        { merge: true }
+      );
+      showNotice('info', `Tautan soal pada "${ag.materi}" dinonaktifkan.`);
+      if (asesmenSoalModalAgenda?.id === ag.id) {
+        setAsesmenSoalModalAgenda(null);
+      }
+    } catch (err) {
+      onFirestoreError?.(err, 'write', 'app_settings/asesmen_harian_soal_links');
+      showNotice('error', 'Gagal menonaktifkan tautan soal.');
+    }
   };
 
   // ============================================================================
@@ -5470,12 +5698,20 @@ export default function AdminAdministrasi({
                               ? tpList.find((t) => t.kodeTp === ag.tpKode)
                               : undefined;
                             const attRec = getAttendanceRecordForAgenda(ag);
+                            const linkedSoal = asesmenHarianSoalLinks[ag.id];
+                            const linkedSoalObj = linkedSoal?.isActive
+                              ? enrichedSoalSets.find((s) => s.id === linkedSoal.setId)
+                              : undefined;
+                            const matchedPreview = linkedSoal?.isActive
+                              ? getMatchedSoalScoresForAgenda(linkedSoal.setId, ag).matchedCount
+                              : 0;
+
                             return (
                               <th
                                 key={ag.id}
-                                className="p-3 text-center min-w-[160px] max-w-[220px] border-l border-slate-200/60 dark:border-slate-700/60 align-top"
+                                className="p-3 text-center min-w-[185px] max-w-[235px] border-l border-slate-200/60 dark:border-slate-700/60 align-top"
                               >
-                                <div className="flex flex-col items-center gap-1">
+                                <div className="flex flex-col items-center gap-1.5">
                                   <span
                                     title={ag.materi}
                                     className="text-xs font-black text-slate-900 dark:text-white normal-case tracking-normal leading-snug line-clamp-2"
@@ -5494,7 +5730,7 @@ export default function AdminAdministrasi({
                                       Tanpa TP
                                     </span>
                                   )}
-                                  <div className="flex flex-wrap items-center justify-center gap-1 mt-0.5">
+                                  <div className="flex flex-wrap items-center justify-center gap-1">
                                     <span className="text-[10px] font-bold text-slate-400 tabular-nums normal-case">
                                       {ag.tanggal}
                                     </span>
@@ -5514,6 +5750,62 @@ export default function AdminAdministrasi({
                                       </button>
                                     )}
                                   </div>
+
+                                  {linkedSoal?.isActive ? (
+                                    <div className="w-full flex flex-col items-center gap-1 pt-1 border-t border-slate-200/70 dark:border-slate-700/70 normal-case tracking-normal">
+                                      <span
+                                        title={`Soal aktif: ${linkedSoalObj?.title || linkedSoal.setTitle}`}
+                                        className="max-w-full truncate px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold"
+                                      >
+                                        Aktif: {linkedSoalObj?.title || linkedSoal.setTitle}
+                                      </span>
+                                      <div className="flex flex-wrap items-center justify-center gap-1">
+                                        {matchedPreview > 0 && linkedSoalObj && (
+                                          <button
+                                            type="button"
+                                            disabled={isActivatingAsesmenSoal}
+                                            onClick={() =>
+                                              handleActivateAndFillAsesmenSoal(ag, linkedSoalObj, {
+                                                fillScores: true,
+                                              })
+                                            }
+                                            className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-extrabold inline-flex items-center gap-1 shadow-2xs cursor-pointer disabled:opacity-50"
+                                            title="Tarik nilai terbaru dari siswa yang sudah mengerjakan soal"
+                                          >
+                                            <RefreshCw size={10} />
+                                            Isi Nilai ({matchedPreview})
+                                          </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setAsesmenSoalSearch('');
+                                            setAsesmenSoalTypeFilter('all');
+                                            setAsesmenSoalModalAgenda(ag);
+                                          }}
+                                          className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                                          title="Kelola atau ganti soal yang ditautkan"
+                                        >
+                                          <ClipboardList size={10} />
+                                          Kelola Soal
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAsesmenSoalSearch('');
+                                        setAsesmenSoalTypeFilter('all');
+                                        setAsesmenSoalModalAgenda(ag);
+                                      }}
+                                      className="mt-0.5 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-[10px] font-extrabold normal-case tracking-normal inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                      title="Panggil & aktifkan soal dari Kelola Soal / Bank Soal untuk mengisi tabel nilai"
+                                    >
+                                      <ClipboardList size={11} />
+                                      Aktifkan Soal
+                                    </button>
+                                  )}
                                 </div>
                               </th>
                             );
@@ -7093,6 +7385,228 @@ export default function AdminAdministrasi({
         }}
         onFirestoreError={onFirestoreError}
       />
+
+      {asesmenSoalModalAgenda &&
+        createPortal(
+          <div className="fixed inset-0 z-[200] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 text-[10px] font-black uppercase tracking-wider">
+                      Asesmen Harian · Kelas {nilaiClass}
+                    </span>
+                    {asesmenSoalModalAgenda.tpKode && (
+                      <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-mono font-black">
+                        TP: {asesmenSoalModalAgenda.tpKode}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white leading-snug">
+                    Aktifkan Soal untuk "{asesmenSoalModalAgenda.materi}"
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Pilih paket soal dari Kelola Soal atau Bank Soal Sumatif. Siswa Kelas {nilaiClass} dapat langsung mengerjakan soal yang diaktifkan, lalu nilainya otomatis mengisi kolom tabel.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAsesmenSoalModalAgenda(null)}
+                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 cursor-pointer shrink-0"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 space-y-3">
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <div className="relative flex-1">
+                    <Search
+                      size={15}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      type="text"
+                      value={asesmenSoalSearch}
+                      onChange={(e) => setAsesmenSoalSearch(e.target.value)}
+                      placeholder="Cari judul soal atau bank soal..."
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                    />
+                  </div>
+                  <div className="inline-flex bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
+                    {(
+                      [
+                        { id: 'all', label: 'Semua' },
+                        { id: 'sumatif', label: 'Bank Soal Sumatif' },
+                        { id: 'biasa', label: 'Soal Biasa' },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setAsesmenSoalTypeFilter(opt.id)}
+                        className={`px-3 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-colors ${
+                          asesmenSoalTypeFilter === opt.id
+                            ? 'bg-indigo-600 text-white'
+                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={asesmenSoalFillOnlyEmpty}
+                    onChange={(e) => setAsesmenSoalFillOnlyEmpty(e.target.checked)}
+                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  Hanya isi nilai siswa yang selnya masih kosong (jangan timpa nilai yang sudah diisi)
+                </label>
+              </div>
+
+              <div className="p-4 overflow-y-auto custom-scrollbar flex-1 space-y-2.5">
+                {(() => {
+                  const q = asesmenSoalSearch.trim().toLowerCase();
+                  const currentLink = asesmenHarianSoalLinks[asesmenSoalModalAgenda.id];
+                  const filteredSets = enrichedSoalSets.filter((s) => {
+                    if (asesmenSoalTypeFilter !== 'all' && s.soalType !== asesmenSoalTypeFilter) {
+                      return false;
+                    }
+                    if (q) {
+                      const inTitle = (s.title || '').toLowerCase().includes(q);
+                      const inDesc = (s.description || '').toLowerCase().includes(q);
+                      const inTp = (s.linkedTpKode || '').toLowerCase().includes(q);
+                      if (!inTitle && !inDesc && !inTp) return false;
+                    }
+                    return true;
+                  });
+
+                  if (filteredSets.length === 0) {
+                    return (
+                      <div className="py-12 text-center space-y-2">
+                        <ClipboardList size={32} className="mx-auto text-slate-300 dark:text-slate-600" />
+                        <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
+                          Belum ada paket soal yang cocok
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          Buat paket soal atau Bank Soal Sumatif di menu Kelola Soal terlebih dahulu.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return filteredSets.map((set) => {
+                    const qCount = soalQuestionCountMap[set.id] || 0;
+                    const { matchedCount } = getMatchedSoalScoresForAgenda(
+                      set.id,
+                      asesmenSoalModalAgenda
+                    );
+                    const isCurrentlyLinked =
+                      currentLink?.isActive && currentLink?.setId === set.id;
+                    const isSumatif = set.soalType === 'sumatif';
+
+                    return (
+                      <div
+                        key={set.id}
+                        className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          isCurrentlyLinked
+                            ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700'
+                            : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+                        }`}
+                      >
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                                isSumatif
+                                  ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                              }`}
+                            >
+                              {isSumatif ? 'SUMATIF · Bank Soal' : 'Soal Biasa'}
+                            </span>
+                            {set.linkedTpKode && (
+                              <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono font-bold">
+                                TP: {set.linkedTpKode}
+                              </span>
+                            )}
+                            {isCurrentlyLinked && (
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[10px] font-black">
+                                Sedang Aktif
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white truncate">
+                            {set.title}
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                            <span>{qCount} Butir Soal</span>
+                            <span>Target: {set.kelas || 'Semua Kelas'}</span>
+                            <span
+                              className={
+                                matchedCount > 0
+                                  ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                                  : ''
+                              }
+                            >
+                              {matchedCount} nilai siswa tersedia di Kelas {nilaiClass}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                          {isCurrentlyLinked && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeactivateAsesmenSoal(asesmenSoalModalAgenda)}
+                              className="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-700 dark:text-rose-300 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <Power size={13} />
+                              Nonaktifkan
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            disabled={isActivatingAsesmenSoal || qCount === 0}
+                            onClick={() =>
+                              handleActivateAndFillAsesmenSoal(asesmenSoalModalAgenda, set, {
+                                fillScores: true,
+                              })
+                            }
+                            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-extrabold inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+                          >
+                            <CheckCircle2 size={14} />
+                            {matchedCount > 0
+                              ? `Aktifkan & Isi ${matchedCount} Nilai`
+                              : 'Aktifkan Soal'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between gap-3">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Soal yang aktif di sini akan otomatis tampil di dashboard siswa Kelas {nilaiClass}.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAsesmenSoalModalAgenda(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-800 dark:text-slate-100 text-xs font-bold cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

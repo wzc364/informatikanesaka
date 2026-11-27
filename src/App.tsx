@@ -117,6 +117,7 @@ import {
 import { resolveCourseImageUrl, getPublicFallbackImageUrl } from './courseImageMap';
 import { APP_BACKGROUNDS, getBackgroundPreset } from './backgrounds';
 import { dedupeHighestGameScores, formatScoreTimestamp, getScoreTimestampMs, isSoalAssessment, naturalCompareKelas } from './scoreUtils';
+import { AsesmenHarianSoalLink, doesSoalSetMatchStudentClass, SoalSetTpLink } from './soalExportUtils';
 import courseCoverSystemsFlat from './assets/images/course_cover_systems_flat_1795244678070.jpg';
 import courseCoverCodingFlat from './assets/images/course_cover_coding_flat_1795244677820.jpg';
 import courseCoverDataFlat from './assets/images/course_cover_data_flat_1795244677214.jpg';
@@ -443,6 +444,8 @@ export default function App() {
   const [studentCatalogFilter, setStudentCatalogFilter] = useState<'all' | 'todo' | 'done'>('all');
   const [soalSets, setSoalSets] = useState<SoalSet[]>([]);
   const [soalQuestions, setSoalQuestions] = useState<SoalQuestion[]>([]);
+  const [soalSetTpLinks, setSoalSetTpLinks] = useState<Record<string, SoalSetTpLink>>({});
+  const [asesmenHarianSoalLinks, setAsesmenHarianSoalLinks] = useState<Record<string, AsesmenHarianSoalLink>>({});
   const [soalDbConfigured, setSoalDbConfigured] = useState<boolean>(true);
   const [soalDbError, setSoalDbError] = useState<string | null>(null);
   const [soalAdminToken, setSoalAdminToken] = useState<string | null>(null);
@@ -625,6 +628,17 @@ export default function App() {
     });
     return classMap;
   }, [scopedStudents]);
+
+  const adminClassOptions = useMemo(() => {
+    return Object.keys(groupedClasses).sort((a, b) => naturalCompareKelas(a, b));
+  }, [groupedClasses]);
+
+  const enrichedSoalSets = useMemo(() => {
+    return soalSets.map(s => ({
+      ...s,
+      soalType: soalSetTpLinks[s.id]?.soalType || s.soalType || 'biasa',
+    }));
+  }, [soalSets, soalSetTpLinks]);
 
   const scopedMateriAssessments = useMemo(
     () => scopedAssessments.filter(a => !isSoalAssessment(a)),
@@ -1310,6 +1324,30 @@ export default function App() {
     });
     unsubscribes.push(unsubAnnouncements);
 
+    // Soal Type & TP Links (needed by both admin & student views)
+    const unsubSoalLinks = onSnapshot(doc(db, 'app_settings', 'soal_set_tp_links'), (snapshot) => {
+      if (snapshot.exists()) {
+        setSoalSetTpLinks((snapshot.data() || {}) as Record<string, SoalSetTpLink>);
+      } else {
+        setSoalSetTpLinks({});
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'app_settings/soal_set_tp_links');
+    });
+    unsubscribes.push(unsubSoalLinks);
+
+    // Asesmen Harian Soal Links (class-level activation from Nilai Asesmen Harian)
+    const unsubAsesmenSoalLinks = onSnapshot(doc(db, 'app_settings', 'asesmen_harian_soal_links'), (snapshot) => {
+      if (snapshot.exists()) {
+        setAsesmenHarianSoalLinks((snapshot.data() || {}) as Record<string, AsesmenHarianSoalLink>);
+      } else {
+        setAsesmenHarianSoalLinks({});
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'app_settings/asesmen_harian_soal_links');
+    });
+    unsubscribes.push(unsubAsesmenSoalLinks);
+
     // Admin Data
     if (isAdmin) {
       // 2. All Assessments (Admin)
@@ -1689,10 +1727,23 @@ export default function App() {
 
   if (currentPage === 'student_dashboard') {
     const activeCoursesList = COURSES.filter(c => isCourseActive(c.id));
-    const activeSoalSets = soalSets.filter(s => {
-      if (!s.isActive) return false;
-      const activeQCount = soalQuestions.filter(q => q.setId === s.id && q.isActive !== false).length;
-      return activeQCount > 0;
+    const studentKelas = (currentStudent?.student_management?.kelas || currentStudent?.kelas || '').trim();
+    const activatedSetIdsForStudentClass = new Set(
+      Object.values(asesmenHarianSoalLinks)
+        .filter(l => {
+          if (!l?.isActive || !l.setId) return false;
+          if (!studentKelas || (l.kelas || '').trim().toLowerCase() !== studentKelas.toLowerCase()) return false;
+          if (l.tahunPelajaran && l.tahunPelajaran !== activeTahunPelajaran) return false;
+          if (l.semester && l.semester !== activeSemester) return false;
+          return true;
+        })
+        .map(l => l.setId)
+    );
+    const activeSoalSets = enrichedSoalSets.filter(s => {
+      const hasQuestions = soalQuestions.some(q => q.setId === s.id);
+      if (!hasQuestions) return false;
+      if (activatedSetIdsForStudentClass.has(s.id)) return true;
+      return s.isActive && doesSoalSetMatchStudentClass(s.kelas, studentKelas);
     });
 
     const filteredAnnouncements = announcements
@@ -2412,8 +2463,13 @@ export default function App() {
                         const courseKey = `soal_${set.id}`;
                         const studentAssessment = scopedStudentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
                         const hasCompleted = !!studentAssessment;
-                        const activeQs = soalQuestions.filter(q => q.setId === set.id && q.isActive !== false);
+                        const activeQs = soalQuestions.filter(q => q.setId === set.id);
                         const coverArt = getSoalCoverArt(set.title, index);
+                        const isSumatif = set.soalType === 'sumatif';
+                        const isAsesmenHarianLinked = activatedSetIdsForStudentClass.has(set.id);
+                        const targetDisplayLabel = isAsesmenHarianLinked && !doesSoalSetMatchStudentClass(set.kelas, studentKelas)
+                          ? `Kelas ${studentKelas}`
+                          : (set.kelas || 'Semua Kelas');
                         const timerText = set.timerMode === 'per_soal'
                           ? `${set.defaultQuestionTimerSeconds || 30} dtk / soal`
                           : set.titleTimerSeconds > 0
@@ -2431,7 +2487,12 @@ export default function App() {
                               setIsPreviewingSoal(false);
                               setCurrentPage('soal_confirm');
                             }}
-                            className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-600 rounded-2xl overflow-hidden shadow-2xs hover:shadow-lg transition-all duration-200 flex flex-col cursor-pointer"
+                            className={cn(
+                              "group bg-white dark:bg-slate-900 border rounded-2xl overflow-hidden shadow-2xs hover:shadow-lg transition-all duration-200 flex flex-col cursor-pointer",
+                              isSumatif
+                                ? "border-amber-300/90 dark:border-amber-700/70 hover:border-amber-400 dark:hover:border-amber-500"
+                                : "border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-600"
+                            )}
                           >
                             {/* Illustrated Cover Banner */}
                             <div className={cn("relative h-36 w-full overflow-hidden bg-gradient-to-br shrink-0", coverArt.fallbackGradient)}>
@@ -2472,16 +2533,23 @@ export default function App() {
 
                               {/* Top unboxed kicker & status */}
                               <div className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between gap-2">
-                                <span className="text-[11px] font-mono font-bold tracking-wider text-white tabular-nums drop-shadow-xs">
-                                  Paket {String(index + 1).padStart(2, '0')}
-                                </span>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="text-[11px] font-mono font-bold tracking-wider text-white tabular-nums drop-shadow-xs">
+                                    Paket {String(index + 1).padStart(2, '0')}
+                                  </span>
+                                  {isSumatif && (
+                                    <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black tracking-wider uppercase shadow-xs">
+                                      SUMATIF
+                                    </span>
+                                  )}
+                                </div>
                                 {hasCompleted ? (
                                   <span className="inline-flex items-center gap-1 text-emerald-200 text-xs font-extrabold whitespace-nowrap drop-shadow-xs">
                                     <CheckCircle size={14} /> Selesai
                                   </span>
                                 ) : (
                                   <span className="text-[11px] font-semibold text-white/95 truncate max-w-[140px] drop-shadow-xs">
-                                    {set.kelas || 'Semua Kelas'}
+                                    {targetDisplayLabel}
                                   </span>
                                 )}
                               </div>
@@ -2489,7 +2557,7 @@ export default function App() {
                               {/* Bottom banner metadata */}
                               <div className="absolute bottom-3 left-4 right-4 z-30 flex items-end justify-between gap-2">
                                 <p className="text-xs font-bold text-white truncate drop-shadow-xs">
-                                  {coverArt.label}
+                                  {isSumatif ? 'Evaluasi Sumatif' : coverArt.label}
                                 </p>
                                 <span className="text-[11px] font-mono font-semibold text-white/95 tabular-nums whitespace-nowrap shrink-0 drop-shadow-xs">
                                   {set.isFullScreen ? 'Mode Ujian' : 'Mode Latihan'}
@@ -2499,6 +2567,25 @@ export default function App() {
 
                             {/* Card Body */}
                             <div className="p-5 flex-1 flex flex-col">
+                              {isSumatif && (
+                                <div className="mb-1.5 flex items-center gap-1.5">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-[10px] font-black uppercase tracking-wider">
+                                    SUMATIF
+                                  </span>
+                                  {isAsesmenHarianLinked && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
+                                      Asesmen Harian
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {!isSumatif && isAsesmenHarianLinked && (
+                                <div className="mb-1.5">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
+                                    Asesmen Harian · Kelas {studentKelas}
+                                  </span>
+                                </div>
+                              )}
                               <h3 className="font-extrabold text-base md:text-[17px] text-slate-900 dark:text-slate-100 leading-snug mb-1.5 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors line-clamp-2">
                                 {set.title}
                               </h3>
@@ -2518,7 +2605,7 @@ export default function App() {
                                 </div>
                                 <div className="pl-3">
                                   <span className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500">Target</span>
-                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">{set.kelas || 'Umum'}</span>
+                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">{targetDisplayLabel}</span>
                                 </div>
                               </div>
 
@@ -2544,7 +2631,10 @@ export default function App() {
                                 ) : (
                                   <>
                                     <span className="text-xs font-medium text-slate-400 dark:text-slate-500">Siap dikerjakan</span>
-                                    <span className="px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white group-hover:bg-emerald-700 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs transition-colors">
+                                    <span className={cn(
+                                      "px-3.5 py-1.5 rounded-xl text-white text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs transition-colors",
+                                      isSumatif ? "bg-amber-600 group-hover:bg-amber-700" : "bg-emerald-600 group-hover:bg-emerald-700"
+                                    )}>
                                       Kerjakan Soal <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                                     </span>
                                   </>
@@ -2852,7 +2942,7 @@ export default function App() {
   }
 
   if (currentPage === 'soal_confirm') {
-    const selectedSoalSet = soalSets.find(s => s.id === activeSoalSetId);
+    const selectedSoalSet = enrichedSoalSets.find(s => s.id === activeSoalSetId);
     if (!selectedSoalSet) {
       return (
         <div className={cn("min-h-screen flex items-center justify-center p-6 font-sans transition-colors duration-300", currentBgPreset.className)}>
@@ -2869,12 +2959,13 @@ export default function App() {
       );
     }
 
-    const activeQs = soalQuestions.filter(q => q.setId === selectedSoalSet.id && q.isActive !== false);
+    const activeQs = soalQuestions.filter(q => q.setId === selectedSoalSet.id);
     const courseKey = `soal_${selectedSoalSet.id}`;
     const hasCompleted = scopedStudentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
     const studentAssessment = scopedStudentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
     const isFullScreen = selectedSoalSet.isFullScreen || false;
     const isScoreVisible = selectedSoalSet.isScoreVisible ?? true;
+    const isSumatif = selectedSoalSet.soalType === 'sumatif';
 
     return (
       <div className={cn("min-h-screen text-slate-900 dark:text-slate-100 flex flex-col p-4 md:p-8 items-center justify-center overflow-y-auto custom-scrollbar font-sans transition-colors duration-300", currentBgPreset.className)}>
@@ -2886,13 +2977,25 @@ export default function App() {
           <div className="bg-slate-900 dark:bg-slate-950 p-6 md:p-7 text-white relative overflow-hidden">
             <div className="relative z-10 flex items-start justify-between gap-4">
               <div className="flex items-start gap-3.5">
-                <div className="w-11 h-11 rounded-xl bg-emerald-500/25 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shrink-0">
+                <div className={cn(
+                  "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border",
+                  isSumatif
+                    ? "bg-amber-500/25 border-amber-400/40 text-amber-300"
+                    : "bg-emerald-500/25 border-emerald-400/40 text-emerald-300"
+                )}>
                   <ClipboardList size={22} />
                 </div>
                 <div>
-                  <span className="text-xs font-semibold text-slate-300 block mb-0.5">
-                    Konfirmasi Pengerjaan Soal
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                    <span className="text-xs font-semibold text-slate-300">
+                      Konfirmasi Pengerjaan Soal
+                    </span>
+                    {isSumatif && (
+                      <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                        SUMATIF
+                      </span>
+                    )}
+                  </div>
                   <h2 className="text-lg md:text-2xl font-extrabold text-white leading-snug">
                     {selectedSoalSet.title}
                   </h2>
@@ -2988,7 +3091,7 @@ export default function App() {
   }
 
   if (currentPage === 'soal') {
-    const selectedSoalSet = soalSets.find(s => s.id === activeSoalSetId);
+    const selectedSoalSet = enrichedSoalSets.find(s => s.id === activeSoalSetId);
     if (!selectedSoalSet) {
       return (
         <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-6 transition-colors">
@@ -6568,6 +6671,8 @@ export default function App() {
                 activeSemester={activeSemester}
                 students={scopedStudents}
                 assessments={scopedAssessments}
+                soalSets={enrichedSoalSets}
+                soalQuestions={soalQuestions}
                 jadwalSettings={settingsConfig.jadwalSettings || DEFAULT_JADWAL_SCHEDULE_SETTINGS}
                 navigationRequest={administrasiNavRequest}
                 onNavigateTab={(tab) => setAdminTab(tab)}
@@ -6594,9 +6699,10 @@ export default function App() {
             )}
             {adminTab === 'questions' && (
               <AdminSoal
-                soalSets={soalSets}
+                soalSets={enrichedSoalSets}
                 soalQuestions={soalQuestions}
                 materialConfigs={materialConfigs}
+                classOptions={adminClassOptions}
                 activeTahunPelajaran={activeTahunPelajaran}
                 activeSemester={activeSemester}
                 assessments={scopedAssessments}

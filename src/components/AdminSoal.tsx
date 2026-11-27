@@ -36,7 +36,8 @@ import {
   RefreshCw,
   Database,
   Target,
-  Send,
+  Copy,
+  Award,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { COURSES } from '../constants';
@@ -47,19 +48,16 @@ import {
   TujuanPembelajaranItem,
 } from '../administrasiTypes';
 import { QuestionAnalysisResult } from '../questionAnalysisTypes';
-import { SoalOption, SoalQuestion, SoalSet } from '../types';
+import { SoalOption, SoalQuestion, SoalSet, SoalSetType } from '../types';
 import { db } from '../firebase';
 import { collection, deleteField, doc, onSnapshot, setDoc } from 'firebase/firestore';
-import {
-  exportSoalScoresToAdministrasi,
-  SoalExportTarget,
-  SoalSetTpLink,
-} from '../soalExportUtils';
+import { SoalSetTpLink } from '../soalExportUtils';
 
 interface AdminSoalProps {
   soalSets: SoalSet[];
   soalQuestions: SoalQuestion[];
   materialConfigs?: Record<string, { isActive?: boolean }>;
+  classOptions?: string[];
   activeTahunPelajaran?: string;
   activeSemester?: SemesterType;
   assessments?: any[];
@@ -302,9 +300,9 @@ export default function AdminSoal({
   soalSets,
   soalQuestions,
   materialConfigs,
+  classOptions = [],
   activeTahunPelajaran = DEFAULT_TAHUN_PELAJARAN,
   activeSemester = DEFAULT_SEMESTER,
-  assessments = [],
   soalDbConfigured = true,
   soalDbError = null,
   soalAdminToken = null,
@@ -314,13 +312,14 @@ export default function AdminSoal({
   onFirestoreError,
 }: AdminSoalProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | SoalSetType>('all');
   const [selectedSetId, setSelectedSetId] = useState<string | null>(null);
   const [questionSearch, setQuestionSearch] = useState('');
 
-  // Tujuan Pembelajaran & Export Nilai Otomatis reference per Kartu Soal
+  // Tujuan Pembelajaran & Jenis Kartu Soal (Soal Biasa / Soal Sumatif) reference per Kartu Soal
   const [allTp, setAllTp] = useState<TujuanPembelajaranItem[]>([]);
   const [setTpLinks, setSetTpLinks] = useState<Record<string, SoalSetTpLink>>({});
-  const [syncingSetId, setSyncingSetId] = useState<string | null>(null);
+  const [duplicatingSetId, setDuplicatingSetId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubTp = onSnapshot(
@@ -360,78 +359,51 @@ export default function AdminSoal({
     [allTp, activeTahunPelajaran]
   );
 
-  // Map existing assessments by SoalSet id
-  const assessmentEntriesBySetId = useMemo(() => {
-    const map: Record<string, any[]> = {};
-    assessments.forEach((a) => {
-      const cid = String(a?.courseId || '').trim();
-      if (!cid.startsWith('soal_')) return;
-      const sId = cid.slice(5);
-      if (!sId) return;
-      if (!map[sId]) map[sId] = [];
-      map[sId].push(a);
-    });
-    return map;
-  }, [assessments]);
+  const getSetSoalType = (s: SoalSet): SoalSetType => {
+    const linkType = setTpLinks[s.id]?.soalType;
+    if (linkType === 'sumatif' || linkType === 'biasa') return linkType;
+    return s.soalType === 'sumatif' ? 'sumatif' : 'biasa';
+  };
 
-  const syncSetScoresToAdministrasi = async (
-    setObj: { id: string; title: string },
-    linkObj: SoalSetTpLink,
-    silentIfEmpty = false
-  ) => {
-    if (!linkObj.tpId || (linkObj.exportTarget !== 'sumatif_tp' && linkObj.exportTarget !== 'praktikum_tp' && linkObj.exportTarget !== 'asesmen_harian')) {
-      return;
+  const toggleKelasChip = (currentVal: string, targetClass: string): string => {
+    const cleanTarget = targetClass.trim();
+    if (!cleanTarget || cleanTarget.toLowerCase() === 'semua kelas') {
+      return 'Semua Kelas';
     }
-    const entries = assessmentEntriesBySetId[setObj.id] || [];
-    const studentScores = entries
-      .filter((e) => e?.studentId && e?.studentKelas)
-      .map((e) => ({
-        studentId: String(e.studentId),
-        kelas: String(e.studentKelas),
-        score: Number(e.score) || 0,
-      }));
+    const raw = String(currentVal || '').trim();
+    const isAll = !raw || raw.toLowerCase() === 'semua kelas' || raw.toLowerCase() === 'semua';
+    const list = isAll
+      ? []
+      : raw
+          .split(/[,;]+/)
+          .map((t) => t.trim())
+          .filter(Boolean);
+    const existsIdx = list.findIndex((t) => t.toLowerCase() === cleanTarget.toLowerCase());
+    if (existsIdx >= 0) {
+      list.splice(existsIdx, 1);
+    } else {
+      list.push(cleanTarget);
+    }
+    return list.length > 0 ? list.join(', ') : 'Semua Kelas';
+  };
 
-    if (studentScores.length === 0) {
-      if (!silentIfEmpty) {
-        showToast(
-          `Pengaturan disimpan. Belum ada nilai siswa untuk kartu "${setObj.title}" — nilai siswa baru akan otomatis terkirim saat ujian selesai.`
-        );
-      }
-      return;
+  const isKelasChipSelected = (currentVal: string, chip: string): boolean => {
+    const raw = String(currentVal || '').trim();
+    if (chip.toLowerCase() === 'semua kelas') {
+      return !raw || raw.toLowerCase() === 'semua kelas' || raw.toLowerCase() === 'semua';
     }
-
-    setSyncingSetId(setObj.id);
-    try {
-      const res = await exportSoalScoresToAdministrasi({
-        setId: setObj.id,
-        setTitle: setObj.title,
-        link: linkObj,
-        tahunPelajaran: activeTahunPelajaran,
-        semester: activeSemester,
-        studentScores,
-        onFirestoreError,
-      });
-      const destLabel =
-        res.target === 'praktikum_tp'
-          ? 'Praktikum TP'
-          : res.target === 'sumatif_tp'
-          ? 'Sumatif TP'
-          : 'Asesmen Harian';
-      showToast(
-        `${res.exportedStudents} nilai siswa (${res.exportedClasses.join(', ')}) langsung dikirim ke ${destLabel} (TP ${res.tpKode}).`
-      );
-    } catch (err: any) {
-      showToast(err?.message || 'Gagal mengirim nilai ke Kelola Administrasi.');
-    } finally {
-      setSyncingSetId(null);
-    }
+    const list = raw
+      .split(/[,;]+/)
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    return list.includes(chip.toLowerCase());
   };
 
   const saveSetConfigLink = async (
     setId: string,
     tpId: string,
-    exportTarget: SoalExportTarget,
-    options?: { setTitle?: string; autoSyncExisting?: boolean }
+    soalType: SoalSetType,
+    options?: { silent?: boolean }
   ): Promise<SoalSetTpLink | null> => {
     if (!setId) return null;
     const cleanTpId = (tpId || '').trim();
@@ -439,22 +411,26 @@ export default function AdminSoal({
       ? tpList.find((t) => t.id === cleanTpId) || allTp.find((t) => t.id === cleanTpId)
       : null;
 
-    const effectiveExportTarget: SoalExportTarget = matchedTp ? exportTarget : 'none';
-
-    if (!matchedTp && !setTpLinks[setId]) {
+    const existing = setTpLinks[setId];
+    if (!matchedTp && soalType === 'biasa' && !existing) {
       return null;
     }
 
-    const nextLink: SoalSetTpLink | null = matchedTp
-      ? {
-          tpId: matchedTp.id,
-          tpKode: matchedTp.kodeTp,
-          tpDeskripsi: matchedTp.deskripsi,
-          tahunPelajaran: matchedTp.tahunPelajaran || activeTahunPelajaran,
-          exportTarget: effectiveExportTarget,
-          updatedAt: new Date().toISOString(),
-        }
-      : null;
+    const nextLink: SoalSetTpLink | null =
+      matchedTp || soalType === 'sumatif'
+        ? {
+            ...(matchedTp
+              ? {
+                  tpId: matchedTp.id,
+                  tpKode: matchedTp.kodeTp,
+                  tpDeskripsi: matchedTp.deskripsi,
+                  tahunPelajaran: matchedTp.tahunPelajaran || activeTahunPelajaran,
+                }
+              : {}),
+            soalType,
+            updatedAt: new Date().toISOString(),
+          }
+        : null;
 
     try {
       await setDoc(
@@ -468,76 +444,25 @@ export default function AdminSoal({
         { merge: true }
       );
 
-      if (!matchedTp) {
-        showToast('Tujuan Pembelajaran kartu diatur ke Tanpa TP.');
-      } else if (
-        options?.autoSyncExisting &&
-        (effectiveExportTarget === 'sumatif_tp' ||
-          effectiveExportTarget === 'praktikum_tp' ||
-          effectiveExportTarget === 'asesmen_harian')
-      ) {
-        const titleForSync =
-          options.setTitle || soalSets.find((s) => s.id === setId)?.title || matchedTp.kodeTp;
-        await syncSetScoresToAdministrasi(
-          { id: setId, title: titleForSync },
-          nextLink!,
-          false
-        );
-      } else {
-        const expText =
-          effectiveExportTarget === 'sumatif_tp'
-            ? ' • Auto-Export ke Sumatif TP'
-            : effectiveExportTarget === 'praktikum_tp'
-            ? ' • Auto-Export ke Praktikum TP'
-            : effectiveExportTarget === 'asesmen_harian'
-            ? ' • Auto-Export ke Asesmen Harian'
-            : '';
-        showToast(`TP kartu diatur ke ${matchedTp.kodeTp}${expText}.`);
+      if (!options?.silent) {
+        if (matchedTp) {
+          showToast(`TP kartu diatur ke ${matchedTp.kodeTp}.`);
+        } else {
+          showToast('Tujuan Pembelajaran kartu diatur ke Tanpa TP.');
+        }
       }
 
       return nextLink;
     } catch (err: any) {
       onFirestoreError?.(err, 'write', 'app_settings/soal_set_tp_links');
-      showToast(err?.message || 'Gagal menyimpan pengaturan TP / Export Nilai.');
+      showToast(err?.message || 'Gagal menyimpan pengaturan kartu soal.');
       return null;
     }
   };
 
   const saveSetTpLink = async (setId: string, tpId: string) => {
-    const existingExport = setTpLinks[setId]?.exportTarget || 'none';
-    const nextExport = tpId.trim() ? existingExport : 'none';
-    await saveSetConfigLink(setId, tpId, nextExport, {
-      autoSyncExisting: Boolean(tpId.trim() && nextExport !== 'none'),
-    });
-  };
-
-  const handleChangeSetExportTarget = async (
-    s: SoalSet,
-    nextTarget: SoalExportTarget
-  ) => {
-    const currentTpId = setTpLinks[s.id]?.tpId || '';
-    if (!currentTpId && nextTarget !== 'none') {
-      showToast('Pilih Tujuan Pembelajaran (TP) pada kartu soal terlebih dahulu.');
-      return;
-    }
-    await saveSetConfigLink(s.id, currentTpId, nextTarget, {
-      setTitle: s.title,
-      autoSyncExisting: nextTarget !== 'none',
-    });
-  };
-
-  const handleSyncSetScoresNow = async (s: SoalSet) => {
-    const link = setTpLinks[s.id];
-    if (
-      !link?.tpId ||
-      (link.exportTarget !== 'sumatif_tp' &&
-        link.exportTarget !== 'praktikum_tp' &&
-        link.exportTarget !== 'asesmen_harian')
-    ) {
-      showToast('Pilih TP dan tujuan Export Nilai terlebih dahulu.');
-      return;
-    }
-    await syncSetScoresToAdministrasi({ id: s.id, title: s.title }, link, false);
+    const existingType = setTpLinks[setId]?.soalType || 'biasa';
+    await saveSetConfigLink(setId, tpId, existingType);
   };
 
   // Create / Edit SoalSet Modal
@@ -547,12 +472,15 @@ export default function AdminSoal({
   const [setDesc, setSetDesc] = useState('');
   const [setKelas, setSetKelas] = useState('Semua Kelas');
   const [setTpId, setSetTpId] = useState('');
-  const [setExportTarget, setSetExportTarget] = useState<SoalExportTarget>('none');
+  const [setSoalType, setSetSoalType] = useState<SoalSetType>('biasa');
   const [setIsActive, setSetIsActive] = useState(true);
   const [isSavingSet, setIsSavingSet] = useState(false);
 
   // Settings / Timer Modal for SoalSet
   const [settingsModalSet, setSettingsModalSet] = useState<SoalSet | null>(null);
+  const [cfgSoalType, setCfgSoalType] = useState<SoalSetType>('biasa');
+  const [cfgKelas, setCfgKelas] = useState('Semua Kelas');
+  const [cfgTpId, setCfgTpId] = useState('');
   const [cfgTimerMode, setCfgTimerMode] = useState<'per_judul' | 'per_soal'>('per_judul');
   const [cfgTitleMinutes, setCfgTitleMinutes] = useState(15);
   const [cfgTitleSeconds, setCfgTitleSeconds] = useState(0);
@@ -572,7 +500,6 @@ export default function AdminSoal({
   const [qCorrect, setQCorrect] = useState<0 | 1 | 2 | 3>(0);
   const [qTimer, setQTimer] = useState(30);
   const [qExplanation, setQExplanation] = useState('');
-  const [qIsActive, setQIsActive] = useState(true);
   const [isSavingQ, setIsSavingQ] = useState(false);
   const [qFormError, setQFormError] = useState('');
 
@@ -608,6 +535,7 @@ export default function AdminSoal({
   const [pickerTargetSetId, setPickerTargetSetId] = useState<string>('');
   const [pickerNewSetTitle, setPickerNewSetTitle] = useState('');
   const [pickerNewSetKelas, setPickerNewSetKelas] = useState('Semua Kelas');
+  const [pickerNewSetSoalType, setPickerNewSetSoalType] = useState<SoalSetType>('biasa');
   const [pickerNewSetActive, setPickerNewSetActive] = useState(true);
   const [selectedMaterialQuestionIds, setSelectedMaterialQuestionIds] = useState<Set<string>>(new Set());
   const [isImportingMaterial, setIsImportingMaterial] = useState(false);
@@ -618,6 +546,7 @@ export default function AdminSoal({
   const [aiTargetSetId, setAiTargetSetId] = useState<string>('');
   const [aiNewSetTitle, setAiNewSetTitle] = useState('');
   const [aiNewSetKelas, setAiNewSetKelas] = useState('Semua Kelas');
+  const [aiNewSetSoalType, setAiNewSetSoalType] = useState<SoalSetType>('biasa');
   const [aiNewSetActive, setAiNewSetActive] = useState(true);
   const [aiContextMode, setAiContextMode] = useState<'custom' | 'course'>('custom');
   const [aiCourseId, setAiCourseId] = useState<string>(COURSES[0]?.id || '');
@@ -794,9 +723,13 @@ export default function AdminSoal({
     const sorted = [...soalSets].sort(
       (a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
     );
-    if (!searchQuery.trim()) return sorted;
+    const byType =
+      typeFilter === 'all'
+        ? sorted
+        : sorted.filter((s) => getSetSoalType(s) === typeFilter);
+    if (!searchQuery.trim()) return byType;
     const q = searchQuery.toLowerCase();
-    return sorted.filter(s => {
+    return byType.filter(s => {
       const tpInfo = setTpLinks[s.id];
       return (
         s.title.toLowerCase().includes(q) ||
@@ -806,7 +739,7 @@ export default function AdminSoal({
         (tpInfo?.tpDeskripsi || '').toLowerCase().includes(q)
       );
     });
-  }, [soalSets, searchQuery, setTpLinks]);
+  }, [soalSets, searchQuery, typeFilter, setTpLinks]);
 
   const activeSetQuestions = useMemo(() => {
     if (!selectedSet) return [];
@@ -832,7 +765,7 @@ export default function AdminSoal({
     setSetDesc('');
     setSetKelas('Semua Kelas');
     setSetTpId('');
-    setSetExportTarget('none');
+    setSetSoalType('biasa');
     setSetIsActive(true);
     setIsSetModalOpen(true);
   };
@@ -844,9 +777,7 @@ export default function AdminSoal({
     setSetKelas(s.kelas || 'Semua Kelas');
     const existingLink = setTpLinks[s.id];
     setSetTpId(existingLink?.tpId || '');
-    setSetExportTarget(
-      existingLink?.tpId && existingLink?.exportTarget ? existingLink.exportTarget : 'none'
-    );
+    setSetSoalType(getSetSoalType(s));
     setSetIsActive(s.isActive);
     setIsSetModalOpen(true);
   };
@@ -858,7 +789,6 @@ export default function AdminSoal({
     setIsSavingSet(true);
     setSoalActionError(null);
     try {
-      const effectiveExport = setTpId.trim() ? setExportTarget : 'none';
       if (editingSet) {
         await soalApiFetch(`/api/soal/sets/${encodeURIComponent(editingSet.id)}`, {
           method: 'PUT',
@@ -869,14 +799,13 @@ export default function AdminSoal({
             isActive: setIsActive,
           }),
         });
-        await saveSetConfigLink(editingSet.id, setTpId, effectiveExport, {
-          setTitle: setTitle.trim(),
-          autoSyncExisting: Boolean(setTpId.trim() && effectiveExport !== 'none'),
-        });
+        await saveSetConfigLink(editingSet.id, setTpId, setSoalType, { silent: true });
         await onRefreshSoal?.();
-        if (effectiveExport === 'none') {
-          showToast('Kartu soal berhasil diperbarui.');
-        }
+        showToast(
+          setSoalType === 'sumatif'
+            ? 'Kartu Soal Sumatif (Bank Soal) berhasil diperbarui.'
+            : 'Kartu soal berhasil diperbarui.'
+        );
       } else {
         const res = await soalApiFetch('/api/soal/sets', {
           method: 'POST',
@@ -893,21 +822,93 @@ export default function AdminSoal({
             shuffleQuestions: false,
           }),
         });
-        if (res?.set?.id && setTpId) {
-          await saveSetConfigLink(res.set.id, setTpId, effectiveExport, {
-            setTitle: setTitle.trim(),
-            autoSyncExisting: false,
-          });
+        if (res?.set?.id) {
+          await saveSetConfigLink(res.set.id, setTpId, setSoalType, { silent: true });
         }
         await onRefreshSoal?.();
         if (res?.set?.id) setSelectedSetId(res.set.id);
-        showToast('Kartu soal baru dibuat di MySQL! Silakan tambahkan soal.');
+        showToast(
+          setSoalType === 'sumatif'
+            ? 'Bank Soal Sumatif baru dibuat! Silakan tambahkan butir soal.'
+            : 'Kartu soal baru dibuat! Silakan tambahkan soal.'
+        );
       }
       setIsSetModalOpen(false);
     } catch (err: any) {
       setSoalActionError(err?.message || 'Gagal menyimpan kartu soal ke MySQL.');
     } finally {
       setIsSavingSet(false);
+    }
+  };
+
+  const handleDuplicateSet = async (sourceSet: SoalSet) => {
+    if (!ensureAuthBeforeWrite()) return;
+    setDuplicatingSetId(sourceSet.id);
+    setSoalActionError(null);
+    try {
+      const copyTitle = `${sourceSet.title} (Salinan)`;
+      const res = await soalApiFetch('/api/soal/sets', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: copyTitle,
+          description: sourceSet.description || '',
+          kelas: sourceSet.kelas || 'Semua Kelas',
+          isActive: sourceSet.isActive,
+          isFullScreen: Boolean(sourceSet.isFullScreen),
+          isScoreVisible: sourceSet.isScoreVisible !== false,
+          timerMode: sourceSet.timerMode || 'per_judul',
+          titleTimerSeconds: sourceSet.titleTimerSeconds ?? 900,
+          defaultQuestionTimerSeconds: sourceSet.defaultQuestionTimerSeconds ?? 30,
+          shuffleQuestions: Boolean(sourceSet.shuffleQuestions),
+        }),
+      });
+      const newSetId: string | undefined = res?.set?.id || res?.id;
+      if (!newSetId) {
+        throw new Error('Server tidak mengembalikan ID kartu soal hasil duplikasi.');
+      }
+
+      const sourceQs = [...(questionsBySet[sourceSet.id] || [])].sort(
+        (a, b) => (a.order ?? 0) - (b.order ?? 0)
+      );
+      if (sourceQs.length > 0) {
+        const clonedQuestions = sourceQs.map((q, idx) => ({
+          order: idx + 1,
+          isActive: true,
+          questionText: q.questionText || '',
+          questionImage: q.questionImage || '',
+          options: q.options.map((o) => ({
+            text: o.text || '',
+            ...(o.image?.trim() ? { image: o.image.trim() } : {}),
+          })),
+          correctAnswer: q.correctAnswer ?? 0,
+          timerSeconds: q.timerSeconds ?? sourceSet.defaultQuestionTimerSeconds ?? 30,
+          explanation: q.explanation || '',
+        }));
+
+        for (let i = 0; i < clonedQuestions.length; i += 200) {
+          const chunk = clonedQuestions.slice(i, i + 200);
+          await soalApiFetch('/api/soal/questions/bulk', {
+            method: 'POST',
+            body: JSON.stringify({
+              setId: newSetId,
+              questions: chunk,
+            }),
+          });
+        }
+      }
+
+      const sourceLink = setTpLinks[sourceSet.id];
+      const sourceType = getSetSoalType(sourceSet);
+      await saveSetConfigLink(newSetId, sourceLink?.tpId || '', sourceType, { silent: true });
+
+      await onRefreshSoal?.();
+      showToast(
+        `Kartu "${sourceSet.title}" berhasil digandakan (${sourceQs.length} soal).`
+      );
+    } catch (err: any) {
+      setSoalActionError(err?.message || 'Gagal menggandakan kartu soal.');
+    } finally {
+      setDuplicatingSetId(null);
     }
   };
 
@@ -928,6 +929,9 @@ export default function AdminSoal({
 
   const openSettingsModal = (s: SoalSet) => {
     setSettingsModalSet(s);
+    setCfgSoalType(getSetSoalType(s));
+    setCfgKelas(s.kelas || 'Semua Kelas');
+    setCfgTpId(setTpLinks[s.id]?.tpId || '');
     setCfgTimerMode(s.timerMode || 'per_judul');
     const totalSec = s.titleTimerSeconds ?? 900;
     setCfgTitleMinutes(Math.floor(totalSec / 60));
@@ -949,6 +953,7 @@ export default function AdminSoal({
       await soalApiFetch(`/api/soal/sets/${encodeURIComponent(settingsModalSet.id)}`, {
         method: 'PUT',
         body: JSON.stringify({
+          kelas: cfgKelas.trim() || 'Semua Kelas',
           timerMode: cfgTimerMode,
           titleTimerSeconds: totalSec,
           defaultQuestionTimerSeconds: Math.max(5, Number(cfgDefaultQuestionSec) || 30),
@@ -958,9 +963,10 @@ export default function AdminSoal({
           isActive: cfgIsActive,
         }),
       });
+      await saveSetConfigLink(settingsModalSet.id, cfgTpId, cfgSoalType, { silent: true });
       await onRefreshSoal?.();
       setSettingsModalSet(null);
-      showToast('Pengaturan timer & ujian berhasil disimpan.');
+      showToast('Pengaturan kartu, jenis soal, & timer berhasil disimpan.');
     } catch (err: any) {
       setSoalActionError(err?.message || 'Gagal menyimpan pengaturan kartu soal.');
     } finally {
@@ -977,7 +983,6 @@ export default function AdminSoal({
     setQCorrect(0);
     setQTimer(selectedSet?.defaultQuestionTimerSeconds ?? 30);
     setQExplanation('');
-    setQIsActive(true);
     setQFormError('');
     setIsQModalOpen(true);
   };
@@ -996,7 +1001,6 @@ export default function AdminSoal({
     setQCorrect(q.correctAnswer ?? 0);
     setQTimer(q.timerSeconds ?? selectedSet?.defaultQuestionTimerSeconds ?? 30);
     setQExplanation(q.explanation || '');
-    setQIsActive(q.isActive ?? true);
     setQFormError('');
     setIsQModalOpen(true);
   };
@@ -1060,7 +1064,7 @@ export default function AdminSoal({
             correctAnswer: qCorrect,
             timerSeconds: Math.max(0, Number(qTimer) || 0),
             explanation: qExplanation.trim(),
-            isActive: qIsActive,
+            isActive: true,
           }),
         });
         await onRefreshSoal?.();
@@ -1074,7 +1078,7 @@ export default function AdminSoal({
           body: JSON.stringify({
             setId: selectedSet.id,
             order: maxOrder + 1,
-            isActive: qIsActive,
+            isActive: true,
             questionText: qText.trim(),
             questionImage: qImage.trim(),
             options: cleanOptions,
@@ -1092,7 +1096,6 @@ export default function AdminSoal({
           setQCorrect(0);
           setQTimer(selectedSet.defaultQuestionTimerSeconds ?? 30);
           setQExplanation('');
-          setQIsActive(true);
           showToast(`Soal #${existingList.length + 1} tersimpan! Silakan lanjut tambah soal berikutnya.`);
         } else {
           setIsQModalOpen(false);
@@ -1103,38 +1106,6 @@ export default function AdminSoal({
       setQFormError(err?.message || 'Gagal menyimpan soal ke MySQL.');
     } finally {
       setIsSavingQ(false);
-    }
-  };
-
-  const toggleQuestionActive = async (q: SoalQuestion) => {
-    if (!ensureAuthBeforeWrite()) return;
-    setSoalActionError(null);
-    try {
-      await soalApiFetch(`/api/soal/questions/${encodeURIComponent(q.id)}`, {
-        method: 'PUT',
-        body: JSON.stringify({ isActive: !q.isActive }),
-      });
-      await onRefreshSoal?.();
-    } catch (err: any) {
-      setSoalActionError(err?.message || 'Gagal memperbarui status soal.');
-    }
-  };
-
-  const toggleAllQuestionsActive = async (activate: boolean) => {
-    if (!selectedSet) return;
-    const list = questionsBySet[selectedSet.id] || [];
-    if (list.length === 0) return;
-    if (!ensureAuthBeforeWrite()) return;
-    setSoalActionError(null);
-    try {
-      await soalApiFetch('/api/soal/questions/toggle-all', {
-        method: 'POST',
-        body: JSON.stringify({ setId: selectedSet.id, activate }),
-      });
-      await onRefreshSoal?.();
-      showToast(activate ? 'Semua soal diaktifkan.' : 'Semua soal dinonaktifkan.');
-    } catch (err: any) {
-      setSoalActionError(err?.message || 'Gagal memperbarui status semua soal.');
     }
   };
 
@@ -1279,8 +1250,8 @@ export default function AdminSoal({
         });
 
         setBulkExcelItems(parsed);
-      } catch (err) {
-        alert('Gagal membaca file Excel/CSV. Pastikan format kolom sesuai template.');
+      } catch {
+        setSoalActionError('Gagal membaca file Excel/CSV. Pastikan format kolom sesuai template.');
       }
     };
     reader.readAsBinaryString(file);
@@ -1509,6 +1480,7 @@ export default function AdminSoal({
         suggestNewTitleForSelection('courses', defaultCourseId, 'all', defaultAnalysisId, loadedAnalyses)
       );
       setPickerNewSetKelas('Semua Kelas');
+      setPickerNewSetSoalType('biasa');
       setPickerNewSetActive(true);
     }
 
@@ -1689,6 +1661,9 @@ export default function AdminSoal({
         }),
       });
       if (res?.setId) targetId = res.setId;
+      if (pickerTargetMode === 'new' && targetId && pickerNewSetSoalType === 'sumatif') {
+        await saveSetConfigLink(targetId, '', 'sumatif', { silent: true });
+      }
 
       await onRefreshSoal?.();
       setIsMaterialPickerOpen(false);
@@ -1730,6 +1705,7 @@ export default function AdminSoal({
       setAiTopicPrompt('');
       setAiNewSetTitle('');
       setAiNewSetKelas('Semua Kelas');
+      setAiNewSetSoalType('biasa');
       setAiNewSetActive(true);
     }
     setIsAiModalOpen(true);
@@ -1916,6 +1892,9 @@ export default function AdminSoal({
         }),
       });
       if (res?.setId) targetId = res.setId;
+      if (aiTargetMode === 'new' && targetId && aiNewSetSoalType === 'sumatif') {
+        await saveSetConfigLink(targetId, '', 'sumatif', { silent: true });
+      }
 
       await onRefreshSoal?.();
       setIsAiModalOpen(false);
@@ -2117,16 +2096,40 @@ export default function AdminSoal({
             </div>
           </div>
 
-          {/* Search Kartu Soal */}
-          <div className="relative max-w-md">
-            <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari kartu soal berdasarkan judul atau kelas..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-200/80 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30"
-            />
+          {/* Search & Filter Jenis Kartu Soal */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari kartu soal berdasarkan judul atau kelas..."
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-200/80 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30"
+              />
+            </div>
+            <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl w-fit">
+              {([
+                { id: 'all', label: `Semua (${soalSets.length})` },
+                { id: 'biasa', label: `Soal Biasa (${soalSets.filter(s => getSetSoalType(s) === 'biasa').length})` },
+                { id: 'sumatif', label: `Bank Soal Sumatif (${soalSets.filter(s => getSetSoalType(s) === 'sumatif').length})` },
+              ] as const).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setTypeFilter(tab.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                    typeFilter === tab.id
+                      ? tab.id === 'sumatif'
+                        ? 'bg-rose-600 text-white shadow-xs'
+                        : 'bg-brand text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Grid Kartu Soal */}
@@ -2135,9 +2138,10 @@ export default function AdminSoal({
               {filteredSets.map((set, idx) => {
                 const theme = CARD_THEMES[idx % CARD_THEMES.length];
                 const allQs = questionsBySet[set.id] || [];
-                const activeQs = allQs.filter(q => q.isActive !== false);
+                const soalType = getSetSoalType(set);
+                const isSumatif = soalType === 'sumatif';
                 const isTimerPerSoal = set.timerMode === 'per_soal';
-                const totalPerSoalSec = activeQs.reduce(
+                const totalPerSoalSec = allQs.reduce(
                   (acc, q) => acc + (q.timerSeconds > 0 ? q.timerSeconds : set.defaultQuestionTimerSeconds || 0),
                   0
                 );
@@ -2145,7 +2149,9 @@ export default function AdminSoal({
                 return (
                   <div
                     key={set.id}
-                    className={`admin-glass-card p-6 border rounded-3xl hover:shadow-lg transition-all flex flex-col ${theme.bg}`}
+                    className={`admin-glass-card p-6 border rounded-3xl hover:shadow-lg transition-all flex flex-col ${theme.bg} ${
+                      isSumatif ? 'ring-1 ring-rose-400/40 dark:ring-rose-500/40' : ''
+                    }`}
                   >
                     {/* Header Row */}
                     <div className="flex items-start justify-between gap-3 mb-3">
@@ -2160,6 +2166,16 @@ export default function AdminSoal({
                           >
                             {set.isActive ? 'Aktif / Terbit' : 'Nonaktif / Draft'}
                           </span>
+                          {isSumatif ? (
+                            <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg uppercase tracking-wider bg-rose-600 text-white inline-flex items-center gap-1">
+                              <Award size={11} />
+                              SUMATIF · Bank Soal
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                              Soal Biasa
+                            </span>
+                          )}
                           {set.kelas && (
                             <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg ${theme.pill}`}>
                               {set.kelas}
@@ -2177,18 +2193,6 @@ export default function AdminSoal({
                               Tanpa TP
                             </span>
                           )}
-                          {setTpLinks[set.id]?.tpId &&
-                            (setTpLinks[set.id]?.exportTarget === 'sumatif_tp' ||
-                              setTpLinks[set.id]?.exportTarget === 'praktikum_tp' ||
-                              setTpLinks[set.id]?.exportTarget === 'asesmen_harian') && (
-                              <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-brand/15 text-brand dark:text-blue-300 border border-brand/25">
-                                {setTpLinks[set.id]?.exportTarget === 'sumatif_tp'
-                                  ? '→ Sumatif TP'
-                                  : setTpLinks[set.id]?.exportTarget === 'praktikum_tp'
-                                  ? '→ Praktik TP'
-                                  : '→ Asesmen Harian'}
-                              </span>
-                            )}
                         </div>
                         <h3 className={`font-black text-xl leading-snug ${theme.title}`}>
                           {set.title}
@@ -2221,7 +2225,7 @@ export default function AdminSoal({
                           Jumlah Soal:
                         </span>
                         <span className="font-black text-slate-900 dark:text-slate-100">
-                          {activeQs.length} Aktif / {allQs.length} Total
+                          {allQs.length} Butir Soal
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -2253,102 +2257,6 @@ export default function AdminSoal({
                           ))}
                         </select>
                       </div>
-                      {(() => {
-                        const curTpId = setTpLinks[set.id]?.tpId || '';
-                        const curExport: SoalExportTarget = curTpId
-                          ? setTpLinks[set.id]?.exportTarget || 'none'
-                          : 'none';
-                        const setSubmissionsCount = new Set(
-                          (assessmentEntriesBySetId[set.id] || [])
-                            .map((e) => e.studentId)
-                            .filter(Boolean)
-                        ).size;
-                        return (
-                          <div className="pt-1.5 border-t border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
-                            <label className="flex items-center justify-between gap-1.5 text-[11px] font-extrabold text-slate-600 dark:text-slate-300">
-                              <span className="flex items-center gap-1.5">
-                                <Send size={12} className="text-brand shrink-0" />
-                                <span>Export Nilai Otomatis:</span>
-                              </span>
-                              {curTpId && curExport !== 'none' && (
-                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-black">
-                                  Aktif
-                                </span>
-                              )}
-                            </label>
-                            <select
-                              value={curExport}
-                              disabled={!curTpId || syncingSetId === set.id}
-                              onChange={(e) =>
-                                handleChangeSetExportTarget(
-                                  set,
-                                  e.target.value as SoalExportTarget
-                                )
-                              }
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-white/85 dark:bg-slate-900/85 border border-slate-300/80 dark:border-slate-700 text-[11px] font-bold text-slate-800 dark:text-slate-100 disabled:opacity-55 focus:outline-none focus:ring-2 focus:ring-brand/30"
-                            >
-                              <option value="none">
-                                {curTpId
-                                  ? '-- Tidak Auto-Export (Manual) --'
-                                  : '-- Pilih TP dulu untuk Export Nilai --'}
-                              </option>
-                              <option value="sumatif_tp">
-                                Kirim ke Sumatif TP (Sumatif Lingkup Materi)
-                              </option>
-                              <option value="praktikum_tp">
-                                Kirim ke Praktikum TP (Praktik)
-                              </option>
-                              <option value="asesmen_harian">
-                                Kirim ke Asesmen Harian (Agenda KBM)
-                              </option>
-                            </select>
-                            {curTpId && curExport === 'asesmen_harian' && (
-                              <div className="space-y-1 pt-1">
-                                <span className="text-[10px] font-bold text-slate-500 block">
-                                  Pilih Kelas &amp; Agenda Harian:
-                                </span>
-                                <select
-                                  value={setTpLinks[set.id]?.selectedAgendaClass || 'all'}
-                                  onChange={async (e) => {
-                                    const val = e.target.value;
-                                    const cur = setTpLinks[set.id] || { tpId: curTpId, tpKode: '', exportTarget: 'asesmen_harian' };
-                                    await saveSetConfigLink(set.id, curTpId, 'asesmen_harian', { autoSyncExisting: false });
-                                    // Update selectedAgendaClass in doc
-                                    await setDoc(
-                                      doc(db, 'app_settings', 'soal_set_tp_links'),
-                                      { links: { [set.id]: { ...cur, selectedAgendaClass: val, selectedAgendaId: '' } } },
-                                      { merge: true }
-                                    );
-                                  }}
-                                  className="w-full px-2 py-1 rounded bg-white dark:bg-slate-900 border text-[10px] font-bold"
-                                >
-                                  <option value="all">Semua Kelas (Otomatis per kelas)</option>
-                                  {Array.from(new Set(assessments.filter(a => a.courseId === `soal_${set.id}`).map(a => a.studentKelas))).filter(Boolean).map(cls => (
-                                    <option key={cls} value={cls}>Kelas {cls}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            )}
-                            {curTpId && curExport !== 'none' && (
-                              <button
-                                type="button"
-                                disabled={syncingSetId === set.id}
-                                onClick={() => handleSyncSetScoresNow(set)}
-                                className="w-full py-1.5 px-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/70 text-brand dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 text-[11px] font-extrabold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                              >
-                                {syncingSetId === set.id ? (
-                                  <Loader2 size={12} className="animate-spin" />
-                                ) : (
-                                  <Send size={12} />
-                                )}
-                                <span>
-                                  Kirim Nilai Sekarang ({setSubmissionsCount} siswa)
-                                </span>
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })()}
                       <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-200/80 dark:border-slate-700/80">
                         <span>{set.isFullScreen ? '🔒 Wajib Fullscreen (Anti-Curang)' : '🔓 Mode Normal'}</span>
                         <span>{set.isScoreVisible !== false ? '👁️ Nilai Tampil' : '👁️‍🗨️ Nilai Tersembunyi'}</span>
@@ -2383,23 +2291,36 @@ export default function AdminSoal({
                         <button
                           onClick={() => openSettingsModal(set)}
                           className="py-2 px-2.5 bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
-                          title="Pengaturan Timer & Ujian"
+                          title="Setting Kartu & Timer Ujian"
                         >
                           <Settings size={14} />
-                          <span>Timer</span>
+                          <span>Setting</span>
                         </button>
                         <button
                           onClick={() => openEditSetModal(set)}
                           className="py-2 px-2.5 bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-xl text-xs font-bold transition-all"
-                          title="Edit Judul Kartu"
+                          title="Edit Kartu Soal"
                         >
                           <Edit3 size={14} />
                         </button>
                         <button
+                          onClick={() => handleDuplicateSet(set)}
+                          disabled={duplicatingSetId === set.id}
+                          className="py-2 px-2.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-xl text-xs font-bold transition-all flex items-center gap-1 disabled:opacity-50"
+                          title="Gandakan Kartu Soal"
+                        >
+                          {duplicatingSetId === set.id ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Copy size={14} />
+                          )}
+                          <span>Gandakan</span>
+                        </button>
+                        <button
                           onClick={() => onPreviewSet(set)}
-                          disabled={activeQs.length === 0}
+                          disabled={allQs.length === 0}
                           className="py-2 px-2.5 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:pointer-events-none"
-                          title={activeQs.length === 0 ? 'Tambahkan minimal 1 soal aktif untuk pratinjau' : 'Pratinjau Ujian'}
+                          title={allQs.length === 0 ? 'Tambahkan minimal 1 soal untuk pratinjau' : 'Pratinjau Ujian'}
                         >
                           <Eye size={14} />
                         </button>
@@ -2428,12 +2349,12 @@ export default function AdminSoal({
                 <ClipboardList size={38} />
               </div>
               <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2">
-                {searchQuery ? 'Kartu Soal Tidak Ditemukan' : 'Belum Ada Kartu Soal'}
+                {searchQuery || typeFilter !== 'all' ? 'Kartu Soal Tidak Ditemukan' : 'Belum Ada Kartu Soal'}
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400 font-medium max-w-md mb-6">
                 Buat kartu soal baru berdasarkan judul ulangan/latihan, lalu isi dengan soal PG 4 opsi (bisa pakai gambar & upload bulk).
               </p>
-              {!searchQuery && (
+              {!searchQuery && typeFilter === 'all' && (
                 <button
                   onClick={openCreateSetModal}
                   className="px-6 py-3 bg-brand hover:bg-brand-hover text-white rounded-2xl font-black text-sm shadow-lg shadow-brand/20 flex items-center gap-2"
@@ -2449,7 +2370,7 @@ export default function AdminSoal({
         /* ================== INSIDE KARTU SOAL: KELOLA DAFTAR SOAL ================== */
         (() => {
           const allQs = questionsBySet[selectedSet.id] || [];
-          const activeCount = allQs.filter(q => q.isActive !== false).length;
+          const selectedType = getSetSoalType(selectedSet);
           return (
             <div className="space-y-6">
               {/* Top Navigation & Card Controls */}
@@ -2474,6 +2395,16 @@ export default function AdminSoal({
                         >
                           {selectedSet.isActive ? 'Kartu Aktif' : 'Kartu Nonaktif'}
                         </span>
+                        {selectedType === 'sumatif' ? (
+                          <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg uppercase tracking-wider bg-rose-600 text-white inline-flex items-center gap-1">
+                            <Award size={11} />
+                            SUMATIF · Bank Soal
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            Soal Biasa
+                          </span>
+                        )}
                         <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-950/70 text-brand border border-blue-200 dark:border-blue-800">
                           {selectedSet.kelas || 'Semua Kelas'}
                         </span>
@@ -2494,19 +2425,6 @@ export default function AdminSoal({
                             ? `TP: ${setTpLinks[selectedSet.id].tpKode}`
                             : 'Tanpa TP'}
                         </span>
-                        {setTpLinks[selectedSet.id]?.tpId &&
-                          (setTpLinks[selectedSet.id]?.exportTarget === 'sumatif_tp' ||
-                            setTpLinks[selectedSet.id]?.exportTarget === 'praktikum_tp' ||
-                            setTpLinks[selectedSet.id]?.exportTarget === 'asesmen_harian') && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/70 text-brand dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                              <Send size={11} />
-                              {setTpLinks[selectedSet.id]?.exportTarget === 'sumatif_tp'
-                                ? 'Auto-Export → Sumatif TP'
-                                : setTpLinks[selectedSet.id]?.exportTarget === 'praktikum_tp'
-                                ? 'Auto-Export → Praktik TP'
-                                : 'Auto-Export → Asesmen Harian'}
-                            </span>
-                          )}
                       </div>
                       <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">{selectedSet.title}</h2>
                       {selectedSet.description && (
@@ -2532,12 +2450,24 @@ export default function AdminSoal({
                       onClick={() => openSettingsModal(selectedSet)}
                       className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-black transition-all flex items-center gap-1.5"
                     >
-                      <Clock size={15} className="text-amber-600 dark:text-amber-400" />
-                      Setelan Timer & Ujian
+                      <Settings size={15} className="text-amber-600 dark:text-amber-400" />
+                      Setelan Kartu & Ujian
+                    </button>
+                    <button
+                      onClick={() => handleDuplicateSet(selectedSet)}
+                      disabled={duplicatingSetId === selectedSet.id}
+                      className="px-3.5 py-2 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {duplicatingSetId === selectedSet.id ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Copy size={14} />
+                      )}
+                      Gandakan
                     </button>
                     <button
                       onClick={() => onPreviewSet(selectedSet)}
-                      disabled={activeCount === 0}
+                      disabled={allQs.length === 0}
                       className="px-3.5 py-2 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <Eye size={15} />
@@ -2580,27 +2510,11 @@ export default function AdminSoal({
                       <Sparkles size={16} />
                       Tambah Soal AI
                     </button>
-                    {allQs.length > 0 && (
-                      <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-1">
-                        <button
-                          onClick={() => toggleAllQuestionsActive(true)}
-                          className="px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 rounded-lg transition-colors"
-                        >
-                          Aktifkan Semua
-                        </button>
-                        <button
-                          onClick={() => toggleAllQuestionsActive(false)}
-                          className="px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                        >
-                          Nonaktifkan Semua
-                        </button>
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-black text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                      {activeCount}/{allQs.length} Soal Aktif
+                      {allQs.length} Butir Soal
                     </span>
                     <div className="relative flex-1 sm:w-56">
                       <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
@@ -2620,30 +2534,16 @@ export default function AdminSoal({
               {activeSetQuestions.length > 0 ? (
                 <div className="space-y-4">
                   {activeSetQuestions.map((q, idx) => {
-                    const isActiveQ = q.isActive !== false;
                     return (
                       <div
                         key={q.id}
-                        className={`admin-glass-card rounded-2xl p-5 transition-colors ${
-                          isActiveQ ? '' : 'opacity-70'
-                        }`}
+                        className="admin-glass-card rounded-2xl p-5 transition-colors"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-200 dark:border-slate-800">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="px-3 py-1 bg-slate-900 dark:bg-slate-800 text-white rounded-lg text-xs font-black">
                               Soal #{idx + 1}
                             </span>
-                            <button
-                              onClick={() => toggleQuestionActive(q)}
-                              className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-all flex items-center gap-1 border ${
-                                isActiveQ
-                                  ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-900/70'
-                                  : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:bg-slate-300 dark:hover:bg-slate-700'
-                              }`}
-                            >
-                              {isActiveQ ? <CheckCircle size={12} /> : <X size={12} />}
-                              {isActiveQ ? 'Soal Aktif' : 'Soal Nonaktif'}
-                            </button>
                             {selectedSet.timerMode === 'per_soal' && (
                               <span className="px-2.5 py-1 bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg text-[11px] font-black flex items-center gap-1">
                                 <Clock size={12} />
@@ -2828,8 +2728,8 @@ export default function AdminSoal({
       {/* ================== MODAL BUAT / EDIT KARTU SOAL ================== */}
       {isSetModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <div className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl">
-            <div className="p-6 bg-slate-200 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 flex items-center justify-between">
+          <div className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+            <div className="p-6 bg-slate-200 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 flex items-center justify-between shrink-0">
               <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">
                 {editingSet ? 'Edit Kartu Soal' : 'Buat Kartu Soal Baru'}
               </h3>
@@ -2840,7 +2740,7 @@ export default function AdminSoal({
                 <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleSaveSet} className="p-6 space-y-4">
+            <form onSubmit={handleSaveSet} className="p-6 space-y-4 overflow-y-auto custom-scrollbar">
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1.5">
                   Judul Kartu Soal *
@@ -2855,17 +2755,82 @@ export default function AdminSoal({
                 />
               </div>
 
+              {/* Pilihan Jenis Kartu Soal: Soal Biasa vs Soal Sumatif */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
+                  Jenis Kartu Soal
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setSetSoalType('biasa')}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      setSoalType === 'biasa'
+                        ? 'bg-blue-50 dark:bg-blue-950/50 border-brand ring-2 ring-brand/20'
+                        : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:border-slate-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="font-black text-sm text-slate-900 dark:text-slate-100">Soal Biasa</span>
+                      {setSoalType === 'biasa' && <CheckCircle size={16} className="text-brand" />}
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                      Latihan / asesmen harian reguler, dapat dipanggil di input nilai Asesmen Harian.
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSetSoalType('sumatif')}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      setSoalType === 'sumatif'
+                        ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-500 ring-2 ring-rose-500/20'
+                        : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:border-slate-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="font-black text-sm text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                        <Award size={15} />
+                        Soal Sumatif
+                      </span>
+                      {setSoalType === 'sumatif' && <CheckCircle size={16} className="text-rose-600" />}
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                      Menjadi Bank Soal, tampil dengan label <strong>SUMATIF</strong> di halaman siswa sesuai kelas, dan tetap bisa diedit/setting ulang.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1.5">
-                  Target Kelas / Label
+                  Target Kelas {setSoalType === 'sumatif' && '(Wajib sesuai kelas tujuan di halaman siswa)'}
                 </label>
                 <input
                   type="text"
                   value={setKelas}
                   onChange={(e) => setSetKelas(e.target.value)}
-                  placeholder="Contoh: Semua Kelas / Kelas 7 / Kelas 8"
+                  placeholder="Contoh: Semua Kelas / 7A, 7B / Kelas 8"
                   className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/40"
                 />
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  {['Semua Kelas', 'Kelas 7', 'Kelas 8', 'Kelas 9', ...classOptions].map((cls) => {
+                    const activeChip = isKelasChipSelected(setKelas, cls);
+                    return (
+                      <button
+                        key={cls}
+                        type="button"
+                        onClick={() => setSetKelas((prev) => toggleKelasChip(prev, cls))}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
+                          activeChip
+                            ? 'bg-brand text-white border-brand'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {cls}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div>
@@ -2874,11 +2839,7 @@ export default function AdminSoal({
                 </label>
                 <select
                   value={setTpId}
-                  onChange={(e) => {
-                    const nextTp = e.target.value;
-                    setSetTpId(nextTp);
-                    if (!nextTp) setSetExportTarget('none');
-                  }}
+                  onChange={(e) => setSetTpId(e.target.value)}
                   className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/40"
                 >
                   <option value="">-- Tanpa TP (Default) --</option>
@@ -2897,32 +2858,6 @@ export default function AdminSoal({
 
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1.5">
-                  Export Nilai Langsung (Otomatis)
-                </label>
-                <select
-                  value={setTpId ? setExportTarget : 'none'}
-                  disabled={!setTpId}
-                  onChange={(e) => setSetExportTarget(e.target.value as SoalExportTarget)}
-                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 disabled:opacity-55 focus:outline-none focus:ring-2 focus:ring-brand/40"
-                >
-                  <option value="none">
-                    {setTpId
-                      ? '-- Tidak Auto-Export (Manual) --'
-                      : '-- Pilih Tujuan Pembelajaran dulu --'}
-                  </option>
-                  <option value="sumatif_tp">Langsung kirim ke Sumatif TP (Sumatif Lingkup Materi)</option>
-                  <option value="praktikum_tp">Langsung kirim ke Praktikum TP (Praktik)</option>
-                  <option value="asesmen_harian">
-                    Langsung kirim ke Asesmen Harian (Agenda KBM)
-                  </option>
-                </select>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                  Jika aktif, nilai siswa yang mengerjakan kartu soal ini akan langsung terkirim ke Nilai Sumatif atau Asesmen Harian sesuai TP yang dipilih.
-                </p>
-              </div>
-
-              <div>
-                <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1.5">
                   Deskripsi Singkat
                 </label>
                 <textarea
@@ -2937,7 +2872,7 @@ export default function AdminSoal({
               <label className="flex items-center justify-between p-3.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer">
                 <div>
                   <span className="text-sm font-black text-slate-900 dark:text-slate-100 block">Aktifkan Kartu Soal</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Siswa dapat melihat dan mengerjakan kartu ini</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Siswa pada kelas target dapat melihat dan mengerjakan kartu ini</span>
                 </div>
                 <input
                   type="checkbox"
@@ -2968,13 +2903,13 @@ export default function AdminSoal({
         </div>
       )}
 
-      {/* ================== MODAL SETELAN TIMER & UJIAN ================== */}
+      {/* ================== MODAL SETELAN KARTU, TIMER & MODE UJIAN ================== */}
       {settingsModalSet && (
         <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
             <div className="p-6 bg-slate-200 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">Setelan Timer & Mode Ujian</h3>
+                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">Setelan Kartu, Jenis Soal &amp; Timer</h3>
                 <p className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate max-w-md">{settingsModalSet.title}</p>
               </div>
               <button
@@ -2986,6 +2921,106 @@ export default function AdminSoal({
             </div>
 
             <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
+              {/* Pilihan Jenis Soal di Setting */}
+              <div className="space-y-2.5">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
+                  Jenis Kartu Soal
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCfgSoalType('biasa')}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      cfgSoalType === 'biasa'
+                        ? 'bg-blue-50 dark:bg-blue-950/50 border-brand ring-2 ring-brand/20'
+                        : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:border-slate-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="font-black text-sm text-slate-900 dark:text-slate-100">Soal Biasa</span>
+                      {cfgSoalType === 'biasa' && <CheckCircle size={16} className="text-brand" />}
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                      Latihan / Asesmen Harian reguler.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCfgSoalType('sumatif')}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      cfgSoalType === 'sumatif'
+                        ? 'bg-rose-50 dark:bg-rose-950/50 border-rose-500 ring-2 ring-rose-500/20'
+                        : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:border-slate-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="font-black text-sm text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                        <Award size={15} />
+                        Soal Sumatif
+                      </span>
+                      {cfgSoalType === 'sumatif' && <CheckCircle size={16} className="text-rose-600" />}
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                      Bank Soal · tampil label SUMATIF di siswa sesuai kelas.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Target Kelas & TP di Setting */}
+              <div className="space-y-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl p-4">
+                <div>
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1.5">
+                    Target Kelas
+                  </label>
+                  <input
+                    type="text"
+                    value={cfgKelas}
+                    onChange={(e) => setCfgKelas(e.target.value)}
+                    placeholder="Contoh: Semua Kelas / 7A, 7B / Kelas 8"
+                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100"
+                  />
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    {['Semua Kelas', 'Kelas 7', 'Kelas 8', 'Kelas 9', ...classOptions].map((cls) => {
+                      const activeChip = isKelasChipSelected(cfgKelas, cls);
+                      return (
+                        <button
+                          key={cls}
+                          type="button"
+                          onClick={() => setCfgKelas((prev) => toggleKelasChip(prev, cls))}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
+                            activeChip
+                              ? 'bg-brand text-white border-brand'
+                              : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          {cls}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1.5">
+                    Tujuan Pembelajaran (Opsional)
+                  </label>
+                  <select
+                    value={cfgTpId}
+                    onChange={(e) => setCfgTpId(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100"
+                  >
+                    <option value="">-- Tanpa TP (Default) --</option>
+                    {tpList.map((tp) => (
+                      <option key={tp.id} value={tp.id}>
+                        {tp.kodeTp} ({tp.kelas}) — {tp.deskripsi}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* Pilihan Mode Timer */}
               <div className="space-y-2.5">
                 <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
@@ -3380,25 +3415,18 @@ export default function AdminSoal({
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl p-4 flex flex-col justify-between gap-3">
-                  <label className="flex items-center justify-between cursor-pointer">
-                    <div>
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 block">Status Soal</span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">Hanya soal aktif yang tampil ke siswa</span>
-                    </div>
+                  <div>
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 block mb-1">
+                      Pembahasan Jawaban (Opsional)
+                    </span>
                     <input
-                      type="checkbox"
-                      checked={qIsActive}
-                      onChange={(e) => setQIsActive(e.target.checked)}
-                      className="w-5 h-5 accent-emerald-600"
+                      type="text"
+                      value={qExplanation}
+                      onChange={(e) => setQExplanation(e.target.value)}
+                      placeholder="Tuliskan pembahasan singkat jawaban benar..."
+                      className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100"
                     />
-                  </label>
-                  <input
-                    type="text"
-                    value={qExplanation}
-                    onChange={(e) => setQExplanation(e.target.value)}
-                    placeholder="Pembahasan singkat (opsional)..."
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100"
-                  />
+                  </div>
                 </div>
               </div>
             </div>
@@ -3730,41 +3758,68 @@ export default function AdminSoal({
                 </div>
 
                 {pickerTargetMode === 'new' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-1">
-                    <div className="md:col-span-6">
-                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
-                        Judul Kartu Soal Baru *
-                      </label>
-                      <input
-                        type="text"
-                        value={pickerNewSetTitle}
-                        onChange={(e) => setPickerNewSetTitle(e.target.value)}
-                        placeholder="Contoh: Latihan Soal Berpikir Komputasi..."
-                        className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                      />
-                    </div>
-                    <div className="md:col-span-3">
-                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
-                        Target Kelas
-                      </label>
-                      <input
-                        type="text"
-                        value={pickerNewSetKelas}
-                        onChange={(e) => setPickerNewSetKelas(e.target.value)}
-                        placeholder="Semua Kelas"
-                        className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs md:text-sm font-semibold text-slate-800 dark:text-slate-100"
-                      />
-                    </div>
-                    <div className="md:col-span-3 flex items-end">
-                      <label className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer">
-                        <span className="text-xs font-black text-slate-800 dark:text-slate-100">Langsung Aktif</span>
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                      <div className="md:col-span-6">
+                        <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                          Judul Kartu Soal Baru *
+                        </label>
                         <input
-                          type="checkbox"
-                          checked={pickerNewSetActive}
-                          onChange={(e) => setPickerNewSetActive(e.target.checked)}
-                          className="w-4 h-4 accent-emerald-600"
+                          type="text"
+                          value={pickerNewSetTitle}
+                          onChange={(e) => setPickerNewSetTitle(e.target.value)}
+                          placeholder="Contoh: Latihan Soal Berpikir Komputasi..."
+                          className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs md:text-sm font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                         />
-                      </label>
+                      </div>
+                      <div className="md:col-span-3">
+                        <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                          Target Kelas
+                        </label>
+                        <input
+                          type="text"
+                          value={pickerNewSetKelas}
+                          onChange={(e) => setPickerNewSetKelas(e.target.value)}
+                          placeholder="Semua Kelas"
+                          className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs md:text-sm font-semibold text-slate-800 dark:text-slate-100"
+                        />
+                      </div>
+                      <div className="md:col-span-3 flex items-end">
+                        <label className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer">
+                          <span className="text-xs font-black text-slate-800 dark:text-slate-100">Langsung Aktif</span>
+                          <input
+                            type="checkbox"
+                            checked={pickerNewSetActive}
+                            onChange={(e) => setPickerNewSetActive(e.target.checked)}
+                            className="w-4 h-4 accent-emerald-600"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Jenis Soal:</span>
+                      <button
+                        type="button"
+                        onClick={() => setPickerNewSetSoalType('biasa')}
+                        className={`px-3 py-1 rounded-lg text-[11px] font-black transition-all cursor-pointer ${
+                          pickerNewSetSoalType === 'biasa'
+                            ? 'bg-brand text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                        }`}
+                      >
+                        Soal Biasa
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPickerNewSetSoalType('sumatif')}
+                        className={`px-3 py-1 rounded-lg text-[11px] font-black transition-all cursor-pointer ${
+                          pickerNewSetSoalType === 'sumatif'
+                            ? 'bg-rose-600 text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                        }`}
+                      >
+                        Soal Sumatif (Bank Soal)
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -4184,6 +4239,31 @@ export default function AdminSoal({
                             className="w-3.5 h-3.5 accent-purple-600"
                           />
                         </label>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-500">Jenis:</span>
+                        <button
+                          type="button"
+                          onClick={() => setAiNewSetSoalType('biasa')}
+                          className={`px-2.5 py-1 rounded-md text-[10px] font-black transition-all cursor-pointer ${
+                            aiNewSetSoalType === 'biasa'
+                              ? 'bg-brand text-white'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
+                          Soal Biasa
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAiNewSetSoalType('sumatif')}
+                          className={`px-2.5 py-1 rounded-md text-[10px] font-black transition-all cursor-pointer ${
+                            aiNewSetSoalType === 'sumatif'
+                              ? 'bg-rose-600 text-white'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
+                          Soal Sumatif (Bank Soal)
+                        </button>
                       </div>
                     </div>
                   ) : (
