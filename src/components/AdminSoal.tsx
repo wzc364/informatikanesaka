@@ -803,8 +803,8 @@ export default function AdminSoal({
         await onRefreshSoal?.();
         showToast(
           setSoalType === 'sumatif'
-            ? 'Kartu Soal Sumatif (Bank Soal) berhasil diperbarui.'
-            : 'Kartu soal berhasil diperbarui.'
+            ? 'Kartu Soal Sumatif berhasil diperbarui.'
+            : 'Bank Soal (Soal Biasa) berhasil diperbarui.'
         );
       } else {
         const res = await soalApiFetch('/api/soal/sets', {
@@ -829,8 +829,8 @@ export default function AdminSoal({
         if (res?.set?.id) setSelectedSetId(res.set.id);
         showToast(
           setSoalType === 'sumatif'
-            ? 'Bank Soal Sumatif baru dibuat! Silakan tambahkan butir soal.'
-            : 'Kartu soal baru dibuat! Silakan tambahkan soal.'
+            ? 'Kartu Soal Sumatif baru dibuat! Silakan tambahkan butir soal.'
+            : 'Bank Soal (Soal Biasa) baru dibuat! Silakan tambahkan soal.'
         );
       }
       setIsSetModalOpen(false);
@@ -2111,8 +2111,8 @@ export default function AdminSoal({
             <div className="flex items-center gap-1 p-1 bg-slate-200/80 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl w-fit">
               {([
                 { id: 'all', label: `Semua (${soalSets.length})` },
-                { id: 'biasa', label: `Soal Biasa (${soalSets.filter(s => getSetSoalType(s) === 'biasa').length})` },
-                { id: 'sumatif', label: `Bank Soal Sumatif (${soalSets.filter(s => getSetSoalType(s) === 'sumatif').length})` },
+                { id: 'biasa', label: `Bank Soal (${soalSets.filter(s => getSetSoalType(s) === 'biasa').length})` },
+                { id: 'sumatif', label: `Soal Sumatif (${soalSets.filter(s => getSetSoalType(s) === 'sumatif').length})` },
               ] as const).map((tab) => (
                 <button
                   key={tab.id}
@@ -2164,16 +2164,22 @@ export default function AdminSoal({
                                 : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
                             }`}
                           >
-                            {set.isActive ? 'Aktif / Terbit' : 'Nonaktif / Draft'}
+                            {isSumatif
+                              ? set.isActive
+                                ? 'Aktif / Terbit'
+                                : 'Nonaktif / Draft'
+                              : set.isActive
+                              ? 'Siap Dipanggil'
+                              : 'Draft'}
                           </span>
                           {isSumatif ? (
                             <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg uppercase tracking-wider bg-rose-600 text-white inline-flex items-center gap-1">
                               <Award size={11} />
-                              SUMATIF · Bank Soal
+                              SUMATIF
                             </span>
                           ) : (
-                            <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                              Soal Biasa
+                            <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 inline-flex items-center gap-1">
+                              Bank Soal · Biasa
                             </span>
                           )}
                           {set.kelas && (
@@ -2398,11 +2404,11 @@ export default function AdminSoal({
                         {selectedType === 'sumatif' ? (
                           <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg uppercase tracking-wider bg-rose-600 text-white inline-flex items-center gap-1">
                             <Award size={11} />
-                            SUMATIF · Bank Soal
+                            SUMATIF
                           </span>
                         ) : (
-                          <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                            Soal Biasa
+                          <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                            Bank Soal · Soal Biasa
                           </span>
                         )}
                         <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-950/70 text-brand border border-blue-200 dark:border-blue-800">
@@ -2771,11 +2777,11 @@ export default function AdminSoal({
                     }`}
                   >
                     <div className="flex items-center justify-between mb-0.5">
-                      <span className="font-black text-sm text-slate-900 dark:text-slate-100">Soal Biasa</span>
+                      <span className="font-black text-sm text-slate-900 dark:text-slate-100">Soal Biasa (Bank Soal)</span>
                       {setSoalType === 'biasa' && <CheckCircle size={16} className="text-brand" />}
                     </div>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-                      Latihan / asesmen harian reguler, dapat dipanggil di input nilai Asesmen Harian.
+                      Menjadi <strong>Bank Soal</strong> (tidak langsung tampil di siswa sebelum dipanggil lewat Asesmen Harian). Pengaturan &amp; soal dapat diedit ulang kapan saja.
                     </p>
                   </button>
                   <button
@@ -2795,7 +2801,7 @@ export default function AdminSoal({
                       {setSoalType === 'sumatif' && <CheckCircle size={16} className="text-rose-600" />}
                     </div>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-                      Menjadi Bank Soal, tampil dengan label <strong>SUMATIF</strong> di halaman siswa sesuai kelas, dan tetap bisa diedit/setting ulang.
+                      Muncul di halaman siswa sesuai kelas yang dipilih dengan label <strong>SUMATIF</strong>. Pengaturan &amp; soal tetap bisa diedit ulang.
                     </p>
                   </button>
                 </div>
@@ -2803,7 +2809,7 @@ export default function AdminSoal({
 
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 block mb-1.5">
-                  Target Kelas {setSoalType === 'sumatif' && '(Wajib sesuai kelas tujuan di halaman siswa)'}
+                  Target Kelas {setSoalType === 'sumatif' ? '(Wajib sesuai kelas tujuan di halaman siswa)' : '(Opsional untuk Bank Soal)'}
                 </label>
                 <input
                   type="text"
@@ -2937,11 +2943,11 @@ export default function AdminSoal({
                     }`}
                   >
                     <div className="flex items-center justify-between mb-0.5">
-                      <span className="font-black text-sm text-slate-900 dark:text-slate-100">Soal Biasa</span>
+                      <span className="font-black text-sm text-slate-900 dark:text-slate-100">Soal Biasa (Bank Soal)</span>
                       {cfgSoalType === 'biasa' && <CheckCircle size={16} className="text-brand" />}
                     </div>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-                      Latihan / Asesmen Harian reguler.
+                      Menjadi Bank Soal · dipanggil di Asesmen Harian.
                     </p>
                   </button>
 
@@ -2962,7 +2968,7 @@ export default function AdminSoal({
                       {cfgSoalType === 'sumatif' && <CheckCircle size={16} className="text-rose-600" />}
                     </div>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
-                      Bank Soal · tampil label SUMATIF di siswa sesuai kelas.
+                      Tampil di siswa sesuai kelas dengan label SUMATIF.
                     </p>
                   </button>
                 </div>
@@ -3807,7 +3813,7 @@ export default function AdminSoal({
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                         }`}
                       >
-                        Soal Biasa
+                        Soal Biasa (Bank Soal)
                       </button>
                       <button
                         type="button"
@@ -3818,7 +3824,7 @@ export default function AdminSoal({
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                         }`}
                       >
-                        Soal Sumatif (Bank Soal)
+                        Soal Sumatif
                       </button>
                     </div>
                   </div>
@@ -4251,7 +4257,7 @@ export default function AdminSoal({
                               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                           }`}
                         >
-                          Soal Biasa
+                          Soal Biasa (Bank Soal)
                         </button>
                         <button
                           type="button"
@@ -4262,7 +4268,7 @@ export default function AdminSoal({
                               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                           }`}
                         >
-                          Soal Sumatif (Bank Soal)
+                          Soal Sumatif
                         </button>
                       </div>
                     </div>

@@ -287,7 +287,8 @@ export default function AdminAdministrasi({
         doc(db, 'app_settings', 'soal_set_tp_links'),
         (snap) => {
           if (snap.exists()) {
-            setSoalSetTpLinks((snap.data() || {}) as Record<string, SoalSetTpLink>);
+            const data = snap.data() as any;
+            setSoalSetTpLinks(data?.links && typeof data.links === 'object' ? data.links : {});
           } else {
             setSoalSetTpLinks({});
           }
@@ -7406,7 +7407,7 @@ export default function AdminAdministrasi({
                     Aktifkan Soal untuk "{asesmenSoalModalAgenda.materi}"
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Pilih paket soal dari Kelola Soal atau Bank Soal Sumatif. Siswa Kelas {nilaiClass} dapat langsung mengerjakan soal yang diaktifkan, lalu nilainya otomatis mengisi kolom tabel.
+                    Pilih paket soal dari Bank Soal (Soal Biasa) atau Soal Sumatif di Kelola Soal. Siswa Kelas {nilaiClass} dapat langsung mengerjakan soal yang diaktifkan, lalu nilainya otomatis mengisi kolom tabel.
                   </p>
                 </div>
                 <button
@@ -7437,8 +7438,8 @@ export default function AdminAdministrasi({
                     {(
                       [
                         { id: 'all', label: 'Semua' },
-                        { id: 'sumatif', label: 'Bank Soal Sumatif' },
-                        { id: 'biasa', label: 'Soal Biasa' },
+                        { id: 'biasa', label: 'Bank Soal (Soal Biasa)' },
+                        { id: 'sumatif', label: 'Soal Sumatif' },
                       ] as const
                     ).map((opt) => (
                       <button
@@ -7493,7 +7494,7 @@ export default function AdminAdministrasi({
                           Belum ada paket soal yang cocok
                         </p>
                         <p className="text-xs text-slate-400">
-                          Buat paket soal atau Bank Soal Sumatif di menu Kelola Soal terlebih dahulu.
+                          Buat Bank Soal (Soal Biasa) atau Soal Sumatif di menu Kelola Soal terlebih dahulu.
                         </p>
                       </div>
                     );
@@ -7524,10 +7525,10 @@ export default function AdminAdministrasi({
                               className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
                                 isSumatif
                                   ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                  : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
                               }`}
                             >
-                              {isSumatif ? 'SUMATIF · Bank Soal' : 'Soal Biasa'}
+                              {isSumatif ? 'SUMATIF' : 'Bank Soal · Soal Biasa'}
                             </span>
                             {set.linkedTpKode && (
                               <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono font-bold">

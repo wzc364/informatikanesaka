@@ -1327,7 +1327,8 @@ export default function App() {
     // Soal Type & TP Links (needed by both admin & student views)
     const unsubSoalLinks = onSnapshot(doc(db, 'app_settings', 'soal_set_tp_links'), (snapshot) => {
       if (snapshot.exists()) {
-        setSoalSetTpLinks((snapshot.data() || {}) as Record<string, SoalSetTpLink>);
+        const data = snapshot.data() as any;
+        setSoalSetTpLinks(data?.links && typeof data.links === 'object' ? data.links : {});
       } else {
         setSoalSetTpLinks({});
       }
@@ -1743,7 +1744,11 @@ export default function App() {
       const hasQuestions = soalQuestions.some(q => q.setId === s.id);
       if (!hasQuestions) return false;
       if (activatedSetIdsForStudentClass.has(s.id)) return true;
-      return s.isActive && doesSoalSetMatchStudentClass(s.kelas, studentKelas);
+      if (s.soalType === 'sumatif') {
+        return s.isActive && doesSoalSetMatchStudentClass(s.kelas, studentKelas);
+      }
+      // Soal Biasa menjadi Bank Soal (tampil ke siswa hanya saat dipanggil/aktifkan lewat Asesmen Harian)
+      return false;
     });
 
     const filteredAnnouncements = announcements
