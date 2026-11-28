@@ -2445,15 +2445,6 @@ export default function App() {
       scopedStudentAssessments.some(a => a.studentId === currentStudent?.id && a.courseId === `soal_${s.id}`)
     ).length;
 
-    const myStudentScores = scopedStudentAssessments
-      .filter(a => a.studentId === currentStudent?.id)
-      .map(a => Number(a.score))
-      .filter(n => !Number.isNaN(n));
-
-    const avgStudentScore = myStudentScores.length > 0
-      ? Math.round(myStudentScores.reduce((acc, s) => acc + s, 0) / myStudentScores.length)
-      : null;
-
     const courseProgressPct = activeCoursesList.length > 0
       ? Math.round((completedCourseCount / activeCoursesList.length) * 100)
       : 0;
@@ -2846,7 +2837,16 @@ export default function App() {
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
                   Selamat datang kembali
                 </p>
-                <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
+                <h1
+                  className={cn(
+                    "font-extrabold text-slate-900 dark:text-slate-100 tracking-tight break-words whitespace-normal leading-snug",
+                    (currentStudent?.nama?.length || 0) > 28
+                      ? "text-[clamp(0.875rem,1.1vw,1.05rem)]"
+                      : (currentStudent?.nama?.length || 0) > 18
+                      ? "text-[clamp(0.95rem,1.25vw,1.2rem)]"
+                      : "text-[clamp(1.05rem,1.4vw,1.35rem)]"
+                  )}
+                >
                   {currentStudent?.nama}
                 </h1>
                 {/* Zero-pill metadata strip */}
@@ -2862,8 +2862,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* 3 Real Computed Progress Metrics */}
-            <div className="grid grid-cols-3 gap-3 md:gap-4 pt-4 border-t border-slate-100 dark:border-slate-800 tabular-nums">
+            {/* 2 Real Computed Progress Metrics */}
+            <div className="grid grid-cols-2 gap-3 md:gap-4 pt-4 border-t border-slate-100 dark:border-slate-800 tabular-nums">
               <div className="space-y-1.5">
                 <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Materi Selesai</div>
                 <div className="text-lg md:text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
@@ -2890,23 +2890,6 @@ export default function App() {
                   <div className="h-full bg-emerald-600 rounded-full transition-all duration-300" style={{ width: `${soalProgressPct}%` }} />
                 </div>
               </button>
-
-              <div className="space-y-1">
-                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Rata-Rata Skor</div>
-                <div className={cn(
-                  "text-lg md:text-2xl font-extrabold font-mono",
-                  avgStudentScore === null ? "text-slate-400 dark:text-slate-500" :
-                  avgStudentScore >= 80 ? "text-emerald-600 dark:text-emerald-400" :
-                  avgStudentScore >= 60 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
-                )}>
-                  {avgStudentScore !== null ? avgStudentScore : '-'}
-                </div>
-                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  {avgStudentScore === null ? 'Belum ada nilai' :
-                   avgStudentScore >= 80 ? 'Sangat Baik' :
-                   avgStudentScore >= 60 ? 'Cukup Baik' : 'Perlu Latihan'}
-                </div>
-              </div>
             </div>
 
             {/* Nilai Sumatif TP & Sumatif Praktikum TP */}
