@@ -214,6 +214,10 @@ export async function handleStudentsApiRequest({ method, subPath, body, authHead
     if (isPhpBridgeConfigured()) {
       try {
         const res = await callPhpBridge('students_health');
+        const rawErr = String(res.payload?.error || '');
+        const friendlyErr = rawErr.toLowerCase().includes('action tidak dikenal')
+          ? 'Secret PHP Bridge sudah aktif, tetapi file soal_api.php di hosting Anda masih versi lama. Perbarui file soal_api.php di cPanel dengan isi database/soal_api.php terbaru lalu klik Segarkan.'
+          : rawErr || 'Gagal mengecek tabel Siswa & Kelas via PHP Bridge.';
         return {
           status: 200,
           payload:
@@ -223,7 +227,7 @@ export async function handleStudentsApiRequest({ method, subPath, body, authHead
                   configured: true,
                   connected: false,
                   mode: 'php_bridge',
-                  error: res.payload?.error || 'Gagal mengecek tabel Siswa & Kelas via PHP Bridge.',
+                  error: friendlyErr,
                 },
         };
       } catch (err) {
@@ -429,13 +433,16 @@ export async function handleStudentsApiRequest({ method, subPath, body, authHead
       try {
         const res = await callPhpBridge('students_list');
         if (res.status >= 400) {
+          const rawErr = String(res.payload?.error || '');
           return {
             status: res.status,
             payload: {
               configured: true,
               students: [],
               classes: [],
-              error: res.payload?.error || 'Gagal memuat data Siswa & Kelas dari PHP Bridge.',
+              error: rawErr.toLowerCase().includes('action tidak dikenal')
+                ? 'File soal_api.php di hosting Anda masih versi lama. Perbarui file soal_api.php di cPanel dengan database/soal_api.php terbaru.'
+                : rawErr || 'Gagal memuat data Siswa & Kelas dari PHP Bridge.',
             },
           };
         }
