@@ -76,7 +76,8 @@ import {
   FolderKanban,
   CalendarDays,
   Copy,
-  Download
+  Download,
+  UserCheck
 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
@@ -479,6 +480,12 @@ export default function App() {
     nonce: number;
   } | null>(null);
   const [dashboardClassFilter, setDashboardClassFilter] = useState<string>('all');
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [onlineClassFilter, setOnlineClassFilter] = useState<string>('all');
+  const [onlineSearch, setOnlineSearch] = useState<string>('');
+  const [loggingOutStudentId, setLoggingOutStudentId] = useState<string | null>(null);
+  const [isConfirmLogoutAllOnline, setIsConfirmLogoutAllOnline] = useState(false);
+  const [forcedLogoutNotice, setForcedLogoutNotice] = useState<string | null>(null);
   const [gameScoresList, setGameScoresList] = useState<any[]>([]);
   const [assessmentCategory, setAssessmentCategory] = useState<'materi' | 'game' | 'soal'>('materi');
 
@@ -1375,6 +1382,14 @@ export default function App() {
       });
       unsubscribes.push(unsubActiveSessions);
 
+      // Online Users (Admin)
+      const unsubOnlineUsers = onSnapshot(collection(db, 'online_users'), (snapshot) => {
+        setOnlineUsers(snapshot.docs.map(d => ({ id: d.id, ...d.data() as any })));
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'online_users');
+      });
+      unsubscribes.push(unsubOnlineUsers);
+
       // Access Logs (Admin)
       const unsubAccessLogs = onSnapshot(collection(db, 'access_logs'), (snapshot) => {
         setAccessLogs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
@@ -1436,6 +1451,107 @@ export default function App() {
       unsubscribes.forEach(unsub => unsub());
     };
   }, [isAdmin, currentStudent]);
+
+  // Listen for remote admin force-logout when a student is logged in
+  useEffect(() => {
+    if (isAdmin || !currentStudent?.id) return;
+
+    const studentId = currentStudent.id;
+    const localToken = currentStudent.sessionToken;
+    const unsubPresence = onSnapshot(
+      doc(db, 'online_users', studentId),
+      async (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data() as any;
+        if (data?.forceLogout === true) {
+          if (!localToken || !data?.sessionToken || data.sessionToken === localToken) {
+            if (document.fullscreenElement) {
+              document.exitFullscreen().catch(() => {});
+            }
+            setForcedLogoutNotice('Sesi Anda telah dihentikan oleh Guru / Admin. Silakan login kembali.');
+            setLocalCheatingAttempts(0);
+            setLocalCheatingDetails([]);
+            setCurrentStudent(null);
+            setCurrentPage('login');
+            try {
+              for (const c of COURSES) {
+                await deleteDoc(doc(db, 'active_sessions', `${studentId}_${c.id}`)).catch(() => {});
+              }
+              for (const s of soalSets) {
+                await deleteDoc(doc(db, 'active_sessions', `${studentId}_soal_${s.id}`)).catch(() => {});
+              }
+              await deleteDoc(doc(db, 'online_users', studentId)).catch(() => {});
+            } catch (e) {}
+          }
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, `online_users/${studentId}`);
+      }
+    );
+
+    return () => {
+      unsubPresence();
+    };
+  }, [isAdmin, currentStudent?.id, currentStudent?.sessionToken]);
+
+  // Heartbeat & current activity sync for logged-in student
+  useEffect(() => {
+    if (isAdmin || !currentStudent?.id || currentPage === 'login') return;
+
+    const getStudentActivityLabel = () => {
+      if (currentPage === 'course' || currentPage === 'course_confirm') {
+        const course = COURSES.find(c => c.id === activeCourseId);
+        return `Materi: ${course?.title || 'Pembelajaran'}`;
+      }
+      if (currentPage === 'soal' || currentPage === 'soal_confirm') {
+        const soalSet = soalSets.find(s => s.id === activeSoalSetId);
+        return `Soal: ${soalSet?.title || 'Latihan / Ujian'}`;
+      }
+      if (studentTab === 'soal') return 'Dashboard · Daftar Soal';
+      if (studentTab === 'games') return 'Dashboard · Game Edukasi';
+      if (studentTab === 'skor') return 'Dashboard · Riwayat Nilai';
+      return 'Dashboard Siswa';
+    };
+
+    const syncOnlinePresence = () => {
+      setDoc(
+        doc(db, 'online_users', currentStudent.id),
+        {
+          studentId: currentStudent.id,
+          nis: currentStudent.nis || '',
+          studentName: currentStudent.nama || '',
+          kelas: currentStudent.student_management?.kelas || currentStudent.kelas || '',
+          tahunPelajaran: currentStudent.tahunPelajaran || activeTahunPelajaran,
+          currentPage,
+          currentActivity: getStudentActivityLabel(),
+          ...(currentStudent.sessionToken ? { sessionToken: currentStudent.sessionToken } : {}),
+          lastSeen: serverTimestamp(),
+        },
+        { merge: true }
+      ).catch((error) => {
+        handleFirestoreError(error, OperationType.WRITE, `online_users/${currentStudent.id}`);
+      });
+    };
+
+    syncOnlinePresence();
+    const intervalId = setInterval(syncOnlinePresence, 25000);
+    return () => clearInterval(intervalId);
+  }, [
+    isAdmin,
+    currentStudent?.id,
+    currentStudent?.nis,
+    currentStudent?.nama,
+    currentStudent?.kelas,
+    currentStudent?.tahunPelajaran,
+    currentStudent?.sessionToken,
+    currentPage,
+    studentTab,
+    activeCourseId,
+    activeSoalSetId,
+    activeTahunPelajaran,
+    soalSets,
+  ]);
 
   const handleNotificationClick = async (notif: any) => {
     try {
@@ -1719,6 +1835,8 @@ export default function App() {
         setIsAdmin={setIsAdmin}
         setCurrentStudent={setCurrentStudent}
         setCurrentScore={setCurrentScore}
+        forcedLogoutNotice={forcedLogoutNotice}
+        onClearForcedLogoutNotice={() => setForcedLogoutNotice(null)}
         settingsConfig={settingsConfig}
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
@@ -1826,19 +1944,24 @@ export default function App() {
 
     const handleStudentLogout = async () => {
       if (currentStudent) {
+        const studentId = currentStudent.id;
+        setForcedLogoutNotice(null);
         setCurrentPage('login');
         setLocalCheatingAttempts(0);
         setLocalCheatingDetails([]);
+        setCurrentStudent(null);
         try {
           for (const c of COURSES) {
-            await deleteDoc(doc(db, 'active_sessions', `${currentStudent.id}_${c.id}`)).catch(() => {});
+            await deleteDoc(doc(db, 'active_sessions', `${studentId}_${c.id}`)).catch(() => {});
           }
           for (const s of soalSets) {
-            await deleteDoc(doc(db, 'active_sessions', `${currentStudent.id}_soal_${s.id}`)).catch(() => {});
+            await deleteDoc(doc(db, 'active_sessions', `${studentId}_soal_${s.id}`)).catch(() => {});
           }
+          await deleteDoc(doc(db, 'online_users', studentId)).catch(() => {});
         } catch (e) {}
+      } else {
+        setCurrentStudent(null);
       }
-      setCurrentStudent(null);
     };
 
     return (
@@ -3549,6 +3672,101 @@ export default function App() {
                 ? distinctClasses 
                 : distinctClasses.filter(c => c === dashboardClassFilter);
 
+              const onlineUsersList = onlineUsers
+                .filter(u => {
+                  if (u.forceLogout === true) return false;
+                  if (u.tahunPelajaran && u.tahunPelajaran !== activeTahunPelajaran) return false;
+                  if (u.lastSeen) {
+                    const lastSeenMs = u.lastSeen?.toMillis ? u.lastSeen.toMillis() : (u.lastSeen.seconds * 1000);
+                    return (realtimeNow.getTime() - lastSeenMs) < 120000;
+                  }
+                  if (u.loginAt) {
+                    const loginAtMs = u.loginAt?.toMillis ? u.loginAt.toMillis() : (u.loginAt.seconds * 1000);
+                    return (realtimeNow.getTime() - loginAtMs) < 120000;
+                  }
+                  return true;
+                })
+                .sort((a, b) => {
+                  const cmpCls = naturalCompareKelas(a.kelas || '', b.kelas || '');
+                  if (cmpCls !== 0) return cmpCls;
+                  return (a.studentName || '').localeCompare(b.studentName || '', 'id-ID');
+                });
+
+              const onlineDistinctClasses = Array.from(
+                new Set(onlineUsersList.map(u => (u.kelas || '').trim()).filter(Boolean))
+              ).sort((a, b) => naturalCompareKelas(a, b));
+
+              const filteredOnlineUsers = onlineUsersList.filter(u => {
+                if (onlineClassFilter !== 'all' && (u.kelas || '').trim() !== onlineClassFilter) {
+                  return false;
+                }
+                const q = onlineSearch.trim().toLowerCase();
+                if (q) {
+                  const nameMatch = (u.studentName || '').toLowerCase().includes(q);
+                  const nisMatch = (u.nis || '').toLowerCase().includes(q);
+                  const classMatch = (u.kelas || '').toLowerCase().includes(q);
+                  if (!nameMatch && !nisMatch && !classMatch) return false;
+                }
+                return true;
+              });
+
+              const handleAdminForceLogoutStudent = async (onlineUser: any) => {
+                const targetId = onlineUser.studentId || onlineUser.id;
+                if (!targetId) return;
+                setLoggingOutStudentId(targetId);
+                try {
+                  await setDoc(
+                    doc(db, 'online_users', targetId),
+                    {
+                      forceLogout: true,
+                      loggedOutAt: serverTimestamp(),
+                    },
+                    { merge: true }
+                  );
+                  const relatedSessions = activeSessions.filter(s => s.studentId === targetId);
+                  for (const sess of relatedSessions) {
+                    await deleteDoc(doc(db, 'active_sessions', sess.id)).catch(() => {});
+                  }
+                } catch (err) {
+                  handleFirestoreError(err, OperationType.WRITE, `online_users/${targetId}`);
+                } finally {
+                  setLoggingOutStudentId(null);
+                }
+              };
+
+              const handleAdminForceLogoutAll = async () => {
+                if (filteredOnlineUsers.length === 0) {
+                  setIsConfirmLogoutAllOnline(false);
+                  return;
+                }
+                setLoggingOutStudentId('ALL');
+                try {
+                  await Promise.all(
+                    filteredOnlineUsers.map(async (u) => {
+                      const targetId = u.studentId || u.id;
+                      if (!targetId) return;
+                      await setDoc(
+                        doc(db, 'online_users', targetId),
+                        {
+                          forceLogout: true,
+                          loggedOutAt: serverTimestamp(),
+                        },
+                        { merge: true }
+                      );
+                      const relatedSessions = activeSessions.filter(s => s.studentId === targetId);
+                      for (const sess of relatedSessions) {
+                        await deleteDoc(doc(db, 'active_sessions', sess.id)).catch(() => {});
+                      }
+                    })
+                  );
+                  setIsConfirmLogoutAllOnline(false);
+                } catch (err) {
+                  handleFirestoreError(err, OperationType.WRITE, 'online_users');
+                } finally {
+                  setLoggingOutStudentId(null);
+                }
+              };
+
               return (
                 <div className="space-y-6">
                   {/* Kartu Kelola Administrasi, Kelola Game, Kelola Materi & Kelola Soal */}
@@ -3725,43 +3943,43 @@ export default function App() {
 
 
                   
-                  {/* TOP SECTION: KARTU PARTICIPANT & MONITORING KECURANGAN SEJAJAR DI ATAS */}
-                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                  {/* TOP SECTION: KARTU PARTICIPANT, USER ONLINE & MONITORING KECURANGAN SEJAJAR DI ATAS */}
+                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
                     
                     {/* LEFT COLUMN: KARTU PARTICIPANT */}
-                    <div className="xl:col-span-7 admin-glass-card rounded-3xl overflow-hidden flex flex-col">
+                    <div className="xl:col-span-4 admin-glass-card rounded-3xl overflow-hidden flex flex-col">
                       {/* Vibrant Gradient Header */}
-                      <div className="bg-gradient-to-r from-blue-700/85 via-blue-600/80 to-indigo-600/85 border-b border-white/25 p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-white shadow-inner">
-                            <Users size={24} />
+                      <div className="bg-gradient-to-r from-blue-700/85 via-blue-600/80 to-indigo-600/85 border-b border-white/25 p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-11 h-11 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-white shadow-inner shrink-0">
+                            <Users size={22} />
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <h3 className="text-xl md:text-2xl font-extrabold tracking-tight text-white">Kartu Participant</h3>
-                              <span className="w-2 h-2 rounded-full bg-yellow-400 ring-2 ring-yellow-400/35" />
+                              <h3 className="text-lg md:text-xl font-extrabold tracking-tight text-white truncate">Kartu Participant</h3>
+                              <span className="w-2 h-2 rounded-full bg-yellow-400 ring-2 ring-yellow-400/35 shrink-0" />
                             </div>
-                            <p className="text-white/85 text-xs font-medium mt-0.5">Pemantauan aktivitas siswa & kelas secara langsung</p>
+                            <p className="text-white/85 text-[11px] font-medium mt-0.5 truncate">Aktivitas pengerjaan materi &amp; soal</p>
                           </div>
                         </div>
 
                         {/* Total Aktif Badge */}
-                        <div className="flex items-center gap-2 self-start sm:self-auto bg-white/15 px-4 py-2 rounded-2xl border border-white/25 shadow-xs">
-                          <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-lg shadow-yellow-400/50" />
-                          <span className="text-sm font-extrabold text-white tracking-wide tabular-nums">
-                            Total Aktif: <span className="text-yellow-300 font-black">{activeSessionList.length}</span>
+                        <div className="flex items-center gap-2 self-start sm:self-auto bg-white/15 px-3 py-1.5 rounded-xl border border-white/25 shadow-xs shrink-0">
+                          <span className="w-2 h-2 rounded-full bg-yellow-400 shadow-lg shadow-yellow-400/50" />
+                          <span className="text-xs font-extrabold text-white tracking-wide tabular-nums">
+                            Aktif: <span className="text-yellow-300 font-black">{activeSessionList.length}</span>
                           </span>
                         </div>
                       </div>
 
                       {/* Class Quick Filter Tabs */}
                       {distinctClasses.length > 0 && (
-                        <div className="px-6 py-3.5 bg-white/15 dark:bg-white/5 border-b border-white/35 dark:border-white/10 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                        <div className="px-5 py-3 bg-white/15 dark:bg-white/5 border-b border-white/35 dark:border-white/10 flex items-center gap-2 overflow-x-auto custom-scrollbar">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0 mr-1">Filter Kelas:</span>
                           <button
                             onClick={() => setDashboardClassFilter('all')}
                             className={cn(
-                              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 shrink-0 tabular-nums",
+                              "px-3 py-1 rounded-xl text-xs font-bold transition-all duration-300 shrink-0 tabular-nums",
                               dashboardClassFilter === 'all' 
                                 ? "bg-brand text-white shadow-sm shadow-brand/30" 
                                 : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300"
@@ -3776,7 +3994,7 @@ export default function App() {
                                 key={c}
                                 onClick={() => setDashboardClassFilter(c)}
                                 className={cn(
-                                  "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 shrink-0 flex items-center gap-1.5 tabular-nums",
+                                  "px-3 py-1 rounded-xl text-xs font-bold transition-all duration-300 shrink-0 flex items-center gap-1.5 tabular-nums",
                                   dashboardClassFilter === c 
                                     ? "bg-brand text-white shadow-sm shadow-indigo-600/30" 
                                     : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300"
@@ -3796,7 +4014,7 @@ export default function App() {
                       )}
 
                       {/* Participant Cards Container */}
-                      <div className="p-6 space-y-6 max-h-[580px] overflow-y-auto custom-scrollbar">
+                      <div className="p-5 space-y-5 max-h-[560px] overflow-y-auto custom-scrollbar">
                         {filteredClasses.length > 0 ? (
                           filteredClasses.map((className, idx) => {
                             const workingInClass = activeSessionList
@@ -3826,7 +4044,7 @@ export default function App() {
                                   </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-3">
                                   {workingInClass.map(s => {
                                     const initials = (s.studentName || 'S')
                                       .split(' ')
@@ -3896,19 +4114,234 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* RIGHT COLUMN: MONITORING KECURANGAN */}
-                    <div className="xl:col-span-5 admin-glass-card rounded-3xl overflow-hidden flex flex-col">
-                      {/* Vibrant Red Gradient Header */}
-                      <div className="bg-gradient-to-r from-rose-600/85 via-red-600/80 to-orange-500/85 border-b border-white/25 p-6 text-white flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-white shadow-inner">
-                            <ShieldAlert size={24} />
+                    {/* MIDDLE COLUMN: USER ONLINE */}
+                    <div className="xl:col-span-4 admin-glass-card rounded-3xl overflow-hidden flex flex-col">
+                      {/* Vibrant Emerald-Teal Gradient Header */}
+                      <div className="bg-gradient-to-r from-emerald-600/90 via-teal-600/85 to-cyan-600/85 border-b border-white/25 p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-11 h-11 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-white shadow-inner shrink-0">
+                            <UserCheck size={22} />
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <h3 className="text-xl md:text-2xl font-extrabold tracking-tight text-white">Monitoring Kecurangan</h3>
+                              <h3 className="text-lg md:text-xl font-extrabold tracking-tight text-white truncate">User Online</h3>
+                              <span className="w-2 h-2 rounded-full bg-lime-300 ring-2 ring-lime-300/40 shrink-0" />
                             </div>
-                            <p className="text-white/85 text-xs font-medium mt-0.5">Deteksi keluar layar penuh & tab ujian</p>
+                            <p className="text-white/85 text-[11px] font-medium mt-0.5 truncate">Siswa yang sedang login ke sistem</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                          <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-xl border border-white/25 shadow-xs">
+                            <span className="w-2 h-2 rounded-full bg-lime-300 shadow-lg shadow-lime-300/50" />
+                            <span className="text-xs font-extrabold text-white tracking-wide tabular-nums">
+                              Online: <span className="text-lime-200 font-black">{onlineUsersList.length}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Search, Class Filter & Logout Semua Bar */}
+                      {onlineUsersList.length > 0 && (
+                        <div className="px-5 py-3 bg-white/15 dark:bg-white/5 border-b border-white/35 dark:border-white/10 space-y-2.5">
+                          <div className="flex items-center gap-2">
+                            <div className="relative flex-1 min-w-0">
+                              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                              <input
+                                type="text"
+                                value={onlineSearch}
+                                onChange={(e) => setOnlineSearch(e.target.value)}
+                                placeholder="Cari nama / NISN siswa online..."
+                                className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                              />
+                            </div>
+
+                            {!isConfirmLogoutAllOnline ? (
+                              <button
+                                type="button"
+                                onClick={() => setIsConfirmLogoutAllOnline(true)}
+                                disabled={filteredOnlineUsers.length === 0 || loggingOutStudentId !== null}
+                                className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-600 hover:text-white text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[11px] font-extrabold inline-flex items-center gap-1 shrink-0 transition-colors cursor-pointer disabled:opacity-40"
+                                title="Logoutkan semua siswa yang tampil"
+                              >
+                                <LogOut size={12} />
+                                <span>Logout Semua</span>
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={handleAdminForceLogoutAll}
+                                  disabled={loggingOutStudentId === 'ALL'}
+                                  className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-extrabold cursor-pointer disabled:opacity-50"
+                                >
+                                  {loggingOutStudentId === 'ALL' ? 'Memproses...' : `Ya (${filteredOnlineUsers.length})`}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsConfirmLogoutAllOnline(false)}
+                                  className="px-2 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold cursor-pointer"
+                                >
+                                  Batal
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {onlineDistinctClasses.length > 0 && (
+                            <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-0.5">
+                              <button
+                                type="button"
+                                onClick={() => setOnlineClassFilter('all')}
+                                className={cn(
+                                  "px-2.5 py-1 rounded-lg text-[11px] font-bold shrink-0 cursor-pointer transition-colors tabular-nums",
+                                  onlineClassFilter === 'all'
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                )}
+                              >
+                                Semua ({onlineUsersList.length})
+                              </button>
+                              {onlineDistinctClasses.map((cls) => {
+                                const clsCount = onlineUsersList.filter(u => (u.kelas || '').trim() === cls).length;
+                                return (
+                                  <button
+                                    key={cls}
+                                    type="button"
+                                    onClick={() => setOnlineClassFilter(cls)}
+                                    className={cn(
+                                      "px-2.5 py-1 rounded-lg text-[11px] font-bold shrink-0 cursor-pointer transition-colors tabular-nums",
+                                      onlineClassFilter === cls
+                                        ? "bg-emerald-600 text-white"
+                                        : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    )}
+                                  >
+                                    {cls} ({clsCount})
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Online Users List */}
+                      <div className="p-5 space-y-3 max-h-[560px] overflow-y-auto custom-scrollbar flex-1">
+                        {filteredOnlineUsers.length > 0 ? (
+                          filteredOnlineUsers.map((u) => {
+                            const targetId = u.studentId || u.id;
+                            const initials = (u.studentName || 'S')
+                              .split(' ')
+                              .filter(Boolean)
+                              .slice(0, 2)
+                              .map((n: string) => n[0])
+                              .join('')
+                              .toUpperCase();
+                            const loginTimeMs = u.loginAt?.toMillis
+                              ? u.loginAt.toMillis()
+                              : u.loginAt?.seconds
+                              ? u.loginAt.seconds * 1000
+                              : null;
+                            const loginClock = loginTimeMs
+                              ? new Date(loginTimeMs).toLocaleTimeString('id-ID', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
+                              : null;
+                            const isLoggingOut = loggingOutStudentId === targetId || loggingOutStudentId === 'ALL';
+
+                            return (
+                              <div
+                                key={u.id}
+                                className="admin-glass-card hover:border-emerald-400/60 dark:hover:border-emerald-500/50 p-3.5 rounded-2xl transition-colors duration-200 flex flex-col gap-2.5"
+                              >
+                                <div className="flex items-start justify-between gap-2.5">
+                                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                    <div className="relative shrink-0">
+                                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
+                                        {initials}
+                                      </div>
+                                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p
+                                        className="font-extrabold text-slate-900 dark:text-slate-100 text-xs truncate"
+                                        title={u.studentName}
+                                      >
+                                        {u.studentName || 'Siswa'}
+                                      </p>
+                                      <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                                        <span>Kelas {u.kelas || '-'}</span>
+                                        {u.nis && (
+                                          <>
+                                            <span>·</span>
+                                            <span className="font-mono">{u.nis}</span>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    disabled={isLoggingOut}
+                                    onClick={() => handleAdminForceLogoutStudent(u)}
+                                    className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-600 text-rose-700 dark:text-rose-300 hover:text-white border border-rose-200 dark:border-rose-800 text-[11px] font-extrabold inline-flex items-center gap-1 shrink-0 transition-colors cursor-pointer disabled:opacity-50"
+                                    title={`Keluarkan / logoutkan ${u.studentName} dari sistem`}
+                                  >
+                                    <LogOut size={12} />
+                                    <span>{isLoggingOut ? 'Keluar...' : 'Logout'}</span>
+                                  </button>
+                                </div>
+
+                                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 text-[11px]">
+                                  <span
+                                    className="truncate font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200/70 dark:border-slate-700 max-w-[70%]"
+                                    title={u.currentActivity || 'Dashboard Siswa'}
+                                  >
+                                    {u.currentActivity || 'Dashboard Siswa'}
+                                  </span>
+                                  {loginClock && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 tabular-nums shrink-0">
+                                      <Clock size={10} />
+                                      {loginClock}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="py-16 text-center flex flex-col items-center justify-center">
+                            <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-950/50 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4 border border-emerald-100 dark:border-emerald-800/60 shadow-inner">
+                              <UserCheck size={34} />
+                            </div>
+                            <h4 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                              {onlineUsersList.length > 0 ? 'Siswa Tidak Ditemukan' : 'Belum Ada User Online'}
+                            </h4>
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-xs mt-1">
+                              {onlineUsersList.length > 0
+                                ? 'Coba ubah kata kunci pencarian atau filter kelas di atas.'
+                                : 'Siswa yang sedang login akan muncul di sini secara real-time dan dapat di-logout oleh admin.'}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: MONITORING KECURANGAN */}
+                    <div className="xl:col-span-4 admin-glass-card rounded-3xl overflow-hidden flex flex-col">
+                      {/* Vibrant Red Gradient Header */}
+                      <div className="bg-gradient-to-r from-rose-600/85 via-red-600/80 to-orange-500/85 border-b border-white/25 p-5 text-white flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-11 h-11 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-white shadow-inner shrink-0">
+                            <ShieldAlert size={22} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-lg md:text-xl font-extrabold tracking-tight text-white truncate">Monitoring Kecurangan</h3>
+                            </div>
+                            <p className="text-white/85 text-[11px] font-medium mt-0.5 truncate">Deteksi keluar layar penuh &amp; tab ujian</p>
                           </div>
                         </div>
 

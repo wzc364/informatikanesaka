@@ -1,7 +1,7 @@
-import { User, Key, ArrowRight, Sun, Moon } from 'lucide-react';
+import { User, Key, ArrowRight, Sun, Moon, AlertTriangle } from 'lucide-react';
 import React, { useState } from 'react';
 import { db } from '../firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { motion } from 'motion/react';
 import { getBackgroundPreset } from '../backgrounds';
 import { DEFAULT_SEMESTER, DEFAULT_TAHUN_PELAJARAN } from '../administrasiTypes';
@@ -11,6 +11,8 @@ interface LoginProps {
   setIsAdmin: (isAdmin: boolean) => void;
   setCurrentStudent: (student: any) => void;
   setCurrentScore: (score: number) => void;
+  forcedLogoutNotice?: string | null;
+  onClearForcedLogoutNotice?: () => void;
   settingsConfig?: {
     logoUrl?: string;
     backgroundPreset?: string;
@@ -21,7 +23,7 @@ interface LoginProps {
   onToggleDarkMode?: () => void;
 }
 
-export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, setCurrentScore, settingsConfig, isDarkMode = false, onToggleDarkMode }: LoginProps) {
+export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, setCurrentScore, forcedLogoutNotice, onClearForcedLogoutNotice, settingsConfig, isDarkMode = false, onToggleDarkMode }: LoginProps) {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -109,8 +111,24 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
       }
 
       const studentData = matchingDocs[0].data();
-      const studentObj = { id: matchingDocs[0].id, ...studentData };
+      const sessionToken = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      const studentObj = { id: matchingDocs[0].id, ...studentData, sessionToken };
       
+      await setDoc(doc(db, 'online_users', studentObj.id), {
+        studentId: studentObj.id,
+        nis: (studentData as any).nis || '',
+        studentName: (studentData as any).nama || '',
+        kelas: (studentData as any).kelas || '',
+        tahunPelajaran: (studentData as any).tahunPelajaran || activeYear,
+        currentPage: 'student_dashboard',
+        currentActivity: 'Dashboard Siswa',
+        sessionToken,
+        forceLogout: false,
+        loginAt: serverTimestamp(),
+        lastSeen: serverTimestamp(),
+      });
+
+      onClearForcedLogoutNotice?.();
       logAccess(studentObj);
       setCurrentScore(100);
       setCurrentStudent(studentObj);
@@ -170,6 +188,13 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
               <h2 className="text-xl font-black text-slate-900 dark:text-white">Masuk ke Sistem</h2>
               <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">Masukkan NISN Siswa atau Username Admin</p>
             </div>
+
+            {forcedLogoutNotice && (
+              <div className="mb-5 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-xs font-bold flex items-start gap-2.5">
+                <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{forcedLogoutNotice}</span>
+              </div>
+            )}
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-1.5">

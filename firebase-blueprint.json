@@ -116,6 +116,25 @@
         "cheatingDetails": { "type": "array", "items": { "type": "string" } }
       }
     },
+    "OnlineUser": {
+      "title": "Online User",
+      "description": "Tracks currently logged-in students and supports remote admin force-logout.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "nis": { "type": "string" },
+        "studentName": { "type": "string" },
+        "kelas": { "type": "string" },
+        "tahunPelajaran": { "type": "string" },
+        "currentPage": { "type": "string" },
+        "currentActivity": { "type": "string" },
+        "sessionToken": { "type": "string" },
+        "forceLogout": { "type": "boolean" },
+        "loginAt": { "type": "string", "format": "date-time" },
+        "lastSeen": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "studentName", "forceLogout"]
+    },
     "SoalSet": {
       "title": "Soal Set",
       "description": "Kartu paket soal pilihan ganda 4 opsi berdasarkan judul.",
@@ -367,6 +386,10 @@
     "/active_sessions/{sessionId}": {
       "schema": "ActiveSession",
       "description": "Tracks currently active student sessions."
+    },
+    "/online_users/{studentId}": {
+      "schema": "OnlineUser",
+      "description": "Tracks logged-in students for admin monitoring and remote logout."
     },
     "/soal_sets/{setId}": {
       "schema": "SoalSet",
