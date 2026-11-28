@@ -123,6 +123,38 @@ import { resolveCourseImageUrl, getPublicFallbackImageUrl } from './courseImageM
 import { APP_BACKGROUNDS, getBackgroundPreset } from './backgrounds';
 import { dedupeHighestGameScores, formatScoreTimestamp, getScoreTimestampMs, isSoalAssessment, naturalCompareKelas } from './scoreUtils';
 import { AsesmenHarianSoalLink, doesSoalSetMatchStudentClass, SoalSetTpLink } from './soalExportUtils';
+
+export interface ProfilePictureItem {
+  id: string;
+  name: string;
+  theme: 'Informatika Kombat' | 'Game Berkebun' | 'Game Pergi ke Sekolah' | 'Informatika' | 'Kustom';
+  url: string;
+  isActive: boolean;
+  isCustom?: boolean;
+}
+
+export const DEFAULT_PROFILE_PICTURES: ProfilePictureItem[] = [
+  // Informatika Kombat (4)
+  { id: 'kombat_1', name: 'Cyber Knight', theme: 'Informatika Kombat', url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=cyber_knight_99', isActive: true },
+  { id: 'kombat_2', name: 'Mecha Hacker', theme: 'Informatika Kombat', url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=mecha_hacker_x', isActive: true },
+  { id: 'kombat_3', name: 'Ninja Coder', theme: 'Informatika Kombat', url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=ninja_coder_z', isActive: true },
+  { id: 'kombat_4', name: 'Battle SysAdmin', theme: 'Informatika Kombat', url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=battle_sys_admin', isActive: true },
+  // Game Berkebun (4)
+  { id: 'berkebun_1', name: 'Tani Cerdas', theme: 'Game Berkebun', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=tani_muda_pro', isActive: true },
+  { id: 'berkebun_2', name: 'Kebun Asri', theme: 'Game Berkebun', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=kebun_bunga_asri', isActive: true },
+  { id: 'berkebun_3', name: 'Apel Hijau', theme: 'Game Berkebun', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=pohon_apel_hijau', isActive: true },
+  { id: 'berkebun_4', name: 'Petani Organik', theme: 'Game Berkebun', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=petani_organik', isActive: true },
+  // Game Pergi ke Sekolah (4)
+  { id: 'sekolah_1', name: 'Sepeda Pagi', theme: 'Game Pergi ke Sekolah', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=sepeda_pagi_ria', isActive: true },
+  { id: 'sekolah_2', name: 'Bus Ceria', theme: 'Game Pergi ke Sekolah', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=bus_sekolah_kuning', isActive: true },
+  { id: 'sekolah_3', name: 'Ransel Pintar', theme: 'Game Pergi ke Sekolah', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=ransel_merah_ceria', isActive: true },
+  { id: 'sekolah_4', name: 'Semangat Pagi', theme: 'Game Pergi ke Sekolah', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=semangat_belajar_pagi', isActive: true },
+  // Informatika (4)
+  { id: 'info_1', name: 'Python Master', theme: 'Informatika', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=python_code_master', isActive: true },
+  { id: 'info_2', name: 'Matrix Binary', theme: 'Informatika', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=binary_matrix_ai', isActive: true },
+  { id: 'info_3', name: 'Laptop Geek', theme: 'Informatika', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=laptop_geek_pro', isActive: true },
+  { id: 'info_4', name: 'Circuit Chip', theme: 'Informatika', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=circuit_board_chip', isActive: true },
+];
 import courseCoverSystemsFlat from './assets/images/course_cover_systems_flat_1795244678070.jpg';
 import courseCoverCodingFlat from './assets/images/course_cover_coding_flat_1795244677820.jpg';
 import courseCoverDataFlat from './assets/images/course_cover_data_flat_1795244677214.jpg';
@@ -350,6 +382,7 @@ export default function App() {
     activeSemester?: SemesterType;
     tahunPelajaranList?: string[];
     jadwalSettings?: JadwalScheduleSettings;
+    profilePicturesList?: ProfilePictureItem[];
   }>({
     logoUrl: '',
     backgroundPreset: 'default',
@@ -357,7 +390,9 @@ export default function App() {
     activeSemester: DEFAULT_SEMESTER,
     tahunPelajaranList: DEFAULT_TAHUN_PELAJARAN_LIST,
     jadwalSettings: DEFAULT_JADWAL_SCHEDULE_SETTINGS,
+    profilePicturesList: DEFAULT_PROFILE_PICTURES,
   });
+  const [isProfilePicModalOpen, setIsProfilePicModalOpen] = useState(false);
   const [jadwalSettingsDraft, setJadwalSettingsDraft] = useState<JadwalScheduleSettings>(
     DEFAULT_JADWAL_SCHEDULE_SETTINGS
   );
@@ -1332,6 +1367,7 @@ export default function App() {
           activeTahunPelajaran: DEFAULT_TAHUN_PELAJARAN,
           activeSemester: DEFAULT_SEMESTER,
           tahunPelajaranList: DEFAULT_TAHUN_PELAJARAN_LIST,
+          profilePicturesList: DEFAULT_PROFILE_PICTURES,
           ...data,
           jadwalSettings: normalizedJadwal,
         });
@@ -2220,14 +2256,32 @@ export default function App() {
       }
     };
 
+    const handleSelectStudentAvatar = async (url: string) => {
+      if (!currentStudent?.id) return;
+      try {
+        await updateDoc(doc(db, 'students', currentStudent.id), { avatarUrl: url });
+        const updated = { ...currentStudent, avatarUrl: url };
+        setCurrentStudent(updated);
+        sessionStorage.setItem('currentStudent', JSON.stringify(updated));
+        setIsProfilePicModalOpen(false);
+        alert("Gambar profil berhasil diperbarui!");
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `students/${currentStudent.id}`);
+      }
+    };
+
     return (
       <div className={cn("flex h-screen text-slate-900 dark:text-slate-100 flex-col overflow-hidden font-sans transition-colors duration-300", currentBgPreset.className)}>
         {/* Clean 3-Zone Top Bar */}
         <header className="w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 md:px-8 h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 md:gap-8 z-20 shrink-0 transition-colors">
           {/* Zone 1: Single-line Brand Title + Active Term */}
           <div className="flex items-center gap-2.5 min-w-0 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center font-extrabold text-sm shrink-0">
-              IK
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-200/80 dark:border-slate-700 shrink-0">
+              <img
+                src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"}
+                alt="Logo Sekolah"
+                className="w-full h-full object-cover"
+              />
             </div>
             <span className="text-base md:text-lg font-extrabold tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap">
               Ruang Informatika
@@ -2334,11 +2388,22 @@ export default function App() {
             {/* Student Profile Card: Identity, Progress, Sumatif TP & Praktikum TP Scores, and Pengumuman Guru */}
             <section className="lg:col-span-4 xl:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xs flex flex-col gap-5 transition-colors">
             <div className="flex items-start gap-4">
-              <div className={cn(
-                "w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-lg text-white shrink-0 shadow-xs",
-                currentStudent?.jenisKelamin === 'P' ? "bg-rose-600" : "bg-brand"
-              )}>
-                {studentInitials}
+              <div 
+                onClick={() => setIsProfilePicModalOpen(true)}
+                title="Klik untuk mengganti gambar profil"
+                className={cn(
+                  "w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-lg text-white shrink-0 shadow-xs cursor-pointer overflow-hidden relative group transition-transform hover:scale-105",
+                  !currentStudent?.avatarUrl && (currentStudent?.jenisKelamin === 'P' ? "bg-rose-600" : "bg-brand")
+                )}
+              >
+                {currentStudent?.avatarUrl ? (
+                  <img src={currentStudent.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  studentInitials
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                  <Edit2 size={16} />
+                </div>
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
@@ -3346,6 +3411,61 @@ export default function App() {
           )}
             </div>
           </div>
+
+          {/* Profile Picture Selection Modal */}
+          {isProfilePicModalOpen && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">Pilih Gambar Profil Anda</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pilih salah satu gambar profil keren yang diaktifkan oleh admin.</p>
+                  </div>
+                  <button
+                    onClick={() => setIsProfilePicModalOpen(false)}
+                    className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {['Informatika Kombat', 'Game Berkebun', 'Game Pergi ke Sekolah', 'Informatika', 'Kustom'].map(themeName => {
+                    const list = (settingsConfig.profilePicturesList || DEFAULT_PROFILE_PICTURES).filter(p => p.isActive && p.theme === themeName);
+                    if (list.length === 0) return null;
+                    return (
+                      <div key={themeName} className="space-y-3">
+                        <h4 className="text-xs font-extrabold text-brand dark:text-blue-400 uppercase tracking-wider">{themeName}</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {list.map(pic => {
+                            const isSelected = currentStudent?.avatarUrl === pic.url;
+                            return (
+                              <button
+                                key={pic.id}
+                                type="button"
+                                onClick={() => handleSelectStudentAvatar(pic.url)}
+                                className={cn(
+                                  "flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all cursor-pointer group text-center",
+                                  isSelected
+                                    ? "bg-brand/10 border-brand ring-2 ring-brand/30 shadow-sm"
+                                    : "bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700 hover:border-brand/60"
+                                )}
+                              >
+                                <div className="w-16 h-16 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                  <img src={pic.url} alt={pic.name} className="w-full h-full object-cover" />
+                                </div>
+                                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate w-full">{pic.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     );
@@ -7614,6 +7734,173 @@ export default function App() {
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-snug mt-0.5">{bg.description}</p>
                           </div>
                         </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Card 3: Kelola Gambar Profil Siswa */}
+                <div className="admin-glass-card rounded-2xl overflow-hidden p-6 md:p-8 space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800/70 text-purple-700 dark:text-purple-400 flex items-center justify-center shrink-0">
+                        <UserCircle size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-extrabold text-slate-900 dark:text-white">Kelola Gambar Profil Siswa</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                          Atur 16 gambar profil bawaan (Kombat, Berkebun, Sekolah, Informatika) dan upload gambar kustom. Aktifkan atau nonaktifkan gambar yang dapat dipilih siswa.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Upload Custom Profile Picture Form */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 space-y-4">
+                    <h5 className="text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Tambah Gambar Profil Kustom</h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <input
+                        type="text"
+                        id="new-profile-pic-name"
+                        placeholder="Nama Avatar (mis: Jagoan Koding)"
+                        className="px-3.5 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium focus:outline-hidden focus:ring-2 focus:ring-brand/30"
+                      />
+                      <select
+                        id="new-profile-pic-theme"
+                        className="px-3.5 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium focus:outline-hidden focus:ring-2 focus:ring-brand/30"
+                      >
+                        <option value="Informatika Kombat">Informatika Kombat</option>
+                        <option value="Game Berkebun">Game Berkebun</option>
+                        <option value="Game Pergi ke Sekolah">Game Pergi ke Sekolah</option>
+                        <option value="Informatika">Informatika</option>
+                        <option value="Kustom">Kustom</option>
+                      </select>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                          id="custom-profile-pic-file"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const nameInput = (document.getElementById('new-profile-pic-name') as HTMLInputElement)?.value.trim() || file.name.split('.')[0];
+                            const themeSelect = (document.getElementById('new-profile-pic-theme') as HTMLSelectElement)?.value || 'Kustom';
+                            
+                            const reader = new FileReader();
+                            reader.onloadend = async () => {
+                              const base64 = reader.result as string;
+                              const newPic: ProfilePictureItem = {
+                                id: `custom_${Date.now()}`,
+                                name: nameInput,
+                                theme: themeSelect as any,
+                                url: base64,
+                                isActive: true,
+                                isCustom: true,
+                              };
+                              const currentList = settingsConfig.profilePicturesList || DEFAULT_PROFILE_PICTURES;
+                              const updatedList = [newPic, ...currentList];
+                              setSettingsConfig(prev => ({ ...prev, profilePicturesList: updatedList }));
+                              try {
+                                await setDoc(doc(db, 'app_settings', 'global'), { profilePicturesList: updatedList }, { merge: true });
+                                alert("Gambar profil kustom berhasil ditambahkan!");
+                              } catch (err) {
+                                handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                        <label
+                          htmlFor="custom-profile-pic-file"
+                          className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-brand hover:bg-brand-hover text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                        >
+                          Upload & Tambah
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* List of Profile Pictures grouped by Theme */}
+                  <div className="space-y-6">
+                    {['Informatika Kombat', 'Game Berkebun', 'Game Pergi ke Sekolah', 'Informatika', 'Kustom'].map(themeName => {
+                      const list = (settingsConfig.profilePicturesList || DEFAULT_PROFILE_PICTURES).filter(p => p.theme === themeName);
+                      if (list.length === 0) return null;
+                      return (
+                        <div key={themeName} className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h5 className="text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">{themeName} ({list.length})</h5>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            {list.map(pic => (
+                              <div
+                                key={pic.id}
+                                className={cn(
+                                  "p-3 rounded-2xl border flex items-center justify-between gap-3 transition-colors",
+                                  pic.isActive
+                                    ? "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-2xs"
+                                    : "bg-slate-100/60 dark:bg-slate-800/40 border-slate-200/50 dark:border-slate-800 opacity-60"
+                                )}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
+                                    <img src={pic.url} alt={pic.name} className="w-full h-full object-cover" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{pic.name}</p>
+                                    <span className={cn(
+                                      "inline-flex text-[10px] font-extrabold px-1.5 py-0.5 rounded-md mt-0.5",
+                                      pic.isActive ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
+                                    )}>
+                                      {pic.isActive ? 'Aktif' : 'Nonaktif'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const updated = (settingsConfig.profilePicturesList || DEFAULT_PROFILE_PICTURES).map(p => p.id === pic.id ? { ...p, isActive: !p.isActive } : p);
+                                      setSettingsConfig(prev => ({ ...prev, profilePicturesList: updated }));
+                                      try {
+                                        await setDoc(doc(db, 'app_settings', 'global'), { profilePicturesList: updated }, { merge: true });
+                                      } catch (err) {
+                                        handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                                      }
+                                    }}
+                                    className={cn(
+                                      "px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold transition-colors cursor-pointer",
+                                      pic.isActive ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                                    )}
+                                  >
+                                    {pic.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                                  </button>
+                                  {pic.isCustom && (
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (confirm(`Hapus gambar profil "${pic.name}"?`)) {
+                                          const updated = (settingsConfig.profilePicturesList || DEFAULT_PROFILE_PICTURES).filter(p => p.id !== pic.id);
+                                          setSettingsConfig(prev => ({ ...prev, profilePicturesList: updated }));
+                                          try {
+                                            await setDoc(doc(db, 'app_settings', 'global'), { profilePicturesList: updated }, { merge: true });
+                                          } catch (err) {
+                                            handleFirestoreError(err, OperationType.WRITE, 'app_settings/global');
+                                          }
+                                        }
+                                      }}
+                                      className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition-colors"
+                                      title="Hapus gambar"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
