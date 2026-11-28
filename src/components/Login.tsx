@@ -191,7 +191,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
   const bgPreset = getBackgroundPreset(settingsConfig?.backgroundPreset);
 
   return (
-    <div className={`min-h-screen w-full ${bgPreset.className} flex items-center justify-center font-sans p-6 selection:bg-brand/30 transition-colors duration-300 relative`}>
+    <div className={`h-screen w-full ${bgPreset.className} flex items-center justify-center font-sans p-4 selection:bg-brand/30 transition-colors duration-300 relative overflow-hidden`}>
       {onToggleDarkMode && (
         <button
           type="button"
@@ -204,12 +204,12 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
           <span className="hidden sm:inline">{isDarkMode ? 'Mode Terang' : 'Mode Gelap'}</span>
         </button>
       )}
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
+      <div className="w-full max-w-sm sm:max-w-md my-auto">
+        <div className="text-center mb-6">
           <motion.div 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-20 h-20 bg-slate-200 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md border border-slate-400 dark:border-slate-700 overflow-hidden relative"
+            className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-200 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md border border-slate-400 dark:border-slate-700 overflow-hidden relative"
           >
             {settingsConfig?.logoUrl ? (
               <img src={settingsConfig.logoUrl} alt="Logo Sekolah" className="w-full h-full object-cover" />
@@ -218,8 +218,8 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
             )}
             <div className="absolute top-0 left-0 w-full h-1.5 bg-brand" />
           </motion.div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">SMPN 1 Kawali</h1>
-          <p className="text-slate-600 dark:text-slate-400 font-medium">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">SMPN 1 Kawali</h1>
+          <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">
             Ruang Informatika • TA {settingsConfig?.activeTahunPelajaran || DEFAULT_TAHUN_PELAJARAN} ({settingsConfig?.activeSemester || DEFAULT_SEMESTER})
           </p>
         </div>
@@ -227,22 +227,22 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-100/95 dark:bg-slate-900/95 border border-slate-300 dark:border-slate-800 p-8 sm:p-10 rounded-[2.5rem] shadow-xl dark:shadow-slate-950/60 relative overflow-hidden backdrop-blur-md"
+          className="bg-slate-100/95 dark:bg-slate-900/95 border border-slate-300 dark:border-slate-800 p-6 sm:p-8 rounded-[2rem] shadow-xl dark:shadow-slate-950/60 relative overflow-hidden backdrop-blur-md"
         >
           <div className="relative z-10">
-            <div className="mb-6 text-center">
-              <h2 className="text-xl font-black text-slate-900 dark:text-white">Masuk ke Sistem</h2>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">Masukkan NISN Siswa atau Username Admin</p>
+            <div className="mb-4 text-center">
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">Masuk ke Sistem</h2>
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">Masukkan NISN Siswa atau Username Admin</p>
             </div>
 
             {forcedLogoutNotice && (
-              <div className="mb-5 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-xs font-bold flex items-start gap-2.5">
-                <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="mb-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-xs font-bold flex items-start gap-2">
+                <AlertTriangle size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <span className="leading-relaxed">{forcedLogoutNotice}</span>
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-5">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest px-1">NISN / Username</label>
                 <div className="relative">

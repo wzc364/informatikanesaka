@@ -345,7 +345,8 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(() => {
     return localStorage.getItem('isAdmin') === 'true';
   });
-  const [isAdminSidebarOpen, setIsAdminSidebarOpen] = useState(false);
+  const [isMobileKontenOpen, setIsMobileKontenOpen] = useState(false);
+  const [isMobileProfileExpanded, setIsMobileProfileExpanded] = useState(false);
   const [currentStudent, setCurrentStudent] = useState<any>(() => {
     const saved = sessionStorage.getItem('currentStudent');
     return saved ? JSON.parse(saved) : null;
@@ -2800,51 +2801,83 @@ export default function App() {
           </div>
         </header>
 
-        {/* Mobile Segmented Sub-Nav (kept compact within mobile sticky cap) */}
-        <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-2.5 py-1.5 flex items-center gap-1 shrink-0 transition-colors">
-          <button
-            onClick={() => setStudentTab('materi')}
-            className={cn(
-              "flex-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer transition-colors",
-              studentTab === 'materi' ? "bg-brand text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            )}
-          >
-            <BookOpen size={13} />
-            <span>Materi</span>
-          </button>
-          <button
-            onClick={() => setStudentTab('soal')}
-            className={cn(
-              "flex-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer transition-colors tabular-nums",
-              studentTab === 'soal' ? "bg-emerald-600 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            )}
-          >
-            <ClipboardList size={13} />
-            <span>{activeSoalSets.length > 0 ? `Soal (${activeSoalSets.length})` : 'Soal'}</span>
-          </button>
-          <button
-            onClick={() => setStudentTab('games')}
-            className={cn(
-              "flex-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer transition-colors",
-              studentTab === 'games' ? "bg-indigo-600 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            )}
-          >
-            <Gamepad2 size={13} />
-            <span>Game</span>
-          </button>
-          <button
-            onClick={() => setStudentTab('skor')}
-            className={cn(
-              "flex-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer transition-colors",
-              studentTab === 'skor' ? "bg-amber-600 text-white" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            )}
-          >
-            <Trophy size={13} />
-            <span>Skor Saya</span>
-          </button>
-        </div>
+        {/* Mobile Bottom Navbar for Student Dashboard */}
+        <nav
+          aria-label="Bottom Navigasi Siswa"
+          className="md:hidden fixed bottom-2.5 left-2.5 right-2.5 z-50 admin-glass-header rounded-2xl border border-white/50 dark:border-white/15 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.28)] dark:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.65)] overflow-hidden"
+        >
+          <div className="flex items-stretch justify-around py-1.5 px-2">
+            <button
+              type="button"
+              onClick={() => setStudentTab('materi')}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl cursor-pointer transition-colors",
+                studentTab === 'materi' ? "text-brand dark:text-blue-400 font-bold" : "text-slate-600 dark:text-slate-300"
+              )}
+            >
+              <div className={cn(
+                "w-9 h-8 rounded-xl flex items-center justify-center transition-all",
+                studentTab === 'materi' ? "bg-brand text-white shadow-sm shadow-brand/30" : "hover:bg-white/40 dark:hover:bg-white/10"
+              )}>
+                <BookOpen size={18} />
+              </div>
+              <span className="text-[10px] font-extrabold truncate">Materi</span>
+            </button>
 
-        <main className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 py-6 space-y-6 w-full max-w-[1600px] mx-auto custom-scrollbar">
+            <button
+              type="button"
+              onClick={() => setStudentTab('soal')}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl cursor-pointer transition-colors tabular-nums",
+                studentTab === 'soal' ? "text-emerald-700 dark:text-emerald-400 font-bold" : "text-slate-600 dark:text-slate-300"
+              )}
+            >
+              <div className={cn(
+                "w-9 h-8 rounded-xl flex items-center justify-center transition-all",
+                studentTab === 'soal' ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/30" : "hover:bg-white/40 dark:hover:bg-white/10"
+              )}>
+                <ClipboardList size={18} />
+              </div>
+              <span className="text-[10px] font-extrabold truncate">Soal ({activeSoalSets.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStudentTab('games')}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl cursor-pointer transition-colors",
+                studentTab === 'games' ? "text-indigo-700 dark:text-indigo-400 font-bold" : "text-slate-600 dark:text-slate-300"
+              )}
+            >
+              <div className={cn(
+                "w-9 h-8 rounded-xl flex items-center justify-center transition-all",
+                studentTab === 'games' ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30" : "hover:bg-white/40 dark:hover:bg-white/10"
+              )}>
+                <Gamepad2 size={18} />
+              </div>
+              <span className="text-[10px] font-extrabold truncate">Game</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStudentTab('skor')}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl cursor-pointer transition-colors",
+                studentTab === 'skor' ? "text-amber-700 dark:text-amber-400 font-bold" : "text-slate-600 dark:text-slate-300"
+              )}
+            >
+              <div className={cn(
+                "w-9 h-8 rounded-xl flex items-center justify-center transition-all",
+                studentTab === 'skor' ? "bg-amber-600 text-white shadow-sm shadow-amber-600/30" : "hover:bg-white/40 dark:hover:bg-white/10"
+              )}>
+                <Trophy size={18} />
+              </div>
+              <span className="text-[10px] font-extrabold truncate">Skor Saya</span>
+            </button>
+          </div>
+        </nav>
+
+        <main className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 py-6 pb-24 md:pb-6 space-y-6 w-full max-w-[1600px] mx-auto custom-scrollbar">
           {forcedDashboardNotice && (
             <div className="bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 text-blue-900 dark:text-blue-100 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-2xs">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -2945,8 +2978,17 @@ export default function App() {
               </button>
             </div>
 
-            {/* Nilai Sumatif TP & Sumatif Praktikum TP */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 tabular-nums">
+            <button
+              type="button"
+              onClick={() => setIsMobileProfileExpanded(prev => !prev)}
+              className="lg:hidden w-full py-2 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <span>{isMobileProfileExpanded ? 'Sembunyikan Detail Nilai & Info' : 'Lihat Detail Nilai & Info'}</span>
+              <ChevronRight size={14} className={cn("transition-transform duration-200", isMobileProfileExpanded && "rotate-90")} />
+            </button>
+
+            {/* Nilai Sumatif TP & Sumatif Praktikum TP (Always visible on desktop, toggleable on mobile) */}
+            <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 tabular-nums", !isMobileProfileExpanded && "hidden lg:grid")}>
               {/* Nilai Sumatif TP */}
               <div className="rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
@@ -4291,65 +4333,349 @@ export default function App() {
 
     return (
       <div className={cn(
-        "relative flex h-screen text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-300",
+        "relative flex flex-col md:flex-row h-screen text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-300",
         currentBgPreset.className,
         (printingMaterialCourseId || (adminTab === 'materials' && materialSubTab === 'analisis_soal' && hasPrintableQuestionAnalysis)) && "print:hidden"
       )}>
-        {/* Mobile Header */}
-        <div className="md:hidden fixed top-2 left-2 right-2 h-12 admin-glass-header rounded-xl z-40 flex items-center justify-between px-3 transition-colors duration-200">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="bg-slate-100 dark:bg-slate-800 w-7 h-7 rounded-lg flex items-center justify-center overflow-hidden relative border border-slate-200/80 dark:border-slate-700 shrink-0">
+        {/* Compact Mobile Top Brand Bar */}
+        <div className="md:hidden shrink-0 admin-glass-header border-b border-white/35 dark:border-white/15 z-30 px-3 py-2 flex items-center justify-between gap-2 transition-colors duration-200">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="bg-slate-100 dark:bg-slate-800 w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden relative border border-slate-200/80 dark:border-slate-700 shrink-0">
               <img src={settingsConfig?.logoUrl || "/images/labkom_nesaka_logo.jpg"} alt="Logo" className="w-full h-full object-cover" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 tracking-tight whitespace-nowrap truncate">SMPN 1 Kawali</h2>
-              <p className="text-[10px] font-bold text-brand dark:text-blue-400 tabular-nums whitespace-nowrap truncate">
-                {realtimeScheduleStatus.state === 'active' && realtimeScheduleStatus.kelas
-                  ? `Kelas ${realtimeScheduleStatus.kelas} · ${realtimeScheduleStatus.timeHHMM}`
-                  : realtimeScheduleStatus.state === 'break'
-                  ? `Istirahat · ${realtimeScheduleStatus.timeHHMM}`
-                  : `${realtimeScheduleStatus.hariLabel} · ${realtimeScheduleStatus.timeHHMM}`}
+              <h2 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 tracking-tight uppercase whitespace-nowrap truncate">SMPN 1 KAWALI</h2>
+              <p className="text-[10px] font-bold text-brand dark:text-blue-400 uppercase tracking-wider whitespace-nowrap truncate">
+                Informatika · Admin
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={toggleDarkMode}
               title={isDarkMode ? 'Aktifkan Mode Terang' : 'Aktifkan Mode Gelap'}
               aria-label={isDarkMode ? 'Aktifkan Mode Terang' : 'Aktifkan Mode Gelap'}
-              className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-amber-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-white/80 dark:bg-slate-800/90 text-slate-700 dark:text-amber-300 border border-slate-200/80 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
-              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+              {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
             </button>
-            <button 
-              onClick={() => setIsAdminSidebarOpen(true)}
-              className="p-1.5 text-slate-700 dark:text-slate-200 hover:text-brand hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95"
+            <button
+              type="button"
+              onClick={() => { setIsMobileKontenOpen(false); setSoalAdminToken(null); setIsAdmin(false); setCurrentPage('login'); }}
+              className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/80 hover:bg-rose-100 dark:hover:bg-rose-900/70 text-xs font-extrabold inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
             >
-              <Menu size={19} />
+              <LogOut size={14} />
+              <span>Keluar</span>
             </button>
           </div>
         </div>
 
-        {/* Sidebar Backdrop (Mobile) — ultra-light tint so content behind glass sidebar remains clearly visible */}
+        {/* Mobile Kelola Konten Sub-Menu Popup */}
         <AnimatePresence>
-          {isAdminSidebarOpen && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/8 dark:bg-black/20 z-40 md:hidden"
-              onClick={() => setIsAdminSidebarOpen(false)}
-            />
+          {isMobileKontenOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsMobileKontenOpen(false)}
+                className="md:hidden fixed inset-0 bg-slate-950/25 backdrop-blur-[1px] z-40"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 16, scale: 0.96 }}
+                transition={{ duration: 0.18 }}
+                className="md:hidden fixed bottom-[82px] left-3 right-3 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-200/90 dark:border-slate-700/80 shadow-2xl p-3"
+              >
+                <div className="flex items-center justify-between px-1 pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-brand/10 dark:bg-blue-500/20 text-brand dark:text-blue-400 flex items-center justify-center">
+                      <Layers size={14} />
+                    </div>
+                    <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Kelola Konten</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileKontenOpen(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                    aria-label="Tutup menu konten"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setAdminTab('materials'); setIsMobileKontenOpen(false); }}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border text-center transition-colors cursor-pointer",
+                      adminTab === 'materials'
+                        ? "bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/25"
+                        : "bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-9 h-9 rounded-xl flex items-center justify-center",
+                      adminTab === 'materials' ? "bg-white/20 text-white" : "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs"
+                    )}>
+                      <GraduationCap size={19} />
+                    </div>
+                    <span className="text-[11px] font-extrabold leading-tight">Kelola Materi</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setAdminTab('games'); setIsMobileKontenOpen(false); }}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border text-center transition-colors cursor-pointer",
+                      adminTab === 'games'
+                        ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/25"
+                        : "bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-9 h-9 rounded-xl flex items-center justify-center",
+                      adminTab === 'games' ? "bg-white/20 text-white" : "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-2xs"
+                    )}>
+                      <Gamepad2 size={19} />
+                    </div>
+                    <span className="text-[11px] font-extrabold leading-tight">Kelola Game</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setAdminTab('questions'); setIsMobileKontenOpen(false); }}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border text-center transition-colors cursor-pointer",
+                      adminTab === 'questions'
+                        ? "bg-amber-600 text-white border-amber-500 shadow-md shadow-amber-600/25"
+                        : "bg-amber-50/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/60 hover:bg-amber-100 dark:hover:bg-amber-900/60"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-9 h-9 rounded-xl flex items-center justify-center",
+                      adminTab === 'questions' ? "bg-white/20 text-white" : "bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-2xs"
+                    )}>
+                      <ClipboardList size={19} />
+                    </div>
+                    <span className="text-[11px] font-extrabold leading-tight">Kelola Soal</span>
+                  </button>
+                </div>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
 
-        {/* Sidebar Navigation (Clear Frosted Glass) */}
-        <aside className={cn(
-          "admin-glass-sidebar fixed inset-y-3 left-3 z-40 w-72 rounded-3xl overflow-hidden transition-transform duration-200 transform md:relative md:inset-auto md:z-20 md:m-4 md:mr-0 md:h-[calc(100vh-2rem)] md:translate-x-0",
-          isAdminSidebarOpen ? "translate-x-0" : "-translate-x-[calc(100%+1.5rem)]"
-        )}>
-          <div className="relative z-10 p-5 flex flex-col h-full">
+        {/* Mobile Bottom Navbar (5 primary icons visible initially, additional items beside Pengaturan) */}
+        <nav
+          aria-label="Bottom Navigasi Admin"
+          className="md:hidden fixed bottom-2.5 left-2.5 right-2.5 z-50 admin-glass-header rounded-2xl border border-white/50 dark:border-white/15 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.28)] dark:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.65)] overflow-hidden"
+        >
+          <div className="flex items-stretch overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1.5">
+            {/* 1. Kelola Administrasi */}
+            <button
+              type="button"
+              onClick={() => { setAdminTab('administrasi'); setIsMobileKontenOpen(false); }}
+              className="w-1/5 shrink-0 snap-start flex flex-col items-center justify-center gap-0.5 px-1 py-1 cursor-pointer group"
+            >
+              <div className={cn(
+                "w-9 h-8 rounded-xl flex items-center justify-center transition-all duration-200",
+                adminTab === 'administrasi'
+                  ? "bg-gradient-to-br from-brand to-blue-600 text-white shadow-sm shadow-brand/30"
+                  : "text-slate-600 dark:text-slate-300 group-hover:bg-white/40 dark:group-hover:bg-white/10"
+              )}>
+                <FolderKanban size={18} />
+              </div>
+              <span className={cn(
+                "text-[10px] font-extrabold leading-tight truncate max-w-full",
+                adminTab === 'administrasi' ? "text-brand dark:text-blue-400" : "text-slate-600 dark:text-slate-300"
+              )}>
+                Adminis
+              </span>
+            </button>
+
+            {/* 2. Kelola Konten (Materi, Game, Soal) */}
+            {(() => {
+              const isKontenActive = isMobileKontenOpen || adminTab === 'materials' || adminTab === 'games' || adminTab === 'questions';
+              return (
+                <button
+                  type="button"
+                  onClick={() => setIsMobileKontenOpen(prev => !prev)}
+                  className="w-1/5 shrink-0 snap-start flex flex-col items-center justify-center gap-0.5 px-1 py-1 cursor-pointer group"
+                >
+                  <div className={cn(
+                    "w-9 h-8 rounded-xl flex items-center justify-center transition-all duration-200 relative",
+                    isKontenActive
+                      ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm shadow-emerald-600/30"
+                      : "text-slate-600 dark:text-slate-300 group-hover:bg-white/40 dark:group-hover:bg-white/10"
+                  )}>
+                    <Layers size={18} />
+                    <span className={cn(
+                      "absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-white dark:border-slate-900",
+                      isKontenActive ? "bg-amber-300" : "bg-emerald-500/80"
+                    )} />
+                  </div>
+                  <span className={cn(
+                    "text-[10px] font-extrabold leading-tight truncate max-w-full",
+                    isKontenActive ? "text-emerald-700 dark:text-emerald-400" : "text-slate-600 dark:text-slate-300"
+                  )}>
+                    Konten
+                  </span>
+                </button>
+              );
+            })()}
+
+            {/* 3. Dashboard (Center) */}
+            <button
+              type="button"
+              onClick={() => { setAdminTab('dashboard'); setIsMobileKontenOpen(false); }}
+              className="w-1/5 shrink-0 snap-start flex flex-col items-center justify-center gap-0.5 px-1 py-0.5 cursor-pointer group"
+            >
+              <div className={cn(
+                "w-11 h-9 rounded-2xl flex items-center justify-center transition-all duration-200",
+                adminTab === 'dashboard'
+                  ? "bg-gradient-to-br from-brand via-blue-600 to-indigo-600 text-white shadow-md shadow-brand/35 ring-2 ring-white/60 dark:ring-blue-400/30"
+                  : "bg-brand/10 dark:bg-blue-500/15 text-brand dark:text-blue-400 group-hover:bg-brand/20"
+              )}>
+                <Home size={19} />
+              </div>
+              <span className={cn(
+                "text-[10px] font-extrabold leading-tight truncate max-w-full",
+                adminTab === 'dashboard' ? "text-brand dark:text-blue-400" : "text-slate-700 dark:text-slate-200"
+              )}>
+                Dashboard
+              </span>
+            </button>
+
+            {/* 4. Siswa & Kelas */}
+            <button
+              type="button"
+              onClick={() => { setAdminTab('student_management'); setStudentSubTab('classes'); setIsMobileKontenOpen(false); }}
+              className="w-1/5 shrink-0 snap-start flex flex-col items-center justify-center gap-0.5 px-1 py-1 cursor-pointer group"
+            >
+              <div className={cn(
+                "w-9 h-8 rounded-xl flex items-center justify-center transition-all duration-200",
+                adminTab === 'student_management'
+                  ? "bg-gradient-to-br from-brand to-blue-600 text-white shadow-sm shadow-brand/30"
+                  : "text-slate-600 dark:text-slate-300 group-hover:bg-white/40 dark:group-hover:bg-white/10"
+              )}>
+                <Users size={18} />
+              </div>
+              <span className={cn(
+                "text-[10px] font-extrabold leading-tight truncate max-w-full",
+                adminTab === 'student_management' ? "text-brand dark:text-blue-400" : "text-slate-600 dark:text-slate-300"
+              )}>
+                Siswa
+              </span>
+            </button>
+
+            {/* 5. Pengaturan */}
+            <button
+              type="button"
+              onClick={() => { setAdminTab('settings'); setIsMobileKontenOpen(false); }}
+              className="w-1/5 shrink-0 snap-start flex flex-col items-center justify-center gap-0.5 px-1 py-1 cursor-pointer group"
+            >
+              <div className={cn(
+                "w-9 h-8 rounded-xl flex items-center justify-center transition-all duration-200",
+                adminTab === 'settings'
+                  ? "bg-gradient-to-br from-brand to-blue-600 text-white shadow-sm shadow-brand/30"
+                  : "text-slate-600 dark:text-slate-300 group-hover:bg-white/40 dark:group-hover:bg-white/10"
+              )}>
+                <Settings size={18} />
+              </div>
+              <span className={cn(
+                "text-[10px] font-extrabold leading-tight truncate max-w-full",
+                adminTab === 'settings' ? "text-brand dark:text-blue-400" : "text-slate-600 dark:text-slate-300"
+              )}>
+                Pengaturan
+              </span>
+            </button>
+
+            {/* Menu tambahan di pinggir Pengaturan (geser ke kanan) */}
+            <button
+              type="button"
+              onClick={() => { setAdminTab('assessments'); setIsMobileKontenOpen(false); }}
+              className="w-1/5 shrink-0 snap-start flex flex-col items-center justify-center gap-0.5 px-1 py-1 cursor-pointer group"
+            >
+              <div className={cn(
+                "w-9 h-8 rounded-xl flex items-center justify-center transition-all duration-200",
+                adminTab === 'assessments'
+                  ? "bg-gradient-to-br from-brand to-blue-600 text-white shadow-sm shadow-brand/30"
+                  : "text-slate-600 dark:text-slate-300 group-hover:bg-white/40 dark:group-hover:bg-white/10"
+              )}>
+                <TrendingUp size={18} />
+              </div>
+              <span className={cn(
+                "text-[10px] font-extrabold leading-tight truncate max-w-full",
+                adminTab === 'assessments' ? "text-brand dark:text-blue-400" : "text-slate-600 dark:text-slate-300"
+              )}>
+                Asesmen
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setAdminTab('announcements'); setIsMobileKontenOpen(false); }}
+              className="w-1/5 shrink-0 snap-start flex flex-col items-center justify-center gap-0.5 px-1 py-1 cursor-pointer group"
+            >
+              <div className={cn(
+                "w-9 h-8 rounded-xl flex items-center justify-center transition-all duration-200",
+                adminTab === 'announcements'
+                  ? "bg-gradient-to-br from-brand to-blue-600 text-white shadow-sm shadow-brand/30"
+                  : "text-slate-600 dark:text-slate-300 group-hover:bg-white/40 dark:group-hover:bg-white/10"
+              )}>
+                <Megaphone size={18} />
+              </div>
+              <span className={cn(
+                "text-[10px] font-extrabold leading-tight truncate max-w-full",
+                adminTab === 'announcements' ? "text-brand dark:text-blue-400" : "text-slate-600 dark:text-slate-300"
+              )}>
+                Info
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setAdminTab('history'); setIsMobileKontenOpen(false); }}
+              className="w-1/5 shrink-0 snap-start flex flex-col items-center justify-center gap-0.5 px-1 py-1 cursor-pointer group"
+            >
+              <div className={cn(
+                "w-9 h-8 rounded-xl flex items-center justify-center transition-all duration-200",
+                adminTab === 'history'
+                  ? "bg-gradient-to-br from-brand to-blue-600 text-white shadow-sm shadow-brand/30"
+                  : "text-slate-600 dark:text-slate-300 group-hover:bg-white/40 dark:group-hover:bg-white/10"
+              )}>
+                <GitBranch size={18} />
+              </div>
+              <span className={cn(
+                "text-[10px] font-extrabold leading-tight truncate max-w-full",
+                adminTab === 'history' ? "text-brand dark:text-blue-400" : "text-slate-600 dark:text-slate-300"
+              )}>
+                Riwayat
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setIsMobileKontenOpen(false); setSoalAdminToken(null); setIsAdmin(false); setCurrentPage('login'); }}
+              className="w-1/5 shrink-0 snap-start flex flex-col items-center justify-center gap-0.5 px-1 py-1 cursor-pointer group"
+            >
+              <div className="w-9 h-8 rounded-xl flex items-center justify-center text-rose-600 dark:text-rose-400 group-hover:bg-rose-500/15 transition-all duration-200">
+                <LogOut size={18} />
+              </div>
+              <span className="text-[10px] font-extrabold leading-tight text-rose-600 dark:text-rose-400 truncate max-w-full">
+                Keluar
+              </span>
+            </button>
+          </div>
+        </nav>
+
+        {/* Desktop Sidebar Navigation (Clear Frosted Glass) */}
+        <aside className="hidden md:flex admin-glass-sidebar relative z-20 m-4 mr-0 w-72 h-[calc(100vh-2rem)] rounded-3xl overflow-hidden flex-col shrink-0">
+          <div className="relative z-10 p-5 flex flex-col h-full w-full">
             <div className="flex items-center justify-between pb-5 mb-5 border-b border-white/35 dark:border-white/12">
               <div className="flex items-center gap-3">
                 <div className="bg-white/25 dark:bg-white/10 w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden relative border border-white/55 dark:border-white/18">
@@ -4360,12 +4686,6 @@ export default function App() {
                   <p className="text-[10px] font-bold text-brand dark:text-blue-400 uppercase tracking-widest mt-0.5">Informatika</p>
                 </div>
               </div>
-              <button 
-                onClick={() => setIsAdminSidebarOpen(false)}
-                className="md:hidden p-1.5 text-slate-600 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-white/20 dark:hover:bg-white/10 rounded-xl transition-colors duration-200"
-              >
-                <X size={20} />
-              </button>
             </div>
             <nav className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-1">
               {menuItems.map(item => (
@@ -4376,7 +4696,6 @@ export default function App() {
                     if (item.id === 'student_management') {
                       setStudentSubTab('classes');
                     }
-                    setIsAdminSidebarOpen(false);
                   }}
                   className={cn(
                     "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition-colors duration-200 font-bold text-sm group relative",
@@ -4410,7 +4729,7 @@ export default function App() {
           </div>
         </aside>
 
-        <main className="flex-1 p-3 md:p-5 lg:p-6 pt-16 md:pt-4 overflow-y-auto w-full custom-scrollbar">
+        <main className="flex-1 min-h-0 p-3 pb-24 md:p-5 lg:p-6 md:pt-4 md:pb-6 overflow-y-auto w-full custom-scrollbar">
           <header className="sticky top-0 z-30 admin-glass-header rounded-2xl px-3.5 py-2 md:px-4 md:py-2 flex items-center justify-between gap-3 mb-4 transition-colors duration-200">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className={cn(
@@ -4517,13 +4836,13 @@ export default function App() {
                 <span>TA {activeTahunPelajaran} · Sem {activeSemester}</span>
               </button>
 
-              {/* Theme Toggle (Desktop & Quick Access) */}
+              {/* Theme Toggle (Desktop Quick Access) */}
               <button
                 type="button"
                 onClick={toggleDarkMode}
                 title={isDarkMode ? 'Aktifkan Mode Terang' : 'Aktifkan Mode Gelap'}
                 aria-label={isDarkMode ? 'Aktifkan Mode Terang' : 'Aktifkan Mode Gelap'}
-                className="w-8 h-8 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 rounded-lg flex items-center justify-center text-slate-600 dark:text-amber-300 shadow-2xs transition-all duration-200 cursor-pointer"
+                className="hidden md:flex w-8 h-8 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 rounded-lg items-center justify-center text-slate-600 dark:text-amber-300 shadow-2xs transition-all duration-200 cursor-pointer"
               >
                 {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
               </button>
