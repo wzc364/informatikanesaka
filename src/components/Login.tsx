@@ -169,6 +169,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
         sessionToken,
         forceLogout: false,
         forceDashboardNonce: 0,
+        forceFullscreen: false,
         loginAt: serverTimestamp(),
         lastSeen: serverTimestamp(),
       });

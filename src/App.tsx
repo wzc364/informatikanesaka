@@ -43,6 +43,7 @@ import {
   History,
   Edit2,
   Maximize,
+  Minimize2,
   Send,
   ExternalLink,
   Globe,
@@ -577,6 +578,9 @@ export default function App() {
   const [isConfirmLogoutAllOnline, setIsConfirmLogoutAllOnline] = useState(false);
   const [forcingDashboardStudentId, setForcingDashboardStudentId] = useState<string | null>(null);
   const [isConfirmForceDashboardAll, setIsConfirmForceDashboardAll] = useState(false);
+  const [forcingFullscreenStudentId, setForcingFullscreenStudentId] = useState<string | null>(null);
+  const [isForceFullscreen, setIsForceFullscreen] = useState<boolean>(false);
+  const prevForceFullscreenRef = useRef<boolean>(false);
   const [adminOnlineActionFeedback, setAdminOnlineActionFeedback] = useState<string | null>(null);
   const [forcedLogoutNotice, setForcedLogoutNotice] = useState<string | null>(null);
   const [forcedDashboardNotice, setForcedDashboardNotice] = useState<string | null>(null);
@@ -1298,7 +1302,7 @@ export default function App() {
     }
   }, [viewMode, activeTopicId, materialConfigs, activeCourse.id]);
 
-  const [isFullscreenActive, setIsFullscreenActive] = useState(false);
+  const [isFullscreenActive, setIsFullscreenActive] = useState(() => !!document.fullscreenElement);
   const [localCheatingAttempts, setLocalCheatingAttempts] = useState(0);
   const [localCheatingDetails, setLocalCheatingDetails] = useState<string[]>([]);
 
@@ -1355,6 +1359,7 @@ export default function App() {
       }
     };
 
+    setIsFullscreenActive(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     window.addEventListener('blur', handleBlur);
     return () => {
@@ -1426,7 +1431,7 @@ export default function App() {
     setShowCompletionPopup(true);
     setCourseCompleted(true);
 
-    if (document.fullscreenElement) {
+    if (document.fullscreenElement && !isForceFullscreen) {
       document.exitFullscreen().catch(err => console.error(err));
     }
 
@@ -1775,9 +1780,13 @@ export default function App() {
     };
   }, [isAdmin, currentStudent?.id, activeTahunPelajaran]);
 
-  // Listen for remote admin force-logout and force-to-dashboard when a student is logged in
+  // Listen for remote admin force-logout, force-to-dashboard, and force-fullscreen when a student is logged in
   useEffect(() => {
-    if (isAdmin || !currentStudent?.id) return;
+    if (isAdmin || !currentStudent?.id) {
+      setIsForceFullscreen(false);
+      prevForceFullscreenRef.current = false;
+      return;
+    }
 
     const studentId = currentStudent.id;
     const localToken = currentStudent.sessionToken;
@@ -1790,6 +1799,8 @@ export default function App() {
         if (!tokenMatches) return;
 
         if (data?.forceLogout === true) {
+          setIsForceFullscreen(false);
+          prevForceFullscreenRef.current = false;
           if (document.fullscreenElement) {
             document.exitFullscreen().catch(() => {});
           }
@@ -1815,6 +1826,23 @@ export default function App() {
           return;
         }
 
+        const nextForceFullscreen = Boolean(data?.forceFullscreen);
+        const wasForceFullscreen = prevForceFullscreenRef.current;
+        prevForceFullscreenRef.current = nextForceFullscreen;
+        setIsForceFullscreen(nextForceFullscreen);
+        setIsFullscreenActive(!!document.fullscreenElement);
+
+        if (nextForceFullscreen && !wasForceFullscreen && !document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else if (!nextForceFullscreen && wasForceFullscreen && document.fullscreenElement) {
+          const isCourseFullscreenRequired = currentPage === 'course' && Boolean(materialConfigs[activeCourseId]?.isFullScreen) && !courseCompleted;
+          const activeSoalObj = enrichedSoalSets.find(s => s.id === activeSoalSetId);
+          const isSoalFullscreenRequired = currentPage === 'soal' && Boolean(activeSoalObj?.isFullScreen);
+          if (!isCourseFullscreenRequired && !isSoalFullscreenRequired) {
+            document.exitFullscreen().catch(() => {});
+          }
+        }
+
         const incomingForceDashboardNonce = Number(data?.forceDashboardNonce || 0);
         if (incomingForceDashboardNonce > lastHandledForceDashboardRef.current) {
           lastHandledForceDashboardRef.current = incomingForceDashboardNonce;
@@ -1833,7 +1861,7 @@ export default function App() {
             try {
               (screen.orientation as ScreenOrientation & { unlock?: () => void })?.unlock?.();
             } catch {}
-            if (document.fullscreenElement) {
+            if (document.fullscreenElement && !nextForceFullscreen) {
               document.exitFullscreen().catch(() => {});
             }
           }, 80);
@@ -1856,7 +1884,7 @@ export default function App() {
     return () => {
       unsubPresence();
     };
-  }, [isAdmin, currentStudent?.id, currentStudent?.sessionToken]);
+  }, [isAdmin, currentStudent?.id, currentStudent?.sessionToken, currentPage, activeCourseId, activeSoalSetId, materialConfigs, courseCompleted, enrichedSoalSets]);
 
   // Heartbeat & current activity sync for logged-in student
   useEffect(() => {
@@ -2377,6 +2405,26 @@ export default function App() {
     }
   };
 
+  const forceFullscreenOverlay = (!isAdmin && currentStudent && currentPage !== 'login' && isForceFullscreen && !isFullscreenActive) ? (
+    <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[1000] flex flex-col items-center justify-center p-6 text-center">
+      <div className="w-20 h-20 bg-amber-500/15 border border-amber-400/35 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-amber-500/10">
+        <Maximize size={40} className="text-amber-300" />
+      </div>
+      <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-3">Mode Layar Penuh Diwajibkan</h2>
+      <p className="text-slate-300 max-w-md mb-8 leading-relaxed text-sm">
+        Guru / Admin mengaktifkan mode layar penuh (Fullscreen) untuk sesi Anda. Silakan masuk ke mode layar penuh untuk melanjutkan aktivitas belajar.
+      </p>
+      <button
+        type="button"
+        onClick={() => document.documentElement.requestFullscreen().catch(err => console.error(err))}
+        className="px-7 py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-extrabold shadow-lg transition-colors cursor-pointer inline-flex items-center gap-2"
+      >
+        <Maximize size={18} />
+        <span>Masuk Layar Penuh Sekarang</span>
+      </button>
+    </div>
+  ) : null;
+
   if (currentPage === 'login') {
     return (
       <Login 
@@ -2633,6 +2681,11 @@ export default function App() {
         const studentId = currentStudent.id;
         setForcedLogoutNotice(null);
         setForcedDashboardNotice(null);
+        setIsForceFullscreen(false);
+        prevForceFullscreenRef.current = false;
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
         lastHandledForceDashboardRef.current = 0;
         try {
           sessionStorage.removeItem('lastHandledForceDashboard');
@@ -3900,6 +3953,7 @@ export default function App() {
             </div>
           )}
         </main>
+        {forceFullscreenOverlay}
       </div>
     );
   }
@@ -4016,6 +4070,7 @@ export default function App() {
             </div>
           </div>
         </motion.div>
+        {forceFullscreenOverlay}
       </div>
     );
   }
@@ -4034,6 +4089,7 @@ export default function App() {
               Kembali ke Dashboard
             </button>
           </div>
+          {forceFullscreenOverlay}
         </div>
       );
     }
@@ -4165,6 +4221,7 @@ export default function App() {
             </div>
           </div>
         </motion.div>
+        {forceFullscreenOverlay}
       </div>
     );
   }
@@ -4183,34 +4240,38 @@ export default function App() {
               Kembali ke Dashboard
             </button>
           </div>
+          {forceFullscreenOverlay}
         </div>
       );
     }
 
     const setQuestions = soalQuestions.filter(q => q.setId === selectedSoalSet.id);
     return (
-      <StudentSoalRunner
-        soalSet={selectedSoalSet}
-        questions={setQuestions}
-        currentStudent={currentStudent}
-        activeTahunPelajaran={activeTahunPelajaran}
-        activeSemester={activeSemester}
-        isAdminPreview={isAdmin || isPreviewingSoal}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={toggleDarkMode}
-        onExit={() => {
-          setIsPreviewingSoal(false);
-          if (isAdmin) {
-            setAdminTab('questions');
-            setCurrentPage('admin');
-          } else {
-            setCurrentPage('student_dashboard');
+      <>
+        <StudentSoalRunner
+          soalSet={selectedSoalSet}
+          questions={setQuestions}
+          currentStudent={currentStudent}
+          activeTahunPelajaran={activeTahunPelajaran}
+          activeSemester={activeSemester}
+          isAdminPreview={isAdmin || isPreviewingSoal}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={toggleDarkMode}
+          onExit={() => {
+            setIsPreviewingSoal(false);
+            if (isAdmin) {
+              setAdminTab('questions');
+              setCurrentPage('admin');
+            } else {
+              setCurrentPage('student_dashboard');
+            }
+          }}
+          onFirestoreError={(err, op, path) =>
+            handleFirestoreError(err, op === 'delete' ? OperationType.DELETE : OperationType.WRITE, path)
           }
-        }}
-        onFirestoreError={(err, op, path) =>
-          handleFirestoreError(err, op === 'delete' ? OperationType.DELETE : OperationType.WRITE, path)
-        }
-      />
+        />
+        {forceFullscreenOverlay}
+      </>
     );
   }
 
@@ -4781,6 +4842,67 @@ export default function App() {
                 }
               };
 
+              const handleAdminToggleForceFullscreenStudent = async (onlineUser: any) => {
+                const targetId = onlineUser.studentId || onlineUser.id;
+                if (!targetId) return;
+                const nextState = !(onlineUser.forceFullscreen === true);
+                setForcingFullscreenStudentId(targetId);
+                try {
+                  await setDoc(
+                    doc(db, 'online_users', targetId),
+                    {
+                      forceFullscreen: nextState,
+                    },
+                    { merge: true }
+                  );
+                  setAdminOnlineActionFeedback(
+                    nextState
+                      ? `${onlineUser.studentName || 'Siswa'} dipaksa masuk mode fullscreen.`
+                      : `Paksa fullscreen untuk ${onlineUser.studentName || 'Siswa'} dilepas.`
+                  );
+                  setTimeout(() => setAdminOnlineActionFeedback(null), 4000);
+                } catch (err) {
+                  handleFirestoreError(err, OperationType.WRITE, `online_users/${targetId}`);
+                } finally {
+                  setForcingFullscreenStudentId(null);
+                }
+              };
+
+              const handleAdminSetForceFullscreenAll = async (enable: boolean) => {
+                if (filteredOnlineUsers.length === 0) return;
+                setForcingFullscreenStudentId('ALL');
+                try {
+                  await Promise.all(
+                    filteredOnlineUsers.map(async (u) => {
+                      const targetId = u.studentId || u.id;
+                      if (!targetId) return;
+                      await setDoc(
+                        doc(db, 'online_users', targetId),
+                        {
+                          forceFullscreen: enable,
+                        },
+                        { merge: true }
+                      );
+                    })
+                  );
+                  setAdminOnlineActionFeedback(
+                    enable
+                      ? `${filteredOnlineUsers.length} siswa dipaksa masuk mode fullscreen.`
+                      : `Mode paksa fullscreen dilepas untuk ${filteredOnlineUsers.length} siswa.`
+                  );
+                  setTimeout(() => setAdminOnlineActionFeedback(null), 4000);
+                } catch (err) {
+                  handleFirestoreError(err, OperationType.WRITE, 'online_users');
+                } finally {
+                  setForcingFullscreenStudentId(null);
+                }
+              };
+
+              const allFilteredFullscreen =
+                filteredOnlineUsers.length > 0 &&
+                filteredOnlineUsers.every((u) => u.forceFullscreen === true);
+              const someFilteredFullscreen = filteredOnlineUsers.some((u) => u.forceFullscreen === true);
+
               return (
                 <div className="space-y-6">
                   {/* Kartu Kelola Administrasi, Kelola Game, Kelola Materi & Kelola Soal */}
@@ -5211,7 +5333,7 @@ export default function App() {
                                   setIsConfirmForceDashboardAll(false);
                                   setIsConfirmLogoutAllOnline(true);
                                 }}
-                                disabled={filteredOnlineUsers.length === 0 || loggingOutStudentId !== null || forcingDashboardStudentId !== null}
+                                disabled={filteredOnlineUsers.length === 0 || loggingOutStudentId !== null || forcingDashboardStudentId !== null || forcingFullscreenStudentId !== null}
                                 className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-600 hover:text-white text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[11px] font-extrabold inline-flex items-center gap-1 shrink-0 transition-colors cursor-pointer disabled:opacity-40"
                                 title="Logoutkan semua siswa yang tampil"
                               >
@@ -5236,6 +5358,32 @@ export default function App() {
                                   Batal
                                 </button>
                               </div>
+                            )}
+
+                            {!allFilteredFullscreen && (
+                              <button
+                                type="button"
+                                onClick={() => handleAdminSetForceFullscreenAll(true)}
+                                disabled={filteredOnlineUsers.length === 0 || forcingFullscreenStudentId !== null || loggingOutStudentId !== null || forcingDashboardStudentId !== null}
+                                className="flex-1 min-w-[140px] px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-500 hover:text-white text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                                title="Paksa semua siswa yang tampil masuk ke mode layar penuh (Fullscreen)"
+                              >
+                                <Maximize size={12} />
+                                <span>{forcingFullscreenStudentId === 'ALL' ? 'Memproses...' : 'Fullscreen Semua'}</span>
+                              </button>
+                            )}
+
+                            {someFilteredFullscreen && (
+                              <button
+                                type="button"
+                                onClick={() => handleAdminSetForceFullscreenAll(false)}
+                                disabled={filteredOnlineUsers.length === 0 || forcingFullscreenStudentId !== null || loggingOutStudentId !== null || forcingDashboardStudentId !== null}
+                                className="flex-1 min-w-[140px] px-2.5 py-1.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-600 hover:text-white text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                                title="Lepas mode paksa fullscreen untuk semua siswa yang tampil"
+                              >
+                                <Minimize2 size={12} />
+                                <span>{forcingFullscreenStudentId === 'ALL' ? 'Memproses...' : 'Lepas Fullscreen'}</span>
+                              </button>
                             )}
                           </div>
 
@@ -5308,13 +5456,15 @@ export default function App() {
                               : null;
                             const isLoggingOut = loggingOutStudentId === targetId || loggingOutStudentId === 'ALL';
                             const isForcingDashboard = forcingDashboardStudentId === targetId || forcingDashboardStudentId === 'ALL';
+                            const isForcingFullscreen = forcingFullscreenStudentId === targetId || forcingFullscreenStudentId === 'ALL';
+                            const isFullscreenLocked = u.forceFullscreen === true;
 
                             return (
                               <div
                                 key={u.id}
                                 className="admin-glass-card hover:border-emerald-400/60 dark:hover:border-emerald-500/50 p-3.5 rounded-2xl transition-colors duration-200 flex flex-col gap-2.5"
                               >
-                                <div className="flex items-start justify-between gap-2.5">
+                                <div className="flex items-start justify-between gap-2">
                                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                     <div className="relative shrink-0">
                                       <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
@@ -5341,28 +5491,50 @@ export default function App() {
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      type="button"
-                                      disabled={isForcingDashboard || isLoggingOut}
-                                      onClick={() => handleAdminForceToDashboardStudent(u)}
-                                      className="px-2 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-600 text-blue-700 dark:text-blue-300 hover:text-white border border-blue-200 dark:border-blue-800 text-[11px] font-extrabold inline-flex items-center gap-1 shrink-0 transition-colors cursor-pointer disabled:opacity-50"
-                                      title={`Arahkan ${u.studentName} kembali ke Dashboard Siswa (keluar dari game/materi/soal)`}
-                                    >
-                                      <Home size={12} />
-                                      <span className="hidden sm:inline">{isForcingDashboard ? 'Proses...' : 'Dashboard'}</span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled={isLoggingOut || isForcingDashboard}
-                                      onClick={() => handleAdminForceLogoutStudent(u)}
-                                      className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-600 text-rose-700 dark:text-rose-300 hover:text-white border border-rose-200 dark:border-rose-800 text-[11px] font-extrabold inline-flex items-center gap-1 shrink-0 transition-colors cursor-pointer disabled:opacity-50"
-                                      title={`Keluarkan / logoutkan ${u.studentName} dari sistem`}
-                                    >
-                                      <LogOut size={12} />
-                                      <span>{isLoggingOut ? 'Keluar...' : 'Logout'}</span>
-                                    </button>
-                                  </div>
+                                  {isFullscreenLocked && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-extrabold shrink-0">
+                                      <Maximize size={10} />
+                                      <span>Fullscreen</span>
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-1.5">
+                                  <button
+                                    type="button"
+                                    disabled={isForcingFullscreen || isLoggingOut}
+                                    onClick={() => handleAdminToggleForceFullscreenStudent(u)}
+                                    className={cn(
+                                      "px-2 py-1.5 rounded-xl border text-[11px] font-extrabold inline-flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50",
+                                      isFullscreenLocked
+                                        ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-600"
+                                        : "bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-500 text-amber-800 dark:text-amber-300 hover:text-white border-amber-200 dark:border-amber-800"
+                                    )}
+                                    title={isFullscreenLocked ? `Lepas paksa fullscreen untuk ${u.studentName}` : `Paksa ${u.studentName} masuk mode fullscreen`}
+                                  >
+                                    {isFullscreenLocked ? <Minimize2 size={12} /> : <Maximize size={12} />}
+                                    <span className="truncate">{isForcingFullscreen ? 'Proses...' : isFullscreenLocked ? 'Lepas FS' : 'Fullscreen'}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isForcingDashboard || isLoggingOut}
+                                    onClick={() => handleAdminForceToDashboardStudent(u)}
+                                    className="px-2 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-600 text-blue-700 dark:text-blue-300 hover:text-white border border-blue-200 dark:border-blue-800 text-[11px] font-extrabold inline-flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                                    title={`Arahkan ${u.studentName} kembali ke Dashboard Siswa (keluar dari game/materi/soal)`}
+                                  >
+                                    <Home size={12} />
+                                    <span className="truncate">{isForcingDashboard ? 'Proses...' : 'Dashboard'}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isLoggingOut || isForcingDashboard}
+                                    onClick={() => handleAdminForceLogoutStudent(u)}
+                                    className="px-2 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-600 text-rose-700 dark:text-rose-300 hover:text-white border border-rose-200 dark:border-rose-800 text-[11px] font-extrabold inline-flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                                    title={`Keluarkan / logoutkan ${u.studentName} dari sistem`}
+                                  >
+                                    <LogOut size={12} />
+                                    <span className="truncate">{isLoggingOut ? 'Keluar...' : 'Logout'}</span>
+                                  </button>
                                 </div>
 
                                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 text-[11px]">
@@ -9386,7 +9558,8 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden">
-      {!isAdmin && materialConfigs[activeCourse.id]?.isFullScreen && !isFullscreenActive && currentPage === 'course' && !showCompletionPopup && (
+      {forceFullscreenOverlay}
+      {!isAdmin && !isForceFullscreen && materialConfigs[activeCourse.id]?.isFullScreen && !isFullscreenActive && currentPage === 'course' && !showCompletionPopup && (
         <div className="fixed inset-0 bg-slate-900 z-[999] flex flex-col items-center justify-center p-6 text-center">
           <div className="w-20 h-20 bg-white/10 border border-white/15 rounded-2xl flex items-center justify-center mb-6">
             <Maximize size={40} className="text-white" />

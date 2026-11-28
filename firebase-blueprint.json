@@ -131,6 +131,7 @@
         "sessionToken": { "type": "string" },
         "forceLogout": { "type": "boolean" },
         "forceDashboardNonce": { "type": "number" },
+        "forceFullscreen": { "type": "boolean" },
         "loginAt": { "type": "string", "format": "date-time" },
         "lastSeen": { "type": "string", "format": "date-time" }
       },
