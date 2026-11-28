@@ -531,7 +531,7 @@ export default function App() {
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [studentTab, setStudentTab] = useState<'materi' | 'soal' | 'games' | 'skor'>('materi');
+  const [studentTab, setStudentTab] = useState<'materi' | 'soal' | 'games' | 'skor' | 'profil'>('materi');
   const [studentScoreFilter, setStudentScoreFilter] = useState<'all' | 'materi' | 'soal' | 'game'>('all');
   const [studentCatalogSearch, setStudentCatalogSearch] = useState('');
   const [studentCatalogFilter, setStudentCatalogFilter] = useState<'all' | 'todo' | 'done'>('all');
@@ -2809,6 +2809,23 @@ export default function App() {
           <div className="flex items-stretch justify-around py-1.5 px-2">
             <button
               type="button"
+              onClick={() => setStudentTab('profil')}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl cursor-pointer transition-colors",
+                studentTab === 'profil' ? "text-brand dark:text-blue-400 font-bold" : "text-slate-600 dark:text-slate-300"
+              )}
+            >
+              <div className={cn(
+                "w-9 h-8 rounded-xl flex items-center justify-center transition-all",
+                studentTab === 'profil' ? "bg-brand text-white shadow-sm shadow-brand/30" : "hover:bg-white/40 dark:hover:bg-white/10"
+              )}>
+                <User size={22} />
+              </div>
+              <span className="text-[10px] font-extrabold truncate">Profil Saya</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setStudentTab('materi')}
               className={cn(
                 "flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl cursor-pointer transition-colors",
@@ -2898,7 +2915,10 @@ export default function App() {
           {/* Side-by-side Bento Layout: Left Student Profile Card | Right Materi, Soal, Game, or Skor */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Student Profile Card: Identity, Progress, Sumatif TP & Praktikum TP Scores, and Pengumuman Guru */}
-            <section className="lg:col-span-4 xl:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xs flex flex-col gap-5 transition-colors">
+            <section className={cn(
+              "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xs flex flex-col gap-5 transition-colors",
+              studentTab === 'profil' ? "col-span-12" : "hidden lg:block lg:col-span-4 xl:col-span-3"
+            )}>
             <div className="flex items-start gap-4">
               <div 
                 onClick={() => setIsProfilePicModalOpen(true)}
@@ -3177,7 +3197,7 @@ export default function App() {
             </section>
 
             {/* Right Column: Navigation + Main Tab Content (sejajar Kartu Profil) */}
-            <div className="lg:col-span-8 xl:col-span-9 min-w-0 space-y-4">
+            <div className={cn("min-w-0 space-y-4", studentTab === 'profil' ? "hidden lg:block lg:col-span-8 xl:col-span-9" : "col-span-12 lg:col-span-8 xl:col-span-9")}>
               {/* Desktop Tab Navigation placed directly above the content div */}
               <nav className="hidden md:flex items-center gap-1.5 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs transition-colors">
                 <button
@@ -3227,6 +3247,18 @@ export default function App() {
                 >
                   <Trophy size={14} />
                   <span>Skor Saya</span>
+                </button>
+                <button
+                  onClick={() => setStudentTab('profil')}
+                  className={cn(
+                    "flex-1 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer",
+                    studentTab === 'profil'
+                      ? "bg-brand text-white shadow-2xs"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                  )}
+                >
+                  <User size={14} />
+                  <span>Profil Saya</span>
                 </button>
               </nav>
 
@@ -3575,7 +3607,7 @@ export default function App() {
                 {/* Grid Content */}
                 {studentTab === 'soal' ? (
                   displayedSoalSets.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                       {displayedSoalSets.map((set, index) => {
                         const courseKey = `soal_${set.id}`;
                         const studentAssessment = scopedStudentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
@@ -3795,7 +3827,7 @@ export default function App() {
                   )
                 ) : (
                   displayedCourses.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                       {displayedCourses.map((course, index) => {
                         const studentAssessment = scopedStudentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
                         const hasCompleted = !!studentAssessment;
