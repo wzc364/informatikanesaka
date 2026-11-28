@@ -2311,7 +2311,7 @@ export default function App() {
           </button>
         </div>
 
-        <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 w-full max-w-7xl mx-auto custom-scrollbar">
+        <main className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 py-6 space-y-6 w-full max-w-[1600px] mx-auto custom-scrollbar">
           {forcedDashboardNotice && (
             <div className="bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 text-blue-900 dark:text-blue-100 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-2xs">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -2332,7 +2332,7 @@ export default function App() {
           {/* Side-by-side Bento Layout: Left Student Profile Card | Right Materi, Soal, Game, or Skor */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Student Profile Card: Identity, Progress, Sumatif TP & Praktikum TP Scores, and Pengumuman Guru */}
-            <section className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 md:p-6 shadow-2xs flex flex-col gap-5 transition-colors">
+            <section className="lg:col-span-4 xl:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xs flex flex-col gap-5 transition-colors">
             <div className="flex items-start gap-4">
               <div className={cn(
                 "w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-lg text-white shrink-0 shadow-xs",
@@ -2408,7 +2408,7 @@ export default function App() {
             </div>
 
             {/* Nilai Sumatif TP & Sumatif Praktikum TP */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 tabular-nums">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 tabular-nums">
               {/* Nilai Sumatif TP */}
               <div className="rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
@@ -2584,7 +2584,7 @@ export default function App() {
             </section>
 
             {/* Right Column: Navigation + Main Tab Content (sejajar Kartu Profil) */}
-            <div className="lg:col-span-7 min-w-0 space-y-4">
+            <div className="lg:col-span-8 xl:col-span-9 min-w-0 space-y-4">
               {/* Desktop Tab Navigation placed directly above the content div */}
               <nav className="hidden md:flex items-center gap-1.5 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs transition-colors">
                 <button
@@ -2982,7 +2982,7 @@ export default function App() {
                 {/* Grid Content */}
                 {studentTab === 'soal' ? (
                   displayedSoalSets.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {displayedSoalSets.map((set, index) => {
                         const courseKey = `soal_${set.id}`;
                         const studentAssessment = scopedStudentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
@@ -3090,7 +3090,7 @@ export default function App() {
                             </div>
 
                             {/* Card Body */}
-                            <div className="p-5 flex-1 flex flex-col">
+                            <div className="p-4 flex-1 flex flex-col">
                               {isSumatif && (
                                 <div className="mb-1.5 flex items-center gap-1.5">
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-[10px] font-black uppercase tracking-wider">
@@ -3110,26 +3110,26 @@ export default function App() {
                                   </span>
                                 </div>
                               )}
-                              <h3 className="font-extrabold text-base md:text-[17px] text-slate-900 dark:text-slate-100 leading-snug mb-1.5 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors line-clamp-2">
+                              <h3 className="font-extrabold text-sm md:text-[15px] text-slate-900 dark:text-slate-100 leading-snug mb-1.5 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors line-clamp-2">
                                 {set.title}
                               </h3>
-                              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2 mb-4">
+                              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2 mb-3.5">
                                 {set.description || 'Uji pemahaman materi dengan butir soal pilihan ganda terukur dan umpan balik otomatis.'}
                               </p>
 
                               {/* Clean unboxed specs strip */}
-                              <div className="grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-800 border-y border-slate-100 dark:border-slate-800 py-2.5 mb-4 tabular-nums">
-                                <div className="pr-2">
-                                  <span className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500">Butir Soal</span>
-                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">{activeQs.length} PG</span>
+                              <div className="grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-800 border-y border-slate-100 dark:border-slate-800 py-2 mb-3.5 tabular-nums">
+                                <div className="pr-1.5">
+                                  <span className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500">Butir</span>
+                                  <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200">{activeQs.length} PG</span>
                                 </div>
-                                <div className="px-3">
+                                <div className="px-2">
                                   <span className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500">Durasi</span>
-                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">{timerText}</span>
+                                  <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 truncate block">{timerText}</span>
                                 </div>
-                                <div className="pl-3">
+                                <div className="pl-2">
                                   <span className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500">Target</span>
-                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">{targetDisplayLabel}</span>
+                                  <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 truncate block">{targetDisplayLabel}</span>
                                 </div>
                               </div>
 
@@ -3139,27 +3139,27 @@ export default function App() {
                                   <>
                                     {(set.isScoreVisible ?? true) ? (
                                       <span className={cn(
-                                        "text-xs font-extrabold font-mono tabular-nums",
+                                        "text-[11px] font-extrabold font-mono tabular-nums",
                                         (studentAssessment?.score ?? 0) >= 80 ? "text-emerald-700 dark:text-emerald-400" :
                                         (studentAssessment?.score ?? 0) >= 60 ? "text-amber-700 dark:text-amber-400" : "text-rose-700 dark:text-rose-400"
                                       )}>
                                         Skor: {studentAssessment?.score}/100
                                       </span>
                                     ) : (
-                                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Nilai Tersimpan</span>
+                                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Tersimpan</span>
                                     )}
-                                    <span className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950/60 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors">
-                                      Buka Detail <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                                    <span className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950/60 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 text-[11px] font-bold inline-flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors">
+                                      Detail <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                                     </span>
                                   </>
                                 ) : (
                                   <>
-                                    <span className="text-xs font-medium text-slate-400 dark:text-slate-500">Siap dikerjakan</span>
+                                    <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 truncate">Siap dikerjakan</span>
                                     <span className={cn(
-                                      "px-3.5 py-1.5 rounded-xl text-white text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs transition-colors",
+                                      "px-3 py-1.5 rounded-xl text-white text-[11px] font-bold inline-flex items-center gap-1 whitespace-nowrap shrink-0 shadow-2xs transition-colors",
                                       isSumatif ? "bg-amber-600 group-hover:bg-amber-700" : "bg-emerald-600 group-hover:bg-emerald-700"
                                     )}>
-                                      Kerjakan Soal <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                                      Kerjakan <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                                     </span>
                                   </>
                                 )}
@@ -3202,7 +3202,7 @@ export default function App() {
                   )
                 ) : (
                   displayedCourses.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {displayedCourses.map((course, index) => {
                         const studentAssessment = scopedStudentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
                         const hasCompleted = !!studentAssessment;
@@ -3262,27 +3262,27 @@ export default function App() {
                             </div>
 
                             {/* Card Body */}
-                            <div className="p-5 flex-1 flex flex-col">
-                              <h3 className="font-extrabold text-base md:text-[17px] text-slate-900 dark:text-slate-100 leading-snug mb-1.5 group-hover:text-brand dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                            <div className="p-4 flex-1 flex flex-col">
+                              <h3 className="font-extrabold text-sm md:text-[15px] text-slate-900 dark:text-slate-100 leading-snug mb-1.5 group-hover:text-brand dark:group-hover:text-blue-400 transition-colors line-clamp-2">
                                 {course.title}
                               </h3>
-                              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2 mb-4">
+                              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2 mb-3.5">
                                 {course.description || `Pelajari ${course.topics.length} topik terstruktur beserta evaluasi kuis interaktif.`}
                               </p>
 
                               {/* Clean unboxed specs strip */}
-                              <div className="grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-800 border-y border-slate-100 dark:border-slate-800 py-2.5 mb-4 tabular-nums">
-                                <div className="pr-2">
+                              <div className="grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-800 border-y border-slate-100 dark:border-slate-800 py-2 mb-3.5 tabular-nums">
+                                <div className="pr-1.5">
                                   <span className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500">Topik</span>
-                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">{course.topics.length} Bagian</span>
+                                  <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200">{course.topics.length} Bagian</span>
                                 </div>
-                                <div className="px-3">
+                                <div className="px-2">
                                   <span className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500">Evaluasi</span>
-                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">{totalCourseQuiz} Kuis</span>
+                                  <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200">{totalCourseQuiz} Kuis</span>
                                 </div>
-                                <div className="pl-3">
+                                <div className="pl-2">
                                   <span className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500">Tingkat</span>
-                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block">{course.level}</span>
+                                  <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 truncate block">{course.level}</span>
                                 </div>
                               </div>
 
@@ -3291,21 +3291,21 @@ export default function App() {
                                 {hasCompleted ? (
                                   <>
                                     <span className={cn(
-                                      "text-xs font-extrabold font-mono tabular-nums",
+                                      "text-[11px] font-extrabold font-mono tabular-nums",
                                       (studentAssessment?.score ?? 0) >= 80 ? "text-emerald-700 dark:text-emerald-400" :
                                       (studentAssessment?.score ?? 0) >= 60 ? "text-amber-700 dark:text-amber-400" : "text-rose-700 dark:text-rose-400"
                                     )}>
                                       Skor: {studentAssessment?.score}/100
                                     </span>
-                                    <span className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/60 group-hover:text-brand dark:group-hover:text-blue-300 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors">
-                                      Pelajari Ulang <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                                    <span className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/60 group-hover:text-brand dark:group-hover:text-blue-300 text-[11px] font-bold inline-flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors">
+                                      Ulangi <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                                     </span>
                                   </>
                                 ) : (
                                   <>
-                                    <span className="text-xs font-medium text-slate-400 dark:text-slate-500">Belum dimulai</span>
-                                    <span className="px-3.5 py-1.5 rounded-xl bg-brand text-white group-hover:bg-blue-700 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs transition-colors">
-                                      Mulai Belajar <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                                    <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 truncate">Belum dimulai</span>
+                                    <span className="px-3 py-1.5 rounded-xl bg-brand text-white group-hover:bg-blue-700 text-[11px] font-bold inline-flex items-center gap-1 whitespace-nowrap shrink-0 shadow-2xs transition-colors">
+                                      Mulai <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                                     </span>
                                   </>
                                 )}
