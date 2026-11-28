@@ -243,7 +243,9 @@
         "materiId": { "type": "string" },
         "deskripsi": { "type": "string" },
         "indikator": { "type": "string" },
-        "kkm": { "type": "number" }
+        "kkm": { "type": "number" },
+        "isSumatif": { "type": "boolean" },
+        "isPraktikum": { "type": "boolean" }
       },
       "required": ["tahunPelajaran", "kodeTp", "deskripsi"]
     },

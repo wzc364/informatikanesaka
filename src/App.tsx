@@ -77,7 +77,9 @@ import {
   CalendarDays,
   Copy,
   Download,
-  UserCheck
+  UserCheck,
+  Target,
+  FlaskConical
 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
@@ -107,7 +109,9 @@ import {
   JadwalPelajaranItem,
   JadwalScheduleSettings,
   NilaiSubTab,
+  NilaiSumatifItem,
   SemesterType,
+  TujuanPembelajaranItem,
   buildScopedAssessmentDocId,
   buildScopedMaterialDocId,
   computeDayScheduleSlots,
@@ -739,6 +743,8 @@ export default function App() {
   }, [assessmentCategory, groupedAssessments, groupedSoalAssessments, groupedGameScores, assessmentNav]);
   const [studentAssessments, setStudentAssessments] = useState<any[]>([]);
   const [studentGameScores, setStudentGameScores] = useState<any[]>([]);
+  const [studentNilaiSumatif, setStudentNilaiSumatif] = useState<NilaiSumatifItem[]>([]);
+  const [studentTpList, setStudentTpList] = useState<TujuanPembelajaranItem[]>([]);
   const scopedStudentAssessments = useMemo(() => {
     return studentAssessments.filter(a => {
       const aYear = a.tahunPelajaran || DEFAULT_TAHUN_PELAJARAN;
@@ -1465,6 +1471,52 @@ export default function App() {
     };
   }, [isAdmin, currentStudent]);
 
+  // Real-time listener for student's Nilai Sumatif TP & Sumatif Praktikum TP
+  useEffect(() => {
+    if (isAdmin || !currentStudent?.id) {
+      setStudentNilaiSumatif([]);
+      setStudentTpList([]);
+      return;
+    }
+
+    const qSumatif = query(
+      collection(db, 'nilai_sumatif'),
+      where('tahunPelajaran', '==', activeTahunPelajaran)
+    );
+    const unsubSumatif = onSnapshot(
+      qSumatif,
+      (snapshot) => {
+        setStudentNilaiSumatif(
+          snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as NilaiSumatifItem))
+        );
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'nilai_sumatif');
+      }
+    );
+
+    const qTp = query(
+      collection(db, 'tujuan_pembelajaran'),
+      where('tahunPelajaran', '==', activeTahunPelajaran)
+    );
+    const unsubTp = onSnapshot(
+      qTp,
+      (snapshot) => {
+        setStudentTpList(
+          snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as TujuanPembelajaranItem))
+        );
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'tujuan_pembelajaran');
+      }
+    );
+
+    return () => {
+      unsubSumatif();
+      unsubTp();
+    };
+  }, [isAdmin, currentStudent?.id, activeTahunPelajaran]);
+
   // Listen for remote admin force-logout and force-to-dashboard when a student is logged in
   useEffect(() => {
     if (isAdmin || !currentStudent?.id) return;
@@ -1966,6 +2018,148 @@ export default function App() {
       ? Math.round((completedSoalCount / activeSoalSets.length) * 100)
       : 0;
 
+    const doesStudentClassMatchTp = (tpKelas?: string, targetClass?: string) => {
+      const tpK = (tpKelas || '').trim().toUpperCase();
+      const cls = (targetClass || '').trim().toUpperCase();
+      if (!cls) return true;
+      if (!tpK || tpK === 'SEMUA' || tpK === 'ALL') return true;
+      if (tpK === cls) return true;
+      if ((tpK === 'VII' || tpK === '7' || tpK === 'KELAS VII' || tpK === 'KELAS 7') && (cls.startsWith('7') || cls.startsWith('VII'))) {
+        return true;
+      }
+      if ((tpK === 'VIII' || tpK === '8' || tpK === 'KELAS VIII' || tpK === 'KELAS 8') && (cls.startsWith('8') || cls.startsWith('VIII'))) {
+        return true;
+      }
+      if ((tpK === 'IX' || tpK === '9' || tpK === 'KELAS IX' || tpK === 'KELAS 9') && (cls.startsWith('9') || cls.startsWith('IX'))) {
+        return true;
+      }
+      return false;
+    };
+
+    const isSumatifAkhirRecord = (s: NilaiSumatifItem) =>
+      s.jenis === 'Sumatif Akhir Semester' || s.jenis === 'Sumatif Tengah Semester';
+
+    const studentScopedSumatifSaved = studentNilaiSumatif.filter(
+      (s) =>
+        s.tahunPelajaran === activeTahunPelajaran &&
+        s.semester === activeSemester &&
+        !isSumatifAkhirRecord(s) &&
+        (!studentKelas || (s.kelas || '').trim().toLowerCase() === studentKelas.toLowerCase())
+    );
+
+    const savedSumatifIdSet = new Set(studentScopedSumatifSaved.map((s) => s.id));
+    const autoSumatifForStudent: NilaiSumatifItem[] = [];
+
+    studentTpList
+      .filter((tp) => tp.tahunPelajaran === activeTahunPelajaran && doesStudentClassMatchTp(tp.kelas, studentKelas))
+      .forEach((tp) => {
+        if (tp.isSumatif) {
+          const autoId = `auto_sumatif__${slugifyTermPart(activeTahunPelajaran)}__${activeSemester}__${slugifyTermPart(studentKelas)}__${slugifyTermPart(tp.id)}`;
+          const alreadyExists =
+            savedSumatifIdSet.has(autoId) ||
+            studentScopedSumatifSaved.some(
+              (s) =>
+                s.jenis !== 'Praktik' &&
+                ((s.tpId && s.tpId === tp.id) ||
+                  (s.tpKode && s.tpKode.trim().toUpperCase() === tp.kodeTp.trim().toUpperCase()))
+            );
+          if (!alreadyExists) {
+            autoSumatifForStudent.push({
+              id: autoId,
+              tahunPelajaran: activeTahunPelajaran,
+              semester: activeSemester,
+              kelas: studentKelas,
+              judul: tp.kodeTp,
+              jenis: 'Sumatif Lingkup Materi',
+              tanggal: '',
+              tpId: tp.id,
+              tpKode: tp.kodeTp,
+              bobot: 1,
+              scores: {},
+              notes: {},
+            });
+          }
+        }
+        if (tp.isPraktikum) {
+          const autoId = `auto_praktik__${slugifyTermPart(activeTahunPelajaran)}__${activeSemester}__${slugifyTermPart(studentKelas)}__${slugifyTermPart(tp.id)}`;
+          const alreadyExists =
+            savedSumatifIdSet.has(autoId) ||
+            studentScopedSumatifSaved.some(
+              (s) =>
+                s.jenis === 'Praktik' &&
+                ((s.tpId && s.tpId === tp.id) ||
+                  (s.tpKode && s.tpKode.trim().toUpperCase() === tp.kodeTp.trim().toUpperCase()))
+            );
+          if (!alreadyExists) {
+            autoSumatifForStudent.push({
+              id: autoId,
+              tahunPelajaran: activeTahunPelajaran,
+              semester: activeSemester,
+              kelas: studentKelas,
+              judul: tp.kodeTp,
+              jenis: 'Praktik',
+              tanggal: '',
+              tpId: tp.id,
+              tpKode: tp.kodeTp,
+              bobot: 1,
+              scores: {},
+              notes: {},
+            });
+          }
+        }
+      });
+
+    const combinedStudentSumatifItems = [...studentScopedSumatifSaved, ...autoSumatifForStudent].sort((a, b) => {
+      const codeA = (a.tpKode || a.judul || '').toUpperCase();
+      const codeB = (b.tpKode || b.judul || '').toUpperCase();
+      if (codeA !== codeB) return codeA.localeCompare(codeB);
+      return (a.jenis === 'Praktik' ? 1 : 0) - (b.jenis === 'Praktik' ? 1 : 0);
+    });
+
+    const mapStudentSumatifItem = (item: NilaiSumatifItem) => {
+      const rawScore = item.scores?.[currentStudent?.id];
+      const hasScore = rawScore !== undefined && rawScore !== null && !Number.isNaN(Number(rawScore));
+      const scoreVal = hasScore ? Math.round(Number(rawScore)) : null;
+      const linkedTp = studentTpList.find(
+        (t) =>
+          (item.tpId && t.id === item.tpId) ||
+          (item.tpKode && t.kodeTp.trim().toUpperCase() === item.tpKode.trim().toUpperCase())
+      );
+      const kkm = Number(linkedTp?.kkm ?? 75) || 75;
+      return {
+        id: item.id,
+        judul: item.judul,
+        tpKode: item.tpKode || '',
+        deskripsi: linkedTp?.deskripsi || '',
+        bobot: Number(item.bobot || 1) || 1,
+        score: scoreVal,
+        kkm,
+      };
+    };
+
+    const studentSumatifTpItems = combinedStudentSumatifItems
+      .filter((s) => s.jenis !== 'Praktik')
+      .map(mapStudentSumatifItem);
+
+    const studentPraktikumTpItems = combinedStudentSumatifItems
+      .filter((s) => s.jenis === 'Praktik')
+      .map(mapStudentSumatifItem);
+
+    const computeWeightedSumatifAvg = (items: typeof studentSumatifTpItems): number | null => {
+      let weightedSum = 0;
+      let totalWeight = 0;
+      items.forEach((item) => {
+        if (item.score !== null) {
+          weightedSum += item.score * item.bobot;
+          totalWeight += item.bobot;
+        }
+      });
+      return totalWeight > 0 ? Math.round(weightedSum / totalWeight) : null;
+    };
+
+    const avgStudentSumatifTp = computeWeightedSumatifAvg(studentSumatifTpItems);
+    const avgStudentPraktikumTp = computeWeightedSumatifAvg(studentPraktikumTpItems);
+
     const studentInitials = (currentStudent?.nama || 'S')
       .split(' ')
       .filter(Boolean)
@@ -2169,7 +2363,7 @@ export default function App() {
           </button>
         </div>
 
-        <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 w-full max-w-6xl mx-auto custom-scrollbar">
+        <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 w-full max-w-7xl mx-auto custom-scrollbar">
           {forcedDashboardNotice && (
             <div className="bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 text-blue-900 dark:text-blue-100 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-2xs">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -2187,99 +2381,227 @@ export default function App() {
             </div>
           )}
 
-          {/* Top Overview Bento Split: Profile + Progress | Announcements */}
-          <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            {/* Left: Student Welcome & Real Progress Summary */}
-            <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 md:p-6 shadow-2xs flex flex-col justify-between gap-5 transition-colors">
-              <div className="flex items-start gap-4">
-                <div className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-lg text-white shrink-0 shadow-xs",
-                  currentStudent?.jenisKelamin === 'P' ? "bg-rose-600" : "bg-brand"
-                )}>
-                  {studentInitials}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
-                    Selamat datang kembali
-                  </p>
-                  <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
-                    {currentStudent?.nama}
-                  </h1>
-                  {/* Zero-pill metadata strip */}
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs font-medium text-slate-600 dark:text-slate-300 mt-1 tabular-nums">
-                    <span className="font-mono">NISN {currentStudent?.nis}</span>
-                    <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
-                    <span>Kelas {currentStudent?.kelas}</span>
-                    <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
-                    <span>{currentStudent?.jenisKelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</span>
-                    <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
-                    <span className="font-bold text-brand dark:text-blue-400">TA {activeTahunPelajaran} (Sem {activeSemester})</span>
-                  </div>
-                </div>
+          {/* Side-by-side Bento Layout: Left Student Profile Card | Right Materi, Soal, Game, or Skor */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Student Profile Card: Identity, Progress, Sumatif TP & Praktikum TP Scores, and Pengumuman Guru */}
+            <section className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 md:p-6 shadow-2xs flex flex-col gap-5 transition-colors">
+            <div className="flex items-start gap-4">
+              <div className={cn(
+                "w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-lg text-white shrink-0 shadow-xs",
+                currentStudent?.jenisKelamin === 'P' ? "bg-rose-600" : "bg-brand"
+              )}>
+                {studentInitials}
               </div>
-
-              {/* 3 Real Computed Progress Metrics */}
-              <div className="grid grid-cols-3 gap-3 md:gap-4 pt-4 border-t border-slate-100 dark:border-slate-800 tabular-nums">
-                <div className="space-y-1.5">
-                  <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Materi Selesai</div>
-                  <div className="text-lg md:text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                    {completedCourseCount}<span className="text-slate-400 dark:text-slate-500 text-sm font-semibold">/{activeCoursesList.length}</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-brand rounded-full transition-all duration-300" style={{ width: `${courseProgressPct}%` }} />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setStudentTab('soal')}
-                  className="space-y-1.5 text-left group cursor-pointer rounded-xl -m-1.5 p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
-                  title="Buka tab Latihan Soal"
-                >
-                  <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                    Paket Soal
-                  </div>
-                  <div className="text-lg md:text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                    {completedSoalCount}<span className="text-slate-400 dark:text-slate-500 text-sm font-semibold">/{activeSoalSets.length}</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-600 rounded-full transition-all duration-300" style={{ width: `${soalProgressPct}%` }} />
-                  </div>
-                </button>
-
-                <div className="space-y-1">
-                  <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Rata-Rata Skor</div>
-                  <div className={cn(
-                    "text-lg md:text-2xl font-extrabold font-mono",
-                    avgStudentScore === null ? "text-slate-400 dark:text-slate-500" :
-                    avgStudentScore >= 80 ? "text-emerald-600 dark:text-emerald-400" :
-                    avgStudentScore >= 60 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
-                  )}>
-                    {avgStudentScore !== null ? avgStudentScore : '-'}
-                  </div>
-                  <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                    {avgStudentScore === null ? 'Belum ada nilai' :
-                     avgStudentScore >= 80 ? 'Sangat Baik' :
-                     avgStudentScore >= 60 ? 'Cukup Baik' : 'Perlu Latihan'}
-                  </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
+                  Selamat datang kembali
+                </p>
+                <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
+                  {currentStudent?.nama}
+                </h1>
+                {/* Zero-pill metadata strip */}
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs font-medium text-slate-600 dark:text-slate-300 mt-1 tabular-nums">
+                  <span className="font-mono">NISN {currentStudent?.nis}</span>
+                  <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                  <span>Kelas {currentStudent?.kelas}</span>
+                  <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                  <span>{currentStudent?.jenisKelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</span>
+                  <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                  <span className="font-bold text-brand dark:text-blue-400">TA {activeTahunPelajaran} (Sem {activeSemester})</span>
                 </div>
               </div>
             </div>
 
-            {/* Right: Announcements Panel */}
-            <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 md:p-6 shadow-2xs flex flex-col transition-colors">
-              <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800 mb-3">
-                <div className="flex items-center gap-2">
-                  <Megaphone size={16} className="text-brand dark:text-blue-400 shrink-0" />
-                  <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">Pengumuman Guru</h2>
+            {/* 3 Real Computed Progress Metrics */}
+            <div className="grid grid-cols-3 gap-3 md:gap-4 pt-4 border-t border-slate-100 dark:border-slate-800 tabular-nums">
+              <div className="space-y-1.5">
+                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Materi Selesai</div>
+                <div className="text-lg md:text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+                  {completedCourseCount}<span className="text-slate-400 dark:text-slate-500 text-sm font-semibold">/{activeCoursesList.length}</span>
                 </div>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
-                  {filteredAnnouncements.length} info
-                </span>
+                <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-brand rounded-full transition-all duration-300" style={{ width: `${courseProgressPct}%` }} />
+                </div>
               </div>
 
-              {filteredAnnouncements.length > 0 ? (
-                <div className="flex-1 max-h-44 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 pr-1 custom-scrollbar">
+              <button
+                type="button"
+                onClick={() => setStudentTab('soal')}
+                className="space-y-1.5 text-left group cursor-pointer rounded-xl -m-1.5 p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                title="Buka tab Latihan Soal"
+              >
+                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                  Paket Soal
+                </div>
+                <div className="text-lg md:text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+                  {completedSoalCount}<span className="text-slate-400 dark:text-slate-500 text-sm font-semibold">/{activeSoalSets.length}</span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-600 rounded-full transition-all duration-300" style={{ width: `${soalProgressPct}%` }} />
+                </div>
+              </button>
+
+              <div className="space-y-1">
+                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Rata-Rata Skor</div>
+                <div className={cn(
+                  "text-lg md:text-2xl font-extrabold font-mono",
+                  avgStudentScore === null ? "text-slate-400 dark:text-slate-500" :
+                  avgStudentScore >= 80 ? "text-emerald-600 dark:text-emerald-400" :
+                  avgStudentScore >= 60 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
+                )}>
+                  {avgStudentScore !== null ? avgStudentScore : '-'}
+                </div>
+                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  {avgStudentScore === null ? 'Belum ada nilai' :
+                   avgStudentScore >= 80 ? 'Sangat Baik' :
+                   avgStudentScore >= 60 ? 'Cukup Baik' : 'Perlu Latihan'}
+                </div>
+              </div>
+            </div>
+
+            {/* Nilai Sumatif TP & Sumatif Praktikum TP */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 tabular-nums">
+              {/* Nilai Sumatif TP */}
+              <div className="rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 p-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Target size={14} className="text-brand dark:text-blue-400 shrink-0" />
+                    <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 truncate">
+                      Nilai Sumatif TP
+                    </span>
+                  </div>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-md text-[11px] font-black font-mono shrink-0",
+                    avgStudentSumatifTp === null
+                      ? "bg-slate-200/70 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                      : avgStudentSumatifTp >= 75
+                      ? "bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300"
+                      : "bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300"
+                  )}>
+                    {avgStudentSumatifTp !== null ? `Rata: ${avgStudentSumatifTp}` : 'Rata: -'}
+                  </span>
+                </div>
+
+                {studentSumatifTpItems.length > 0 ? (
+                  <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+                    {studentSumatifTpItems.map((item) => {
+                      const sameAsTp = item.tpKode && item.judul.trim().toUpperCase() === item.tpKode.trim().toUpperCase();
+                      return (
+                        <div
+                          key={item.id}
+                          title={item.deskripsi || item.judul}
+                          className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900/90 border border-slate-200/70 dark:border-slate-700/70 text-xs"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-slate-800 dark:text-slate-100 truncate">
+                              {item.judul}
+                            </div>
+                            {!sameAsTp && item.tpKode && (
+                              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 truncate">
+                                {item.tpKode}
+                              </div>
+                            )}
+                          </div>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-md font-extrabold font-mono text-xs shrink-0",
+                            item.score === null
+                              ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"
+                              : item.score >= item.kkm
+                              ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
+                              : "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300"
+                          )}>
+                            {item.score !== null ? item.score : '-'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 py-1">
+                    Belum ada penilaian Sumatif TP pada semester ini.
+                  </p>
+                )}
+              </div>
+
+              {/* Sumatif Praktikum TP */}
+              <div className="rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 p-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <FlaskConical size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 truncate">
+                      Sumatif Praktikum TP
+                    </span>
+                  </div>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-md text-[11px] font-black font-mono shrink-0",
+                    avgStudentPraktikumTp === null
+                      ? "bg-slate-200/70 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                      : avgStudentPraktikumTp >= 75
+                      ? "bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300"
+                      : "bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300"
+                  )}>
+                    {avgStudentPraktikumTp !== null ? `Rata: ${avgStudentPraktikumTp}` : 'Rata: -'}
+                  </span>
+                </div>
+
+                {studentPraktikumTpItems.length > 0 ? (
+                  <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
+                    {studentPraktikumTpItems.map((item) => {
+                      const sameAsTp = item.tpKode && item.judul.trim().toUpperCase() === item.tpKode.trim().toUpperCase();
+                      return (
+                        <div
+                          key={item.id}
+                          title={item.deskripsi || item.judul}
+                          className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900/90 border border-slate-200/70 dark:border-slate-700/70 text-xs"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-slate-800 dark:text-slate-100 truncate">
+                              {item.judul}
+                            </div>
+                            {!sameAsTp && item.tpKode && (
+                              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 truncate">
+                                {item.tpKode}
+                              </div>
+                            )}
+                          </div>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-md font-extrabold font-mono text-xs shrink-0",
+                            item.score === null
+                              ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"
+                              : item.score >= item.kkm
+                              ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
+                              : "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300"
+                          )}>
+                            {item.score !== null ? item.score : '-'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 py-1">
+                    Belum ada penilaian Praktikum TP pada semester ini.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Pengumuman Guru (inside Student Profile Card, below Nilai — tampil hanya jika ada pengumuman) */}
+            {filteredAnnouncements.length > 0 && (
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Megaphone size={15} className="text-brand dark:text-blue-400 shrink-0" />
+                    <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-100">
+                      Pengumuman Guru
+                    </h2>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                    {filteredAnnouncements.length} info
+                  </span>
+                </div>
+
+                <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 pr-1 custom-scrollbar rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/70 px-3.5 py-2.5">
                   {filteredAnnouncements.map(msg => (
                     <div key={msg.id} className="py-2.5 first:pt-0 last:pb-0 space-y-1">
                       <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
@@ -2309,18 +2631,13 @@ export default function App() {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center py-6 text-slate-400 dark:text-slate-500">
-                  <Bell size={24} className="mb-2 text-slate-300 dark:text-slate-600" />
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Belum ada pengumuman terbaru</p>
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Info tugas atau jadwal ujian akan tampil di sini.</p>
-                </div>
-              )}
-            </div>
-          </section>
+              </div>
+            )}
+            </section>
 
-          {/* Main Tab Content */}
-          {studentTab === 'games' ? (
+            {/* Right Column: Main Tab Content (sejajar Kartu Profil) */}
+            <div className="lg:col-span-7 min-w-0">
+              {studentTab === 'games' ? (
             <AdminGames isAdmin={false} currentStudent={currentStudent} studentsList={scopedStudents} />
           ) : studentTab === 'skor' ? (() => {
             const isSoalItem = (a: any) => Boolean(a?.isSoal || String(a?.courseId || '').startsWith('soal_'));
@@ -2665,7 +2982,7 @@ export default function App() {
                 {/* Grid Content */}
                 {studentTab === 'soal' ? (
                   displayedSoalSets.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       {displayedSoalSets.map((set, index) => {
                         const courseKey = `soal_${set.id}`;
                         const studentAssessment = scopedStudentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === courseKey);
@@ -2885,7 +3202,7 @@ export default function App() {
                   )
                 ) : (
                   displayedCourses.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       {displayedCourses.map((course, index) => {
                         const studentAssessment = scopedStudentAssessments.find(a => a.studentId === currentStudent?.id && a.courseId === course.id);
                         const hasCompleted = !!studentAssessment;
@@ -3027,6 +3344,8 @@ export default function App() {
               </section>
             </>
           )}
+            </div>
+          </div>
         </main>
       </div>
     );
