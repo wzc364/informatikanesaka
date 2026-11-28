@@ -4676,7 +4676,6 @@ export default function App() {
               });
 
               const cheatingSessionsList = activeSessions.filter(session => (session.cheatingAttempts || 0) > 0);
-              const workingStudentsCount = activeSessionList.filter(s => s.courseTitle || s.status === 'working').length;
               const activeCourseCount = COURSES.filter(c => isCourseActive(c.id)).length;
               
               const distinctClasses = Array.from(new Set(activeSessionList.map(s => s.kelas))).filter(Boolean).sort();
@@ -4984,101 +4983,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Top Modern KPI Highlights Bar */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 transition-shadow duration-200 group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none" />
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-blue-600 text-white flex items-center justify-center shadow-md shadow-brand/20">
-                          <Radio size={22} className="text-yellow-300" />
-                        </div>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/70">
-                          <span className="w-2 h-2 rounded-full bg-yellow-400 ring-2 ring-yellow-400/35" />
-                          Live Real-time
-                        </span>
-                      </div>
-                      <h4 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight tabular-nums">{activeSessionList.length}</h4>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Total Siswa Aktif</p>
-                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
-                        <span>Terhubung ke sistem</span>
-                        <span className="font-bold text-brand dark:text-blue-400 tabular-nums">{activeSessionList.length > 0 ? `${activeSessionList.length} Online` : 'Standby'}</span>
-                      </div>
-                    </div>
-
-                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 transition-shadow duration-200 group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none" />
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-blue-600 text-white flex items-center justify-center shadow-md shadow-brand/20">
-                          <Activity size={22} className="text-yellow-300" />
-                        </div>
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/70">
-                          <Zap size={12} className="text-amber-500" />
-                          Progres
-                        </span>
-                      </div>
-                      <h4 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight tabular-nums">{workingStudentsCount}</h4>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Sedang Mengerjakan</p>
-                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
-                        <span>Aktif di materi/kuis</span>
-                        <span className="font-bold text-brand dark:text-blue-400 tabular-nums">{workingStudentsCount} Siswa</span>
-                      </div>
-                    </div>
-
-                    {/* Card 3: Monitoring Kecurangan */}
-                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 transition-shadow duration-200 group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-rose-500/10 to-transparent rounded-bl-full pointer-events-none" />
-                      <div className="flex items-center justify-between mb-4">
-                        <div className={cn(
-                          "w-12 h-12 rounded-2xl text-white flex items-center justify-center shadow-md transition-colors duration-200",
-                          cheatingSessionsList.length > 0 
-                            ? "bg-gradient-to-tr from-rose-600 to-red-500 shadow-rose-500/20" 
-                            : "bg-gradient-to-tr from-emerald-600 to-teal-500 shadow-emerald-500/20"
-                        )}>
-                          {cheatingSessionsList.length > 0 ? <ShieldAlert size={22} /> : <ShieldCheck size={22} />}
-                        </div>
-                        <span className={cn(
-                          "inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase border",
-                          cheatingSessionsList.length > 0
-                            ? "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200/80 dark:border-rose-800/70"
-                            : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/70"
-                        )}>
-                          {cheatingSessionsList.length > 0 ? '⚠️ Peringatan' : '🛡️ Aman'}
-                        </span>
-                      </div>
-                      <h4 className={cn("text-3xl md:text-4xl font-extrabold tracking-tight tabular-nums", cheatingSessionsList.length > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-slate-100")}>
-                        {cheatingSessionsList.length}
-                      </h4>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Monitoring Kecurangan</p>
-                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
-                        <span>Keluar fullscreen / tab</span>
-                        <span className={cn("font-bold tabular-nums", cheatingSessionsList.length > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400")}>
-                          {cheatingSessionsList.length > 0 ? `${cheatingSessionsList.length} Terdeteksi` : 'Tertib'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="admin-glass-card relative overflow-hidden rounded-2xl p-6 transition-shadow duration-200 group">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none" />
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand to-blue-600 text-white flex items-center justify-center shadow-md shadow-brand/20">
-                          <Layers size={22} className="text-yellow-300" />
-                        </div>
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/70">
-                          <Sparkles size={12} className="text-amber-500" />
-                          Materi
-                        </span>
-                      </div>
-                      <h4 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight tabular-nums">{activeCourseCount} <span className="text-lg text-slate-400 dark:text-slate-500 font-bold">/ {COURSES.length}</span></h4>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Status Materi Aktif</p>
-                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
-                        <span>Modul terbuka</span>
-                        <span className="font-bold text-brand dark:text-blue-400 tabular-nums">{activeCourseCount} Siap Diakses</span>
-                      </div>
-                    </div>
-                  </div>
-
-
-                  
                   {/* TOP SECTION: KARTU PARTICIPANT, USER ONLINE & MONITORING KECURANGAN SEJAJAR DI ATAS */}
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
                     
