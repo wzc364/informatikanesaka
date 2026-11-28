@@ -88,31 +88,72 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
         return;
       }
 
-      const studentsRef = collection(db, 'students');
-      const q = query(studentsRef, where('nis', '==', identifier.trim()));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        alert('Akun dengan NISN atau Username tersebut tidak ditemukan.');
-        setIsLoading(false);
-        return;
-      }
-
+      let studentData: any = null;
+      let studentId = '';
       const activeYear = settingsConfig?.activeTahunPelajaran || DEFAULT_TAHUN_PELAJARAN;
-      const matchingDocs = querySnapshot.docs.filter((docSnap) => {
-        const data = docSnap.data() as any;
-        return (data.tahunPelajaran || DEFAULT_TAHUN_PELAJARAN) === activeYear;
-      });
 
-      if (matchingDocs.length === 0) {
-        alert(`Akun siswa dengan NISN tersebut tidak terdaftar pada Tahun Pelajaran aktif (${activeYear}).`);
-        setIsLoading(false);
-        return;
+      // Utamakan autentikasi siswa dari MySQL (nesj8697_digilab)
+      let mysqlLoginHandled = false;
+      try {
+        const loginResp = await fetch('/api/students/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nis: identifier.trim(),
+            password: cleanPass,
+            tahunPelajaran: activeYear,
+          }),
+        });
+        const loginJson = await loginResp.json().catch(() => ({}));
+
+        if (loginJson?.configured === true) {
+          mysqlLoginHandled = true;
+          if (!loginResp.ok || !loginJson?.student) {
+            alert(loginJson?.error || 'Akun dengan NISN atau Username tersebut tidak ditemukan.');
+            setIsLoading(false);
+            return;
+          }
+          studentId = String(loginJson.student.id);
+          studentData = loginJson.student;
+          try {
+            if (loginJson.studentToken) {
+              sessionStorage.setItem('studentAuthToken', String(loginJson.studentToken));
+            }
+          } catch {}
+        }
+      } catch (apiErr) {
+        console.warn('Gagal menghubungi /api/students/login, cek fallback:', apiErr);
       }
 
-      const studentData = matchingDocs[0].data();
+      // Fallback Firestore hanya jika MySQL belum dikonfigurasi
+      if (!mysqlLoginHandled) {
+        const studentsRef = collection(db, 'students');
+        const q = query(studentsRef, where('nis', '==', identifier.trim()));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          alert('Akun dengan NISN atau Username tersebut tidak ditemukan.');
+          setIsLoading(false);
+          return;
+        }
+
+        const matchingDocs = querySnapshot.docs.filter((docSnap) => {
+          const data = docSnap.data() as any;
+          return (data.tahunPelajaran || DEFAULT_TAHUN_PELAJARAN) === activeYear;
+        });
+
+        if (matchingDocs.length === 0) {
+          alert(`Akun siswa dengan NISN tersebut tidak terdaftar pada Tahun Pelajaran aktif (${activeYear}).`);
+          setIsLoading(false);
+          return;
+        }
+
+        studentId = matchingDocs[0].id;
+        studentData = matchingDocs[0].data();
+      }
+
       const sessionToken = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-      const studentObj = { id: matchingDocs[0].id, ...studentData, sessionToken };
+      const studentObj = { id: studentId, ...studentData, sessionToken };
       
       try {
         sessionStorage.removeItem('lastHandledForceDashboard');

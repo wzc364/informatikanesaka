@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import { processAnalyzeQuestionRequest } from "./server/questionAnalyzer.mjs";
 import { processGenerateQuestionsRequest } from "./server/questionGenerator.mjs";
 import { handleSoalApiRequest } from "./server/soalMysql.mjs";
+import { handleStudentsApiRequest } from "./server/studentsMysql.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,6 +67,34 @@ async function startServer() {
     res.setHeader('Expires', '0');
     const rawSubPath = String(req.params?.[0] || '');
     const { status, payload } = await handleSoalApiRequest({
+      method: req.method,
+      subPath: rawSubPath,
+      body: req.body,
+      authHeader: req.headers.authorization,
+    });
+    return res.status(status).json(payload);
+  });
+
+  // API Routes for Siswa & Kelas stored in MySQL (nesj8697_digilab)
+  app.all("/api/students", async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    const { status, payload } = await handleStudentsApiRequest({
+      method: req.method,
+      subPath: '',
+      body: req.body,
+      authHeader: req.headers.authorization,
+    });
+    return res.status(status).json(payload);
+  });
+
+  app.all("/api/students/*", async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    const rawSubPath = String(req.params?.[0] || '');
+    const { status, payload } = await handleStudentsApiRequest({
       method: req.method,
       subPath: rawSubPath,
       body: req.body,

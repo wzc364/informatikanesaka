@@ -9,6 +9,9 @@
     },
     "api/soal.js": {
       "maxDuration": 30
+    },
+    "api/students.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
@@ -19,6 +22,14 @@
     {
       "source": "/api/soal/:path*",
       "destination": "/api/soal?__soalPath=:path*"
+    },
+    {
+      "source": "/api/students",
+      "destination": "/api/students"
+    },
+    {
+      "source": "/api/students/:path*",
+      "destination": "/api/students?__studentsPath=:path*"
     },
     {
       "source": "/api/:path*",

@@ -126,6 +126,109 @@ function ensureTables(PDO $pdo): void {
             PRIMARY KEY (`config_key`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `classes` (
+            `id` VARCHAR(120) NOT NULL,
+            `nama_kelas` VARCHAR(100) NOT NULL,
+            `tahun_pelajaran` VARCHAR(32) NOT NULL DEFAULT '2025/2026',
+            `created_at` VARCHAR(40) NOT NULL,
+            `updated_at` VARCHAR(40) NOT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uq_classes_nama_ta` (`nama_kelas`, `tahun_pelajaran`),
+            INDEX `idx_classes_tahun` (`tahun_pelajaran`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `students` (
+            `id` VARCHAR(120) NOT NULL,
+            `nis` VARCHAR(64) NOT NULL DEFAULT '',
+            `nama` VARCHAR(255) NOT NULL,
+            `jenis_kelamin` VARCHAR(16) NOT NULL DEFAULT 'L',
+            `kelas` VARCHAR(100) NOT NULL,
+            `class_id` VARCHAR(120) NULL,
+            `tahun_pelajaran` VARCHAR(32) NOT NULL DEFAULT '2025/2026',
+            `avatar_url` LONGTEXT NULL,
+            `created_at` VARCHAR(40) NOT NULL,
+            `updated_at` VARCHAR(40) NOT NULL,
+            PRIMARY KEY (`id`),
+            INDEX `idx_students_nis_ta` (`nis`, `tahun_pelajaran`),
+            INDEX `idx_students_kelas_ta` (`kelas`, `tahun_pelajaran`),
+            INDEX `idx_students_class_id` (`class_id`),
+            CONSTRAINT `fk_students_class`
+                FOREIGN KEY (`class_id`) REFERENCES `classes` (`id`)
+                ON DELETE SET NULL
+                ON UPDATE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+}
+
+function slugifyPartPhp(string $raw): string {
+    $clean = strtolower(trim($raw));
+    $clean = preg_replace('/[^a-z0-9]+/', '_', $clean);
+    $clean = trim((string)$clean, '_');
+    return $clean !== '' ? $clean : 'default';
+}
+
+function buildClassIdPhp(string $kelas, string $ta): string {
+    return 'cls_' . slugifyPartPhp($ta) . '_' . slugifyPartPhp($kelas);
+}
+
+function normalizeJkPhp($raw): string {
+    $val = strtoupper(trim((string)$raw));
+    return strpos($val, 'P') === 0 ? 'P' : 'L';
+}
+
+function normalizeTaPhp($raw): string {
+    $clean = trim((string)$raw);
+    return $clean !== '' ? $clean : '2025/2026';
+}
+
+function mapStudentRowPhp(array $row): array {
+    $ta = normalizeTaPhp($row['tahun_pelajaran'] ?? '');
+    $res = [
+        'id' => (string)$row['id'],
+        'nis' => (string)($row['nis'] ?? ''),
+        'nama' => (string)($row['nama'] ?? ''),
+        'jenisKelamin' => normalizeJkPhp($row['jenis_kelamin'] ?? 'L'),
+        'kelas' => (string)($row['kelas'] ?? ''),
+        'classId' => !empty($row['class_id']) ? (string)$row['class_id'] : buildClassIdPhp((string)($row['kelas'] ?? ''), $ta),
+        'tahunPelajaran' => $ta,
+        'createdAt' => (string)($row['created_at'] ?? ''),
+        'updatedAt' => (string)($row['updated_at'] ?? ''),
+    ];
+    if (!empty($row['avatar_url'])) {
+        $res['avatarUrl'] = (string)$row['avatar_url'];
+    }
+    return $res;
+}
+
+function mapClassRowPhp(array $row): array {
+    return [
+        'id' => (string)$row['id'],
+        'namaKelas' => (string)($row['nama_kelas'] ?? ''),
+        'tahunPelajaran' => normalizeTaPhp($row['tahun_pelajaran'] ?? ''),
+        'createdAt' => (string)($row['created_at'] ?? ''),
+        'updatedAt' => (string)($row['updated_at'] ?? ''),
+    ];
+}
+
+function upsertClassPhp(PDO $pdo, string $kelas, string $ta, string $now): ?string {
+    $cleanKelas = trim($kelas);
+    $cleanTa = normalizeTaPhp($ta);
+    if ($cleanKelas === '') return null;
+    $classId = buildClassIdPhp($cleanKelas, $cleanTa);
+    $stmt = $pdo->prepare('INSERT INTO classes (id, nama_kelas, tahun_pelajaran, created_at, updated_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)');
+    $stmt->execute([$classId, $cleanKelas, $cleanTa, $now, $now]);
+    $q = $pdo->prepare('SELECT id FROM classes WHERE nama_kelas = ? AND tahun_pelajaran = ? LIMIT 1');
+    $q->execute([$cleanKelas, $cleanTa]);
+    $row = $q->fetch();
+    return $row ? (string)$row['id'] : $classId;
+}
+
+function pruneEmptyClassesPhp(PDO $pdo): void {
+    $pdo->exec('DELETE FROM classes WHERE id NOT IN (SELECT DISTINCT class_id FROM students WHERE class_id IS NOT NULL)');
 }
 
 function generateId(string $prefix = 'soal'): string {
@@ -626,6 +729,236 @@ try {
                 )->execute([$key, $val, $now]);
                 echo json_encode(['value' => $val]);
             }
+            break;
+        }
+
+        case 'students_health': {
+            $sCnt = (int)$pdo->query('SELECT COUNT(*) FROM students')->fetchColumn();
+            $cCnt = (int)$pdo->query('SELECT COUNT(*) FROM classes')->fetchColumn();
+            echo json_encode([
+                'configured' => true,
+                'connected' => true,
+                'database' => $dbname,
+                'studentCount' => $sCnt,
+                'classCount' => $cCnt,
+            ]);
+            break;
+        }
+
+        case 'students_list': {
+            $students = array_map(
+                'mapStudentRowPhp',
+                $pdo->query('SELECT * FROM students ORDER BY kelas ASC, nama ASC')->fetchAll()
+            );
+            $classes = array_map(
+                'mapClassRowPhp',
+                $pdo->query('SELECT * FROM classes ORDER BY tahun_pelajaran DESC, nama_kelas ASC')->fetchAll()
+            );
+            echo json_encode([
+                'configured' => true,
+                'students' => $students,
+                'classes' => $classes,
+            ], JSON_UNESCAPED_UNICODE);
+            break;
+        }
+
+        case 'students_login': {
+            $nis = trim((string)($body['nis'] ?? ''));
+            $ta = normalizeTaPhp($body['tahunPelajaran'] ?? '');
+            if ($nis === '') {
+                http_response_code(400);
+                echo json_encode(['error' => 'NISN wajib diisi.']);
+                break;
+            }
+            $stmt = $pdo->prepare('SELECT * FROM students WHERE nis = ? ORDER BY updated_at DESC');
+            $stmt->execute([$nis]);
+            $rows = $stmt->fetchAll();
+            if (!$rows || count($rows) === 0) {
+                http_response_code(404);
+                echo json_encode(['code' => 'NOT_FOUND', 'error' => 'Akun dengan NISN atau Username tersebut tidak ditemukan.']);
+                break;
+            }
+            $matched = null;
+            foreach ($rows as $r) {
+                if (normalizeTaPhp($r['tahun_pelajaran'] ?? '') === $ta) {
+                    $matched = $r;
+                    break;
+                }
+            }
+            if (!$matched) {
+                http_response_code(404);
+                echo json_encode([
+                    'code' => 'WRONG_YEAR',
+                    'error' => "Akun siswa dengan NISN tersebut tidak terdaftar pada Tahun Pelajaran aktif ({$ta}).",
+                ]);
+                break;
+            }
+            echo json_encode(['student' => mapStudentRowPhp($matched)], JSON_UNESCAPED_UNICODE);
+            break;
+        }
+
+        case 'students_avatar': {
+            $studentId = trim((string)($body['studentId'] ?? ''));
+            $avatarUrl = trim((string)($body['avatarUrl'] ?? ''));
+            if ($studentId === '' || $avatarUrl === '') {
+                http_response_code(400);
+                echo json_encode(['error' => 'studentId dan avatarUrl wajib diisi.']);
+                break;
+            }
+            $pdo->prepare('UPDATE students SET avatar_url = ?, updated_at = ? WHERE id = ?')
+                ->execute([$avatarUrl, $now, $studentId]);
+            echo json_encode(['ok' => true, 'avatarUrl' => $avatarUrl], JSON_UNESCAPED_UNICODE);
+            break;
+        }
+
+        case 'students_create': {
+            $nis = trim((string)($body['nis'] ?? ''));
+            $nama = trim((string)($body['nama'] ?? ''));
+            $kelas = trim((string)($body['kelas'] ?? ''));
+            if ($nama === '' || $kelas === '') {
+                http_response_code(400);
+                echo json_encode(['error' => 'Nama siswa dan kelas wajib diisi.']);
+                break;
+            }
+            $jk = normalizeJkPhp($body['jenisKelamin'] ?? 'L');
+            $ta = normalizeTaPhp($body['tahunPelajaran'] ?? '');
+            $avatar = !empty($body['avatarUrl']) ? trim((string)$body['avatarUrl']) : null;
+            $id = trim((string)($body['id'] ?? '')) ?: generateId('stu');
+
+            $pdo->beginTransaction();
+            try {
+                $classId = upsertClassPhp($pdo, $kelas, $ta, $now);
+                $pdo->prepare(
+                    'INSERT INTO students (id, nis, nama, jenis_kelamin, kelas, class_id, tahun_pelajaran, avatar_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                )->execute([$id, $nis, $nama, $jk, $kelas, $classId, $ta, $avatar, $now, $now]);
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                throw $e;
+            }
+            $q = $pdo->prepare('SELECT * FROM students WHERE id = ? LIMIT 1');
+            $q->execute([$id]);
+            http_response_code(201);
+            echo json_encode(['student' => mapStudentRowPhp($q->fetch())], JSON_UNESCAPED_UNICODE);
+            break;
+        }
+
+        case 'students_update': {
+            $id = trim((string)($body['id'] ?? ''));
+            $q = $pdo->prepare('SELECT * FROM students WHERE id = ? LIMIT 1');
+            $q->execute([$id]);
+            $row = $q->fetch();
+            if (!$row) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Data siswa tidak ditemukan.']);
+                break;
+            }
+            $existing = mapStudentRowPhp($row);
+            $nis = array_key_exists('nis', $body) ? trim((string)$body['nis']) : $existing['nis'];
+            $nama = array_key_exists('nama', $body) ? trim((string)$body['nama']) : $existing['nama'];
+            $kelas = array_key_exists('kelas', $body) ? trim((string)$body['kelas']) : $existing['kelas'];
+            if ($nama === '' || $kelas === '') {
+                http_response_code(400);
+                echo json_encode(['error' => 'Nama siswa dan kelas tidak boleh kosong.']);
+                break;
+            }
+            $jk = array_key_exists('jenisKelamin', $body) ? normalizeJkPhp($body['jenisKelamin']) : $existing['jenisKelamin'];
+            $ta = array_key_exists('tahunPelajaran', $body) ? normalizeTaPhp($body['tahunPelajaran']) : $existing['tahunPelajaran'];
+            $avatar = array_key_exists('avatarUrl', $body) ? (!empty($body['avatarUrl']) ? trim((string)$body['avatarUrl']) : null) : ($existing['avatarUrl'] ?? null);
+
+            $pdo->beginTransaction();
+            try {
+                $classId = upsertClassPhp($pdo, $kelas, $ta, $now);
+                $pdo->prepare(
+                    'UPDATE students SET nis = ?, nama = ?, jenis_kelamin = ?, kelas = ?, class_id = ?, tahun_pelajaran = ?, avatar_url = ?, updated_at = ? WHERE id = ?'
+                )->execute([$nis, $nama, $jk, $kelas, $classId, $ta, $avatar, $now, $id]);
+                pruneEmptyClassesPhp($pdo);
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                throw $e;
+            }
+            $q->execute([$id]);
+            echo json_encode(['student' => mapStudentRowPhp($q->fetch())], JSON_UNESCAPED_UNICODE);
+            break;
+        }
+
+        case 'students_delete': {
+            $id = trim((string)($body['id'] ?? ''));
+            $pdo->beginTransaction();
+            try {
+                $pdo->prepare('DELETE FROM students WHERE id = ?')->execute([$id]);
+                pruneEmptyClassesPhp($pdo);
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                throw $e;
+            }
+            echo json_encode(['ok' => true]);
+            break;
+        }
+
+        case 'students_bulk_delete': {
+            $ids = isset($body['ids']) && is_array($body['ids']) ? array_values(array_filter(array_map('strval', $body['ids']))) : [];
+            if (count($ids) === 0) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Daftar ID siswa wajib diisi.']);
+                break;
+            }
+            $pdo->beginTransaction();
+            try {
+                $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+                $pdo->prepare("DELETE FROM students WHERE id IN ({$placeholders})")->execute($ids);
+                pruneEmptyClassesPhp($pdo);
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                throw $e;
+            }
+            echo json_encode(['ok' => true, 'deleted' => count($ids)]);
+            break;
+        }
+
+        case 'students_bulk_upsert': {
+            $list = isset($body['students']) && is_array($body['students']) ? $body['students'] : [];
+            if (count($list) === 0) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Daftar siswa tidak boleh kosong.']);
+                break;
+            }
+            $pdo->beginTransaction();
+            $processed = 0;
+            try {
+                $classCache = [];
+                $ins = $pdo->prepare(
+                    'INSERT INTO students (id, nis, nama, jenis_kelamin, kelas, class_id, tahun_pelajaran, avatar_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE nis = VALUES(nis), nama = VALUES(nama), jenis_kelamin = VALUES(jenis_kelamin), kelas = VALUES(kelas), class_id = VALUES(class_id), tahun_pelajaran = VALUES(tahun_pelajaran), avatar_url = COALESCE(VALUES(avatar_url), avatar_url), updated_at = VALUES(updated_at)'
+                );
+                foreach ($list as $item) {
+                    if (!is_array($item)) continue;
+                    $nis = trim((string)($item['nis'] ?? ''));
+                    $nama = trim((string)($item['nama'] ?? ''));
+                    $kelas = trim((string)($item['kelas'] ?? '')) ?: 'Umum';
+                    if ($nis === '' && $nama === '') continue;
+                    $jk = normalizeJkPhp($item['jenisKelamin'] ?? 'L');
+                    $ta = normalizeTaPhp($item['tahunPelajaran'] ?? '');
+                    $avatar = !empty($item['avatarUrl']) ? trim((string)$item['avatarUrl']) : null;
+                    $id = trim((string)($item['id'] ?? '')) ?: generateId('stu');
+                    $ck = $ta . '::' . $kelas;
+                    if (!isset($classCache[$ck])) {
+                        $classCache[$ck] = upsertClassPhp($pdo, $kelas, $ta, $now);
+                    }
+                    $ins->execute([$id, $nis, $nama !== '' ? $nama : $nis, $jk, $kelas, $classCache[$ck], $ta, $avatar, $now, $now]);
+                    $processed++;
+                }
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                throw $e;
+            }
+            $sCnt = (int)$pdo->query('SELECT COUNT(*) FROM students')->fetchColumn();
+            $cCnt = (int)$pdo->query('SELECT COUNT(*) FROM classes')->fetchColumn();
+            http_response_code(201);
+            echo json_encode(['ok' => true, 'processed' => $processed, 'totalStudents' => $sCnt, 'totalClasses' => $cCnt]);
             break;
         }
 

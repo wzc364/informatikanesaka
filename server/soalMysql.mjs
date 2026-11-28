@@ -276,7 +276,7 @@ function validatePhpBridgeUrl(rawUrl) {
   return parsed.toString();
 }
 
-async function callPhpBridge(action, payload = {}) {
+export async function callPhpBridge(action, payload = {}) {
   const { url, apiKey } = getPhpBridgeConfig();
   const safeUrl = validatePhpBridgeUrl(url);
   const controller = new AbortController();
@@ -347,7 +347,7 @@ async function callPhpBridge(action, payload = {}) {
   }
 }
 
-function getMysqlConfig() {
+export function getMysqlConfig() {
   const host = String(process.env.MYSQL_HOST || '').trim();
   const port = Number(process.env.MYSQL_PORT || 3306) || 3306;
   const user = String(process.env.MYSQL_USER || '').trim();
@@ -363,7 +363,7 @@ export function isMysqlConfigured() {
   return Boolean(cfg.host && cfg.user && cfg.database);
 }
 
-function getPool() {
+export function getPool() {
   const cfg = getMysqlConfig();
   if (!cfg.host || !cfg.user || !cfg.database) {
     const err = new Error(
@@ -694,7 +694,7 @@ async function saveClaimedPasscodeHash(hashValue) {
   }
 }
 
-async function getSigningSecret() {
+export async function getSigningSecret() {
   const envSecret = String(
     process.env.SOAL_AUTH_SECRET || process.env.ADMIN_SESSION_SECRET || ''
   ).trim();
@@ -789,7 +789,7 @@ export async function verifyAdminToken(authHeader) {
   }
 }
 
-function formatDbError(err) {
+export function formatDbError(err) {
   if (err?.code === 'MYSQL_NOT_CONFIGURED') {
     return {
       status: 503,

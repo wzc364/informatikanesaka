@@ -91,7 +91,7 @@ import { Topic, SoalSet, SoalQuestion } from './types';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { db } from './firebase';
-import { collection, addDoc, doc, deleteDoc, updateDoc, setDoc, query, where, onSnapshot, increment, serverTimestamp, arrayUnion, writeBatch } from 'firebase/firestore';                
+import { collection, addDoc, getDocs, doc, deleteDoc, updateDoc, setDoc, query, where, onSnapshot, increment, serverTimestamp, arrayUnion, writeBatch } from 'firebase/firestore';                
 import Login from './components/Login';
 import AdminGames from './components/AdminGames';
 import AdminSoal from './components/AdminSoal';
@@ -124,6 +124,11 @@ import { APP_BACKGROUNDS, getBackgroundPreset } from './backgrounds';
 import { dedupeHighestGameScores, formatScoreTimestamp, getScoreTimestampMs, isSoalAssessment, naturalCompareKelas } from './scoreUtils';
 import { AsesmenHarianSoalLink, doesSoalSetMatchStudentClass, SoalSetTpLink } from './soalExportUtils';
 
+import kombatHeadScorpioUrl from './assets/images/kombat_head_final_scorpio.png';
+import kombatHeadKamenUrl from './assets/images/kombat_head_final_kamen.png';
+import kombatHeadKnightUrl from './assets/images/kombat_head_final_knight.png';
+import kombatHeadQueenUrl from './assets/images/kombat_head_final_queen.png';
+
 export interface ProfilePictureItem {
   id: string;
   name: string;
@@ -133,12 +138,28 @@ export interface ProfilePictureItem {
   isCustom?: boolean;
 }
 
+const BUILTIN_KOMBAT_HEAD_MAP: Record<string, string> = {
+  kombat_1: kombatHeadScorpioUrl,
+  kombat_2: kombatHeadKamenUrl,
+  kombat_3: kombatHeadKnightUrl,
+  kombat_4: kombatHeadQueenUrl,
+};
+
+function normalizeProfilePicturesList(rawList?: ProfilePictureItem[]): ProfilePictureItem[] {
+  if (!Array.isArray(rawList) || rawList.length === 0) return DEFAULT_PROFILE_PICTURES;
+  return rawList.map((item) =>
+    BUILTIN_KOMBAT_HEAD_MAP[item.id]
+      ? { ...item, url: BUILTIN_KOMBAT_HEAD_MAP[item.id] }
+      : item
+  );
+}
+
 export const DEFAULT_PROFILE_PICTURES: ProfilePictureItem[] = [
-  // Informatika Kombat (4)
-  { id: 'kombat_1', name: 'Cyber Knight', theme: 'Informatika Kombat', url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=cyber_knight_99', isActive: true },
-  { id: 'kombat_2', name: 'Mecha Hacker', theme: 'Informatika Kombat', url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=mecha_hacker_x', isActive: true },
-  { id: 'kombat_3', name: 'Ninja Coder', theme: 'Informatika Kombat', url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=ninja_coder_z', isActive: true },
-  { id: 'kombat_4', name: 'Battle SysAdmin', theme: 'Informatika Kombat', url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=battle_sys_admin', isActive: true },
+  // Informatika Kombat (4) - kepala hero asli dari game Informatika Kombat
+  { id: 'kombat_1', name: 'Scorpio Kombat', theme: 'Informatika Kombat', url: kombatHeadScorpioUrl, isActive: true },
+  { id: 'kombat_2', name: 'Kamen Cyber', theme: 'Informatika Kombat', url: kombatHeadKamenUrl, isActive: true },
+  { id: 'kombat_3', name: 'Knight Coder', theme: 'Informatika Kombat', url: kombatHeadKnightUrl, isActive: true },
+  { id: 'kombat_4', name: 'Queen Hacker', theme: 'Informatika Kombat', url: kombatHeadQueenUrl, isActive: true },
   // Game Berkebun (4)
   { id: 'berkebun_1', name: 'Tani Cerdas', theme: 'Game Berkebun', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=tani_muda_pro', isActive: true },
   { id: 'berkebun_2', name: 'Kebun Asri', theme: 'Game Berkebun', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=kebun_bunga_asri', isActive: true },
@@ -356,8 +377,37 @@ export default function App() {
   }, [currentStudent]);
   const [password, setPassword] = useState('');
   const [adminTab, setAdminTab] = useState<'dashboard' | 'administrasi' | 'student_management' | 'materials' | 'questions' | 'history' | 'assessments' | 'settings' | 'announcements' | 'games'>('dashboard');
+  const [settingsSubTab, setSettingsSubTab] = useState<'academic' | 'jadwal' | 'theme' | 'logo' | 'background' | 'profile_pics'>('academic');
   const [studentSubTab, setStudentSubTab] = useState<'students' | 'classes'>('classes');
-  const [students, setStudents] = useState<{id: string, nis: string, nama: string, jenisKelamin: string, kelas: string, tahunPelajaran?: string}[]>([]);
+  const [firestoreStudents, setFirestoreStudents] = useState<{id: string, nis: string, nama: string, jenisKelamin: string, kelas: string, tahunPelajaran?: string, avatarUrl?: string}[]>([]);
+  const [mysqlStudents, setMysqlStudents] = useState<{id: string, nis: string, nama: string, jenisKelamin: string, kelas: string, tahunPelajaran?: string, avatarUrl?: string, classId?: string}[]>([]);
+  const [mysqlClasses, setMysqlClasses] = useState<{id: string, namaKelas: string, tahunPelajaran: string}[]>([]);
+  const [studentsDbStatus, setStudentsDbStatus] = useState<{
+    checked: boolean;
+    configured: boolean;
+    connected: boolean;
+    mode?: string | null;
+    database?: string;
+    studentCount?: number;
+    classCount?: number;
+    error?: string | null;
+  }>({ checked: false, configured: false, connected: false });
+  const [isMigratingStudentsToMysql, setIsMigratingStudentsToMysql] = useState(false);
+  const [studentsMysqlNotice, setStudentsMysqlNotice] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+  const [isStudentsAuthModalOpen, setIsStudentsAuthModalOpen] = useState(false);
+  const [studentsAuthPasscodeInput, setStudentsAuthPasscodeInput] = useState('');
+  const [studentsAuthPasscodeError, setStudentsAuthPasscodeError] = useState<string | null>(null);
+  const [isSubmittingStudentsAuth, setIsSubmittingStudentsAuth] = useState(false);
+  const [studentsAuthMeta, setStudentsAuthMeta] = useState<{ hasEnvPasscode: boolean; hasClaimedPasscode: boolean }>({
+    hasEnvPasscode: false,
+    hasClaimedPasscode: false,
+  });
+  const students = useMemo(() => {
+    if (studentsDbStatus.configured && studentsDbStatus.connected) {
+      return mysqlStudents;
+    }
+    return firestoreStudents;
+  }, [studentsDbStatus.configured, studentsDbStatus.connected, mysqlStudents, firestoreStudents]);
   const [adminJadwalList, setAdminJadwalList] = useState<JadwalPelajaranItem[]>([]);
   const [realtimeNow, setRealtimeNow] = useState<Date>(() => new Date());
   const [legacyMaterialConfigs, setLegacyMaterialConfigs] = useState<Record<string, {
@@ -608,6 +658,157 @@ export default function App() {
       if (intervalId !== null) window.clearInterval(intervalId);
     };
   }, [currentPage, fetchSoalFromMysql]);
+
+  const fetchStudentsFromMysql = useCallback(async () => {
+    try {
+      const healthResp = await fetch('/api/students/health', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+      });
+      const healthData = await healthResp.json().catch(() => ({}));
+      const configured = Boolean(healthData?.configured);
+      const connected = Boolean(healthData?.connected);
+      setStudentsDbStatus({
+        checked: true,
+        configured,
+        connected,
+        mode: healthData?.mode || null,
+        database: healthData?.database || 'nesj8697_digilab',
+        studentCount: Number(healthData?.studentCount || 0),
+        classCount: Number(healthData?.classCount || 0),
+        error: healthData?.error || null,
+      });
+
+      if (!configured || !connected) {
+        return { configured, connected, students: [] as any[], classes: [] as any[] };
+      }
+
+      const listResp = await fetch('/api/students', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+      });
+      const listData = await listResp.json().catch(() => ({}));
+      if (!listResp.ok) {
+        setStudentsDbStatus((prev) => ({
+          ...prev,
+          error: listData?.error || `Gagal memuat data Siswa & Kelas dari MySQL (HTTP ${listResp.status}).`,
+        }));
+        return { configured, connected: false, students: [] as any[], classes: [] as any[] };
+      }
+      const nextStudents = Array.isArray(listData?.students) ? listData.students : [];
+      const nextClasses = Array.isArray(listData?.classes) ? listData.classes : [];
+      setMysqlStudents(nextStudents);
+      setMysqlClasses(nextClasses);
+      return { configured, connected: true, students: nextStudents, classes: nextClasses };
+    } catch (err: any) {
+      setStudentsDbStatus({
+        checked: true,
+        configured: false,
+        connected: false,
+        error: err?.message || 'Gagal menghubungi API MySQL Siswa & Kelas.',
+      });
+      return { configured: false, connected: false, students: [] as any[], classes: [] as any[] };
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStudentsFromMysql();
+  }, [fetchStudentsFromMysql]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    fetchStudentsFromMysql();
+    fetch('/api/soal/auth/status')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data) return;
+        setStudentsAuthMeta({
+          hasEnvPasscode: Boolean(data.hasEnvPasscode),
+          hasClaimedPasscode: Boolean(data.hasClaimedPasscode),
+        });
+        if (data.token && !soalAdminToken) {
+          setSoalAdminToken(String(data.token));
+        }
+      })
+      .catch(() => {});
+  }, [isAdmin, adminTab, fetchStudentsFromMysql, soalAdminToken]);
+
+  const studentsApiFetch = useCallback(
+    async (path: string, options: RequestInit = {}) => {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...((options.headers as Record<string, string>) || {}),
+      };
+      if (soalAdminToken) {
+        headers['Authorization'] = `Bearer ${soalAdminToken}`;
+      }
+      const resp = await fetch(path, { ...options, headers });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        if (resp.status === 401) {
+          setSoalAdminToken(null);
+          setStudentsAuthPasscodeError(null);
+          setIsStudentsAuthModalOpen(true);
+        }
+        throw new Error(data?.error || `Permintaan MySQL gagal (HTTP ${resp.status}).`);
+      }
+      return data;
+    },
+    [soalAdminToken]
+  );
+
+  const ensureMysqlStudentWriteAuth = useCallback((): boolean => {
+    if (!soalAdminToken) {
+      setStudentsAuthPasscodeError(null);
+      setIsStudentsAuthModalOpen(true);
+      return false;
+    }
+    return true;
+  }, [soalAdminToken]);
+
+  const handleStudentsAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = studentsAuthPasscodeInput.trim();
+    if (!clean) {
+      setStudentsAuthPasscodeError('Masukkan passcode admin.');
+      return;
+    }
+    const needsSetup = !studentsAuthMeta.hasEnvPasscode && !studentsAuthMeta.hasClaimedPasscode;
+    if (needsSetup && clean.length < 4) {
+      setStudentsAuthPasscodeError('Passcode minimal 4 karakter.');
+      return;
+    }
+    setIsSubmittingStudentsAuth(true);
+    setStudentsAuthPasscodeError(null);
+    try {
+      const endpoint = needsSetup ? '/api/soal/auth/claim' : '/api/soal/auth/login';
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode: clean }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data?.error || 'Gagal memverifikasi passcode admin.');
+      }
+      if (data?.token) {
+        setSoalAdminToken(String(data.token));
+        setStudentsAuthPasscodeInput('');
+        setIsStudentsAuthModalOpen(false);
+        if (needsSetup) {
+          setStudentsAuthMeta({ hasEnvPasscode: false, hasClaimedPasscode: true });
+        }
+        setStudentsMysqlNotice({
+          type: 'success',
+          message: 'Sesi admin MySQL terverifikasi. Silakan lanjutkan penyimpanan atau migrasi data Siswa & Kelas.',
+        });
+      }
+    } catch (err: any) {
+      setStudentsAuthPasscodeError(err?.message || 'Gagal memverifikasi passcode.');
+    } finally {
+      setIsSubmittingStudentsAuth(false);
+    }
+  };
 
   const activeTahunPelajaran = settingsConfig?.activeTahunPelajaran || DEFAULT_TAHUN_PELAJARAN;
   const activeSemester: SemesterType = settingsConfig?.activeSemester === 'Genap' ? 'Genap' : 'Ganjil';
@@ -891,12 +1092,32 @@ export default function App() {
     setIsDeleting(true);
     try {
       if (deleteType === 'student') {
-        if (deleteTarget === 'selected') {
-          const promises = selectedStudentIds.map(id => deleteDoc(doc(db, 'students', id)));
-          await Promise.all(promises);
-          setSelectedStudentIds([]);
-        } else if (typeof deleteTarget === 'string') {
-          await deleteDoc(doc(db, 'students', deleteTarget));
+        const useMysql = studentsDbStatus.configured && studentsDbStatus.connected;
+        if (useMysql) {
+          if (!ensureMysqlStudentWriteAuth()) {
+            setIsDeleting(false);
+            return;
+          }
+          if (deleteTarget === 'selected') {
+            await studentsApiFetch('/api/students/bulk-delete', {
+              method: 'POST',
+              body: JSON.stringify({ ids: selectedStudentIds }),
+            });
+            setSelectedStudentIds([]);
+          } else if (typeof deleteTarget === 'string') {
+            await studentsApiFetch(`/api/students/${encodeURIComponent(deleteTarget)}`, {
+              method: 'DELETE',
+            });
+          }
+          await fetchStudentsFromMysql();
+        } else {
+          if (deleteTarget === 'selected') {
+            const promises = selectedStudentIds.map(id => deleteDoc(doc(db, 'students', id)));
+            await Promise.all(promises);
+            setSelectedStudentIds([]);
+          } else if (typeof deleteTarget === 'string') {
+            await deleteDoc(doc(db, 'students', deleteTarget));
+          }
         }
       } else if (deleteType === 'assessment') {
         if (deleteAssessmentInfo?.isBulkClass && deleteAssessmentInfo.kelas && deleteAssessmentInfo.courseTitle) {
@@ -1367,8 +1588,8 @@ export default function App() {
           activeTahunPelajaran: DEFAULT_TAHUN_PELAJARAN,
           activeSemester: DEFAULT_SEMESTER,
           tahunPelajaranList: DEFAULT_TAHUN_PELAJARAN_LIST,
-          profilePicturesList: DEFAULT_PROFILE_PICTURES,
           ...data,
+          profilePicturesList: normalizeProfilePicturesList(data.profilePicturesList),
           jadwalSettings: normalizedJadwal,
         });
         setJadwalSettingsDraft(normalizedJadwal);
@@ -1453,9 +1674,9 @@ export default function App() {
       });
       unsubscribes.push(unsubAccessLogs);
       
-      // 3. All Students (Admin)
+      // 3. Firestore Students (dipantau untuk fallback atau migrasi & pembersihan ke MySQL nesj8697_digilab)
       const unsubStudents = onSnapshot(collection(db, 'students'), (snapshot) => {
-        setStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
+        setFirestoreStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any })));
       }, (error) => {
         handleFirestoreError(error, OperationType.LIST, 'students');
       });
@@ -1819,24 +2040,47 @@ export default function App() {
       alert('Mohon lengkapi semua data');
       return;
     }
-    
+
+    const useMysql = studentsDbStatus.configured && studentsDbStatus.connected;
+    if (useMysql && !ensureMysqlStudentWriteAuth()) {
+      return;
+    }
+
     setIsAddingStudent(true);
     try {
-      await addDoc(collection(db, 'students'), {
-        nis: manualStudentNis,
-        nama: manualStudentNama,
-        jenisKelamin: manualStudentJenisKelamin,
-        kelas: manualStudentKelas,
-        tahunPelajaran: activeTahunPelajaran,
-      });
-      
+      if (useMysql) {
+        await studentsApiFetch('/api/students', {
+          method: 'POST',
+          body: JSON.stringify({
+            nis: manualStudentNis,
+            nama: manualStudentNama,
+            jenisKelamin: manualStudentJenisKelamin,
+            kelas: manualStudentKelas,
+            tahunPelajaran: activeTahunPelajaran,
+          }),
+        });
+        await fetchStudentsFromMysql();
+      } else {
+        await addDoc(collection(db, 'students'), {
+          nis: manualStudentNis,
+          nama: manualStudentNama,
+          jenisKelamin: manualStudentJenisKelamin,
+          kelas: manualStudentKelas,
+          tahunPelajaran: activeTahunPelajaran,
+        });
+      }
+
       setManualStudentNis('');
       setManualStudentNama('');
       setManualStudentKelas('');
       setIsImportModalOpen(false);
       alert('Siswa berhasil ditambahkan');
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'students');
+    } catch (error: any) {
+      if (useMysql) {
+        alert(error?.message || 'Gagal menambahkan siswa ke MySQL.');
+      } else {
+        handleFirestoreError(error, OperationType.CREATE, 'students');
+      }
     } finally {
       setIsAddingStudent(false);
     }
@@ -1846,28 +2090,57 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const useMysql = studentsDbStatus.configured && studentsDbStatus.connected;
+    if (useMysql && !ensureMysqlStudentWriteAuth()) {
+      e.target.value = '';
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (evt) => {
-      const dataBuffer = evt.target?.result as ArrayBuffer;
-      const wb = XLSX.read(dataBuffer, { type: 'array' });
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-      const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
-      
-      const newStudents = data.slice(1).map((row: any[]) => ({
-        nis: String(row[0] || ''),
-        nama: String(row[1] || ''),
-        jenisKelamin: String(row[2] || ''),
-        kelas: String(row[3] || ''),
-        tahunPelajaran: activeTahunPelajaran,
-      })).filter(s => s.nis || s.nama);
+      try {
+        const dataBuffer = evt.target?.result as ArrayBuffer;
+        const wb = XLSX.read(dataBuffer, { type: 'array' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
 
-      for (const student of newStudents) {
-        try {
-          await addDoc(collection(db, 'students'), student);
-        } catch (error) {
-          handleFirestoreError(error, OperationType.CREATE, 'students');
+        const newStudents = data.slice(1).map((row: any[]) => ({
+          nis: String(row[0] || '').trim(),
+          nama: String(row[1] || '').trim(),
+          jenisKelamin: String(row[2] || 'L').trim() || 'L',
+          kelas: String(row[3] || '').trim(),
+          tahunPelajaran: activeTahunPelajaran,
+        })).filter(s => s.nis || s.nama);
+
+        if (newStudents.length === 0) {
+          alert('Tidak ada data siswa yang valid ditemukan di file Excel.');
+          return;
         }
+
+        if (useMysql) {
+          await studentsApiFetch('/api/students/bulk', {
+            method: 'POST',
+            body: JSON.stringify({ students: newStudents }),
+          });
+          await fetchStudentsFromMysql();
+          setIsImportModalOpen(false);
+          alert(`Berhasil mengimpor ${newStudents.length} data siswa ke MySQL.`);
+        } else {
+          for (const student of newStudents) {
+            try {
+              await addDoc(collection(db, 'students'), student);
+            } catch (error) {
+              handleFirestoreError(error, OperationType.CREATE, 'students');
+            }
+          }
+          setIsImportModalOpen(false);
+          alert(`Berhasil mengimpor ${newStudents.length} data siswa.`);
+        }
+      } catch (error: any) {
+        alert(error?.message || 'Gagal mengimpor data siswa dari Excel.');
+      } finally {
+        e.target.value = '';
       }
     };
     reader.readAsArrayBuffer(file);
@@ -1885,19 +2158,40 @@ export default function App() {
   };
 
   const saveEditStudent = async () => {
+    if (!editingStudentId) return;
+    const useMysql = studentsDbStatus.configured && studentsDbStatus.connected;
+    if (useMysql && !ensureMysqlStudentWriteAuth()) return;
     try {
-      await updateDoc(doc(db, 'students', editingStudentId!), {
-        ...editFormData,
-        tahunPelajaran: activeTahunPelajaran,
-      });
+      if (useMysql) {
+        await studentsApiFetch(`/api/students/${encodeURIComponent(editingStudentId)}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            ...editFormData,
+            tahunPelajaran: activeTahunPelajaran,
+          }),
+        });
+        await fetchStudentsFromMysql();
+      } else {
+        await updateDoc(doc(db, 'students', editingStudentId), {
+          ...editFormData,
+          tahunPelajaran: activeTahunPelajaran,
+        });
+      }
       setEditingStudentId(null);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `students/${editingStudentId}`);
+    } catch (error: any) {
+      if (useMysql) {
+        alert(error?.message || 'Gagal memperbarui data siswa di MySQL.');
+      } else {
+        handleFirestoreError(error, OperationType.UPDATE, `students/${editingStudentId}`);
+      }
     }
   };
 
   const handleCopyStudentsFromYear = async () => {
     if (!copySourceTahunPelajaran || copySourceTahunPelajaran === activeTahunPelajaran) return;
+    const useMysql = studentsDbStatus.configured && studentsDbStatus.connected;
+    if (useMysql && !ensureMysqlStudentWriteAuth()) return;
+
     setIsCopyingStudents(true);
     setCopyStudentsNotice(null);
     try {
@@ -1936,19 +2230,127 @@ export default function App() {
       }
 
       const yearSlug = slugifyTermPart(activeTahunPelajaran).replace(/-/g, '_');
-      let batch = writeBatch(db);
-      let ops = 0;
-      for (const s of toCopy) {
-        const targetRef = doc(db, 'students', `ta_${yearSlug}_${s.id}`);
-        batch.set(targetRef, {
+      if (useMysql) {
+        const payload = toCopy.map(s => ({
+          id: `ta_${yearSlug}_${s.id}`,
           nis: String(s.nis || ''),
           nama: String(s.nama || ''),
           jenisKelamin: String(s.jenisKelamin || 'L'),
           kelas: String(s.kelas || ''),
           tahunPelajaran: activeTahunPelajaran,
+          avatarUrl: s.avatarUrl || null,
+        }));
+        await studentsApiFetch('/api/students/bulk', {
+          method: 'POST',
+          body: JSON.stringify({ students: payload, preserveIds: true }),
         });
+        await fetchStudentsFromMysql();
+      } else {
+        let batch = writeBatch(db);
+        let ops = 0;
+        for (const s of toCopy) {
+          const targetRef = doc(db, 'students', `ta_${yearSlug}_${s.id}`);
+          batch.set(targetRef, {
+            nis: String(s.nis || ''),
+            nama: String(s.nama || ''),
+            jenisKelamin: String(s.jenisKelamin || 'L'),
+            kelas: String(s.kelas || ''),
+            tahunPelajaran: activeTahunPelajaran,
+          });
+          ops++;
+          if (ops === 450) {
+            await batch.commit();
+            batch = writeBatch(db);
+            ops = 0;
+          }
+        }
+        if (ops > 0) {
+          await batch.commit();
+        }
+      }
+
+      setCopyStudentsNotice({
+        type: 'success',
+        message: `Berhasil menyalin ${toCopy.length} siswa & kelas dari TA ${copySourceTahunPelajaran} ke TA ${activeTahunPelajaran}.`,
+      });
+    } catch (error: any) {
+      if (useMysql) {
+        setCopyStudentsNotice({
+          type: 'error',
+          message: error?.message || 'Gagal menyalin data siswa & kelas di MySQL.',
+        });
+      } else {
+        handleFirestoreError(error, OperationType.WRITE, 'students');
+      }
+    } finally {
+      setIsCopyingStudents(false);
+    }
+  };
+
+  const handleMigrateFirestoreStudentsToMysql = async () => {
+    if (!studentsDbStatus.configured || !studentsDbStatus.connected) {
+      setStudentsMysqlNotice({
+        type: 'error',
+        message: 'Koneksi ke MySQL (nesj8697_digilab) belum aktif. Pastikan Environment Variables / PHP Bridge sudah terkonfigurasi.',
+      });
+      return;
+    }
+    if (!ensureMysqlStudentWriteAuth()) {
+      return;
+    }
+
+    setIsMigratingStudentsToMysql(true);
+    setStudentsMysqlNotice(null);
+    try {
+      const snap = await getDocs(collection(db, 'students'));
+      if (snap.empty) {
+        setFirestoreStudents([]);
+        setStudentsMysqlNotice({
+          type: 'info',
+          message: 'Tidak ada data Siswa & Kelas yang tersisa di Firestore.',
+        });
+        return;
+      }
+
+      const payload = snap.docs
+        .map((d) => {
+          const data = d.data() as any;
+          return {
+            id: d.id,
+            nis: String(data.nis || '').trim(),
+            nama: String(data.nama || '').trim(),
+            jenisKelamin: String(data.jenisKelamin || 'L').trim() || 'L',
+            kelas: String(data.kelas || 'Umum').trim() || 'Umum',
+            tahunPelajaran: String(data.tahunPelajaran || DEFAULT_TAHUN_PELAJARAN).trim() || DEFAULT_TAHUN_PELAJARAN,
+            avatarUrl: data.avatarUrl ? String(data.avatarUrl) : null,
+          };
+        })
+        .filter((item) => item.nis || item.nama);
+
+      if (payload.length > 0) {
+        await studentsApiFetch('/api/students/bulk', {
+          method: 'POST',
+          body: JSON.stringify({ students: payload, preserveIds: true }),
+        });
+      }
+
+      const verify = await fetchStudentsFromMysql();
+      if (!verify.connected) {
+        throw new Error('Gagal memverifikasi data Siswa & Kelas di MySQL setelah penyalinan. Data Firestore tidak dihapus.');
+      }
+
+      const mysqlIdSet = new Set((verify.students || []).map((s: any) => String(s.id)));
+      const missingCount = payload.filter((p) => !mysqlIdSet.has(p.id)).length;
+      if (missingCount > 0) {
+        throw new Error(`${missingCount} data siswa belum terverifikasi masuk ke MySQL. Data Firestore dipertahankan demi keamanan.`);
+      }
+
+      let batch = writeBatch(db);
+      let ops = 0;
+      for (const d of snap.docs) {
+        batch.delete(d.ref);
         ops++;
-        if (ops === 450) {
+        if (ops === 400) {
           await batch.commit();
           batch = writeBatch(db);
           ops = 0;
@@ -1958,14 +2360,19 @@ export default function App() {
         await batch.commit();
       }
 
-      setCopyStudentsNotice({
+      setFirestoreStudents([]);
+      await fetchStudentsFromMysql();
+      setStudentsMysqlNotice({
         type: 'success',
-        message: `Berhasil menyalin ${toCopy.length} siswa & kelas dari TA ${copySourceTahunPelajaran} ke TA ${activeTahunPelajaran}.`,
+        message: `Berhasil menyalin ${payload.length} siswa & kelas ke MySQL (${studentsDbStatus.database || 'nesj8697_digilab'}) dan menghapus ${snap.docs.length} dokumen lama dari Firestore.`,
       });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'students');
+    } catch (error: any) {
+      setStudentsMysqlNotice({
+        type: 'error',
+        message: error?.message || 'Gagal memigrasikan data Siswa & Kelas ke MySQL.',
+      });
     } finally {
-      setIsCopyingStudents(false);
+      setIsMigratingStudentsToMysql(false);
     }
   };
 
@@ -2258,15 +2665,42 @@ export default function App() {
 
     const handleSelectStudentAvatar = async (url: string) => {
       if (!currentStudent?.id) return;
+      const useMysql = studentsDbStatus.configured && studentsDbStatus.connected;
       try {
-        await updateDoc(doc(db, 'students', currentStudent.id), { avatarUrl: url });
+        if (useMysql) {
+          const authToken = sessionStorage.getItem('studentAuthToken') || soalAdminToken || '';
+          const resp = await fetch('/api/students/avatar', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+            },
+            body: JSON.stringify({
+              studentId: currentStudent.id,
+              avatarUrl: url,
+            }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            throw new Error(data?.error || `Gagal menyimpan gambar profil ke MySQL (HTTP ${resp.status}).`);
+          }
+          setMysqlStudents((prev) =>
+            prev.map((s) => (s.id === currentStudent.id ? { ...s, avatarUrl: url } : s))
+          );
+        } else {
+          await updateDoc(doc(db, 'students', currentStudent.id), { avatarUrl: url });
+        }
         const updated = { ...currentStudent, avatarUrl: url };
         setCurrentStudent(updated);
         sessionStorage.setItem('currentStudent', JSON.stringify(updated));
         setIsProfilePicModalOpen(false);
         alert("Gambar profil berhasil diperbarui!");
-      } catch (err) {
-        handleFirestoreError(err, OperationType.UPDATE, `students/${currentStudent.id}`);
+      } catch (err: any) {
+        if (useMysql) {
+          alert(err?.message || 'Gagal memperbarui gambar profil siswa.');
+        } else {
+          handleFirestoreError(err, OperationType.UPDATE, `students/${currentStudent.id}`);
+        }
       }
     };
 
@@ -2393,11 +2827,13 @@ export default function App() {
                 title="Klik untuk mengganti gambar profil"
                 className={cn(
                   "w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-lg text-white shrink-0 shadow-xs cursor-pointer overflow-hidden relative group transition-transform hover:scale-105",
-                  !currentStudent?.avatarUrl && (currentStudent?.jenisKelamin === 'P' ? "bg-rose-600" : "bg-brand")
+                  currentStudent?.avatarUrl
+                    ? "bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                    : (currentStudent?.jenisKelamin === 'P' ? "bg-rose-600" : "bg-brand")
                 )}
               >
                 {currentStudent?.avatarUrl ? (
-                  <img src={currentStudent.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={currentStudent.avatarUrl} alt="Avatar" className="w-full h-full object-contain p-0.5" />
                 ) : (
                   studentInitials
                 )}
@@ -3451,8 +3887,8 @@ export default function App() {
                                     : "bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700 hover:border-brand/60"
                                 )}
                               >
-                                <div className="w-16 h-16 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                                  <img src={pic.url} alt={pic.name} className="w-full h-full object-cover" />
+                                <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                  <img src={pic.url} alt={pic.name} className="w-full h-full object-contain p-1" />
                                 </div>
                                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate w-full">{pic.name}</span>
                               </button>
@@ -5288,6 +5724,116 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Status MySQL (nesj8697_digilab) & Migrasi Data Firestore */}
+                <div className={cn(
+                  "admin-glass-card rounded-2xl p-4 border flex flex-col gap-3",
+                  studentsDbStatus.connected
+                    ? "border-emerald-200/80 dark:border-emerald-800/60"
+                    : "border-amber-200/80 dark:border-amber-800/60"
+                )}>
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center border shrink-0",
+                        studentsDbStatus.connected
+                          ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800/70 text-emerald-600 dark:text-emerald-400"
+                          : "bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800/70 text-amber-600 dark:text-amber-400"
+                      )}>
+                        <Database size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                            Database MySQL: {studentsDbStatus.database || 'nesj8697_digilab'}
+                          </h4>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-md text-[10px] font-extrabold border",
+                            studentsDbStatus.connected
+                              ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                              : "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+                          )}>
+                            {studentsDbStatus.connected
+                              ? `Terhubung (${studentsDbStatus.mode === 'php_bridge' ? 'PHP Bridge' : 'Direct MySQL'})`
+                              : studentsDbStatus.configured
+                              ? 'Gagal Terhubung'
+                              : 'Menunggu Konfigurasi'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-0.5 tabular-nums">
+                          {studentsDbStatus.connected ? (
+                            <>
+                              Sumber data aktif: <strong>MySQL ({mysqlStudents.length} siswa · {mysqlClasses.length} kelas)</strong>
+                              {' · '}
+                              Sisa data Firestore: <strong>{firestoreStudents.length}</strong>
+                            </>
+                          ) : (
+                            <>
+                              {studentsDbStatus.error || 'Menampilkan sementara data Firestore. Konfigurasikan MYSQL_* atau PHP_SOAL_API_URL untuk membaca langsung dari nesj8697_digilab.'}
+                              {' · '}
+                              Data Firestore saat ini: <strong>{firestoreStudents.length}</strong>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => fetchStudentsFromMysql()}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
+                      >
+                        <RotateCcw size={13} />
+                        Segarkan
+                      </button>
+
+                      {studentsDbStatus.connected && !soalAdminToken && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStudentsAuthPasscodeError(null);
+                            setIsStudentsAuthModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800 text-xs font-extrabold text-amber-800 dark:text-amber-300 cursor-pointer"
+                        >
+                          <Lock size={13} />
+                          Verifikasi Admin MySQL
+                        </button>
+                      )}
+
+                      {studentsDbStatus.connected && firestoreStudents.length > 0 && (
+                        <button
+                          type="button"
+                          disabled={isMigratingStudentsToMysql}
+                          onClick={handleMigrateFirestoreStudentsToMysql}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-extrabold shadow-xs transition-colors cursor-pointer"
+                        >
+                          <Database size={13} />
+                          {isMigratingStudentsToMysql
+                            ? 'Menyalin & Membersihkan...'
+                            : `Salin ${firestoreStudents.length} Data ke MySQL & Hapus Firestore`}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {studentsMysqlNotice && (
+                    <div className={cn(
+                      "px-3.5 py-2.5 rounded-xl text-xs font-bold border flex items-center justify-between gap-2",
+                      studentsMysqlNotice.type === 'success'
+                        ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                        : studentsMysqlNotice.type === 'error'
+                        ? "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800"
+                        : "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                    )}>
+                      <span>{studentsMysqlNotice.message}</span>
+                      <button type="button" onClick={() => setStudentsMysqlNotice(null)} className="opacity-70 hover:opacity-100 cursor-pointer">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {copyStudentsNotice && (
                   <div className={cn(
                     "px-4 py-2.5 rounded-xl text-xs font-bold border flex items-center justify-between gap-2",
@@ -5806,10 +6352,16 @@ export default function App() {
                     )}>
                       <div className="absolute -bottom-12 left-8 p-1.5 bg-white dark:bg-slate-900 rounded-3xl shadow-lg">
                         <div className={cn(
-                          "w-24 h-24 rounded-2xl flex items-center justify-center text-white font-black text-4xl",
-                          studentDetail.student.jenisKelamin === 'P' ? "bg-rose-500" : "bg-blue-600"
+                          "w-24 h-24 rounded-2xl flex items-center justify-center text-white font-black text-4xl overflow-hidden",
+                          studentDetail.student.avatarUrl
+                            ? "bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                            : (studentDetail.student.jenisKelamin === 'P' ? "bg-rose-500" : "bg-blue-600")
                         )}>
-                          {studentDetail.student.nama.charAt(0)}
+                          {studentDetail.student.avatarUrl ? (
+                            <img src={studentDetail.student.avatarUrl} alt={studentDetail.student.nama} className="w-full h-full object-contain p-1" />
+                          ) : (
+                            studentDetail.student.nama.charAt(0)
+                          )}
                         </div>
                       </div>
                       <button 
@@ -7080,14 +7632,46 @@ export default function App() {
 
             {adminTab === 'settings' && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Pengaturan Website & Akademik</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Konfigurasi Tahun Pelajaran, Semester aktif, tema mode gelap, logo instansi, dan latar belakang aplikasi.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Pilih tab di bawah untuk mengelola setiap bagian pengaturan secara terpisah.</p>
                   </div>
                 </div>
 
+                {/* Settings Sub-Tab Navigation (1 Card = 1 Tab Page) */}
+                <div className="flex flex-wrap gap-2 bg-white/40 dark:bg-slate-900/50 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                  {[
+                    { id: 'academic', label: 'Tahun Pelajaran & Semester', icon: CalendarDays },
+                    { id: 'jadwal', label: 'Jam & Istirahat Jadwal', icon: Clock },
+                    { id: 'theme', label: 'Mode Tampilan', icon: isDarkMode ? Moon : Sun },
+                    { id: 'logo', label: 'Logo Sekolah', icon: ImageIcon },
+                    { id: 'background', label: 'Latar Belakang', icon: Palette },
+                    { id: 'profile_pics', label: 'Gambar Profil', icon: UserCircle },
+                  ].map((tabItem) => {
+                    const IconComp = tabItem.icon;
+                    const isActive = settingsSubTab === tabItem.id;
+                    return (
+                      <button
+                        key={tabItem.id}
+                        type="button"
+                        onClick={() => setSettingsSubTab(tabItem.id as typeof settingsSubTab)}
+                        className={cn(
+                          "px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-2 cursor-pointer",
+                          isActive
+                            ? "bg-gradient-to-r from-brand to-blue-600 text-white shadow-md shadow-brand/20"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                        )}
+                      >
+                        <IconComp size={16} />
+                        <span>{tabItem.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* Card Academic Term: Tahun Pelajaran & Semester */}
+                {settingsSubTab === 'academic' && (
                 <div className="admin-glass-card rounded-2xl overflow-hidden p-6 md:p-8 space-y-5 border border-blue-200/70 dark:border-blue-800/50">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-start gap-3">
@@ -7244,8 +7828,10 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* Card: Pengaturan Jam & Istirahat Jadwal Pelajaran */}
+                {settingsSubTab === 'jadwal' && (
                 <div className="admin-glass-card rounded-2xl overflow-hidden p-6 md:p-8 space-y-5 border border-emerald-200/70 dark:border-emerald-800/50">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-start gap-3">
@@ -7498,8 +8084,10 @@ export default function App() {
                     </table>
                   </div>
                 </div>
+                )}
 
                 {/* Card 0: Theme Mode (Light / Dark) */}
+                {settingsSubTab === 'theme' && (
                 <div className="admin-glass-card rounded-2xl overflow-hidden p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start gap-3">
                     <div className={cn(
@@ -7546,8 +8134,10 @@ export default function App() {
                     </button>
                   </div>
                 </div>
+                )}
 
                 {/* Card 1: Logo Sekolah */}
+                {settingsSubTab === 'logo' && (
                 <div className="admin-glass-card rounded-2xl overflow-hidden p-6 md:p-8">
                   <div className="max-w-md space-y-4">
                     <div>
@@ -7655,8 +8245,10 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* Card 2: Background Customization (10 Distinct Styles) */}
+                {settingsSubTab === 'background' && (
                 <div className="admin-glass-card rounded-2xl overflow-hidden p-6 md:p-8 space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-start gap-3">
@@ -7738,8 +8330,10 @@ export default function App() {
                     })}
                   </div>
                 </div>
+                )}
 
                 {/* Card 3: Kelola Gambar Profil Siswa */}
+                {settingsSubTab === 'profile_pics' && (
                 <div className="admin-glass-card rounded-2xl overflow-hidden p-6 md:p-8 space-y-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-start gap-3">
@@ -7844,7 +8438,7 @@ export default function App() {
                               >
                                 <div className="flex items-center gap-3 min-w-0">
                                   <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
-                                    <img src={pic.url} alt={pic.name} className="w-full h-full object-cover" />
+                                    <img src={pic.url} alt={pic.name} className="w-full h-full object-contain p-0.5" />
                                   </div>
                                   <div className="min-w-0">
                                     <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{pic.name}</p>
@@ -7905,6 +8499,7 @@ export default function App() {
                     })}
                   </div>
                 </div>
+                )}
               </div>
             )}
 
@@ -8707,6 +9302,75 @@ export default function App() {
               </div>
             )}
           </AnimatePresence>
+          {isStudentsAuthModalOpen && (
+            <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[210] flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 w-full max-w-md p-6 md:p-7 shadow-2xl space-y-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-brand/10 dark:bg-blue-900/40 text-brand dark:text-blue-400 flex items-center justify-center shrink-0">
+                      <ShieldCheck size={22} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                        {!studentsAuthMeta.hasEnvPasscode && !studentsAuthMeta.hasClaimedPasscode
+                          ? 'Atur Passcode Admin MySQL'
+                          : 'Verifikasi Admin MySQL'}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Diperlukan untuk menyimpan, mengubah, menghapus, atau memigrasikan data Siswa & Kelas ke MySQL ({studentsDbStatus.database || 'nesj8697_digilab'}).
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsStudentsAuthModalOpen(false)}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleStudentsAuthSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                      Passcode Admin MySQL
+                    </label>
+                    <input
+                      type="password"
+                      value={studentsAuthPasscodeInput}
+                      onChange={(e) => setStudentsAuthPasscodeInput(e.target.value)}
+                      placeholder="Masukkan passcode admin MySQL..."
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand/30"
+                      autoFocus
+                    />
+                  </div>
+
+                  {studentsAuthPasscodeError && (
+                    <p className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 px-3 py-2 rounded-xl">
+                      {studentsAuthPasscodeError}
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsStudentsAuthModalOpen(false)}
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingStudentsAuth}
+                      className="px-4 py-2.5 rounded-xl bg-brand hover:bg-brand-hover disabled:opacity-60 text-white text-xs font-extrabold cursor-pointer"
+                    >
+                      {isSubmittingStudentsAuth ? 'Memverifikasi...' : 'Verifikasi'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
           {printingMaterialCourseId && (() => {
             const targetCourse = COURSES.find((c) => c.id === printingMaterialCourseId);
             if (!targetCourse) return null;
