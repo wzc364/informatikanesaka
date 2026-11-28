@@ -130,6 +130,7 @@
         "currentActivity": { "type": "string" },
         "sessionToken": { "type": "string" },
         "forceLogout": { "type": "boolean" },
+        "forceDashboardNonce": { "type": "number" },
         "loginAt": { "type": "string", "format": "date-time" },
         "lastSeen": { "type": "string", "format": "date-time" }
       },

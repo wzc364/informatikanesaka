@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -485,7 +485,20 @@ export default function App() {
   const [onlineSearch, setOnlineSearch] = useState<string>('');
   const [loggingOutStudentId, setLoggingOutStudentId] = useState<string | null>(null);
   const [isConfirmLogoutAllOnline, setIsConfirmLogoutAllOnline] = useState(false);
+  const [forcingDashboardStudentId, setForcingDashboardStudentId] = useState<string | null>(null);
+  const [isConfirmForceDashboardAll, setIsConfirmForceDashboardAll] = useState(false);
+  const [adminOnlineActionFeedback, setAdminOnlineActionFeedback] = useState<string | null>(null);
   const [forcedLogoutNotice, setForcedLogoutNotice] = useState<string | null>(null);
+  const [forcedDashboardNotice, setForcedDashboardNotice] = useState<string | null>(null);
+  const lastHandledForceDashboardRef = useRef<number>(
+    (() => {
+      try {
+        return Number(sessionStorage.getItem('lastHandledForceDashboard') || '0');
+      } catch {
+        return 0;
+      }
+    })()
+  );
   const [gameScoresList, setGameScoresList] = useState<any[]>([]);
   const [assessmentCategory, setAssessmentCategory] = useState<'materi' | 'game' | 'soal'>('materi');
 
@@ -1452,7 +1465,7 @@ export default function App() {
     };
   }, [isAdmin, currentStudent]);
 
-  // Listen for remote admin force-logout when a student is logged in
+  // Listen for remote admin force-logout and force-to-dashboard when a student is logged in
   useEffect(() => {
     if (isAdmin || !currentStudent?.id) return;
 
@@ -1463,26 +1476,66 @@ export default function App() {
       async (snap) => {
         if (!snap.exists()) return;
         const data = snap.data() as any;
+        const tokenMatches = !localToken || !data?.sessionToken || data.sessionToken === localToken;
+        if (!tokenMatches) return;
+
         if (data?.forceLogout === true) {
-          if (!localToken || !data?.sessionToken || data.sessionToken === localToken) {
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+          }
+          try {
+            sessionStorage.removeItem('lastHandledForceDashboard');
+          } catch {}
+          lastHandledForceDashboardRef.current = 0;
+          setForcedDashboardNotice(null);
+          setForcedLogoutNotice('Sesi Anda telah dihentikan oleh Guru / Admin. Silakan login kembali.');
+          setLocalCheatingAttempts(0);
+          setLocalCheatingDetails([]);
+          setCurrentStudent(null);
+          setCurrentPage('login');
+          try {
+            for (const c of COURSES) {
+              await deleteDoc(doc(db, 'active_sessions', `${studentId}_${c.id}`)).catch(() => {});
+            }
+            for (const s of soalSets) {
+              await deleteDoc(doc(db, 'active_sessions', `${studentId}_soal_${s.id}`)).catch(() => {});
+            }
+            await deleteDoc(doc(db, 'online_users', studentId)).catch(() => {});
+          } catch (e) {}
+          return;
+        }
+
+        const incomingForceDashboardNonce = Number(data?.forceDashboardNonce || 0);
+        if (incomingForceDashboardNonce > lastHandledForceDashboardRef.current) {
+          lastHandledForceDashboardRef.current = incomingForceDashboardNonce;
+          try {
+            sessionStorage.setItem('lastHandledForceDashboard', String(incomingForceDashboardNonce));
+          } catch {}
+
+          // Kembalikan siswa ke Dashboard Siswa (keluar dari game, materi, dan soal)
+          setIsPreviewingSoal(false);
+          setShowCompletionPopup(false);
+          setStudentTab('materi');
+          setCurrentPage('student_dashboard');
+          setForcedDashboardNotice('Anda telah diarahkan kembali ke Dashboard Siswa oleh Guru / Admin.');
+
+          setTimeout(() => {
+            try {
+              (screen.orientation as ScreenOrientation & { unlock?: () => void })?.unlock?.();
+            } catch {}
             if (document.fullscreenElement) {
               document.exitFullscreen().catch(() => {});
             }
-            setForcedLogoutNotice('Sesi Anda telah dihentikan oleh Guru / Admin. Silakan login kembali.');
-            setLocalCheatingAttempts(0);
-            setLocalCheatingDetails([]);
-            setCurrentStudent(null);
-            setCurrentPage('login');
-            try {
-              for (const c of COURSES) {
-                await deleteDoc(doc(db, 'active_sessions', `${studentId}_${c.id}`)).catch(() => {});
-              }
-              for (const s of soalSets) {
-                await deleteDoc(doc(db, 'active_sessions', `${studentId}_soal_${s.id}`)).catch(() => {});
-              }
-              await deleteDoc(doc(db, 'online_users', studentId)).catch(() => {});
-            } catch (e) {}
-          }
+          }, 80);
+
+          try {
+            for (const c of COURSES) {
+              await deleteDoc(doc(db, 'active_sessions', `${studentId}_${c.id}`)).catch(() => {});
+            }
+            for (const s of soalSets) {
+              await deleteDoc(doc(db, 'active_sessions', `${studentId}_soal_${s.id}`)).catch(() => {});
+            }
+          } catch (e) {}
         }
       },
       (error) => {
@@ -1836,7 +1889,11 @@ export default function App() {
         setCurrentStudent={setCurrentStudent}
         setCurrentScore={setCurrentScore}
         forcedLogoutNotice={forcedLogoutNotice}
-        onClearForcedLogoutNotice={() => setForcedLogoutNotice(null)}
+        onClearForcedLogoutNotice={() => {
+          setForcedLogoutNotice(null);
+          setForcedDashboardNotice(null);
+          lastHandledForceDashboardRef.current = 0;
+        }}
         settingsConfig={settingsConfig}
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
@@ -1946,6 +2003,11 @@ export default function App() {
       if (currentStudent) {
         const studentId = currentStudent.id;
         setForcedLogoutNotice(null);
+        setForcedDashboardNotice(null);
+        lastHandledForceDashboardRef.current = 0;
+        try {
+          sessionStorage.removeItem('lastHandledForceDashboard');
+        } catch {}
         setCurrentPage('login');
         setLocalCheatingAttempts(0);
         setLocalCheatingDetails([]);
@@ -2108,6 +2170,23 @@ export default function App() {
         </div>
 
         <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-6 w-full max-w-6xl mx-auto custom-scrollbar">
+          {forcedDashboardNotice && (
+            <div className="bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 text-blue-900 dark:text-blue-100 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Home size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                <p className="text-xs font-bold leading-snug">{forcedDashboardNotice}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setForcedDashboardNotice(null)}
+                className="p-1 rounded-lg text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 shrink-0 cursor-pointer"
+                aria-label="Tutup pemberitahuan"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          )}
+
           {/* Top Overview Bento Split: Profile + Progress | Announcements */}
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
             {/* Left: Student Welcome & Real Progress Summary */}
@@ -3767,6 +3846,69 @@ export default function App() {
                 }
               };
 
+              const handleAdminForceToDashboardStudent = async (onlineUser: any) => {
+                const targetId = onlineUser.studentId || onlineUser.id;
+                if (!targetId) return;
+                setForcingDashboardStudentId(targetId);
+                try {
+                  const nonce = Date.now();
+                  await setDoc(
+                    doc(db, 'online_users', targetId),
+                    {
+                      forceDashboardNonce: nonce,
+                      forcedDashboardAt: serverTimestamp(),
+                    },
+                    { merge: true }
+                  );
+                  const relatedSessions = activeSessions.filter(s => s.studentId === targetId);
+                  for (const sess of relatedSessions) {
+                    await deleteDoc(doc(db, 'active_sessions', sess.id)).catch(() => {});
+                  }
+                  setAdminOnlineActionFeedback(`${onlineUser.studentName || 'Siswa'} diarahkan ke Dashboard Siswa.`);
+                  setTimeout(() => setAdminOnlineActionFeedback(null), 4000);
+                } catch (err) {
+                  handleFirestoreError(err, OperationType.WRITE, `online_users/${targetId}`);
+                } finally {
+                  setForcingDashboardStudentId(null);
+                }
+              };
+
+              const handleAdminForceAllToDashboard = async () => {
+                if (filteredOnlineUsers.length === 0) {
+                  setIsConfirmForceDashboardAll(false);
+                  return;
+                }
+                setForcingDashboardStudentId('ALL');
+                try {
+                  const nonce = Date.now();
+                  await Promise.all(
+                    filteredOnlineUsers.map(async (u) => {
+                      const targetId = u.studentId || u.id;
+                      if (!targetId) return;
+                      await setDoc(
+                        doc(db, 'online_users', targetId),
+                        {
+                          forceDashboardNonce: nonce,
+                          forcedDashboardAt: serverTimestamp(),
+                        },
+                        { merge: true }
+                      );
+                      const relatedSessions = activeSessions.filter(s => s.studentId === targetId);
+                      for (const sess of relatedSessions) {
+                        await deleteDoc(doc(db, 'active_sessions', sess.id)).catch(() => {});
+                      }
+                    })
+                  );
+                  setIsConfirmForceDashboardAll(false);
+                  setAdminOnlineActionFeedback(`${filteredOnlineUsers.length} siswa diarahkan ke Dashboard Siswa.`);
+                  setTimeout(() => setAdminOnlineActionFeedback(null), 4000);
+                } catch (err) {
+                  handleFirestoreError(err, OperationType.WRITE, 'online_users');
+                } finally {
+                  setForcingDashboardStudentId(null);
+                }
+              };
+
               return (
                 <div className="space-y-6">
                   {/* Kartu Kelola Administrasi, Kelola Game, Kelola Materi & Kelola Soal */}
@@ -4141,26 +4283,63 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Search, Class Filter & Logout Semua Bar */}
+                      {/* Search, Class Filter, Paksa ke Dashboard & Logout Semua Bar */}
                       {onlineUsersList.length > 0 && (
                         <div className="px-5 py-3 bg-white/15 dark:bg-white/5 border-b border-white/35 dark:border-white/10 space-y-2.5">
-                          <div className="flex items-center gap-2">
-                            <div className="relative flex-1 min-w-0">
-                              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                              <input
-                                type="text"
-                                value={onlineSearch}
-                                onChange={(e) => setOnlineSearch(e.target.value)}
-                                placeholder="Cari nama / NISN siswa online..."
-                                className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                              />
-                            </div>
+                          <div className="relative w-full">
+                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                              type="text"
+                              value={onlineSearch}
+                              onChange={(e) => setOnlineSearch(e.target.value)}
+                              placeholder="Cari nama / NISN siswa online..."
+                              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                            />
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            {!isConfirmForceDashboardAll ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsConfirmLogoutAllOnline(false);
+                                  setIsConfirmForceDashboardAll(true);
+                                }}
+                                disabled={filteredOnlineUsers.length === 0 || forcingDashboardStudentId !== null || loggingOutStudentId !== null}
+                                className="flex-1 min-w-[140px] px-2.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-600 hover:text-white text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                                title="Paksa semua siswa keluar dari game, materi, atau soal ke Dashboard Siswa"
+                              >
+                                <Home size={12} />
+                                <span>Semua ke Dashboard</span>
+                              </button>
+                            ) : (
+                              <div className="flex-1 min-w-[140px] flex items-center justify-between gap-1 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-xl p-1">
+                                <button
+                                  type="button"
+                                  onClick={handleAdminForceAllToDashboard}
+                                  disabled={forcingDashboardStudentId === 'ALL'}
+                                  className="flex-1 px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-extrabold cursor-pointer disabled:opacity-50"
+                                >
+                                  {forcingDashboardStudentId === 'ALL' ? 'Memproses...' : `Ya, Dashboard (${filteredOnlineUsers.length})`}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsConfirmForceDashboardAll(false)}
+                                  className="px-2 py-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold cursor-pointer"
+                                >
+                                  Batal
+                                </button>
+                              </div>
+                            )}
 
                             {!isConfirmLogoutAllOnline ? (
                               <button
                                 type="button"
-                                onClick={() => setIsConfirmLogoutAllOnline(true)}
-                                disabled={filteredOnlineUsers.length === 0 || loggingOutStudentId !== null}
+                                onClick={() => {
+                                  setIsConfirmForceDashboardAll(false);
+                                  setIsConfirmLogoutAllOnline(true);
+                                }}
+                                disabled={filteredOnlineUsers.length === 0 || loggingOutStudentId !== null || forcingDashboardStudentId !== null}
                                 className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-600 hover:text-white text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[11px] font-extrabold inline-flex items-center gap-1 shrink-0 transition-colors cursor-pointer disabled:opacity-40"
                                 title="Logoutkan semua siswa yang tampil"
                               >
@@ -4187,6 +4366,13 @@ export default function App() {
                               </div>
                             )}
                           </div>
+
+                          {adminOnlineActionFeedback && (
+                            <div className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-200 text-[11px] font-bold flex items-center gap-1.5">
+                              <CheckCircle size={12} className="shrink-0" />
+                              <span>{adminOnlineActionFeedback}</span>
+                            </div>
+                          )}
 
                           {onlineDistinctClasses.length > 0 && (
                             <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-0.5">
@@ -4249,6 +4435,7 @@ export default function App() {
                                 })
                               : null;
                             const isLoggingOut = loggingOutStudentId === targetId || loggingOutStudentId === 'ALL';
+                            const isForcingDashboard = forcingDashboardStudentId === targetId || forcingDashboardStudentId === 'ALL';
 
                             return (
                               <div
@@ -4282,16 +4469,28 @@ export default function App() {
                                     </div>
                                   </div>
 
-                                  <button
-                                    type="button"
-                                    disabled={isLoggingOut}
-                                    onClick={() => handleAdminForceLogoutStudent(u)}
-                                    className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-600 text-rose-700 dark:text-rose-300 hover:text-white border border-rose-200 dark:border-rose-800 text-[11px] font-extrabold inline-flex items-center gap-1 shrink-0 transition-colors cursor-pointer disabled:opacity-50"
-                                    title={`Keluarkan / logoutkan ${u.studentName} dari sistem`}
-                                  >
-                                    <LogOut size={12} />
-                                    <span>{isLoggingOut ? 'Keluar...' : 'Logout'}</span>
-                                  </button>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      disabled={isForcingDashboard || isLoggingOut}
+                                      onClick={() => handleAdminForceToDashboardStudent(u)}
+                                      className="px-2 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-600 text-blue-700 dark:text-blue-300 hover:text-white border border-blue-200 dark:border-blue-800 text-[11px] font-extrabold inline-flex items-center gap-1 shrink-0 transition-colors cursor-pointer disabled:opacity-50"
+                                      title={`Arahkan ${u.studentName} kembali ke Dashboard Siswa (keluar dari game/materi/soal)`}
+                                    >
+                                      <Home size={12} />
+                                      <span className="hidden sm:inline">{isForcingDashboard ? 'Proses...' : 'Dashboard'}</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={isLoggingOut || isForcingDashboard}
+                                      onClick={() => handleAdminForceLogoutStudent(u)}
+                                      className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-600 text-rose-700 dark:text-rose-300 hover:text-white border border-rose-200 dark:border-rose-800 text-[11px] font-extrabold inline-flex items-center gap-1 shrink-0 transition-colors cursor-pointer disabled:opacity-50"
+                                      title={`Keluarkan / logoutkan ${u.studentName} dari sistem`}
+                                    >
+                                      <LogOut size={12} />
+                                      <span>{isLoggingOut ? 'Keluar...' : 'Logout'}</span>
+                                    </button>
+                                  </div>
                                 </div>
 
                                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 text-[11px]">

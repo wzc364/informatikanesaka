@@ -114,6 +114,9 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
       const sessionToken = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
       const studentObj = { id: matchingDocs[0].id, ...studentData, sessionToken };
       
+      try {
+        sessionStorage.removeItem('lastHandledForceDashboard');
+      } catch {}
       await setDoc(doc(db, 'online_users', studentObj.id), {
         studentId: studentObj.id,
         nis: (studentData as any).nis || '',
@@ -124,6 +127,7 @@ export default function Login({ setCurrentPage, setIsAdmin, setCurrentStudent, s
         currentActivity: 'Dashboard Siswa',
         sessionToken,
         forceLogout: false,
+        forceDashboardNonce: 0,
         loginAt: serverTimestamp(),
         lastSeen: serverTimestamp(),
       });
