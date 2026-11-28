@@ -2238,58 +2238,6 @@ export default function App() {
             </span>
           </div>
 
-          {/* Zone 2: Clean Desktop Tab Navigation */}
-          <nav className="hidden md:flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-            <button
-              onClick={() => setStudentTab('materi')}
-              className={cn(
-                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer",
-                studentTab === 'materi'
-                  ? "bg-white dark:bg-slate-700 text-brand dark:text-blue-300 shadow-2xs"
-                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-              )}
-            >
-              <BookOpen size={14} />
-              <span>Materi</span>
-            </button>
-            <button
-              onClick={() => setStudentTab('soal')}
-              className={cn(
-                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer tabular-nums",
-                studentTab === 'soal'
-                  ? "bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-2xs"
-                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-              )}
-            >
-              <ClipboardList size={14} />
-              <span>{activeSoalSets.length > 0 ? `Latihan Soal (${activeSoalSets.length})` : 'Latihan Soal'}</span>
-            </button>
-            <button
-              onClick={() => setStudentTab('games')}
-              className={cn(
-                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer",
-                studentTab === 'games'
-                  ? "bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-2xs"
-                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-              )}
-            >
-              <Gamepad2 size={14} />
-              <span>Game Edukasi</span>
-            </button>
-            <button
-              onClick={() => setStudentTab('skor')}
-              className={cn(
-                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer",
-                studentTab === 'skor'
-                  ? "bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 shadow-2xs"
-                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-              )}
-            >
-              <Trophy size={14} />
-              <span>Skor Saya</span>
-            </button>
-          </nav>
-
           {/* Zone 3: Student Account, Theme Toggle & Logout */}
           <div className="flex items-center gap-2.5 shrink-0">
             <div className="hidden sm:flex items-center gap-2 text-right mr-0.5">
@@ -2635,8 +2583,60 @@ export default function App() {
             )}
             </section>
 
-            {/* Right Column: Main Tab Content (sejajar Kartu Profil) */}
-            <div className="lg:col-span-7 min-w-0">
+            {/* Right Column: Navigation + Main Tab Content (sejajar Kartu Profil) */}
+            <div className="lg:col-span-7 min-w-0 space-y-4">
+              {/* Desktop Tab Navigation placed directly above the content div */}
+              <nav className="hidden md:flex items-center gap-1.5 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs transition-colors">
+                <button
+                  onClick={() => setStudentTab('materi')}
+                  className={cn(
+                    "flex-1 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer",
+                    studentTab === 'materi'
+                      ? "bg-brand text-white shadow-2xs"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                  )}
+                >
+                  <BookOpen size={14} />
+                  <span>Materi</span>
+                </button>
+                <button
+                  onClick={() => setStudentTab('soal')}
+                  className={cn(
+                    "flex-1 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer tabular-nums",
+                    studentTab === 'soal'
+                      ? "bg-emerald-600 text-white shadow-2xs"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                  )}
+                >
+                  <ClipboardList size={14} />
+                  <span>{activeSoalSets.length > 0 ? `Latihan Soal (${activeSoalSets.length})` : 'Latihan Soal'}</span>
+                </button>
+                <button
+                  onClick={() => setStudentTab('games')}
+                  className={cn(
+                    "flex-1 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer",
+                    studentTab === 'games'
+                      ? "bg-indigo-600 text-white shadow-2xs"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                  )}
+                >
+                  <Gamepad2 size={14} />
+                  <span>Game Edukasi</span>
+                </button>
+                <button
+                  onClick={() => setStudentTab('skor')}
+                  className={cn(
+                    "flex-1 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer",
+                    studentTab === 'skor'
+                      ? "bg-amber-600 text-white shadow-2xs"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                  )}
+                >
+                  <Trophy size={14} />
+                  <span>Skor Saya</span>
+                </button>
+              </nav>
+
               {studentTab === 'games' ? (
             <AdminGames isAdmin={false} currentStudent={currentStudent} studentsList={scopedStudents} />
           ) : studentTab === 'skor' ? (() => {
@@ -2944,8 +2944,8 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                    <div className="relative flex-1 sm:w-56">
+                  <div className="flex flex-col items-stretch gap-2 md:w-64 shrink-0">
+                    <div className="relative w-full">
                       <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                       <input
                         type="text"
@@ -2956,7 +2956,7 @@ export default function App() {
                       />
                     </div>
 
-                    <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
+                    <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                       {([
                         { id: 'all', label: 'Semua' },
                         { id: 'todo', label: 'Belum' },
@@ -2966,7 +2966,7 @@ export default function App() {
                           key={opt.id}
                           onClick={() => setStudentCatalogFilter(opt.id)}
                           className={cn(
-                            "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer",
+                            "flex-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer text-center",
                             studentCatalogFilter === opt.id
                               ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs"
                               : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
