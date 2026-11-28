@@ -443,6 +443,7 @@ export default function App() {
     profilePicturesList: DEFAULT_PROFILE_PICTURES,
   });
   const [isProfilePicModalOpen, setIsProfilePicModalOpen] = useState(false);
+  const [isAnnouncementsExpanded, setIsAnnouncementsExpanded] = useState(false);
   const [jadwalSettingsDraft, setJadwalSettingsDraft] = useState<JadwalScheduleSettings>(
     DEFAULT_JADWAL_SCHEDULE_SETTINGS
   );
@@ -3037,49 +3038,62 @@ export default function App() {
 
             {/* Pengumuman Guru (inside Student Profile Card, below Nilai — tampil hanya jika ada pengumuman) */}
             {filteredAnnouncements.length > 0 && (
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col">
-                <div className="flex items-center justify-between gap-2 mb-3">
+              <div 
+                onClick={() => setIsAnnouncementsExpanded(prev => !prev)}
+                className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col cursor-pointer group"
+                title="Klik untuk tampilkan semua pengumuman"
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
                     <Megaphone size={15} className="text-brand dark:text-blue-400 shrink-0" />
-                    <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-100">
+                    <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-100 group-hover:text-brand transition-colors">
                       Pengumuman Guru
                     </h2>
                   </div>
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
-                    {filteredAnnouncements.length} info
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-brand dark:text-blue-400 bg-brand/10 dark:bg-blue-950/60 px-2.5 py-1 rounded-xl tabular-nums">
+                    {isAnnouncementsExpanded ? 'Sembunyikan' : `Tampilkan Semua (${filteredAnnouncements.length})`}
                   </span>
                 </div>
 
-                <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 pr-1 custom-scrollbar rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/70 px-3.5 py-2.5">
-                  {filteredAnnouncements.map(msg => (
-                    <div key={msg.id} className="py-2.5 first:pt-0 last:pb-0 space-y-1">
-                      <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
-                        <span className="text-brand dark:text-blue-400 font-bold">
-                          {msg.targetType === 'all' ? 'Semua Siswa' : msg.targetType === 'class' ? `Kelas ${msg.targetValue}` : 'Pesan Pribadi'}
-                        </span>
-                        <span>
-                          {msg.timestamp?.toDate()
-                            ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(msg.timestamp.toDate())
-                            : ''}
-                        </span>
+                {!isAnnouncementsExpanded && filteredAnnouncements[0] && (
+                  <div className="px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/70 text-xs text-slate-600 dark:text-slate-300 truncate">
+                    <span className="font-bold text-slate-900 dark:text-white mr-1.5">Terbaru:</span>
+                    {filteredAnnouncements[0].content}
+                  </div>
+                )}
+
+                {isAnnouncementsExpanded && (
+                  <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 pr-1 custom-scrollbar rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/70 px-3.5 py-2.5 mt-1" onClick={e => e.stopPropagation()}>
+                    {filteredAnnouncements.map(msg => (
+                      <div key={msg.id} className="py-2.5 first:pt-0 last:pb-0 space-y-1">
+                        <div className="flex items-center justify-between gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                          <span className="text-brand dark:text-blue-400 font-bold">
+                            {msg.targetType === 'all' ? 'Semua Siswa' : msg.targetType === 'class' ? `Kelas ${msg.targetValue}` : 'Pesan Pribadi'}
+                          </span>
+                          <span>
+                            {msg.timestamp?.toDate()
+                              ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(msg.timestamp.toDate())
+                              : ''}
+                          </span>
+                        </div>
+                        <p className="text-xs md:text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed break-words">
+                          {msg.content}
+                        </p>
+                        {msg.link && (
+                          <a
+                            href={msg.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-brand dark:text-blue-400 hover:underline pt-0.5"
+                          >
+                            <span>Buka Tautan</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
                       </div>
-                      <p className="text-xs md:text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed break-words">
-                        {msg.content}
-                      </p>
-                      {msg.link && (
-                        <a
-                          href={msg.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-brand dark:text-blue-400 hover:underline pt-0.5"
-                        >
-                          <span>Buka Tautan</span>
-                          <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             </section>
